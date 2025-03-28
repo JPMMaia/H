@@ -19,7 +19,7 @@ export module h.compiler.jit_runner;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.file_watcher;
-import h.compiler.hash;
+import h.core.hash;
 import h.compiler.jit_compiler;
 import h.compiler.repository;
 import h.compiler.target;

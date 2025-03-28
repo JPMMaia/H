@@ -7,6 +7,7 @@ module;
 #include <ostream>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -810,4 +811,15 @@ namespace h
         Module const& core_module,
         Module_reference const& module_reference
     );
+
+    export Custom_type_reference const* find_declaration_type_reference(
+        Type_reference const& type_reference
+    );
+
+    export std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view name);
+    export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
+    export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
+    export std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name);
+    export std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view name);
+    export std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view name);
 }

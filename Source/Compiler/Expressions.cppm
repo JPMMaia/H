@@ -63,8 +63,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data;
         Module const& core_module;
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies;
-        Declaration_database const& declaration_database;
-        Type_database const& type_database;
+        Declaration_database& declaration_database;
+        Type_database& type_database;
         Enum_value_constants const& enum_value_constants;
         std::span<Block_info const> blocks;
         std::span<std::pmr::vector<Statement>> defer_expressions_per_block;

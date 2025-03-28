@@ -41,7 +41,7 @@ import h.compiler.artifact;
 import h.compiler.common;
 import h.compiler.core_module_layer;
 import h.compiler.file_watcher;
-import h.compiler.hash;
+import h.core.hash;
 import h.compiler.jit_compiler;
 import h.compiler.recompilation;
 import h.compiler.repository;

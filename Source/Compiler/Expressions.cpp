@@ -2292,6 +2292,47 @@ namespace h::compiler
         };
     }
 
+    struct Declaration_to_instantiate
+    {
+        Declaration declaration;
+        Custom_type_reference const* type_reference;
+    };
+
+    std::optional<Declaration_to_instantiate> get_declaration_type_to_instantiate(
+        Declaration_database const& declaration_database,
+        Type_reference const& type_reference
+    )
+    {
+        std::optional<Declaration> const declaration = find_declaration(declaration_database, type_reference);
+        if (!declaration.has_value())
+            return std::nullopt;
+
+        if (std::holds_alternative<Alias_type_declaration const*>(declaration.value().data))
+        {
+            Alias_type_declaration const& alias_type_declaration = *std::get<Alias_type_declaration const*>(declaration.value().data);
+            if (alias_type_declaration.type.empty())
+                return std::nullopt;
+
+            return get_declaration_type_to_instantiate(declaration_database, alias_type_declaration.type[0]);
+        }
+        else if (std::holds_alternative<Struct_declaration const*>(declaration.value().data) || std::holds_alternative<Union_declaration const*>(declaration.value().data))
+        {
+            Custom_type_reference const* custom_type_reference = find_declaration_type_reference(type_reference);
+            if (custom_type_reference == nullptr)
+                return std::nullopt;
+                
+            return Declaration_to_instantiate
+            {
+                .declaration = declaration.value(),
+                .type_reference = custom_type_reference
+            };
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
     Value_and_type create_instantiate_expression_value(
         Instantiate_expression const& expression,
         Expression_parameters const& parameters
@@ -2300,31 +2341,34 @@ namespace h::compiler
         Declaration_database const& declaration_database = parameters.declaration_database;
 
         if (!parameters.expression_type.has_value())
-            throw std::runtime_error{ "Could not infer struct type while trying to instantiate!" };
+            throw std::runtime_error{ "Could not infer type while trying to instantiate!" };
 
         Type_reference const& type_reference = parameters.expression_type.value();
-        if (!std::holds_alternative<Custom_type_reference>(type_reference.data))
-            throw std::runtime_error{ "Could not instantiate struct because the type is not a struct!" };
 
-        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
-        std::string_view const declaration_module_name = find_module_name(parameters.core_module, custom_type_reference.module_reference);
-        std::optional<Declaration> const declaration = find_declaration(declaration_database, declaration_module_name, custom_type_reference.name);
+        std::optional<Declaration_to_instantiate> const found_instance = get_declaration_type_to_instantiate(
+            declaration_database,
+            type_reference
+        );
+        if (!found_instance.has_value())
+            throw std::runtime_error{ "Could not instantiate type!" };
+        
+        Custom_type_reference const* custom_type_reference = found_instance->type_reference;
+        std::string_view const declaration_module_name = custom_type_reference->module_reference.name;
 
-        if (!declaration.has_value())
-            throw std::runtime_error{ std::format("Could not find struct type declaration '{}.{}' while trying to instantiate struct!", declaration_module_name, custom_type_reference.name) };
+        Declaration const declaration = found_instance->declaration;
 
-        if (std::holds_alternative<Struct_declaration const*>(declaration.value().data))
+        if (std::holds_alternative<Struct_declaration const*>(declaration.data))
         {
-            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.value().data);
+            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
             return create_instantiate_struct_expression_value(expression, parameters, declaration_module_name, struct_declaration, type_reference);
         }
-        else if (std::holds_alternative<Union_declaration const*>(declaration.value().data))
+        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
         {
-            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.value().data);
+            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
             return create_instantiate_union_expression_value(expression, parameters, declaration_module_name, union_declaration, type_reference);
         }
 
-        throw std::runtime_error{ std::format("Instantiate_expression can only be used to instantiate either structs or unions! Tried to instantiate '{}.{}'", declaration_module_name, custom_type_reference.name) };
+        throw std::runtime_error{ std::format("Instantiate_expression can only be used to instantiate either structs or unions! Tried to instantiate '{}.{}'", declaration_module_name, custom_type_reference->name) };
     }
 
     Value_and_type create_null_pointer_expression_value(
@@ -2818,7 +2862,8 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         Module const& core_module = parameters.core_module;
-        Type_database const& type_database = parameters.type_database;
+        Declaration_database& declaration_database = parameters.declaration_database;
+        Type_database& type_database = parameters.type_database;
 
         Type_reference const& core_type = expression.type;
 

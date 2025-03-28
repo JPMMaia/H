@@ -29,7 +29,9 @@ namespace h
         std::span<h::Global_variable_declaration const> global_variable_declarations,
         std::span<h::Struct_declaration const> const struct_declarations,
         std::span<h::Union_declaration const> const union_declarations,
-        std::span<h::Function_declaration const> const function_declarations
+        std::span<h::Function_declaration const> const function_declarations,
+        std::span<h::Function_constructor const> const function_constructors,
+        std::span<h::Type_constructor const> const type_constructors
     )
     {
         Declaration_map& map = database.map[module_name.data()];
@@ -40,6 +42,11 @@ namespace h
         }
 
         for (Enum_declaration const& declaration : enum_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+        }
+
+        for (Function_constructor const& declaration : function_constructors)
         {
             map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
         }
@@ -55,6 +62,11 @@ namespace h
         }
 
         for (Struct_declaration const& declaration : struct_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+        }
+
+        for (Type_constructor const& declaration : type_constructors)
         {
             map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
         }
@@ -78,7 +90,9 @@ namespace h
             module.export_declarations.global_variable_declarations,
             module.export_declarations.struct_declarations,
             module.export_declarations.union_declarations,
-            module.export_declarations.function_declarations
+            module.export_declarations.function_declarations,
+            module.export_declarations.function_constructors,
+            module.export_declarations.type_constructors
         );
 
         add_declarations(
@@ -89,8 +103,19 @@ namespace h
             module.export_declarations.global_variable_declarations,
             module.internal_declarations.struct_declarations,
             module.internal_declarations.union_declarations,
-            module.internal_declarations.function_declarations
+            module.internal_declarations.function_declarations,
+            module.export_declarations.function_constructors,
+            module.export_declarations.type_constructors
         );
+    }
+
+    void add_instance_type_struct_declaration(
+        Declaration_database& database,
+        Type_instance const& type_instance,
+        Struct_declaration const& struct_declaration
+    )
+    {
+        database.instances.insert(std::make_pair(type_instance, Declaration_instance_storage{ .data = struct_declaration }));
     }
 
     std::optional<Declaration> find_declaration(
@@ -109,6 +134,57 @@ namespace h
             return std::nullopt;
 
         return declaration_location->second;
+    }
+
+    std::optional<Declaration> find_declaration(
+        Declaration_database const& database,
+        Type_reference const& type_reference
+    )
+    {
+        if (std::holds_alternative<Custom_type_reference>(type_reference.data))
+        {
+            Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(type_reference.data);
+            std::string_view const declaration_module_name = custom_type_reference.module_reference.name;
+            std::string_view const declaration_name = custom_type_reference.name;
+            return find_declaration(database, declaration_module_name, declaration_name);
+        }
+        else if (std::holds_alternative<Type_instance>(type_reference.data))
+        {
+            Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
+
+            auto const declaration_location = database.instances.find(type_instance);
+            if (declaration_location == database.instances.end())
+                return std::nullopt;
+
+            Declaration_instance_storage const& instance_storage = declaration_location->second;
+            if (std::holds_alternative<Alias_type_declaration>(instance_storage.data))
+            {
+                Alias_type_declaration const& declaration = std::get<Alias_type_declaration>(instance_storage.data);
+                return Declaration{ .data = &declaration };
+            }
+            else if (std::holds_alternative<Enum_declaration>(instance_storage.data))
+            {
+                Enum_declaration const& declaration = std::get<Enum_declaration>(instance_storage.data);
+                return Declaration{ .data = &declaration };
+            }
+            else if (std::holds_alternative<Function_declaration>(instance_storage.data))
+            {
+                Function_declaration const& declaration = std::get<Function_declaration>(instance_storage.data);
+                return Declaration{ .data = &declaration };
+            }
+            else if (std::holds_alternative<Struct_declaration>(instance_storage.data))
+            {
+                Struct_declaration const& declaration = std::get<Struct_declaration>(instance_storage.data);
+                return Declaration{ .data = &declaration };
+            }
+            else if (std::holds_alternative<Union_declaration>(instance_storage.data))
+            {
+                Union_declaration const& declaration = std::get<Union_declaration>(instance_storage.data);
+                return Declaration{ .data = &declaration };
+            }
+        }
+
+        return std::nullopt;
     }
 
     std::optional<Type_reference> get_underlying_type(

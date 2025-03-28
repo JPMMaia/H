@@ -3193,6 +3193,30 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
+%"struct.Type_constructor_Dynamic_array@8831204671557794709" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@14929829368082488405" = type { ptr, i64 }
+%struct.Type_constructor_My_struct = type { %"struct.Type_constructor_Dynamic_array@8967508518922657926" }
+%"struct.Type_constructor_Dynamic_array@8967508518922657926" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@7558541099251570611" = type { ptr, i64 }
+
+; Function Attrs: convergent
+define private void @Type_constructor_run(ptr %"arguments[0].instance_0_0", i64 %"arguments[0].instance_0_1") #0 {
+entry:
+  %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@8831204671557794709", align 8
+  %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@14929829368082488405", align 8
+  %instance_2 = alloca %struct.Type_constructor_My_struct, align 8
+  %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@7558541099251570611", align 8
+  %0 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
+  store ptr %"arguments[0].instance_0_0", ptr %0, align 8
+  %1 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
+  store i64 %"arguments[0].instance_0_1", ptr %1, align 8
+  store %"struct.Type_constructor_Dynamic_array@14929829368082488405" zeroinitializer, ptr %instance_1, align 8
+  store %struct.Type_constructor_My_struct zeroinitializer, ptr %instance_2, align 8
+  store %"struct.Type_constructor_Dynamic_array@7558541099251570611" zeroinitializer, ptr %instance_3, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

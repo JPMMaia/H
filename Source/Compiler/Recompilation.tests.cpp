@@ -8,7 +8,7 @@
 
 import h.common;
 import h.compiler;
-import h.compiler.hash;
+import h.core.hash;
 import h.compiler.recompilation;
 import h.core;
 import h.json_serializer;
@@ -94,7 +94,7 @@ namespace h
         std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
         h::Module const previous_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_b, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_b, {});
 
         std::string_view const new_module_b_code = R"(    
             module B;
@@ -108,7 +108,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
         h::Module const new_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_b, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_b, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -179,7 +179,7 @@ namespace h
         std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
         h::Module const previous_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_b, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_b, {});
 
         std::string_view const new_module_b_code = R"(
             module B;
@@ -198,7 +198,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_b_file_path);
 
         h::Module const new_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_b, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_b, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -264,7 +264,7 @@ namespace h
         std::filesystem::path const module_b_file_path = parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
         h::Module const previous_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_b, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_b, {});
 
         std::string_view const new_module_b_code = R"(
             module B;
@@ -283,7 +283,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_b_code_file_path);
 
         h::Module const new_module_b = read_core_module(module_b_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_b, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_b, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -369,7 +369,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -388,7 +388,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -476,7 +476,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -490,7 +490,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -576,7 +576,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -591,7 +591,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -668,7 +668,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -679,7 +679,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -760,7 +760,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -775,7 +775,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -858,7 +858,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -872,7 +872,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path
@@ -954,7 +954,7 @@ namespace h
         std::filesystem::path const module_c_file_path = parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const previous_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const previous_symbol_name_to_hash = h::compiler::hash_module_declarations(previous_module_c, {});
+        h::Symbol_name_to_hash const previous_symbol_name_to_hash = h::hash_module_declarations(previous_module_c, {});
 
         std::string_view const new_module_c_code = R"(
             module C;
@@ -968,7 +968,7 @@ namespace h
         parse_core_module(parser, build_directory_path, module_c_code_file_path);
 
         h::Module const new_module_c = read_core_module(module_c_file_path);
-        h::compiler::Symbol_name_to_hash const new_symbol_name_to_hash = h::compiler::hash_module_declarations(new_module_c, {});
+        h::Symbol_name_to_hash const new_symbol_name_to_hash = h::hash_module_declarations(new_module_c, {});
 
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path

@@ -149,6 +149,11 @@ namespace h::compiler
         std::string_view const declaration_name
     );
 
+    export llvm::Type* convert_type(
+        Clang_module_data const& clang_module_data,
+        clang::RecordDecl* const record_declaration
+    );
+
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,

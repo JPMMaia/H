@@ -34,6 +34,7 @@ export module h.compiler.clang_data;
 
 import h.core;
 import h.core.declarations;
+import h.core.hash;
 import h.core.string_hash;
 
 namespace h::compiler
@@ -61,6 +62,7 @@ namespace h::compiler
     export struct Clang_declaration_database
     {
         std::pmr::unordered_map<std::pmr::string, Clang_module_declarations, h::String_hash, h::String_equal> map;
+        std::pmr::unordered_map<h::Type_instance, clang::RecordDecl*, Type_instance_hash> instances;
     };
 
     export struct Clang_module_data
@@ -75,6 +77,6 @@ namespace h::compiler
         Clang_data const& clang_data,
         h::Module const& core_module,
         std::span<h::Module const* const> const sorted_core_module_dependencies,
-        Declaration_database const& declaration_database
+        Declaration_database& declaration_database
     );
 }

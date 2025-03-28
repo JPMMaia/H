@@ -195,8 +195,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         Module const& core_module,
         Function_declaration const& function_declaration,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -340,8 +340,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -395,8 +395,8 @@ namespace h::compiler
         Function_declaration const& function_declaration,
         Function_definition const& function_definition,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* debug_info,
         Compilation_options const& compilation_options,
@@ -581,8 +581,8 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* const debug_info,
         Compilation_options const& compilation_options,
@@ -754,8 +754,8 @@ namespace h::compiler
         std::span<Function_declaration const> const function_declarations,
         std::optional<std::span<std::pmr::string const> const> const functions_to_add,
         std::span<Global_variable_declaration const> const global_variable_declarations,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -867,8 +867,8 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -909,7 +909,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Type_database const& type_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Compilation_options const& compilation_options
     )
@@ -1001,7 +1001,7 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
-        Declaration_database const& declaration_database,
+        Declaration_database& declaration_database,
         Type_database& type_database,
         Compilation_options const& compilation_options
     )

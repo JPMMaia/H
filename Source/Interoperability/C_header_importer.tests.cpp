@@ -89,7 +89,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == stdio_header_path);
 
-        h::Function_declaration const& actual = find_function_declaration(header_module, "puts");
+        h::Function_declaration const& actual = h::c::find_function_declaration(header_module, "puts");
 
         CHECK(actual.name == "puts");
 
@@ -125,7 +125,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == time_header_path);
 
-        h::Alias_type_declaration const& actual = find_alias_type_declaration(header_module, "time_t");
+        h::Alias_type_declaration const& actual = h::c::find_alias_type_declaration(header_module, "time_t");
 
         CHECK(actual.name == "time_t");
 
@@ -144,7 +144,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Enum_declaration const& actual = find_enum_declaration(header_module, "VkPhysicalDeviceType");
+        h::Enum_declaration const& actual = h::c::find_enum_declaration(header_module, "VkPhysicalDeviceType");
 
         CHECK(actual.name == "VkPhysicalDeviceType");
         REQUIRE(actual.unique_name.has_value());
@@ -177,7 +177,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
 
         CHECK(actual.name == "VkCommandPoolCreateInfo");
 
@@ -220,7 +220,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkExtent2D");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkExtent2D");
 
         CHECK(actual.name == "VkExtent2D");
 
@@ -276,7 +276,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkRect2D");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkRect2D");
 
         CHECK(actual.name == "VkRect2D");
 
@@ -357,7 +357,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkClearAttachment");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkClearAttachment");
 
         CHECK(actual.name == "VkClearAttachment");
 
@@ -515,7 +515,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkBufferCreateInfo");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkBufferCreateInfo");
 
         CHECK(actual.name == "VkBufferCreateInfo");
 
@@ -586,7 +586,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Union_declaration const& actual = find_union_declaration(header_module, "VkClearColorValue");
+        h::Union_declaration const& actual = h::c::find_union_declaration(header_module, "VkClearColorValue");
 
         CHECK(actual.name == "VkClearColorValue");
 

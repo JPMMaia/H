@@ -2499,7 +2499,9 @@ namespace h::c
             declarations_with_fixed_width_integers.global_variable_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
             declarations_with_fixed_width_integers.union_declarations,
-            declarations_with_fixed_width_integers.function_declarations
+            declarations_with_fixed_width_integers.function_declarations,
+            {},
+            {}
         );
         
         h::Module header_module

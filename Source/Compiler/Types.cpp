@@ -25,7 +25,9 @@ import h.common;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
+import h.core.hash;
 import h.core;
+import h.core.declarations;
 import h.core.types;
 
 namespace h::compiler
@@ -659,6 +661,13 @@ namespace h::compiler
 
         add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
         add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
+
+        for (std::pair<Type_instance, clang::RecordDecl* const> const& pair : clang_module_data.declaration_database.instances)
+        {
+            clang::RecordDecl* const record_declaration = pair.second;
+            llvm::Type* const clang_type = convert_type(clang_module_data, record_declaration);
+            type_database.type_instance_to_llvm_type.emplace(pair.first, clang_type);
+        }
     }
 
     void add_module_debug_types(
@@ -959,6 +968,13 @@ namespace h::compiler
         {
             Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
             return pointer_type_to_llvm_type(llvm_context, llvm_data_layout, current_module, data, type_database);
+        }
+        else if (std::holds_alternative<Type_instance>(type_reference.data))
+        {
+            Type_instance const& data = std::get<Type_instance>(type_reference.data);
+
+            llvm::Type* const llvm_type = type_database.type_instance_to_llvm_type.at(data);
+            return llvm_type;
         }
 
         throw std::runtime_error{ "Not implemented." };

@@ -141,6 +141,16 @@ namespace h
 
             return false;
         }
+        else if (std::holds_alternative<Type_instance>(type_reference.data))
+        {
+            Type_instance const& data = std::get<Type_instance>(type_reference.data);
+            
+            Type_reference const type_constructor = create_custom_type_reference(data.type_constructor.module_reference.name, data.type_constructor.name);
+            if (visit_type_references(type_constructor, predicate))
+                return true;
+
+            return visit_type_references(data.arguments, predicate);
+        }
         else
         {
             throw std::runtime_error{"visit_type_references: Did not handle type!"};
