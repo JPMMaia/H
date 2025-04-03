@@ -23,7 +23,7 @@ namespace h::compiler
     }
 
     std::string mangle_name(
-        Module const& core_module,
+        std::string_view const module_name,
         std::string_view const declaration_name,
         std::optional<std::string_view> const unique_name
     )
@@ -31,10 +31,19 @@ namespace h::compiler
         if (unique_name.has_value())
             return std::string{ *unique_name };
 
-        std::pmr::string module_name = core_module.name;
-        std::replace(module_name.begin(), module_name.end(), '.', '_');
+        std::pmr::string module_name_prefix{module_name};
+        std::replace(module_name_prefix.begin(), module_name_prefix.end(), '.', '_');
 
-        return std::format("{}_{}", module_name, declaration_name);
+        return std::format("{}_{}", module_name_prefix, declaration_name);
+    }
+
+    std::string mangle_name(
+        Module const& core_module,
+        std::string_view const declaration_name,
+        std::optional<std::string_view> const unique_name
+    )
+    {
+        return mangle_name(core_module.name, declaration_name, unique_name);
     }
 
     std::string mangle_function_name(

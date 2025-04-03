@@ -18,6 +18,12 @@ namespace h::compiler
     export std::string_view to_string_view(llvm::StringRef const string);
 
     export std::string mangle_name(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        std::optional<std::string_view> const unique_name
+    );
+
+    export std::string mangle_name(
         Module const& core_module,
         std::string_view declaration_name,
         std::optional<std::string_view> unique_name
