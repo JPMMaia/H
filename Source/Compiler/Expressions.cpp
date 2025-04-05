@@ -28,6 +28,7 @@ import h.compiler.clang_data;
 import h.compiler.clang_code_generation;
 import h.compiler.common;
 import h.compiler.debug_info;
+import h.compiler.execution_engine;
 import h.compiler.instructions;
 import h.compiler.types;
 
@@ -2292,6 +2293,57 @@ namespace h::compiler
         };
     }
 
+    Value_and_type create_instance_call_expression_value(
+        Instance_call_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        Function_constructor const* function_constructor = get_function_constructor(
+            parameters.declaration_database,
+            statement.expressions[expression.left_hand_side.expression_index],
+            statement,
+            parameters.core_module.name
+        );
+        if (function_constructor == nullptr)
+            throw std::runtime_error{ "Could not find function constructor!" };
+
+        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
+
+        Instance_call_key const key = create_instance_call_key(
+            parameters.declaration_database,
+            expression,
+            statement,
+            parameters.core_module.name
+        );
+
+        std::string const mangled_name = mangle_instance_call_name(key);
+        llvm::Function* const llvm_function = get_llvm_function(key.module_name, parameters.llvm_module, mangled_name, std::nullopt);
+        if (llvm_function == nullptr)
+            throw std::runtime_error{ std::format("Could not find function '{}'", mangled_name) };
+
+        Function_expression const* function_expression = get_instance_call_function_expression(
+            parameters.declaration_database,
+            key
+        );
+        if (function_expression == nullptr)
+            throw std::runtime_error{ "Could not find function expression!" };
+
+        Function_declaration const& function_declaration = function_expression->declaration; // TODO
+        Type_reference type_reference = create_function_type_type_reference(
+            function_declaration.type,
+            function_declaration.input_parameter_names,
+            function_declaration.output_parameter_names
+        );
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = llvm_function,
+            .type = std::move(type_reference)
+        };
+    }
+
     struct Declaration_to_instantiate
     {
         Declaration declaration;
@@ -2862,7 +2914,6 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         Module const& core_module = parameters.core_module;
-        Declaration_database& declaration_database = parameters.declaration_database;
         Type_database& type_database = parameters.type_database;
 
         Type_reference const& core_type = expression.type;
@@ -3171,6 +3222,11 @@ namespace h::compiler
         {
             If_expression const& data = std::get<If_expression>(expression.data);
             return create_if_expression_value(data, new_parameters);
+        }
+        else if (std::holds_alternative<Instance_call_expression>(expression.data))
+        {
+            Instance_call_expression const& data = std::get<Instance_call_expression>(expression.data);
+            return create_instance_call_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {

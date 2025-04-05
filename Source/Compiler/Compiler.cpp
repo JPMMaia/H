@@ -152,7 +152,7 @@ namespace h::compiler
     llvm::Function& to_function(
         llvm::LLVMContext& llvm_context,
         Clang_module_data& clang_module_data,
-        Module const& core_module,
+        std::string_view const module_name,
         llvm::FunctionType& llvm_function_type,
         Function_declaration const& function_declaration,
         Declaration_database const& declaration_database
@@ -160,7 +160,7 @@ namespace h::compiler
     {
         llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function_declaration.linkage);
 
-        std::string const mangled_name = mangle_name(core_module, function_declaration.name, function_declaration.unique_name);
+        std::string const mangled_name = mangle_name(module_name, function_declaration.name, function_declaration.unique_name);
 
         llvm::Function* const llvm_function = llvm::Function::Create(
             &llvm_function_type,
@@ -176,7 +176,6 @@ namespace h::compiler
 
         set_llvm_function_argument_names(
             clang_module_data,
-            core_module,
             function_declaration,
             *llvm_function,
             declaration_database
@@ -209,7 +208,7 @@ namespace h::compiler
         llvm::Function& llvm_function = to_function(
             llvm_context,
             clang_module_data,
-            core_module,
+            core_module.name,
             *llvm_function_type,
             function_declaration,
             declaration_database
@@ -606,7 +605,7 @@ namespace h::compiler
 
             Function_declaration const& declaration = *find_function_declaration(core_module, definition.name).value();
 
-            llvm::Function* llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
+            llvm::Function* const llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
             if (!llvm_function)
             {
                 std::string_view const function_name = definition.name;
@@ -623,6 +622,55 @@ namespace h::compiler
                 core_module,
                 declaration,
                 definition,
+                core_module_dependencies,
+                declaration_database,
+                type_database,
+                enum_value_constants,
+                debug_info,
+                compilation_options,
+                temporaries_allocator
+            );
+        }
+
+        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        {
+            h::Instance_call_key const& key = pair.first;
+            clang::FunctionDecl* const clang_function_declaration = pair.second;
+
+            Function_expression const* function_expression = get_instance_call_function_expression(
+                declaration_database,
+                key
+            );
+            if (function_expression == nullptr)
+                throw std::runtime_error{"Could not find instance call function expression!"};
+
+            h::Function_declaration const& function_declaration = function_expression->declaration;
+
+            llvm::Function* const llvm_function = get_llvm_function(key.module_name, llvm_module, function_declaration.name, function_declaration.unique_name);
+            if (!llvm_function)
+            {
+                std::string_view const function_name = function_declaration.name;
+                std::string_view const module_name = key.module_name;
+                throw std::runtime_error{ std::format("Function '{}' not found in module '{}'.", function_name, module_name) };
+            }
+
+            h::Module const* instance_module = get_module(
+                key.module_name,
+                core_module,
+                core_module_dependencies
+            );
+            if (instance_module == nullptr)
+                throw std::runtime_error{ std::format("Could not find module '{}'", key.module_name) };
+
+            create_function_definition(
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                *llvm_function,
+                clang_module_data,
+                *instance_module,
+                function_declaration,
+                function_expression->definition,
                 core_module_dependencies,
                 declaration_database,
                 type_database,
@@ -862,6 +910,48 @@ namespace h::compiler
         }
     }
 
+    void add_instance_call_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        Clang_module_data& clang_module_data,
+        Declaration_database& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        auto& llvm_function_list = llvm_module.getFunctionList();
+
+        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        {
+            h::Instance_call_key const& key = pair.first;
+            clang::FunctionDecl* const clang_function_declaration = pair.second;
+
+            Function_expression const* function_expression = get_instance_call_function_expression(
+                declaration_database,
+                key
+            );
+            if (function_expression == nullptr)
+                throw std::runtime_error{"Could not find instance call function expression!"};
+
+            h::Function_declaration const& function_declaration = function_expression->declaration;
+
+            llvm::FunctionType* const llvm_function_type = convert_function_type(
+                clang_module_data,
+                clang_function_declaration
+            );
+
+            llvm::Function& llvm_function = to_function(
+                llvm_context,
+                clang_module_data,
+                key.module_name,
+                *llvm_function_type,
+                function_declaration,
+                declaration_database
+            );
+
+            llvm_function_list.push_back(&llvm_function);
+        }
+    }
+
     void add_dependency_module_declarations(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
@@ -1012,6 +1102,7 @@ namespace h::compiler
 
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, {});
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, {});
+        add_instance_call_declarations(llvm_context, *llvm_module, clang_module_data, declaration_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, core_module, core_module_dependencies, {});
 

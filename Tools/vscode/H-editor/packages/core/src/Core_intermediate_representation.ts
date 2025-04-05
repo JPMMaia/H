@@ -1013,7 +1013,7 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements: intermediate_value.member_source_positions } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -1059,7 +1059,7 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
             elements: intermediate_value.member_comments.map(value => intermediate_to_core_indexed_comment(value)),
         },
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements: intermediate_value.member_source_positions } : undefined,
+        member_source_positions: intermediate_value.member_source_positions !== undefined ? { size: intermediate_value.member_source_positions.length, elements : intermediate_value.member_source_positions } : undefined,
     };
 }
 
@@ -1138,8 +1138,8 @@ function intermediate_to_core_function_declaration(intermediate_value: Function_
         },
         comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements: intermediate_value.input_parameter_source_positions } : undefined,
-        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements: intermediate_value.output_parameter_source_positions } : undefined,
+        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
+        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements : intermediate_value.output_parameter_source_positions } : undefined,
     };
 }
 
@@ -1978,13 +1978,13 @@ export function create_function_expression(declaration: Function_declaration, de
 }
 export interface Instance_call_expression {
     left_hand_side: Expression;
-    arguments: Expression[];
+    arguments: Statement[];
 }
 
 function core_to_intermediate_instance_call_expression(core_value: Core.Instance_call_expression, statement: Core.Statement): Instance_call_expression {
     return {
         left_hand_side: core_to_intermediate_expression(statement.expressions.elements[core_value.left_hand_side.expression_index], statement),
-        arguments: core_value.arguments.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_statement(value)),
     };
 }
 
@@ -1999,9 +1999,9 @@ function intermediate_to_core_instance_call_expression(intermediate_value: Insta
                     expression_index: -1
                 },
                 arguments: {
-                    size: 0,
-                    elements: []
-                }
+                    size: intermediate_value.arguments.length,
+                    elements: intermediate_value.arguments.map(value => intermediate_to_core_statement(value))
+                },
             }
         }
     };
@@ -2010,15 +2010,9 @@ function intermediate_to_core_instance_call_expression(intermediate_value: Insta
 
     (core_value.data.value as Core.Instance_call_expression).left_hand_side.expression_index = expressions.length;
     intermediate_to_core_expression(intermediate_value.left_hand_side, expressions);
-
-    for (const element of intermediate_value.arguments) {
-        (core_value.data.value as Core.Instance_call_expression).arguments.elements.push({ expression_index: expressions.length });
-        intermediate_to_core_expression(element, expressions);
-    }
-    (core_value.data.value as Core.Instance_call_expression).arguments.size = (core_value.data.value as Core.Instance_call_expression).arguments.elements.length;
 }
 
-export function create_instance_call_expression(left_hand_side: Expression, args: Expression[]): Expression {
+export function create_instance_call_expression(left_hand_side: Expression, args: Statement[]): Expression {
     const instance_call_expression: Instance_call_expression = {
         left_hand_side: left_hand_side,
         arguments: args,
@@ -2030,6 +2024,31 @@ export function create_instance_call_expression(left_hand_side: Expression, args
         }
     };
 }
+export interface Instance_call_key {
+    module_name: string;
+    function_constructor_name: string;
+    arguments: Statement[];
+}
+
+function core_to_intermediate_instance_call_key(core_value: Core.Instance_call_key): Instance_call_key {
+    return {
+        module_name: core_value.module_name,
+        function_constructor_name: core_value.function_constructor_name,
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_instance_call_key(intermediate_value: Instance_call_key): Core.Instance_call_key {
+    return {
+        module_name: intermediate_value.module_name,
+        function_constructor_name: intermediate_value.function_constructor_name,
+        arguments: {
+            size: intermediate_value.arguments.length,
+            elements: intermediate_value.arguments.map(value => intermediate_to_core_statement(value)),
+        },
+    };
+}
+
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Statement[];

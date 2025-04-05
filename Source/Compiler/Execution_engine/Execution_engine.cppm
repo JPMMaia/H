@@ -16,10 +16,7 @@ namespace h::compiler::execution_engine
     export struct Value_storage
     {
         using Data_type = std::variant<
-            Alias_type_declaration,
-            Enum_declaration,
-            Function_declaration,
-            Global_variable_declaration,
+            Function_expression,
             Struct_declaration,
             Union_declaration
         >;
@@ -43,6 +40,8 @@ namespace h::compiler::execution_engine
         std::pmr::polymorphic_allocator<> allocator;
         Type_constructor const* type_constructor;
         std::span<Statement const> type_instance_arguments;
+        Function_constructor const* function_constructor;
+        std::span<Statement const> function_instance_arguments;
         std::pmr::vector<Variable> variables;
     };
 
@@ -59,7 +58,7 @@ namespace h::compiler::execution_engine
     export Function_expression evaluate_function_constructor(
         Execution_engine& engine,
         Function_constructor const& function_constructor,
-        std::span<Expression const> const arguments
+        std::span<Statement const> const arguments
     );
     
     export std::optional<Value_storage> evaluate_statements(

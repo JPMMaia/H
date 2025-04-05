@@ -392,7 +392,13 @@ export interface Function_expression {
 
 export interface Instance_call_expression {
     left_hand_side: Expression_index;
-    arguments: Vector<Expression_index>;
+    arguments: Vector<Statement>;
+}
+
+export interface Instance_call_key {
+    module_name: string;
+    function_constructor_name: string;
+    arguments: Vector<Statement>;
 }
 
 export interface Condition_statement_pair {

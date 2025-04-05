@@ -485,6 +485,27 @@ namespace h
         return hash;
     }
 
+    XXH64_hash_t hash_instance_call_key(
+        XXH64_state_t* const state,
+        h::Instance_call_key const& instance_call_key
+    )
+    {
+        XXH64_hash_t const seed = 0;
+        if (XXH64_reset(state, seed) == XXH_ERROR)
+            h::common::print_message_and_exit("Could not reset xxhash state!");
+
+        update_hash(state, instance_call_key.module_name);
+        update_hash(state, instance_call_key.function_constructor_name);
+
+        for (Statement const& statement : instance_call_key.arguments)
+        {
+            update_hash(state, statement);
+        }
+
+        XXH64_hash_t const hash = XXH64_digest(state);
+        return hash;
+    }
+
     Symbol_name_to_hash hash_module_declarations(
         h::Module const& core_module,
         std::pmr::polymorphic_allocator<> const& output_allocator

@@ -494,9 +494,18 @@ namespace h
     export struct Instance_call_expression
     {
         Expression_index left_hand_side;
-        std::pmr::vector<Expression_index> arguments;
+        std::pmr::vector<Statement> arguments;
 
         friend auto operator<=>(Instance_call_expression const&, Instance_call_expression const&) = default;
+    };
+
+    export struct Instance_call_key
+    {
+        std::pmr::string module_name;
+        std::pmr::string function_constructor_name;
+        std::pmr::vector<Statement> arguments;
+
+        friend auto operator<=>(Instance_call_key const&, Instance_call_key const&) = default;
     };
 
     export struct Condition_statement_pair

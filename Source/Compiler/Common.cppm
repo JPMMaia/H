@@ -8,6 +8,7 @@ module;
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 export module h.compiler.common;
 
@@ -44,9 +45,26 @@ namespace h::compiler
         std::string_view declaration_name
     );
 
+    export std::string mangle_instance_call_name(
+        Instance_call_key const& key
+    );
+
+    export llvm::Function* get_llvm_function(
+        std::string_view const module_name,
+        llvm::Module& llvm_module,
+        std::string_view const name,
+        std::optional<std::string_view> const unique_name
+    );
+
     export llvm::Function* get_llvm_function(
         Module const& core_module,
         llvm::Module& llvm_module,
         std::string_view name
+    );
+
+    export h::Module const* get_module(
+        std::string_view const module_name,
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies
     );
 }

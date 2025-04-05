@@ -3037,6 +3037,45 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Function_constructor_run() #0 {
+entry:
+  %a = alloca i32, align 4
+  %b = alloca float, align 4
+  %0 = call i32 @"Function_constructor_add@8564233028164093522"(i32 noundef 1, i32 noundef 2)
+  store i32 %0, ptr %a, align 4
+  %1 = call float @"Function_constructor_add@13780585791678792634"(float noundef 3.000000e+00, float noundef 4.000000e+00)
+  store float %1, ptr %b, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+define private float @"Function_constructor_add@13780585791678792634"(float noundef %"arguments[0].first", float noundef %"arguments[1].second") #0 {
+entry:
+  %first = alloca float, align 4
+  %second = alloca float, align 4
+  store float %"arguments[0].first", ptr %first, align 4
+  store float %"arguments[1].second", ptr %second, align 4
+  %0 = load float, ptr %first, align 4
+  %1 = load float, ptr %second, align 4
+  %2 = fadd float %0, %1
+  ret float %2
+}
+
+; Function Attrs: convergent
+define private i32 @"Function_constructor_add@8564233028164093522"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
+entry:
+  %first = alloca i32, align 4
+  %second = alloca i32, align 4
+  store i32 %"arguments[0].first", ptr %first, align 4
+  store i32 %"arguments[1].second", ptr %second, align 4
+  %0 = load i32, ptr %first, align 4
+  %1 = load i32, ptr %second, align 4
+  %2 = add i32 %0, %1
+  ret i32 %2
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

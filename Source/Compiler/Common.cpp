@@ -10,10 +10,12 @@ module;
 #include <string>
 #include <string_view>
 #include <span>
+#include <unordered_map>
 
 module h.compiler.common;
 
 import h.core;
+import h.core.hash;
 
 namespace h::compiler
 {
@@ -85,6 +87,26 @@ namespace h::compiler
         return mangle_name(core_module, declaration_name, unique_name);
     }
 
+    std::string mangle_instance_call_name(
+        Instance_call_key const& key
+    )
+    {
+        std::size_t const instance_call_hash = Instance_call_key_hash{}(key);
+        return std::format("{}@{}", key.function_constructor_name, instance_call_hash);
+    }
+
+    llvm::Function* get_llvm_function(
+        std::string_view const module_name,
+        llvm::Module& llvm_module,
+        std::string_view const name,
+        std::optional<std::string_view> const unique_name
+    )
+    {
+        std::string const mangled_name = mangle_name(module_name, name, unique_name);
+        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
+        return llvm_function;
+    }
+
     llvm::Function* get_llvm_function(
         Module const& core_module,
         llvm::Module& llvm_module,
@@ -97,8 +119,23 @@ namespace h::compiler
 
         std::optional<std::pmr::string> const& unique_name = function_declaration.value()->unique_name;
 
-        std::string const mangled_name = mangle_name(core_module, name, unique_name);
-        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
-        return llvm_function;
+        return get_llvm_function(core_module.name, llvm_module, name, unique_name);
+    }
+
+    h::Module const* get_module(
+        std::string_view const module_name,
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies
+    )
+    {
+        if (core_module.name == module_name)
+            return &core_module;
+
+        // TODO this allocates memory unnecessarily
+        auto const location = core_module_dependencies.find(std::pmr::string{module_name});
+        if (location != core_module_dependencies.end())
+            return &location->second;
+
+        return nullptr;
     }
 }

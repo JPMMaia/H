@@ -26,6 +26,18 @@ namespace h::compiler::execution_engine
         };
     }
 
+    Value_storage create_value_storage_function_expression(
+        Function_expression const& expression,
+        std::pmr::polymorphic_allocator<> const& allocator
+    )
+    {
+        // TODO do copy with allocator
+        return
+        {
+            .data = expression
+        };
+    }
+
     Execution_engine create_execution_engine(
         std::pmr::polymorphic_allocator<> const& allocator
     )
@@ -70,10 +82,33 @@ namespace h::compiler::execution_engine
     Function_expression evaluate_function_constructor(
         Execution_engine& engine,
         Function_constructor const& function_constructor,
-        std::span<Expression const> const arguments
+        std::span<Statement const> const arguments
     )
     {
-        return {};
+        if (function_constructor.parameters.size() != arguments.size())
+            throw std::runtime_error{ "Number of arguments of type instance do not match type constructor!" };
+
+        engine.function_constructor = &function_constructor;
+        engine.function_instance_arguments = arguments;
+
+        for (std::size_t index = 0; index < function_constructor.parameters.size(); ++index)
+        {
+            Function_constructor_parameter const& parameter = function_constructor.parameters[index];
+            Statement const& argument = arguments[index];
+
+            // TODO if constant, then add variable
+        }
+
+        std::optional<Value_storage> const returned_value_optional = evaluate_statements(engine, function_constructor.statements);
+
+        if (!returned_value_optional.has_value())
+            throw std::runtime_error{ "Could not evaluate function constructor!" };
+
+        if (!std::holds_alternative<Function_expression>(returned_value_optional.value().data))
+            throw std::runtime_error{ "A function constructor must return a function expression!" };
+
+        Function_expression const& function_expression = std::get<Function_expression>(returned_value_optional.value().data);
+        return function_expression;
     }
 
     std::optional<Value_storage> evaluate_statements(
@@ -158,6 +193,52 @@ namespace h::compiler::execution_engine
         visit_type_references(value, process_type);
     }
 
+    template<class T>
+    void replace_parameter_types_by_instance_arguments(
+        T& value,
+        std::span<Function_constructor_parameter const> const function_constructor_parameters,
+        std::span<Statement const> const type_instance_arguments
+    )
+    {
+        auto const process_type = [&](Type_reference const& type_reference) -> bool
+        {
+            Type_reference& mutable_type_reference = const_cast<Type_reference&>(type_reference);
+            if (std::holds_alternative<Parameter_type>(mutable_type_reference.data))
+            {
+                Parameter_type const& parameter_type = std::get<Parameter_type>(mutable_type_reference.data);
+
+                auto const location = std::find_if(
+                    function_constructor_parameters.begin(),
+                    function_constructor_parameters.end(), 
+                    [&](Function_constructor_parameter const& parameter) -> bool { return parameter.name == parameter_type.name; }
+                );
+                if (location == function_constructor_parameters.end())
+                    throw std::runtime_error{ "Could not find parameter type in type constructor!"};
+
+                Function_constructor_parameter const& parameter = *location;
+                if (!is_compile_time_builtin_type(parameter.type))
+                    throw std::runtime_error{ "Type constructor parameter type is not the compile time builtin type!"};
+
+                std::size_t const parameter_index = std::distance(function_constructor_parameters.begin(), location);
+                if (parameter_index >= type_instance_arguments.size())
+                    throw std::runtime_error{ "Type instance does not provide all arguments!"};
+
+                Expression const& expression = type_instance_arguments[parameter_index].expressions[0];
+                if (!std::holds_alternative<Type_expression>(expression.data))
+                    throw std::runtime_error{ "Expected type instance argument to by a type expression!"};
+
+                Type_expression const& type_expression = std::get<Type_expression>(expression.data);
+
+                // TODO use allocator to copy
+                mutable_type_reference.data = type_expression.type.data;                
+            }
+
+            return false;
+        };
+
+        visit_type_references(value, process_type);
+    }
+
     std::pair<std::optional<Value_storage>, bool> make_pair(
         std::optional<Value_storage> value_and_type,
         bool const stop
@@ -172,7 +253,32 @@ namespace h::compiler::execution_engine
         Expression const& expression
     )
     {
-        if (std::holds_alternative<Return_expression>(expression.data))
+        if (std::holds_alternative<Function_expression>(expression.data))
+        {
+            // TODO copy using allocator
+            Function_expression function_expression = std::get<Function_expression>(expression.data);
+            
+            if (engine.function_constructor != nullptr)
+            {
+                replace_parameter_types_by_instance_arguments(
+                    function_expression.declaration,
+                    engine.function_constructor->parameters,
+                    engine.function_instance_arguments
+                );
+
+                replace_parameter_types_by_instance_arguments(
+                    function_expression.definition,
+                    engine.function_constructor->parameters,
+                    engine.function_instance_arguments
+                );
+            }
+
+            return make_pair(
+                create_value_storage_function_expression(function_expression, engine.allocator),
+                false
+            );
+        }
+        else if (std::holds_alternative<Return_expression>(expression.data))
         {
             Return_expression const& return_expression = std::get<Return_expression>(expression.data);
             if (!return_expression.expression.has_value())

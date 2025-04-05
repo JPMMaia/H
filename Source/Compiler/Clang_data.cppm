@@ -63,6 +63,7 @@ namespace h::compiler
     {
         std::pmr::unordered_map<std::pmr::string, Clang_module_declarations, h::String_hash, h::String_equal> map;
         std::pmr::unordered_map<h::Type_instance, clang::RecordDecl*, Type_instance_hash> instances;
+        std::pmr::unordered_map<h::Instance_call_key, clang::FunctionDecl*, Instance_call_key_hash> call_instances;
     };
 
     export struct Clang_module_data

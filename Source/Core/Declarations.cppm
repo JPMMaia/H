@@ -51,6 +51,7 @@ namespace h
     {
         std::pmr::unordered_map<Module_name, Declaration_map, String_hash, String_equal> map;
         std::pmr::unordered_map<Type_instance, Declaration_instance_storage, Type_instance_hash> instances;
+        std::pmr::unordered_map<Instance_call_key, Function_expression, Instance_call_key_hash> call_instances;
     };
 
     export Declaration_database create_declaration_database();
@@ -116,5 +117,31 @@ namespace h
         Alias_type_declaration const& declaration,
         Module const& current_core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+    );
+
+    export std::optional<Custom_type_reference> get_function_constructor_type_reference(
+        Declaration_database const& declaration_database,
+        Expression const& expression,
+        Statement const& statement,
+        std::string_view const current_module_name
+    );
+
+    export Instance_call_key create_instance_call_key(
+        Declaration_database const& declaration_database,
+        Instance_call_expression const& expression,
+        Statement const& statement,
+        std::string_view const current_module_name
+    );
+
+    export Function_constructor const* get_function_constructor(
+        Declaration_database const& declaration_database,
+        Expression const& expression,
+        Statement const& statement,
+        std::string_view const current_module_name
+    );
+
+    export Function_expression const* get_instance_call_function_expression(
+        Declaration_database const& declaration_database,
+        Instance_call_key const& key
     );
 }

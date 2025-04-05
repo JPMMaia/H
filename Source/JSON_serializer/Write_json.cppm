@@ -556,6 +556,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Instance_call_key const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Condition_statement_pair const& input
         );
 
@@ -1613,6 +1619,22 @@ namespace h::json
         writer.StartObject();
         writer.Key("left_hand_side");
         write_object(writer, output.left_hand_side);
+        writer.Key("arguments");
+        write_object(writer, output.arguments);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Instance_call_key const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("module_name");
+        writer.String(output.module_name.data(), output.module_name.size());
+        writer.Key("function_constructor_name");
+        writer.String(output.function_constructor_name.data(), output.function_constructor_name.size());
         writer.Key("arguments");
         write_object(writer, output.arguments);
         writer.EndObject();

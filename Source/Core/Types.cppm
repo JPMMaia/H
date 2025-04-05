@@ -52,6 +52,7 @@ namespace h
     export template <typename Function_t>
         bool visit_expressions(
             h::Expression const& expression,
+            h::Statement const& statement,
             Function_t predicate
         );
 
@@ -244,6 +245,7 @@ namespace h
     export template <typename Function_t>
         bool visit_type_references(
             h::Expression const& expression,
+            h::Statement const& statement,
             Function_t predicate
         );
 
@@ -255,7 +257,7 @@ namespace h
     {
         for (h::Expression const& expression : statement.expressions)
         {
-            if (visit_type_references(expression, predicate))
+            if (visit_type_references(expression, statement, predicate))
                 return true;
         }
 
@@ -272,7 +274,7 @@ namespace h
         {
             for (h::Expression const& expression : statement.expressions)
             {
-                if (visit_type_references(expression, predicate))
+                if (visit_type_references(expression, statement, predicate))
                     return true;
             }
         }
@@ -283,10 +285,11 @@ namespace h
     export template <typename Function_t>
         bool visit_type_references(
             h::Expression const& expression,
+            h::Statement const& statement,
             Function_t predicate
         )
     {
-        auto const process_expression = [&predicate](h::Expression const& expression) -> bool
+        auto const process_expression = [&predicate](h::Expression const& expression, h::Statement const& statement) -> bool
         {
             if (std::holds_alternative<Cast_expression>(expression.data))
             {
@@ -307,7 +310,7 @@ namespace h
             return false;
         };
 
-        if (visit_expressions(expression, process_expression))
+        if (visit_expressions(expression, statement, process_expression))
             return true;
 
         return false;
@@ -323,7 +326,7 @@ namespace h
         {
             for (h::Expression const& expression : statement.expressions)
             {
-                if (visit_type_references(expression, predicate))
+                if (visit_type_references(expression, statement, predicate))
                     return true;
             }
         }
@@ -584,10 +587,11 @@ namespace h
     export template <typename Function_t>
         bool visit_expressions(
             h::Expression const& expression,
+            h::Statement const& statement,
             Function_t predicate
         )
     {
-        if (predicate(expression))
+        if (predicate(expression, statement))
             return true;
 
         if (std::holds_alternative<Block_expression>(expression.data))
@@ -679,7 +683,7 @@ namespace h
     {
         for (h::Expression const& expression : statement.expressions)
         {
-            if (visit_expressions(expression, predicate))
+            if (visit_expressions(expression, statement, predicate))
                 return true;
         }
 
@@ -740,6 +744,18 @@ namespace h
     }
 
     export template <typename Function_t>
+    bool visit_expressions(
+        h::Global_variable_declaration const& declaration,
+        Function_t predicate
+    )
+    {
+        if (visit_expressions(declaration.initial_value, predicate))
+            return true;
+
+        return false;
+    }
+
+    export template <typename Function_t>
         bool visit_expressions(
             h::Struct_declaration const& declaration,
             Function_t predicate
@@ -777,6 +793,24 @@ namespace h
 
     export template <typename Function_t>
         bool visit_expressions(
+            Module_definitions const& definitions,
+            Function_t predicate
+        )
+    {
+        for (Function_definition const& definition : definitions.function_definitions)
+        {
+            for (h::Statement const& statement : definition.statements)
+            {
+                if (visit_expressions(statement, predicate))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    export template <typename Function_t>
+        bool visit_expressions(
             Module const& core_module,
             Function_t predicate
         )
@@ -787,7 +821,7 @@ namespace h
         if (visit_expressions(core_module.internal_declarations, predicate))
             return true;
 
-        if (visit_expressions(core_module.definitions.function_definitions, predicate))
+        if (visit_expressions(core_module.definitions, predicate))
             return true;
 
         return false;

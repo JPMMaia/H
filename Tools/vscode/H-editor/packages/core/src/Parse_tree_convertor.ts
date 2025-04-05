@@ -884,7 +884,7 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
             const value = expression.data.value as Core_intermediate_representation.Instance_call_expression;
             visit_expressions(value.left_hand_side, predicate);
             for (const argument of value.arguments) {
-                visit_expressions(argument, predicate);
+                visit_expressions(argument.expression, predicate);
             }
             break;
         }

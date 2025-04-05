@@ -3713,10 +3713,11 @@ export function node_to_expression_instance_call(root: Parser_node.Node, node: P
 
     const parameter_nodes = node.children.filter(child => child.word.value === "Expression_instance_call_parameter");
     const argument_expressions = parameter_nodes.map(child => node_to_expression(root, child.children[0]));
+    const argument_statements = argument_expressions.map(expression => { return { expression: expression }; });
 
     const instance_call_expression: Core_intermediate_representation.Instance_call_expression = {
         left_hand_side: left_hand_side,
-        arguments: argument_expressions
+        arguments: argument_statements
     };
 
     return instance_call_expression;

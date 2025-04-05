@@ -337,8 +337,7 @@ namespace h::compiler
         return function_proto_type;
     }
 
-    void add_clang_function_declaration(
-        std::pmr::unordered_map<std::pmr::string, clang::FunctionDecl*, h::String_hash, h::String_equal>& clang_function_declarations,
+    clang::FunctionDecl* create_clang_function_declaration(
         clang::ASTContext& clang_ast_context,
         h::Function_declaration const& function_declaration,
         Declaration_database const& declaration_database,
@@ -409,7 +408,7 @@ namespace h::compiler
             }
         }
 
-        clang_function_declarations.emplace(function_declaration.name, clang_function_declaration);
+        return clang_function_declaration;
     }
 
     void instantiate_type_instance(
@@ -453,6 +452,53 @@ namespace h::compiler
             clang_declaration_database.instances.emplace(type_instance, record_declaration);
             declaration_database.instances.emplace(type_instance, Declaration_instance_storage{.data = struct_declaration});
         }
+    }
+
+    void create_instance_call_expression_value(
+        Instance_call_expression const& expression,
+        Statement const& statement,
+        Clang_declaration_database& clang_declaration_database,
+        clang::ASTContext& clang_ast_context,
+        Declaration_database& declaration_database,
+        std::string_view const current_module_name
+    )
+    {
+        Function_constructor const* function_constructor = get_function_constructor(
+            declaration_database,
+            statement.expressions[expression.left_hand_side.expression_index],
+            statement,
+            current_module_name
+        );
+        if (function_constructor == nullptr)
+            throw std::runtime_error{ "Could not find function constructor!" };
+
+        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
+
+        h::compiler::execution_engine::Execution_engine engine = h::compiler::execution_engine::create_execution_engine(
+            allocator
+        );
+
+        Function_expression function_expression = h::compiler::execution_engine::evaluate_function_constructor(
+            engine,
+            *function_constructor,
+            expression.arguments
+        );
+
+        Instance_call_key const key = create_instance_call_key(
+            declaration_database,
+            expression,
+            statement,
+            current_module_name
+        );
+
+        Function_declaration& function_declaration = function_expression.declaration;
+
+        std::string const mangled_name = mangle_instance_call_name(key);
+        function_declaration.name = std::pmr::string{mangled_name};
+
+        clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+        clang_declaration_database.call_instances.emplace(key, clang_declaration);
+        declaration_database.call_instances.emplace(key, std::move(function_expression));
     }
 
     void add_clang_declarations(
@@ -551,12 +597,39 @@ namespace h::compiler
 
         for (h::Function_declaration const& function_declaration : core_module.export_declarations.function_declarations)
         {
-            add_clang_function_declaration(iterator->second.function_declarations, clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            iterator->second.function_declarations.emplace(function_declaration.name, clang_declaration);
         }
 
         for (h::Function_declaration const& function_declaration : core_module.internal_declarations.function_declarations)
         {
-            add_clang_function_declaration(iterator->second.function_declarations, clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            iterator->second.function_declarations.emplace(function_declaration.name, clang_declaration);
+        }
+
+        {
+            auto const instantiate_all = [&](h::Expression const& expression, h::Statement const& statement) -> bool {
+
+                if (std::holds_alternative<Instance_call_expression>(expression.data))
+                {
+                    Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+                    create_instance_call_expression_value(
+                        instance_call_expression,
+                        statement,
+                        clang_declaration_database,
+                        clang_ast_context,
+                        declaration_database,
+                        core_module.name
+                    );
+                }
+
+                return false;
+            };
+
+            h::visit_expressions(
+                core_module,
+                instantiate_all
+            );
         }
     }
 
@@ -652,7 +725,6 @@ namespace h::compiler
 
     void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
         h::Function_declaration const& function_declaration,
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database
@@ -1628,6 +1700,33 @@ namespace h::compiler
         clang::QualType const qual_type = clang_module_data.ast_context.getRecordType(record_declaration);
         llvm::Type* const clang_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), qual_type);
         return clang_type;
+    }
+
+    llvm::FunctionType* convert_function_type(
+        Clang_module_data const& clang_module_data,
+        clang::FunctionDecl* const function_declaration
+    )
+    {
+        return clang::CodeGen::convertFreeFunctionType(clang_module_data.code_generator->CGM(), function_declaration);
+    }
+
+    llvm::FunctionType* get_instance_call_llvm_function_type(
+        Clang_module_data const& clang_module_data,
+        Instance_call_key const& key
+    )
+    {
+        Clang_declaration_database const& clang_declaration_database = clang_module_data.declaration_database;
+
+        auto const location = clang_declaration_database.call_instances.find(key);
+        if (location == clang_declaration_database.call_instances.end())
+            return nullptr;
+
+        clang::FunctionDecl* const clang_function_declaration = location->second;
+
+        return convert_function_type(
+            clang_module_data,
+            clang_function_declaration
+        );
     }
 
     std::optional<clang::QualType> create_type(

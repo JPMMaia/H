@@ -54,7 +54,6 @@ namespace h::compiler
 
     export void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
         h::Function_declaration const& function_declaration,
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database
@@ -152,6 +151,16 @@ namespace h::compiler
     export llvm::Type* convert_type(
         Clang_module_data const& clang_module_data,
         clang::RecordDecl* const record_declaration
+    );
+
+    export llvm::FunctionType* convert_function_type(
+        Clang_module_data const& clang_module_data,
+        clang::FunctionDecl* const function_declaration
+    );
+
+    export llvm::FunctionType* get_instance_call_llvm_function_type(
+        Clang_module_data const& clang_module_data,
+        Instance_call_key const& key
     );
 
     std::optional<clang::QualType> create_type(

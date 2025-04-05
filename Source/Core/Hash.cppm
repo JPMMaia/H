@@ -117,6 +117,11 @@ namespace h
         h::Type_instance const& type_instance
     );
 
+    export XXH64_hash_t hash_instance_call_key(
+        XXH64_state_t* const state,
+        h::Instance_call_key const& instance_call_key
+    );
+
     export using Symbol_name_to_hash = std::pmr::unordered_map<std::pmr::string, std::uint64_t>;
 
     export Symbol_name_to_hash hash_module_declarations(
@@ -135,6 +140,25 @@ namespace h
                 return 0;
 
             hash_type_instance(state, value);
+        
+            XXH64_hash_t const hash = XXH64_digest(state);
+            XXH64_freeState(state);
+
+            return static_cast<std::size_t>(hash);
+        }
+    };
+
+    export struct Instance_call_key_hash
+    {
+        using is_transparent = void;
+        
+        std::size_t operator()(Instance_call_key const& value) const noexcept
+        {
+            XXH64_state_t* const state = XXH64_createState();
+            if (state == nullptr)
+                return 0;
+
+            hash_instance_call_key(state, value);
         
             XXH64_hash_t const hash = XXH64_digest(state);
             XXH64_freeState(state);

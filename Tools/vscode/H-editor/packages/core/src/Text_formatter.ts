@@ -504,7 +504,7 @@ export function format_expression_if(expression: Core.If_expression, outside_ind
 
 export function format_expression_instance_call(expression: Core.Instance_call_expression, options: Options): string {
     const left_hand_side = format_expression(expression.left_hand_side, 0, options);
-    const argument_strings = expression.arguments.map(argument => format_expression(argument, 0, options));
+    const argument_strings = expression.arguments.map(argument => format_expression(argument.expression, 0, options));
     const arguments_string = argument_strings.join(", ");
     return `${left_hand_side}<${arguments_string}>`;
 }

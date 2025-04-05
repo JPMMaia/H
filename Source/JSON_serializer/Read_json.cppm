@@ -498,6 +498,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_instance_call_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_instance_call_key(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_if_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_instantiate_member_value_pair(Stack_state* state, std::string_view const key);
@@ -2764,24 +2765,78 @@ namespace h::json
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
             {
-                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
                 parent->resize(size);
             };
 
             auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
             {
-                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
                 return &((*parent)[index]);
             };
 
             return Stack_state
             {
                 .pointer = &parent->arguments,
-                .type = "std::pmr::vector<Expression_index>",
+                .type = "std::pmr::vector<Statement>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
-                .get_next_state_element = get_next_state_expression_index
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_instance_call_key(Stack_state* state, std::string_view const key)
+    {
+        h::Instance_call_key* parent = static_cast<h::Instance_call_key*>(state->pointer);
+
+        if (key == "module_name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->module_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "function_constructor_name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->function_constructor_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
             };
         }
 
@@ -4950,6 +5005,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Instance_call_expression",
                 .get_next_state = get_next_state_instance_call_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Instance_call_key>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Instance_call_key",
+                .get_next_state = get_next_state_instance_call_key
             };
         }
 
