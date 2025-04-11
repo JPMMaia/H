@@ -1438,6 +1438,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "Expression_reflection_call"
+        },
+        {
+          "type": "SYMBOL",
           "name": "Expression_struct"
         },
         {
@@ -2665,6 +2669,19 @@
         }
       ]
     },
+    "Expression_reflection_call": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "Reflection_identifier"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "Expression_call_arguments"
+        }
+      ]
+    },
     "Expression_return": {
       "type": "CHOICE",
       "members": [
@@ -3031,6 +3048,10 @@
           }
         }
       ]
+    },
+    "Reflection_identifier": {
+      "type": "PATTERN",
+      "value": "@[a-zA-Z_][a-zA-Z_0-9]*"
     },
     "Boolean": {
       "type": "CHOICE",

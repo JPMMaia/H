@@ -880,6 +880,25 @@
     }
   },
   {
+    "type": "Expression_reflection_call",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Expression_call_arguments",
+          "named": true
+        },
+        {
+          "type": "Reflection_identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "Expression_return",
     "named": true,
     "fields": {},
@@ -1556,6 +1575,10 @@
         },
         {
           "type": "Expression_parenthesis",
+          "named": true
+        },
+        {
+          "type": "Expression_reflection_call",
           "named": true
         },
         {
@@ -2433,6 +2456,10 @@
   },
   {
     "type": "Number",
+    "named": true
+  },
+  {
+    "type": "Reflection_identifier",
     "named": true
   },
   {

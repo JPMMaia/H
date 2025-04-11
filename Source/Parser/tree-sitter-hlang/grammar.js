@@ -129,6 +129,7 @@ module.exports = grammar({
       $.Expression_instance_call,
       $.Expression_null_pointer,
       $.Expression_parenthesis,
+      $.Expression_reflection_call,
       $.Expression_struct,
       $.Expression_ternary_condition,
       $.Expression_unary,
@@ -210,6 +211,7 @@ module.exports = grammar({
     Expression_if_statements: $ => seq("{", repeat($.Statement), "}"),
     Expression_null_pointer: $ => "null",
     Expression_parenthesis: $ => seq("(", $.Generic_expression, ")"),
+    Expression_reflection_call: $ => seq($.Reflection_identifier, $.Expression_call_arguments),
     Expression_return: $ => choice(
       "return",
       seq("return", $.Generic_expression_or_instantiate)
@@ -241,6 +243,7 @@ module.exports = grammar({
     Variable_name: $ => $.Identifier,
     Identifier: $ => /[a-zA-Z_][a-zA-Z_0-9]*/,
     Identifier_with_dots: $ => seq($.Identifier, repeat(seq(".", $.Identifier))),
+    Reflection_identifier: $ => /@[a-zA-Z_][a-zA-Z_0-9]*/,
     Boolean: $ => choice("true", "false"),
     Number: $ => /\d+([.]\d+)?[a-z0-9]*/,
     String: $ => /".*"[a-z0-9]*/,
