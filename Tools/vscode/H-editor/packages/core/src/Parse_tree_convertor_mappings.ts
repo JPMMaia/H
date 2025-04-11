@@ -3087,6 +3087,15 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
                 }
             };
         }
+        case "Expression_reflection_call": {
+            const expression = node_to_expression_reflection(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Reflection_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_return": {
             const expression = node_to_expression_return(root, node);
             return {
@@ -3769,6 +3778,45 @@ function node_to_expression_parenthesis(root: Parser_node.Node, node: Parser_nod
     };
 
     return parenthesis_expression;
+}
+
+function node_to_expression_reflection(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Reflection_expression {
+
+    const name = get_terminal_value(node.children[0]);
+
+    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate");
+    const argument_expressions = argument_nodes.map(node => node_to_expression(root, node));
+
+    const replace_by_type_expression = (expression: Core_intermediate_representation.Expression) => {
+        if (expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
+            const variable_expression = expression.data.value as Core_intermediate_representation.Variable_expression;
+            const type_reference = Type_utilities.parse_type_name(variable_expression.name);
+
+            if (type_reference.length === 0 || type_reference[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+                return;
+            }
+
+            const new_expression: Core_intermediate_representation.Type_expression = {
+                type: type_reference[0]
+            };
+
+            expression.data = {
+                type: Core_intermediate_representation.Expression_enum.Type_expression,
+                value: new_expression
+            }
+        }
+    };
+
+    for (const argument_expression of argument_expressions) {
+        Parse_tree_convertor.visit_expressions(argument_expression, replace_by_type_expression)
+    }
+
+    const reflection_expression: Core_intermediate_representation.Reflection_expression = {
+        name: name.slice(1),
+        arguments: argument_expressions
+    };
+
+    return reflection_expression;
 }
 
 function node_to_expression_return(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Return_expression {

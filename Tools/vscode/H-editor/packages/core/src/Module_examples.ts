@@ -2551,6 +2551,69 @@ export function create_if_expressions(add_source_locations: boolean): IR.Module 
     };
 }
 
+export function create_reflection_expressions(): IR.Module {
+
+    const int32_type = create_integer_type(32, true);
+
+    const statements: IR.Statement[] = [
+        create_statement(
+            IR.create_variable_declaration_expression(
+                "a",
+                false,
+                IR.create_reflection_expression(
+                    "size_of",
+                    [
+                        IR.create_type_expression(int32_type)
+                    ]
+                )
+            )
+        ),
+        create_statement(
+            IR.create_variable_declaration_expression(
+                "b",
+                false,
+                IR.create_reflection_expression(
+                    "alignment_of",
+                    [
+                        IR.create_type_expression(int32_type)
+                    ]
+                )
+            )
+        ),
+    ];
+
+    return {
+        name: "Reflection",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: [],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
+                    },
+                    definition: {
+                        name: "run",
+                        statements: statements
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_switch_expressions(): IR.Module {
 
     const int32_type = create_integer_type(32, true);

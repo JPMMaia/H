@@ -784,7 +784,7 @@ function node_to_core_object(
     return map(node);
 }
 
-function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {
+export function visit_expressions(expression: Core_intermediate_representation.Expression, predicate: (expression: Core_intermediate_representation.Expression) => void) {
 
     predicate(expression);
 
@@ -898,6 +898,13 @@ function visit_expressions(expression: Core_intermediate_representation.Expressi
         case Core_intermediate_representation.Expression_enum.Parenthesis_expression: {
             const value = expression.data.value as Core_intermediate_representation.Parenthesis_expression;
             visit_expressions(value.expression, predicate);
+            break;
+        }
+        case Core_intermediate_representation.Expression_enum.Reflection_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Reflection_expression;
+            for (const argument of value.arguments) {
+                visit_expressions(argument, predicate);
+            }
             break;
         }
         case Core_intermediate_representation.Expression_enum.Return_expression: {
