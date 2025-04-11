@@ -386,6 +386,7 @@ export enum Expression_enum {
     Invalid_expression = "Invalid_expression",
     Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
+    Reflection_expression = "Reflection_expression",
     Return_expression = "Return_expression",
     Struct_expression = "Struct_expression",
     Switch_expression = "Switch_expression",
@@ -2284,6 +2285,55 @@ export function create_parenthesis_expression(expression: Expression): Expressio
         }
     };
 }
+export interface Reflection_expression {
+    name: string;
+    arguments: Expression[];
+}
+
+function core_to_intermediate_reflection_expression(core_value: Core.Reflection_expression, statement: Core.Statement): Reflection_expression {
+    return {
+        name: core_value.name,
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),
+    };
+}
+
+function intermediate_to_core_reflection_expression(intermediate_value: Reflection_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Reflection_expression,
+            value: {
+                name: intermediate_value.name,
+                arguments: {
+                    size: 0,
+                    elements: []
+                }
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    for (const element of intermediate_value.arguments) {
+        (core_value.data.value as Core.Reflection_expression).arguments.elements.push({ expression_index: expressions.length });
+        intermediate_to_core_expression(element, expressions);
+    }
+    (core_value.data.value as Core.Reflection_expression).arguments.size = (core_value.data.value as Core.Reflection_expression).arguments.elements.length;
+}
+
+export function create_reflection_expression(name: string, args: Expression[]): Expression {
+    const reflection_expression: Reflection_expression = {
+        name: name,
+        arguments: args,
+    };
+    return {
+        data: {
+            type: Expression_enum.Reflection_expression,
+            value: reflection_expression
+        }
+    };
+}
 export interface Return_expression {
     expression?: Expression;
 }
@@ -2745,7 +2795,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -2889,6 +2939,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_parenthesis_expression(core_value.data.value as Core.Parenthesis_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Reflection_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_reflection_expression(core_value.data.value as Core.Reflection_expression, statement)
                     };
                 }
                 case Core.Expression_enum.Return_expression: {
@@ -3057,6 +3113,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Parenthesis_expression: {
             intermediate_to_core_parenthesis_expression(intermediate_value.data.value as Parenthesis_expression, expressions);
+            break;
+        }
+        case Expression_enum.Reflection_expression: {
+            intermediate_to_core_reflection_expression(intermediate_value.data.value as Reflection_expression, expressions);
             break;
         }
         case Expression_enum.Return_expression: {

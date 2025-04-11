@@ -604,6 +604,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Reflection_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Return_expression const& input
         );
 
@@ -1734,6 +1740,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Reflection_expression const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        writer.Key("arguments");
+        write_object(writer, output.arguments);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Return_expression const& output
         )
     {
@@ -2078,6 +2098,14 @@ namespace h::json
             writer.String("Parenthesis_expression");
             writer.Key("value");
             Parenthesis_expression const& value = std::get<Parenthesis_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Reflection_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Reflection_expression");
+            writer.Key("value");
+            Reflection_expression const& value = std::get<Reflection_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Return_expression>(output.data))

@@ -565,6 +565,14 @@ namespace h
         friend auto operator<=>(Parenthesis_expression const&, Parenthesis_expression const&) = default;
     };
 
+    export struct Reflection_expression
+    {
+        std::pmr::string name;
+        std::pmr::vector<Expression_index> arguments;
+
+        friend auto operator<=>(Reflection_expression const&, Reflection_expression const&) = default;
+    };
+
     export struct Return_expression
     {
         std::optional<Expression_index> expression;
@@ -692,6 +700,7 @@ namespace h
             Invalid_expression,
             Null_pointer_expression,
             Parenthesis_expression,
+            Reflection_expression,
             Return_expression,
             Struct_expression,
             Switch_expression,

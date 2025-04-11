@@ -506,6 +506,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_null_pointer_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_reflection_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_switch_case_expression_pair(Stack_state* state, std::string_view const key);
@@ -3044,6 +3045,49 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_reflection_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Reflection_expression* parent = static_cast<h::Reflection_expression*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Expression_index>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_expression_index
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key)
     {
         h::Return_expression* parent = static_cast<h::Return_expression*>(state->pointer);
@@ -3413,7 +3457,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Compile_time_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::Defer_expression, h::Dereference_and_access_expression, h::For_loop_expression, h::Function_expression, h::Instance_call_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Struct_expression, h::Switch_expression, h::Ternary_condition_expression, h::Type_expression, h::Unary_expression, h::Union_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Compile_time_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::Defer_expression, h::Dereference_and_access_expression, h::For_loop_expression, h::Function_expression, h::Instance_call_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Reflection_expression, h::Return_expression, h::Struct_expression, h::Switch_expression, h::Ternary_condition_expression, h::Type_expression, h::Unary_expression, h::Union_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -3552,6 +3596,12 @@ namespace h::json
                 {
                     *pointer = Parenthesis_expression{};
                     state->type = "Parenthesis_expression";
+                    return;
+                }
+                if (type == "Reflection_expression")
+                {
+                    *pointer = Reflection_expression{};
+                    state->type = "Reflection_expression";
                     return;
                 }
                 if (type == "Return_expression")
@@ -3753,6 +3803,11 @@ namespace h::json
                             return get_next_state_parenthesis_expression;
                         }
 
+                        if (state->type == "Reflection_expression")
+                        {
+                            return get_next_state_reflection_expression;
+                        }
+
                         if (state->type == "Return_expression")
                         {
                             return get_next_state_return_expression;
@@ -3826,7 +3881,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Access_array_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Compile_time_expression,Constant_expression,Constant_array_expression,Continue_expression,Defer_expression,Dereference_and_access_expression,For_loop_expression,Function_expression,Instance_call_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Struct_expression,Switch_expression,Ternary_condition_expression,Type_expression,Unary_expression,Union_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Access_array_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Compile_time_expression,Constant_expression,Constant_array_expression,Continue_expression,Defer_expression,Dereference_and_access_expression,For_loop_expression,Function_expression,Instance_call_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Reflection_expression,Return_expression,Struct_expression,Switch_expression,Ternary_condition_expression,Type_expression,Unary_expression,Union_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -5085,6 +5140,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Parenthesis_expression",
                 .get_next_state = get_next_state_parenthesis_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Reflection_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Reflection_expression",
+                .get_next_state = get_next_state_reflection_expression
             };
         }
 
