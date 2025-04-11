@@ -52,7 +52,7 @@ module.exports = grammar({
     Function_pointer_type: $ => seq("function", "<", $.Function_pointer_type_input_parameters, "->", $.Function_pointer_type_output_parameters, ">"),
     Function_pointer_type_input_parameters: $ => seq("(", optional(seq($.Function_parameter, repeat(seq(",", $.Function_parameter)))), ")"),
     Function_pointer_type_output_parameters: $ => seq("(", optional(seq($.Function_parameter, repeat(seq(",", $.Function_parameter)))), ")"),
-    Type_instance_type: $ => prec(2, seq($.Type, $.Type_instance_type_parameters)),
+    Type_instance_type: $ => prec(2, seq(choice($.Type_name, $.Module_type), $.Type_instance_type_parameters)),
     Type_instance_type_parameters: $ => seq("<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"),
     Alias: $ => seq("using", $.Alias_name, "=", $.Alias_type, ";"),
     Alias_name: $ => $.Identifier,

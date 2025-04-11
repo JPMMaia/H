@@ -422,8 +422,17 @@
         "type": "SEQ",
         "members": [
           {
-            "type": "SYMBOL",
-            "name": "Type"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "Type_name"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "Module_type"
+              }
+            ]
           },
           {
             "type": "SYMBOL",

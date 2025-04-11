@@ -85,9 +85,8 @@ function run() -> ()
               (Expression_variable_declaration_type
                 (Type
                   (Type_instance_type
-                    (Type
-                      (Type_name
-                        (Identifier)))
+                    (Type_name
+                      (Identifier))
                     (Type_instance_type_parameters
                       (Expression_instance_call_parameter
                         (Expression_type

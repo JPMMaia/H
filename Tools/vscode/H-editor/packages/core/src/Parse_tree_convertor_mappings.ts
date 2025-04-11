@@ -2351,7 +2351,16 @@ export function node_to_type_reference(
         ];
     }
     else if (child.word.value === "Type_instance_type") {
-        const left_hand_side_node = find_node(child, "Type") as Parser_node.Node;
+        const left_hand_side_node: Parser_node.Node = {
+            word: {
+                value: "Type",
+                type: Grammar.Word_type.Alphanumeric,
+                source_location: child.word.source_location
+            },
+            state: -1,
+            production_rule_index: undefined,
+            children: [child.children[0]],
+        };;
         const left_hand_side = node_to_type_reference(root, left_hand_side_node);
         if (left_hand_side.length > 0) {
             if (left_hand_side[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {

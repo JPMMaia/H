@@ -2360,7 +2360,8 @@ export type_constructor Dynamic_array(element_type: Type)
 
 function run() -> ()
 {
-    var instance: Dynamic_array<Int32> = {};
+    var a: Dynamic_array<Int32> = {};
+    var b: *mutable Dynamic_array<Int32> = null;
 }
 `;
 

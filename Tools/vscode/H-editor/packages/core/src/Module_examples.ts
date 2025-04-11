@@ -4968,7 +4968,7 @@ export function create_type_constructor(): IR.Module {
                         statements: [
                             create_statement(
                                 IR.create_variable_declaration_with_type_expression(
-                                    "instance",
+                                    "a",
                                     false,
                                     Type_utilities.create_type_instance("Type_constructor", "Dynamic_array", [
                                         create_statement(IR.create_type_expression(int32_type))
@@ -4978,6 +4978,23 @@ export function create_type_constructor(): IR.Module {
                                             IR.Instantiate_expression_type.Default,
                                             []
                                         )
+                                    )
+                                )
+                            ),
+                            create_statement(
+                                IR.create_variable_declaration_with_type_expression(
+                                    "b",
+                                    false,
+                                    Type_utilities.create_pointer_type(
+                                        [
+                                            Type_utilities.create_type_instance("Type_constructor", "Dynamic_array", [
+                                                create_statement(IR.create_type_expression(int32_type))
+                                            ])
+                                        ],
+                                        true
+                                    ),
+                                    create_statement(
+                                        IR.create_null_pointer_expression()
                                     )
                                 )
                             )
