@@ -7,11 +7,11 @@ module;
 #include <variant>
 #include <vector>
 
-export module h.compiler.execution_engine;
+export module h.core.execution_engine;
 
 import h.core;
 
-namespace h::compiler::execution_engine
+namespace h::execution_engine
 {
     export struct Value_storage
     {

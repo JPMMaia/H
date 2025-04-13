@@ -32,13 +32,14 @@ module;
 
 module h.compiler.clang_code_generation;
 
+import h.compiler.analysis;
 import h.compiler.common;
 import h.compiler.debug_info;
-import h.compiler.execution_engine;
 import h.compiler.instructions;
 import h.compiler.types;
 import h.core;
 import h.core.declarations;
+import h.core.execution_engine;
 import h.core.string_hash;
 import h.core.types;
 
@@ -411,101 +412,11 @@ namespace h::compiler
         return clang_function_declaration;
     }
 
-    void instantiate_type_instance(
-        Type_instance const& type_instance,
-        Clang_declaration_database& clang_declaration_database,
-        clang::ASTContext& clang_ast_context,
-        Declaration_database& declaration_database
-    )
-    {
-        std::optional<Declaration> const declaration = find_declaration(declaration_database, type_instance.type_constructor.module_reference.name, type_instance.type_constructor.name);
-
-        if (!declaration.has_value())
-            throw std::runtime_error{"Could not find declaration when instantiating type!"};
-
-        if (!std::holds_alternative<Type_constructor const*>(declaration.value().data))
-            throw std::runtime_error{"Declaration to instantiate is not a type constructor!"};
-
-        Type_constructor const& type_constructor = *std::get<Type_constructor const*>(declaration.value().data);
-
-        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
-
-        h::compiler::execution_engine::Execution_engine engine = h::compiler::execution_engine::create_execution_engine(
-            allocator
-        );
-
-        h::compiler::execution_engine::Value_storage const created_declaration = h::compiler::execution_engine::evaluate_type_constructor(
-            engine,
-            type_constructor,
-            type_instance.arguments
-        );
-
-        if (std::holds_alternative<Struct_declaration>(created_declaration.data))
-        {
-            Struct_declaration struct_declaration = std::get<Struct_declaration>(created_declaration.data);
-
-            std::size_t const type_instance_hash = Type_instance_hash{}(type_instance);
-            struct_declaration.name = std::pmr::string{std::format("{}@{}", type_constructor.name, type_instance_hash)};
-
-            clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, type_instance.type_constructor.module_reference.name, struct_declaration);
-            set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
-            clang_declaration_database.instances.emplace(type_instance, record_declaration);
-            declaration_database.instances.emplace(type_instance, Declaration_instance_storage{.data = struct_declaration});
-        }
-    }
-
-    void create_instance_call_expression_value(
-        Instance_call_expression const& expression,
-        Statement const& statement,
-        Clang_declaration_database& clang_declaration_database,
-        clang::ASTContext& clang_ast_context,
-        Declaration_database& declaration_database,
-        std::string_view const current_module_name
-    )
-    {
-        Function_constructor const* function_constructor = get_function_constructor(
-            declaration_database,
-            statement.expressions[expression.left_hand_side.expression_index],
-            statement,
-            current_module_name
-        );
-        if (function_constructor == nullptr)
-            throw std::runtime_error{ "Could not find function constructor!" };
-
-        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
-
-        h::compiler::execution_engine::Execution_engine engine = h::compiler::execution_engine::create_execution_engine(
-            allocator
-        );
-
-        Function_expression function_expression = h::compiler::execution_engine::evaluate_function_constructor(
-            engine,
-            *function_constructor,
-            expression.arguments
-        );
-
-        Instance_call_key const key = create_instance_call_key(
-            declaration_database,
-            expression,
-            statement,
-            current_module_name
-        );
-
-        Function_declaration& function_declaration = function_expression.declaration;
-
-        std::string const mangled_name = mangle_instance_call_name(key);
-        function_declaration.name = std::pmr::string{mangled_name};
-
-        clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
-        clang_declaration_database.call_instances.emplace(key, clang_declaration);
-        declaration_database.call_instances.emplace(key, std::move(function_expression));
-    }
-
     void add_clang_declarations(
         Clang_declaration_database& clang_declaration_database,
         clang::ASTContext& clang_ast_context,
         h::Module const& core_module,
-        Declaration_database& declaration_database
+        Declaration_database const& declaration_database
     )
     {
         auto iterator = clang_declaration_database.map.emplace(core_module.name, Clang_module_declarations{}).first;
@@ -540,27 +451,6 @@ namespace h::compiler
         for (h::Union_declaration const& union_declaration : core_module.internal_declarations.union_declarations)
         {
             add_clang_union_declaration(iterator->second.union_declarations, clang_ast_context, core_module, union_declaration);
-        }
-
-        // TODO do all instantiations here?
-        {
-            // TODO we can either instantiate all here, or we could add RecordDecl as needed (like forward declarations)
-
-            auto const instantiate_all = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool {
-
-                if (std::holds_alternative<Type_instance>(type_reference.data))
-                {
-                    Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
-                    instantiate_type_instance(type_instance, clang_declaration_database, clang_ast_context, declaration_database);
-                }
-
-                return false;
-            };
-
-            h::visit_type_references(
-                core_module,
-                instantiate_all
-            );
         }
 
         for (h::Alias_type_declaration const& alias_type_declaration : core_module.export_declarations.alias_type_declarations)
@@ -606,31 +496,6 @@ namespace h::compiler
             clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
             iterator->second.function_declarations.emplace(function_declaration.name, clang_declaration);
         }
-
-        {
-            auto const instantiate_all = [&](h::Expression const& expression, h::Statement const& statement) -> bool {
-
-                if (std::holds_alternative<Instance_call_expression>(expression.data))
-                {
-                    Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
-                    create_instance_call_expression_value(
-                        instance_call_expression,
-                        statement,
-                        clang_declaration_database,
-                        clang_ast_context,
-                        declaration_database,
-                        core_module.name
-                    );
-                }
-
-                return false;
-            };
-
-            h::visit_expressions(
-                core_module,
-                instantiate_all
-            );
-        }
     }
 
     Clang_module_data create_clang_module_data(
@@ -638,7 +503,7 @@ namespace h::compiler
         Clang_data const& clang_data,
         h::Module const& core_module,
         std::span<h::Module const* const> const sorted_core_module_dependencies,
-        Declaration_database& declaration_database
+        Declaration_database const& declaration_database
     )
     {
         clang::ASTContext& clang_ast_context = clang_data.compiler_instance->getASTContext();
@@ -660,9 +525,54 @@ namespace h::compiler
         assert(&code_generator->CGM() != nullptr);
 
         Clang_declaration_database clang_declaration_database;
+
+        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        {
+            Type_instance const& type_instance = pair.first;
+            Declaration_instance_storage const& storage = pair.second;
+
+            if (std::holds_alternative<Struct_declaration>(storage.data))
+            {
+                Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
+
+                clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, type_instance.type_constructor.module_reference.name, struct_declaration);
+                clang_declaration_database.instances.emplace(type_instance, record_declaration);
+            }
+            else
+            {
+                throw std::runtime_error{"Could not create clang type instance declaration!"};
+            }
+        }
+
         for (Module const* module_dependency : sorted_core_module_dependencies)
             add_clang_declarations(clang_declaration_database, clang_ast_context, *module_dependency, declaration_database);
         add_clang_declarations(clang_declaration_database, clang_ast_context, core_module, declaration_database);
+
+        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        {
+            Type_instance const& type_instance = pair.first;
+            Declaration_instance_storage const& storage = pair.second;
+
+            if (std::holds_alternative<Struct_declaration>(storage.data))
+            {
+                Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
+                clang::RecordDecl* const record_declaration = clang_declaration_database.instances.at(type_instance);
+                set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
+            }
+            else
+            {
+                throw std::runtime_error{"Could not create clang type instance declaration!"};
+            }
+        }
+
+        for (std::pair<Instance_call_key, Function_expression const> const& pair : declaration_database.call_instances)
+        {
+            Instance_call_key const& key = pair.first;
+            Function_expression const& function_expression = pair.second;
+
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_expression.declaration, declaration_database, clang_declaration_database);
+            clang_declaration_database.call_instances.emplace(key, clang_declaration);
+        }
 
         return Clang_module_data
         {

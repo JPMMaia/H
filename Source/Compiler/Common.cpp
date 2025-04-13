@@ -87,14 +87,6 @@ namespace h::compiler
         return mangle_name(core_module, declaration_name, unique_name);
     }
 
-    std::string mangle_instance_call_name(
-        Instance_call_key const& key
-    )
-    {
-        std::size_t const instance_call_hash = Instance_call_key_hash{}(key);
-        return std::format("{}@{}", key.function_constructor_name, instance_call_hash);
-    }
-
     llvm::Function* get_llvm_function(
         std::string_view const module_name,
         llvm::Module& llvm_module,

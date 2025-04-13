@@ -8,5 +8,5 @@ function run() -> ()
     var instance = dynamic_array.create<Int32>(allocator);
 
     instance.push_back(1);
-    var element = instance.get(0);
+    var element = instance.get(0u64);
 }

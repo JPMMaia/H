@@ -7,12 +7,12 @@ module;
 #include <variant>
 #include <vector>
 
-module h.compiler.execution_engine;
+module h.core.execution_engine;
 
 import h.core;
 import h.core.types;
 
-namespace h::compiler::execution_engine
+namespace h::execution_engine
 {
     Value_storage create_value_storage_struct(
         Struct_declaration const& declaration,

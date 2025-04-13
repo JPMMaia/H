@@ -71,7 +71,7 @@ namespace h
 
     export void add_declarations(
         Declaration_database& database,
-        Module const& module
+        Module const& core_module
     );
 
     export void add_instance_type_struct_declaration(
@@ -119,6 +119,21 @@ namespace h
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
     );
 
+    Declaration_instance_storage instantiate_type_instance(
+        Declaration_database& declaration_database,
+        Type_instance const& type_instance
+    );
+
+    export void add_instantiated_type_instances(
+        Declaration_database& declaration_database,
+        h::Module const& core_module
+    );
+
+    export void add_instantiated_type_instances(
+        Declaration_database& declaration_database,
+        h::Function_expression const& function_expression
+    );
+
     export std::optional<Custom_type_reference> get_function_constructor_type_reference(
         Declaration_database const& declaration_database,
         Expression const& expression,
@@ -135,6 +150,11 @@ namespace h
 
     export Function_constructor const* get_function_constructor(
         Declaration_database const& declaration_database,
+        Custom_type_reference const& custom_type_reference
+    );
+
+    export Function_constructor const* get_function_constructor(
+        Declaration_database const& declaration_database,
         Expression const& expression,
         Statement const& statement,
         std::string_view const current_module_name
@@ -143,5 +163,27 @@ namespace h
     export Function_expression const* get_instance_call_function_expression(
         Declaration_database const& declaration_database,
         Instance_call_key const& key
+    );
+
+    export std::string mangle_instance_call_name(
+        Instance_call_key const& key
+    );
+
+    export Function_expression create_instance_call_expression_value(
+        Function_constructor const& function_constructor,
+        std::span<Statement const> const arguments,
+        Instance_call_key const& key
+    );
+
+    std::pair<Instance_call_key, Function_expression> create_instance_call_expression_value(
+        Declaration_database& declaration_database,
+        Instance_call_expression const& expression,
+        Statement const& statement,
+        std::string_view const current_module_name
+    );
+
+    export void add_instance_call_expression_values(
+        Declaration_database& declaration_database,
+        h::Module const& core_module
     );
 }

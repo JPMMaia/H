@@ -1878,6 +1878,10 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     };
 
     char const* const expected_llvm_ir = R"(
+; ModuleID = 'dynamic_array'
+source_filename = "dynamic_array"
+target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
+target triple = "x86_64-pc-linux-gnu"
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -1889,6 +1893,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+      { "dynamic_array", g_test_files_path / "dynamic_array.hl" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3042,15 +3047,31 @@ define private void @Function_constructor_run() #0 {
 entry:
   %a = alloca i32, align 4
   %b = alloca float, align 4
-  %0 = call i32 @"Function_constructor_add@8564233028164093522"(i32 noundef 1, i32 noundef 2)
+  %c = alloca i32, align 4
+  %0 = call i32 @"Function_constructor_add@8152131554216350018"(i32 noundef 1, i32 noundef 2)
   store i32 %0, ptr %a, align 4
-  %1 = call float @"Function_constructor_add@13780585791678792634"(float noundef 3.000000e+00, float noundef 4.000000e+00)
+  %1 = call float @"Function_constructor_add@4743477946708241308"(float noundef 3.000000e+00, float noundef 4.000000e+00)
   store float %1, ptr %b, align 4
+  %2 = call i32 @"Function_constructor_add@5749073110988670999"(i32 noundef 1, i32 noundef 2)
+  store i32 %2, ptr %c, align 4
   ret void
 }
 
 ; Function Attrs: convergent
-define private float @"Function_constructor_add@13780585791678792634"(float noundef %"arguments[0].first", float noundef %"arguments[1].second") #0 {
+define private i32 @"Function_constructor_add@8152131554216350018"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
+entry:
+  %first = alloca i32, align 4
+  %second = alloca i32, align 4
+  store i32 %"arguments[0].first", ptr %first, align 4
+  store i32 %"arguments[1].second", ptr %second, align 4
+  %0 = load i32, ptr %first, align 4
+  %1 = load i32, ptr %second, align 4
+  %2 = add i32 %0, %1
+  ret i32 %2
+}
+
+; Function Attrs: convergent
+define private float @"Function_constructor_add@4743477946708241308"(float noundef %"arguments[0].first", float noundef %"arguments[1].second") #0 {
 entry:
   %first = alloca float, align 4
   %second = alloca float, align 4
@@ -3063,7 +3084,7 @@ entry:
 }
 
 ; Function Attrs: convergent
-define private i32 @"Function_constructor_add@8564233028164093522"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
+define private i32 @"Function_constructor_add@5749073110988670999"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
 entry:
   %first = alloca i32, align 4
   %second = alloca i32, align 4
@@ -3232,26 +3253,26 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
-%"struct.Type_constructor_Dynamic_array@8831204671557794709" = type { ptr, i64 }
-%"struct.Type_constructor_Dynamic_array@14929829368082488405" = type { ptr, i64 }
-%struct.Type_constructor_My_struct = type { %"struct.Type_constructor_Dynamic_array@8967508518922657926" }
-%"struct.Type_constructor_Dynamic_array@8967508518922657926" = type { ptr, i64 }
-%"struct.Type_constructor_Dynamic_array@7558541099251570611" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@11551802059334051241" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@15783693382393103023" = type { ptr, i64 }
+%struct.Type_constructor_My_struct = type { %"struct.Type_constructor_Dynamic_array@1264449865260698918" }
+%"struct.Type_constructor_Dynamic_array@1264449865260698918" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@10382496748077990624" = type { ptr, i64 }
 
 ; Function Attrs: convergent
 define private void @Type_constructor_run(ptr %"arguments[0].instance_0_0", i64 %"arguments[0].instance_0_1") #0 {
 entry:
-  %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@8831204671557794709", align 8
-  %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@14929829368082488405", align 8
+  %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@11551802059334051241", align 8
+  %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@15783693382393103023", align 8
   %instance_2 = alloca %struct.Type_constructor_My_struct, align 8
-  %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@7558541099251570611", align 8
+  %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@10382496748077990624", align 8
   %0 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
   store ptr %"arguments[0].instance_0_0", ptr %0, align 8
   %1 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
   store i64 %"arguments[0].instance_0_1", ptr %1, align 8
-  store %"struct.Type_constructor_Dynamic_array@14929829368082488405" zeroinitializer, ptr %instance_1, align 8
+  store %"struct.Type_constructor_Dynamic_array@15783693382393103023" zeroinitializer, ptr %instance_1, align 8
   store %struct.Type_constructor_My_struct zeroinitializer, ptr %instance_2, align 8
-  store %"struct.Type_constructor_Dynamic_array@7558541099251570611" zeroinitializer, ptr %instance_3, align 8
+  store %"struct.Type_constructor_Dynamic_array@10382496748077990624" zeroinitializer, ptr %instance_3, align 8
   ret void
 }
 

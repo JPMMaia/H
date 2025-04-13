@@ -12,4 +12,5 @@ function run() -> ()
 {
     var a = add<Int32>(1, 2);
     var b = add<Float32>(3.0f32, 4.0f32);
+    var c = add(1u32, 2u32);
 }

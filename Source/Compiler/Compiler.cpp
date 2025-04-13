@@ -46,6 +46,7 @@ import h.common;
 import h.core;
 import h.core.declarations;
 import h.core.types;
+import h.compiler.analysis;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
@@ -1327,10 +1328,14 @@ namespace h::compiler
             add_declarations(declaration_database, *module_dependency);
         add_declarations(declaration_database, core_module);
 
+        // TODO do this a different place so we can modify original
+        Module new_core_module = core_module;
+        process_module(new_core_module, declaration_database, {});
+
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
-            core_module,
+            new_core_module,
             sorted_core_module_dependencies,
             declaration_database
         );
@@ -1338,9 +1343,9 @@ namespace h::compiler
         Type_database type_database = create_type_database(*llvm_data.context);
         for (Module const* module_dependency : sorted_core_module_dependencies)
             add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *module_dependency);
-        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, core_module);
+        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, new_core_module);
 
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, new_core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
         
         optimize_llvm_module(llvm_data, *llvm_module);
         

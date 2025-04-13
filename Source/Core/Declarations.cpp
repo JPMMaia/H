@@ -12,6 +12,7 @@ module h.core.declarations;
 
 import h.common;
 import h.core;
+import h.core.execution_engine;
 import h.core.types;
 
 namespace h
@@ -79,34 +80,37 @@ namespace h
 
     void add_declarations(
         Declaration_database& database,
-        Module const& module
+        Module const& core_module
     )
     {
         add_declarations(
             database,
-            module.name,
-            module.export_declarations.alias_type_declarations,
-            module.export_declarations.enum_declarations,
-            module.export_declarations.global_variable_declarations,
-            module.export_declarations.struct_declarations,
-            module.export_declarations.union_declarations,
-            module.export_declarations.function_declarations,
-            module.export_declarations.function_constructors,
-            module.export_declarations.type_constructors
+            core_module.name,
+            core_module.export_declarations.alias_type_declarations,
+            core_module.export_declarations.enum_declarations,
+            core_module.export_declarations.global_variable_declarations,
+            core_module.export_declarations.struct_declarations,
+            core_module.export_declarations.union_declarations,
+            core_module.export_declarations.function_declarations,
+            core_module.export_declarations.function_constructors,
+            core_module.export_declarations.type_constructors
         );
 
         add_declarations(
             database,
-            module.name,
-            module.internal_declarations.alias_type_declarations,
-            module.internal_declarations.enum_declarations,
-            module.export_declarations.global_variable_declarations,
-            module.internal_declarations.struct_declarations,
-            module.internal_declarations.union_declarations,
-            module.internal_declarations.function_declarations,
-            module.export_declarations.function_constructors,
-            module.export_declarations.type_constructors
+            core_module.name,
+            core_module.internal_declarations.alias_type_declarations,
+            core_module.internal_declarations.enum_declarations,
+            core_module.export_declarations.global_variable_declarations,
+            core_module.internal_declarations.struct_declarations,
+            core_module.internal_declarations.union_declarations,
+            core_module.internal_declarations.function_declarations,
+            core_module.export_declarations.function_constructors,
+            core_module.export_declarations.type_constructors
         );
+
+        add_instantiated_type_instances(database, core_module);
+        add_instance_call_expression_values(database, core_module);
     }
 
     void add_instance_type_struct_declaration(
@@ -270,6 +274,97 @@ namespace h
         return std::nullopt;
     }
 
+    Declaration_instance_storage instantiate_type_instance(
+        Declaration_database& declaration_database,
+        Type_instance const& type_instance
+    )
+    {
+        std::optional<Declaration> const declaration = find_declaration(declaration_database, type_instance.type_constructor.module_reference.name, type_instance.type_constructor.name);
+
+        if (!declaration.has_value())
+            throw std::runtime_error{"Could not find declaration when instantiating type!"};
+
+        if (!std::holds_alternative<Type_constructor const*>(declaration.value().data))
+            throw std::runtime_error{"Declaration to instantiate is not a type constructor!"};
+
+        Type_constructor const& type_constructor = *std::get<Type_constructor const*>(declaration.value().data);
+
+        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
+
+        h::execution_engine::Execution_engine engine = h::execution_engine::create_execution_engine(
+            allocator
+        );
+
+        h::execution_engine::Value_storage const created_declaration = h::execution_engine::evaluate_type_constructor(
+            engine,
+            type_constructor,
+            type_instance.arguments
+        );
+
+        if (std::holds_alternative<Struct_declaration>(created_declaration.data))
+        {
+            Struct_declaration struct_declaration = std::get<Struct_declaration>(created_declaration.data);
+
+            std::size_t const type_instance_hash = Type_instance_hash{}(type_instance);
+            struct_declaration.name = std::pmr::string{std::format("{}@{}", type_constructor.name, type_instance_hash)};
+
+            return Declaration_instance_storage{.data = struct_declaration};
+        }
+
+        throw std::runtime_error{"Could not instantiate type instance!"};
+    }
+
+    void add_instantiated_type_instances(
+        Declaration_database& declaration_database,
+        h::Module const& core_module
+    )
+    {
+        auto const instantiate_all = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool {
+
+            if (std::holds_alternative<Type_instance>(type_reference.data))
+            {
+                Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
+                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                declaration_database.instances.emplace(type_instance, std::move(storage));
+            }
+
+            return false;
+        };
+
+        h::visit_type_references(
+            core_module,
+            instantiate_all
+        );
+    }
+
+    void add_instantiated_type_instances(
+        Declaration_database& declaration_database,
+        h::Function_expression const& function_expression
+    )
+    {
+        auto const instantiate_all = [&](h::Type_reference const& type_reference) -> bool {
+
+            if (std::holds_alternative<Type_instance>(type_reference.data))
+            {
+                Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
+                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                declaration_database.instances.emplace(type_instance, std::move(storage));
+            }
+
+            return false;
+        };
+
+        h::visit_type_references(
+            function_expression.declaration,
+            instantiate_all
+        );
+
+        h::visit_type_references(
+            function_expression.definition,
+            instantiate_all
+        );
+    }
+
     std::optional<Custom_type_reference> get_function_constructor_type_reference(
         Declaration_database const& declaration_database,
         Expression const& expression,
@@ -338,6 +433,18 @@ namespace h
 
     Function_constructor const* get_function_constructor(
         Declaration_database const& declaration_database,
+        Custom_type_reference const& custom_type_reference
+    )
+    {
+        std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference.module_reference.name, custom_type_reference.name);
+        if (!declaration.has_value() || !std::holds_alternative<Function_constructor const*>(declaration.value().data))
+            return nullptr;
+
+        return std::get<Function_constructor const*>(declaration.value().data);
+    }
+
+    Function_constructor const* get_function_constructor(
+        Declaration_database const& declaration_database,
         Expression const& expression,
         Statement const& statement,
         std::string_view const current_module_name
@@ -352,11 +459,7 @@ namespace h
         if (!custom_type_reference.has_value())
             return nullptr;
 
-        std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference->module_reference.name, custom_type_reference->name);
-        if (!declaration.has_value() || !std::holds_alternative<Function_constructor const*>(declaration.value().data))
-            return nullptr;
-
-        return std::get<Function_constructor const*>(declaration.value().data);
+        return get_function_constructor(declaration_database, *custom_type_reference);
     }
 
     Function_expression const* get_instance_call_function_expression(
@@ -370,5 +473,100 @@ namespace h
 
         Function_expression const& function_expression = location->second;
         return &function_expression;
+    }
+
+    std::string mangle_instance_call_name(
+        Instance_call_key const& key
+    )
+    {
+        std::size_t const instance_call_hash = Instance_call_key_hash{}(key);
+        return std::format("{}@{}", key.function_constructor_name, instance_call_hash);
+    }
+
+    Function_expression create_instance_call_expression_value(
+        Function_constructor const& function_constructor,
+        std::span<Statement const> const arguments,
+        Instance_call_key const& key
+    )
+    {
+        std::pmr::polymorphic_allocator<> allocator = {}; // TODO
+
+        h::execution_engine::Execution_engine engine = h::execution_engine::create_execution_engine(
+            allocator
+        );
+
+        Function_expression function_expression = h::execution_engine::evaluate_function_constructor(
+            engine,
+            function_constructor,
+            arguments
+        );
+
+        Function_declaration& function_declaration = function_expression.declaration;
+
+        std::string const mangled_name = mangle_instance_call_name(key);
+        function_declaration.name = std::pmr::string{mangled_name};
+
+        return function_expression;
+    }
+
+    std::pair<Instance_call_key, Function_expression> create_instance_call_expression_value(
+        Declaration_database& declaration_database,
+        Instance_call_expression const& expression,
+        Statement const& statement,
+        std::string_view const current_module_name
+    )
+    {
+        Function_constructor const* function_constructor = get_function_constructor(
+            declaration_database,
+            statement.expressions[expression.left_hand_side.expression_index],
+            statement,
+            current_module_name
+        );
+        if (function_constructor == nullptr)
+            throw std::runtime_error{ "Could not find function constructor!" };
+
+        Instance_call_key const key = create_instance_call_key(
+            declaration_database,
+            expression,
+            statement,
+            current_module_name
+        );
+
+        Function_expression const function_expression = create_instance_call_expression_value(
+            *function_constructor,
+            expression.arguments,
+            key
+        );
+        return std::make_pair(key, function_expression);
+    }
+
+    void add_instance_call_expression_values(
+        Declaration_database& declaration_database,
+        h::Module const& core_module
+    )
+    {
+        auto const instantiate_all = [&](h::Expression const& expression, h::Statement const& statement) -> bool {
+
+            if (std::holds_alternative<Instance_call_expression>(expression.data))
+            {
+                Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+                std::pair<Instance_call_key, Function_expression> const pair = create_instance_call_expression_value(
+                    declaration_database,
+                    instance_call_expression,
+                    statement,
+                    core_module.name
+                );
+
+                add_instantiated_type_instances(declaration_database, pair.second);
+                declaration_database.call_instances.emplace(std::move(pair));
+            }
+
+            return false;
+        };
+
+        h::visit_expressions(
+            core_module,
+            instantiate_all
+        );
     }
 }

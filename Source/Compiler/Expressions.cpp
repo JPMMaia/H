@@ -23,12 +23,12 @@ module h.compiler.expressions;
 
 import h.core;
 import h.core.declarations;
+import h.core.execution_engine;
 import h.core.types;
 import h.compiler.clang_data;
 import h.compiler.clang_code_generation;
 import h.compiler.common;
 import h.compiler.debug_info;
-import h.compiler.execution_engine;
 import h.compiler.instructions;
 import h.compiler.types;
 
@@ -587,6 +587,18 @@ namespace h::compiler
                         .type = std::move(function_type)
                     };
                 }
+                else if (std::holds_alternative<Function_constructor const*>(declaration.data))
+                {
+                    Function_constructor const& function_constructor = *std::get<Function_constructor const*>(declaration.data);
+                    Type_reference type = create_custom_type_reference(external_module.name, function_constructor.name);
+
+                    return Value_and_type
+                    {
+                        .name = expression.member_name,
+                        .value = nullptr,
+                        .type = std::move(type)
+                    };
+                }
             }
         }
 
@@ -664,6 +676,47 @@ namespace h::compiler
                             );
                         }
                     }
+                }
+            }
+        }
+
+        // Try to find declaration in the module of the left hand side type:
+        if (left_hand_side.type.has_value())
+        {
+            Type_reference const& left_hand_side_type = left_hand_side.type.value();
+            if (std::holds_alternative<Custom_type_reference>(left_hand_side_type.data))
+            {
+                Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(left_hand_side_type.data);
+                std::string_view const module_name = find_module_name(core_module, custom_type_reference.module_reference);
+
+                std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, expression.member_name);
+                if (declaration.has_value() && (std::holds_alternative<Function_constructor const*>(declaration.value().data) || std::holds_alternative<Function_declaration const*>(declaration.value().data)))
+                {
+                    Type_reference const access_type = create_custom_type_reference(module_name, expression.member_name);
+
+                    return Value_and_type
+                    {
+                        .name = expression.member_name,
+                        .value = nullptr,
+                        .type = access_type
+                    };
+                }
+            }
+            else if (std::holds_alternative<Type_instance>(left_hand_side_type.data))
+            {
+                Type_instance const& type_instance = std::get<Type_instance>(left_hand_side_type.data);
+                
+                std::optional<Declaration> const declaration = find_declaration(declaration_database, type_instance.type_constructor.module_reference.name, expression.member_name);
+                if (declaration.has_value() && (std::holds_alternative<Function_constructor const*>(declaration.value().data) || std::holds_alternative<Function_declaration const*>(declaration.value().data)))
+                {
+                    Type_reference const access_type = create_custom_type_reference(type_instance.type_constructor.module_reference.name, expression.member_name);
+
+                    return Value_and_type
+                    {
+                        .name = expression.member_name,
+                        .value = nullptr,
+                        .type = access_type
+                    };
                 }
             }
         }
@@ -1318,6 +1371,43 @@ namespace h::compiler
         };
     }
 
+    Value_and_type create_call_expression_value_common(
+        llvm::Value* const llvm_function_callee,
+        llvm::FunctionType* const llvm_function_type,
+        std::span<llvm::Value* const> const llvm_arguments,
+        Function_pointer_type const& function_pointer_type,
+        Expression_parameters const& parameters
+    )
+    {
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
+
+        llvm::Value* call_instruction = generate_function_call(
+            parameters.llvm_context,
+            parameters.llvm_builder,
+            parameters.llvm_data_layout,
+            parameters.llvm_module,
+            *parameters.llvm_parent_function,
+            parameters.clang_module_data,
+            parameters.core_module,
+            function_pointer_type.type,
+            *llvm_function_type,
+            *llvm_function_callee,
+            llvm_arguments,
+            parameters.declaration_database,
+            parameters.type_database
+        );
+
+        std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_pointer_type.type, parameters.core_module);
+
+        return
+        {
+            .name = "",
+            .value = call_instruction,
+            .type = std::move(function_output_type_reference)
+        };
+    }
+
     Value_and_type create_call_expression_value(
         Call_expression const& expression,
         Statement const& statement,
@@ -1332,9 +1422,6 @@ namespace h::compiler
 
         Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
 
-        std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
-        llvm_arguments.resize(expression.arguments.size());
-
         if (!left_hand_side.type.has_value() || !std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
 
@@ -1346,47 +1433,30 @@ namespace h::compiler
             function_pointer_type.type
         );
 
+        std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
+        llvm_arguments.resize(expression.arguments.size());
+
+        // TODO add implicit first argument
+
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
             std::uint64_t const expression_index = expression.arguments[i].expression_index;
 
             Expression_parameters new_parameters = parameters;
             new_parameters.expression_type = i < function_pointer_type.type.input_parameter_types.size() ? function_pointer_type.type.input_parameter_types[i] : std::optional<Type_reference>{};
-            //Value_and_type const temporary = create_loaded_expression_value(expression_index, statement, new_parameters);
+
             Value_and_type const temporary = create_expression_value(expression_index, statement, new_parameters);
 
             llvm_arguments[i] = temporary.value;
-        }        
+        }
 
-        llvm::Value* const function_callee = left_hand_side.value;
-
-        if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
-
-        llvm::Value* call_instruction = generate_function_call(
-            parameters.llvm_context,
-            llvm_builder,
-            parameters.llvm_data_layout,
-            parameters.llvm_module,
-            *parameters.llvm_parent_function,
-            parameters.clang_module_data,
-            parameters.core_module,
-            function_pointer_type.type,
-            *llvm_function_type,
-            *function_callee,
+        return create_call_expression_value_common(
+            left_hand_side.value,
+            llvm_function_type,
             llvm_arguments,
-            parameters.declaration_database,
-            parameters.type_database
+            function_pointer_type,
+            parameters
         );
-
-        std::optional<Type_reference> function_output_type_reference = get_function_output_type_reference(function_pointer_type.type, parameters.core_module);
-
-        return
-        {
-            .name = "",
-            .value = call_instruction,
-            .type = std::move(function_output_type_reference)
-        };
     }
 
     llvm::Instruction::CastOps get_cast_type(
@@ -2299,23 +2369,26 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
+        Value_and_type const left_hand_side_value = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
+        if (!left_hand_side_value.type.has_value() || !std::holds_alternative<Custom_type_reference>(left_hand_side_value.type.value().data))
+            throw std::runtime_error{ "Left hand side of instance call is not a custom type reference!" };
+
+        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(left_hand_side_value.type.value().data);
+
         Function_constructor const* function_constructor = get_function_constructor(
             parameters.declaration_database,
-            statement.expressions[expression.left_hand_side.expression_index],
-            statement,
-            parameters.core_module.name
+            custom_type_reference
         );
         if (function_constructor == nullptr)
             throw std::runtime_error{ "Could not find function constructor!" };
 
         std::pmr::polymorphic_allocator<> allocator = {}; // TODO
 
-        Instance_call_key const key = create_instance_call_key(
-            parameters.declaration_database,
-            expression,
-            statement,
-            parameters.core_module.name
-        );
+        Instance_call_key const key = {
+            .module_name = custom_type_reference.module_reference.name,
+            .function_constructor_name = custom_type_reference.name,
+            .arguments = expression.arguments
+        };
 
         std::string const mangled_name = mangle_instance_call_name(key);
         llvm::Function* const llvm_function = get_llvm_function(key.module_name, parameters.llvm_module, mangled_name, std::nullopt);
@@ -2329,7 +2402,7 @@ namespace h::compiler
         if (function_expression == nullptr)
             throw std::runtime_error{ "Could not find function expression!" };
 
-        Function_declaration const& function_declaration = function_expression->declaration; // TODO
+        Function_declaration const& function_declaration = function_expression->declaration;
         Type_reference type_reference = create_function_type_type_reference(
             function_declaration.type,
             function_declaration.input_parameter_names,
@@ -3056,6 +3129,24 @@ namespace h::compiler
                     .name = expression.name,
                     .value = nullptr,
                     .type = std::nullopt
+                };
+            }
+        }
+
+        // Search for function constructors and instantiate if needed:
+        {
+            std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, parameters.core_module.name, variable_name);
+            if (declaration.has_value() && std::holds_alternative<Function_constructor const*>(declaration.value().data))
+            {
+                Function_constructor const& function_constructor = *std::get<Function_constructor const*>(declaration.value().data);
+
+                Type_reference custom_type_reference = create_custom_type_reference(parameters.core_module.name, variable_name);
+
+                return Value_and_type
+                {
+                    .name = expression.name,
+                    .value = nullptr,
+                    .type = custom_type_reference
                 };
             }
         }

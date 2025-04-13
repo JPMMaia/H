@@ -19,6 +19,8 @@ target_sources(H_core PRIVATE
     "Struct_layout.cppm"
     "Types.cppm"
     "Types.cpp"
+    "Execution_engine/Execution_engine.cppm"
+    "Execution_engine/Execution_engine.cpp"
 )
 
 if(WIN32)

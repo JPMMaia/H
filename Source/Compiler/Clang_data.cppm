@@ -78,6 +78,6 @@ namespace h::compiler
         Clang_data const& clang_data,
         h::Module const& core_module,
         std::span<h::Module const* const> const sorted_core_module_dependencies,
-        Declaration_database& declaration_database
+        Declaration_database const& declaration_database
     );
 }

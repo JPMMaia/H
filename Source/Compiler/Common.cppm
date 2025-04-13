@@ -45,10 +45,6 @@ namespace h::compiler
         std::string_view declaration_name
     );
 
-    export std::string mangle_instance_call_name(
-        Instance_call_key const& key
-    );
-
     export llvm::Function* get_llvm_function(
         std::string_view const module_name,
         llvm::Module& llvm_module,

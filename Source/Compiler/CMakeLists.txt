@@ -96,6 +96,8 @@ else()
 endif()
 
 target_sources(H_compiler PRIVATE
+   "Analysis.cppm"
+   "Analysis.cpp"
    "Clang_code_generation.cppm"
    "Clang_code_generation.cpp"
    "Clang_data.cppm"
@@ -115,8 +117,6 @@ target_sources(H_compiler PRIVATE
    "Recompilation.cpp"
    "Types.cppm"
    "Types.cpp"
-   "Execution_engine/Execution_engine.cppm"
-   "Execution_engine/Execution_engine.cpp"
    "JIT/Core_module_layer.cppm"
    "JIT/Core_module_layer.cpp"
    "JIT/File_watcher.cppm"
@@ -167,7 +167,6 @@ if(BUILD_TESTING)
    target_sources(H_compiler_tests PRIVATE
       "Compiler.tests.cpp"
       "Recompilation.tests.cpp"
-      "Execution_engine/Execution_engine.tests.cpp"
       "JIT/JIT_runner.tests.cpp"
    )
 
