@@ -149,4 +149,9 @@ namespace h::compiler
         h::Function_declaration const& function_declaration,
         Expression_parameters const& expression_parameters
     );
+
+    Value_and_type create_variable_expression_value(
+        Variable_expression const& expression,
+        Expression_parameters const& parameters
+    );
 }

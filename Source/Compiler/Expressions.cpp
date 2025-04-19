@@ -849,6 +849,9 @@ namespace h::compiler
         if ((is_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_pointer(second)))
             return true;
 
+        if ((is_function_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_function_pointer(second)))
+            return true;
+
         return first == second;
     }
 
@@ -999,7 +1002,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Equal: {
-            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type) || is_function_pointer(type))
             {
                 return Value_and_type
                 {
@@ -1020,7 +1023,7 @@ namespace h::compiler
             break;
         }
         case Binary_operation::Not_equal: {
-            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type))
+            if (is_bool(type) || is_integer(type) || is_enum_type(type, left_hand_side.value) || is_pointer(type) || is_function_pointer(type))
             {
                 return Value_and_type
                 {
@@ -1408,6 +1411,121 @@ namespace h::compiler
         };
     }
 
+    bool is_member_of_struct(
+        Struct_declaration const& struct_declaration,
+        std::string_view const member_name
+    )
+    {
+        auto const location = std::find_if(
+            struct_declaration.member_names.begin(),
+            struct_declaration.member_names.end(),
+            [&](std::pmr::string const& current_member_name) -> bool {
+                return current_member_name == member_name;
+            }
+        );
+        return location != struct_declaration.member_names.end();
+    }
+
+    std::optional<Value_and_type> get_implicit_first_argument(
+        std::size_t const expression_index,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        Expression const& expression = statement.expressions[expression_index];
+
+        if (std::holds_alternative<Access_expression>(expression.data))
+        {
+            Access_expression const& access_expression = std::get<Access_expression>(expression.data);
+
+            Expression const& left_hand_side_expression = statement.expressions[access_expression.expression.expression_index];
+
+            if (std::holds_alternative<Variable_expression>(left_hand_side_expression.data))
+            {
+                Variable_expression const& variable_expression = std::get<Variable_expression>(left_hand_side_expression.data);
+
+                Value_and_type const value = create_variable_expression_value(variable_expression, parameters);
+
+                if (value.value != nullptr && value.type.has_value())
+                {
+                    Type_reference const& value_type = value.type.value();
+
+                    if (std::holds_alternative<Custom_type_reference>(value_type.data))
+                    {
+                        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(value_type.data);
+                        std::string_view const module_name = find_module_name(parameters.core_module, custom_type_reference.module_reference);
+                        std::optional<Declaration> const declaration_optional = find_declaration(parameters.declaration_database, module_name, access_expression.member_name);
+
+                        if (declaration_optional.has_value())
+                        {
+                            Declaration const& declaration = declaration_optional.value();
+
+                            if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+                            {
+                                bool const is_member = is_member_of_struct(*std::get<Struct_declaration const*>(declaration.data), access_expression.member_name);
+                                if (!is_member)
+                                {
+                                    return Value_and_type
+                                    {
+                                        .name = "",
+                                        .value = value.value,
+                                        .type = create_pointer_type_type_reference({ value.type.value() }, true)
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        else if (std::holds_alternative<Instance_call_expression>(expression.data))
+        {
+            Instance_call_expression const& data = std::get<Instance_call_expression>(expression.data);
+
+            Expression const& instance_call_left_hand_side = statement.expressions[data.left_hand_side.expression_index];
+            if (std::holds_alternative<Access_expression>(instance_call_left_hand_side.data))
+            {
+                Access_expression const& access_expression = std::get<Access_expression>(instance_call_left_hand_side.data);
+
+                Expression const& access_left_hand_side_expression = statement.expressions[access_expression.expression.expression_index];
+                if (std::holds_alternative<Variable_expression>(access_left_hand_side_expression.data))
+                {
+                    Variable_expression const& variable_expression = std::get<Variable_expression>(access_left_hand_side_expression.data);
+
+                    Value_and_type const value = create_variable_expression_value(variable_expression, parameters);
+
+                    if (value.value != nullptr && value.type.has_value())
+                    {
+                        Type_reference const& value_type = value.type.value();
+
+                        if (std::holds_alternative<Type_instance>(value_type.data))
+                        {
+                            Type_instance const& type_instance = std::get<Type_instance>(value_type.data);
+
+                            Declaration_instance_storage const& storage = parameters.declaration_database.instances.at(type_instance);
+
+                            if (std::holds_alternative<Struct_declaration>(storage.data))
+                            {
+                                bool const is_member = is_member_of_struct(std::get<Struct_declaration>(storage.data), access_expression.member_name);
+                                if (!is_member)
+                                {
+                                    return Value_and_type
+                                    {
+                                        .name = "",
+                                        .value = value.value,
+                                        .type = create_pointer_type_type_reference({ value.type.value() }, true)
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
     Value_and_type create_call_expression_value(
         Call_expression const& expression,
         Statement const& statement,
@@ -1421,7 +1539,6 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
         Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
-
         if (!left_hand_side.type.has_value() || !std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
 
@@ -1433,10 +1550,17 @@ namespace h::compiler
             function_pointer_type.type
         );
 
-        std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
-        llvm_arguments.resize(expression.arguments.size());
+        std::optional<Value_and_type> const implicit_first_argument = get_implicit_first_argument(
+            expression.expression.expression_index,
+            statement,
+            parameters
+        );
 
-        // TODO add implicit first argument
+        std::pmr::vector<llvm::Value*> llvm_arguments{ temporaries_allocator };
+        llvm_arguments.resize(implicit_first_argument.has_value() ? expression.arguments.size() + 1 : expression.arguments.size());
+
+        if (implicit_first_argument.has_value())
+            llvm_arguments[0] = implicit_first_argument.value().value;
 
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
@@ -1447,7 +1571,8 @@ namespace h::compiler
 
             Value_and_type const temporary = create_expression_value(expression_index, statement, new_parameters);
 
-            llvm_arguments[i] = temporary.value;
+            std::size_t const output_index = implicit_first_argument.has_value() ? i + 1 : i;
+            llvm_arguments[output_index] = temporary.value;
         }
 
         return create_call_expression_value_common(

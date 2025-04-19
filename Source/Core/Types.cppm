@@ -29,6 +29,7 @@ namespace h
     export Type_reference create_function_type_type_reference(Function_type const& function_type, std::pmr::vector<std::pmr::string> input_parameter_names, std::pmr::vector<std::pmr::string> output_parameter_names);
     export std::optional<Type_reference> get_function_output_type_reference(Function_type const& function_type, Module const& core_module);
     export std::optional<Type_reference> get_function_output_type_reference(Type_reference const& type, Module const& core_module);
+    export bool is_function_pointer(Type_reference const& type);
 
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
     export bool is_floating_point(Type_reference const& type);

@@ -173,6 +173,11 @@ namespace h
         throw std::runtime_error{ "Type is not a function type!" };
     }
 
+    bool is_function_pointer(Type_reference const& type)
+    {
+        return std::holds_alternative<Function_pointer_type>(type.data);
+    }
+
 
     Type_reference create_fundamental_type_type_reference(Fundamental_type const value)
     {
