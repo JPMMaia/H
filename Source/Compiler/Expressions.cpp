@@ -2026,37 +2026,68 @@ namespace h::compiler
             if (is_non_void_pointer(type_reference))
             {
                 std::optional<Type_reference> const value_type = remove_pointer(type_reference);
-                if (value_type.has_value() && std::holds_alternative<Custom_type_reference>(value_type.value().data))
+                if (value_type.has_value())
                 {
-                    Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(value_type.value().data);
-
-                    std::string_view const module_name = find_module_name(parameters.core_module, custom_type_reference.module_reference);
-                    std::string_view const declaration_name = custom_type_reference.name;
-        
-                    std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, module_name, declaration_name);
-        
-                    if (declaration.has_value())
+                    if (std::holds_alternative<Custom_type_reference>(value_type.value().data))
                     {
-                        Declaration const& declaration_value = declaration.value();
-        
-                        if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
+                        Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(value_type.value().data);
+
+                        std::string_view const module_name = find_module_name(parameters.core_module, custom_type_reference.module_reference);
+                        std::string_view const declaration_name = custom_type_reference.name;
+            
+                        std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, module_name, declaration_name);
+            
+                        if (declaration.has_value())
                         {
-                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+                            Declaration const& declaration_value = declaration.value();
+            
+                            if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
+                            {
+                                Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+                                return create_access_struct_member(
+                                    left_hand_side_expression,
+                                    dereference_and_access_expression.member_name,
+                                    module_name,
+                                    struct_declaration,
+                                    parameters
+                                );
+                            }
+                            else if (std::holds_alternative<Union_declaration const*>(declaration_value.data))
+                            {
+                                Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
+                                return create_access_union_member(
+                                    left_hand_side_expression,
+                                    dereference_and_access_expression.member_name,
+                                    module_name,
+                                    union_declaration,
+                                    parameters
+                                );
+                            }
+                        }
+                    }
+                    else if (std::holds_alternative<Type_instance>(value_type.value().data))
+                    {
+                        Type_instance const& type_instance = std::get<Type_instance>(value_type.value().data);
+                        Declaration_instance_storage const& storage = parameters.declaration_database.instances.at(type_instance);
+                        
+                        if (std::holds_alternative<Struct_declaration>(storage.data))
+                        {
+                            Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
                             return create_access_struct_member(
                                 left_hand_side_expression,
                                 dereference_and_access_expression.member_name,
-                                module_name,
+                                type_instance.type_constructor.module_reference.name,
                                 struct_declaration,
                                 parameters
                             );
                         }
-                        else if (std::holds_alternative<Union_declaration const*>(declaration_value.data))
+                        else if (std::holds_alternative<Union_declaration>(storage.data))
                         {
-                            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
+                            Union_declaration const& union_declaration = std::get<Union_declaration>(storage.data);
                             return create_access_union_member(
                                 left_hand_side_expression,
                                 dereference_and_access_expression.member_name,
-                                module_name,
+                                type_instance.type_constructor.module_reference.name,
                                 union_declaration,
                                 parameters
                             );
