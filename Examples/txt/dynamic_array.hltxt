@@ -25,7 +25,8 @@ export function_constructor create(element_type: Type)
     {
         return {
             data: null,
-            length: 0,
+            length: 0u64,
+            capacity: 0u64,
             allocator: allocator
         };
     };
@@ -38,7 +39,7 @@ export function_constructor push_back(element_type: Type)
     {
         if instance->length == instance->capacity
         {
-            var new_capacity = 2 * (instance->capacity + 1);
+            var new_capacity = 2u64 * (instance->capacity + 1u64);
             
             var allocation_size_in_bytes = new_capacity * @size_of(element_type);
             var allocation = instance->allocator.allocate(allocation_size_in_bytes, @alignment_of(element_type));
@@ -53,7 +54,7 @@ export function_constructor push_back(element_type: Type)
 
         var index = instance->length;
         instance->data[index] = element;
-        instance->length += 1;
+        instance->length += 1u64;
     };
 }
 
@@ -63,6 +64,6 @@ export function_constructor get(element_type: Type)
         precondition "instance != null" { instance != null }
         precondition "index < instance->length" { index < instance->length } 
     {
-        return instance.data[index];
+        return instance->data[index];
     };
 }
