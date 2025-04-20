@@ -2677,6 +2677,59 @@ namespace h::compiler
         return create_expression_value(expression.expression.expression_index, statement, parameters);
     }
 
+    Value_and_type create_reflection_expression_value(
+        Reflection_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        if (expression.name == "alignment_of")
+        {
+            if (expression.arguments.size() != 1)
+                throw std::runtime_error{ "alignment_of() requires exactly one argument!" };
+
+            Value_and_type const argument = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
+            if (!argument.type.has_value())
+                throw std::runtime_error{ "Argument of alignment_of() does not have a type!" };
+
+            Type_reference const& type_reference = argument.type.value();
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, type_reference, parameters.type_database);
+            llvm::Align const alignment = parameters.llvm_data_layout.getABITypeAlign(llvm_type);
+            std::uint64_t const alignment_in_bytes = alignment.value();
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = llvm::ConstantInt::get(llvm::Type::getInt64Ty(parameters.llvm_context), alignment_in_bytes),
+                .type = create_integer_type_type_reference(64, false)
+            };
+        }
+        else if (expression.name == "size_of")
+        {
+            if (expression.arguments.size() != 1)
+                throw std::runtime_error{ "size_of() requires exactly one argument!" };
+
+            Value_and_type const argument = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
+            if (!argument.type.has_value())
+                throw std::runtime_error{ "Argument of size_of() does not have a type!" };
+
+            Type_reference const& type_reference = argument.type.value();
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, type_reference, parameters.type_database);
+            std::uint64_t const size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(llvm_type);
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = llvm::ConstantInt::get(llvm::Type::getInt64Ty(parameters.llvm_context), size_in_bytes),
+                .type = create_integer_type_type_reference(64, false)
+            };
+        }
+        else
+        {
+            throw std::runtime_error{ std::format("Reflection expression '{}' not implemented!", expression.name) };
+        }
+    }
+
     Value_and_type create_return_expression_value(
         Return_expression const& expression,
         Statement const& statement,
@@ -2925,6 +2978,20 @@ namespace h::compiler
             .name = "",
             .value = phi_node,
             .type = then_value.type
+        };
+    }
+
+    Value_and_type create_type_expression_value(
+        Type_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        return Value_and_type
+        {
+            .name = "",
+            .value = nullptr,
+            .type = expression.type
         };
     }
 
@@ -3489,20 +3556,30 @@ namespace h::compiler
             Parenthesis_expression const& data = std::get<Parenthesis_expression>(expression.data);
             return create_parenthesis_expression_value(data, statement, new_parameters);
         }
+        else if (std::holds_alternative<Reflection_expression>(expression.data))
+        {
+            Reflection_expression const& data = std::get<Reflection_expression>(expression.data);
+            return create_reflection_expression_value(data, statement, new_parameters);
+        }
         else if (std::holds_alternative<Return_expression>(expression.data))
         {
             Return_expression const& data = std::get<Return_expression>(expression.data);
             return create_return_expression_value(data, statement, new_parameters);
+        }
+        else if (std::holds_alternative<Switch_expression>(expression.data))
+        {
+            Switch_expression const& data = std::get<Switch_expression>(expression.data);
+            return create_switch_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<Ternary_condition_expression>(expression.data);
             return create_ternary_condition_expression_value(data, statement, new_parameters);
         }
-        else if (std::holds_alternative<Switch_expression>(expression.data))
+        else if (std::holds_alternative<Type_expression>(expression.data))
         {
-            Switch_expression const& data = std::get<Switch_expression>(expression.data);
-            return create_switch_expression_value(data, statement, new_parameters);
+            Type_expression const& data = std::get<Type_expression>(expression.data);
+            return create_type_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Unary_expression>(expression.data))
         {
