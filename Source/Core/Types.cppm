@@ -726,6 +726,15 @@ namespace h
     }
 
     export template <typename Function_t>
+    bool visit_expressions(
+        h::Function_declaration const& declaration,
+        Function_t predicate
+    )
+    {
+        return false;
+    }
+
+    export template <typename Function_t>
         bool visit_expressions(
             h::Function_definition const& definition,
             Function_t predicate

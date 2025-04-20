@@ -193,6 +193,36 @@ namespace h::execution_engine
         visit_type_references(value, process_type);
     }
 
+    std::optional<h::Type_expression> find_type_expression_from_function_constructor_arguments(
+        std::span<Function_constructor_parameter const> const function_constructor_parameters,
+        std::span<Statement const> const type_instance_arguments,
+        std::string_view const parameter_name
+    )
+    {
+        auto const location = std::find_if(
+            function_constructor_parameters.begin(),
+            function_constructor_parameters.end(), 
+            [&](Function_constructor_parameter const& parameter) -> bool { return parameter.name == parameter_name; }
+        );
+        if (location == function_constructor_parameters.end())
+            return std::nullopt;
+
+        Function_constructor_parameter const& parameter = *location;
+        if (!is_compile_time_builtin_type(parameter.type))
+            return std::nullopt;
+
+        std::size_t const parameter_index = std::distance(function_constructor_parameters.begin(), location);
+        if (parameter_index >= type_instance_arguments.size())
+            return std::nullopt;
+
+        Expression const& expression = type_instance_arguments[parameter_index].expressions[0];
+        if (!std::holds_alternative<Type_expression>(expression.data))
+            return std::nullopt;
+
+        Type_expression const& type_expression = std::get<Type_expression>(expression.data);
+        return type_expression;
+    }
+
     template<class T>
     void replace_parameter_types_by_instance_arguments(
         T& value,
@@ -200,6 +230,32 @@ namespace h::execution_engine
         std::span<Statement const> const type_instance_arguments
     )
     {
+        auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+        {
+            h::Expression& mutable_expression = const_cast<h::Expression&>(expression);
+            if (std::holds_alternative<Variable_expression>(expression.data))
+            {
+                Variable_expression const& variable_expression = std::get<Variable_expression>(expression.data);
+
+                std::optional<Type_expression> const new_parameter_type = find_type_expression_from_function_constructor_arguments(
+                    function_constructor_parameters,
+                    type_instance_arguments,
+                    variable_expression.name
+                );
+                if (!new_parameter_type.has_value())
+                    return false;
+
+                Type_expression const& type_expression = new_parameter_type.value();
+
+                // TODO use allocator to copy
+                mutable_expression.data = type_expression;
+            }
+
+            return false;
+        };
+
+        visit_expressions(value, process_expression);
+
         auto const process_type = [&](Type_reference const& type_reference) -> bool
         {
             Type_reference& mutable_type_reference = const_cast<Type_reference&>(type_reference);
@@ -207,30 +263,16 @@ namespace h::execution_engine
             {
                 Parameter_type const& parameter_type = std::get<Parameter_type>(mutable_type_reference.data);
 
-                auto const location = std::find_if(
-                    function_constructor_parameters.begin(),
-                    function_constructor_parameters.end(), 
-                    [&](Function_constructor_parameter const& parameter) -> bool { return parameter.name == parameter_type.name; }
+                std::optional<Type_expression> const new_parameter_type = find_type_expression_from_function_constructor_arguments(
+                    function_constructor_parameters,
+                    type_instance_arguments,
+                    parameter_type.name
                 );
-                if (location == function_constructor_parameters.end())
+                if (!new_parameter_type.has_value())
                     throw std::runtime_error{ "Could not find parameter type in type constructor!"};
 
-                Function_constructor_parameter const& parameter = *location;
-                if (!is_compile_time_builtin_type(parameter.type))
-                    throw std::runtime_error{ "Type constructor parameter type is not the compile time builtin type!"};
-
-                std::size_t const parameter_index = std::distance(function_constructor_parameters.begin(), location);
-                if (parameter_index >= type_instance_arguments.size())
-                    throw std::runtime_error{ "Type instance does not provide all arguments!"};
-
-                Expression const& expression = type_instance_arguments[parameter_index].expressions[0];
-                if (!std::holds_alternative<Type_expression>(expression.data))
-                    throw std::runtime_error{ "Expected type instance argument to by a type expression!"};
-
-                Type_expression const& type_expression = std::get<Type_expression>(expression.data);
-
                 // TODO use allocator to copy
-                mutable_type_reference.data = type_expression.type.data;                
+                mutable_type_reference.data = new_parameter_type.value().type.data;
             }
 
             return false;
