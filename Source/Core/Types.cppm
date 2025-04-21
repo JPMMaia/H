@@ -295,22 +295,22 @@ namespace h
             if (std::holds_alternative<Cast_expression>(expression.data))
             {
                 Cast_expression const& data = std::get<Cast_expression>(expression.data);
-                return predicate(data.destination_type);
+                return visit_type_references(data.destination_type, predicate);
             }
             else if (std::holds_alternative<Constant_expression>(expression.data))
             {
                 Constant_expression const& data = std::get<Constant_expression>(expression.data);
-                return predicate(data.type);
+                return visit_type_references(data.type, predicate);
             }
             else if (std::holds_alternative<Type_expression>(expression.data))
             {
                 Type_expression const& data = std::get<Type_expression>(expression.data);
-                return predicate(data.type);
+                return visit_type_references(data.type, predicate);
             }
             else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
             {
                 Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
-                return predicate(data.type);
+                return visit_type_references(data.type, predicate);
             }
 
             return false;
