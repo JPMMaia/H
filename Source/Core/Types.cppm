@@ -50,6 +50,8 @@ namespace h
     export bool is_pointer(Type_reference const& type);
     export bool is_non_void_pointer(Type_reference const& type);
 
+    export std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type);
+
     export template <typename Function_t>
         bool visit_expressions(
             h::Expression const& expression,

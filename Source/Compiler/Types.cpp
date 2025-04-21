@@ -667,6 +667,9 @@ namespace h::compiler
             clang::RecordDecl* const record_declaration = pair.second;
             llvm::Type* const clang_type = convert_type(clang_module_data, record_declaration);
             type_database.type_instance_to_llvm_type.emplace(pair.first, clang_type);
+            
+            std::pmr::string const mangled_name = mangle_type_instance_name(pair.first);
+            type_database.name_to_llvm_type[pair.first.type_constructor.module_reference.name].insert(std::make_pair(mangled_name, clang_type));
         }
     }
 

@@ -124,6 +124,10 @@ namespace h
         Type_instance const& type_instance
     );
 
+    export std::pmr::string mangle_type_instance_name(
+        Type_instance const& type_instance
+    );
+
     export void add_instantiated_type_instances(
         Declaration_database& declaration_database,
         h::Module const& core_module

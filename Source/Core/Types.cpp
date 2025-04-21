@@ -378,4 +378,26 @@ namespace h
 
         return false;
     }
+
+    std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type)
+    {
+        if (std::holds_alternative<Constant_array_type>(type.data))
+        {
+            Constant_array_type const& constant_array_type = std::get<Constant_array_type>(type.data);
+            if (constant_array_type.value_type.empty())
+                return std::nullopt;
+
+            return constant_array_type.value_type.front();
+        }
+        else if (std::holds_alternative<Pointer_type>(type.data))
+        {
+            Pointer_type const& pointer_type = std::get<Pointer_type>(type.data);
+            if (pointer_type.element_type.empty())
+                return std::nullopt;
+
+            return pointer_type.element_type.front();
+        }
+
+        return std::nullopt;
+    }
 }

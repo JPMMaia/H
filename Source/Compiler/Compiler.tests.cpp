@@ -1947,6 +1947,185 @@ target triple = "x86_64-pc-linux-gnu"
     };
 
     char const* const expected_llvm_ir = R"(
+%struct.dynamic_array_Allocator = type { ptr, ptr }
+%"struct.dynamic_array_Dynamic_array@12163040539293411600" = type { ptr, i64, i64, %struct.dynamic_array_Allocator }
+
+@function_contract_error_string = private unnamed_addr constant [106 x i8] c"In function 'dynamic_array.create@17667569505855402249' precondition 'allocator.allocate != null' failed!\00"
+@function_contract_error_string.1 = private unnamed_addr constant [108 x i8] c"In function 'dynamic_array.create@17667569505855402249' precondition 'allocator.deallocate != null' failed!\00"
+@function_contract_error_string.2 = private unnamed_addr constant [99 x i8] c"In function 'dynamic_array.push_back@10381242744536279270' precondition 'instance != null' failed!\00"
+@function_contract_error_string.3 = private unnamed_addr constant [100 x i8] c"In function 'dynamic_array.push_back@10381242744536279270' assert 'Allocation did not fail' failed!\00"
+@function_contract_error_string.4 = private unnamed_addr constant [92 x i8] c"In function 'dynamic_array.get@9702523150449348026' precondition 'instance != null' failed!\00"
+@function_contract_error_string.5 = private unnamed_addr constant [100 x i8] c"In function 'dynamic_array.get@9702523150449348026' precondition 'index < instance->length' failed!\00"
+
+; Function Attrs: convergent
+define private void @dynamic_array_usage_run() #0 {
+entry:
+  %allocator = alloca %struct.dynamic_array_Allocator, align 8
+  %0 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %instance = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %element = alloca i32, align 4
+  store %struct.dynamic_array_Allocator zeroinitializer, ptr %allocator, align 8
+  %1 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  %2 = load ptr, ptr %1, align 8
+  %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
+  %4 = load ptr, ptr %3, align 8
+  call void @"dynamic_array_create@17667569505855402249"(ptr noundef %0, ptr %2, ptr %4)
+  %5 = load %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %0, align 8
+  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %5, ptr %instance, align 8
+  call void @"dynamic_array_push_back@10381242744536279270"(ptr noundef %instance, i32 noundef 1)
+  %6 = call i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %instance, i64 noundef 0)
+  store i32 %6, ptr %element, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @"dynamic_array_create@17667569505855402249"(ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1", ptr %0) #0 {
+entry:
+  %allocator = alloca %struct.dynamic_array_Allocator, align 8
+  %1 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  store ptr %"arguments[0].allocator_0", ptr %1, align 8
+  %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
+  store ptr %"arguments[0].allocator_1", ptr %2, align 8
+  %3 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
+  %4 = icmp ne ptr %3, null
+  br i1 %4, label %condition_success, label %condition_fail
+
+condition_success:                                ; preds = %entry
+  %5 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
+  %6 = icmp ne ptr %5, null
+  br i1 %6, label %condition_success1, label %condition_fail2
+
+condition_fail:                                   ; preds = %entry
+  %7 = call i32 @puts(ptr @function_contract_error_string)
+  call void @abort()
+  unreachable
+
+condition_success1:                               ; preds = %condition_success
+  %8 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
+  %9 = insertvalue %"struct.dynamic_array_Dynamic_array@12163040539293411600" { ptr null, i64 0, i64 0, %struct.dynamic_array_Allocator undef }, %struct.dynamic_array_Allocator %8, 3
+  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %9, ptr %"arguments[0].allocator_0", align 8
+  ret void
+
+condition_fail2:                                  ; preds = %condition_success
+  %10 = call i32 @puts(ptr @function_contract_error_string.1)
+  call void @abort()
+  unreachable
+}
+
+; Function Attrs: convergent
+define private void @"dynamic_array_push_back@10381242744536279270"(ptr noundef %"arguments[0].instance", i32 noundef %"arguments[1].element") #0 {
+entry:
+  %instance = alloca ptr, align 8
+  %element = alloca i32, align 4
+  %new_capacity = alloca i64, align 8
+  %allocation_size_in_bytes = alloca i64, align 8
+  %allocation = alloca ptr, align 8
+  %index = alloca i64, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  store i32 %"arguments[1].element", ptr %element, align 4
+  %0 = icmp ne ptr %instance, null
+  br i1 %0, label %condition_success, label %condition_fail
+
+condition_success:                                ; preds = %entry
+  %1 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %2 = load i64, ptr %1, align 8
+  %3 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %4 = load i64, ptr %3, align 8
+  %5 = icmp eq i64 %2, %4
+  br i1 %5, label %if_s0_then, label %if_s1_after
+
+condition_fail:                                   ; preds = %entry
+  %6 = call i32 @puts(ptr @function_contract_error_string.2)
+  call void @abort()
+  unreachable
+
+if_s0_then:                                       ; preds = %condition_success
+  %7 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %8 = load i64, ptr %7, align 8
+  %9 = add i64 %8, 1
+  %10 = mul i64 2, %9
+  store i64 %10, ptr %new_capacity, align 8
+  %11 = load i64, ptr %new_capacity, align 8
+  %12 = mul i64 %11, 4
+  store i64 %12, ptr %allocation_size_in_bytes, align 8
+  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 3
+  %14 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %13, i32 0, i32 0
+  %15 = load i64, ptr %allocation_size_in_bytes, align 8
+  %16 = call ptr %14(i64 noundef %15, i64 noundef 4)
+  store ptr %16, ptr %allocation, align 8
+  %17 = icmp ne ptr %allocation, null
+  br i1 %17, label %condition_success1, label %condition_fail2
+
+if_s1_after:                                      ; preds = %condition_success1, %condition_success
+  %18 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %19 = load i64, ptr %18, align 8
+  store i64 %19, ptr %index, align 8
+  %20 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  %21 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %20, i64 %21
+  %22 = load i32, ptr %element, align 4
+  store i32 %22, ptr %array_element_pointer, align 4
+  %23 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %24 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %25 = load i64, ptr %24, align 8
+  %26 = add i64 %25, 1
+  store i64 %26, ptr %23, align 8
+  ret void
+
+condition_success1:                               ; preds = %if_s0_then
+  %27 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  store ptr %allocation, ptr %27, align 8
+  %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %29 = load i64, ptr %new_capacity, align 8
+  store i64 %29, ptr %28, align 8
+  br label %if_s1_after
+
+condition_fail2:                                  ; preds = %if_s0_then
+  %30 = call i32 @puts(ptr @function_contract_error_string.3)
+  call void @abort()
+  unreachable
+}
+
+; Function Attrs: convergent
+define private i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %"arguments[0].instance", i64 noundef %"arguments[1].index") #0 {
+entry:
+  %instance = alloca ptr, align 8
+  %index = alloca i64, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  store i64 %"arguments[1].index", ptr %index, align 8
+  %0 = icmp ne ptr %instance, null
+  br i1 %0, label %condition_success, label %condition_fail
+
+condition_success:                                ; preds = %entry
+  %1 = load i64, ptr %index, align 8
+  %2 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %3 = load i64, ptr %2, align 8
+  %4 = icmp ult i64 %1, %3
+  br i1 %4, label %condition_success1, label %condition_fail2
+
+condition_fail:                                   ; preds = %entry
+  %5 = call i32 @puts(ptr @function_contract_error_string.4)
+  call void @abort()
+  unreachable
+
+condition_success1:                               ; preds = %condition_success
+  %6 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  %7 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %6, i64 %7
+  %8 = load i32, ptr %array_element_pointer, align 4
+  ret i32 %8
+
+condition_fail2:                                  ; preds = %condition_success
+  %9 = call i32 @puts(ptr @function_contract_error_string.5)
+  call void @abort()
+  unreachable
+}
+
+declare i32 @puts(ptr)
+
+declare void @abort()
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

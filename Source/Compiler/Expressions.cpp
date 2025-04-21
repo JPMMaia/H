@@ -740,26 +740,35 @@ namespace h::compiler
         if (!left_hand_side_expression_value.type.has_value())
             throw std::runtime_error{"Could not deduce type of left hand side."};
 
-        if (!std::holds_alternative<Constant_array_type>(left_hand_side_expression_value.type->data))
-            throw std::runtime_error{"Cannot access array of non-array type."};
+        std::optional<Type_reference> element_type = get_element_or_pointee_type(*left_hand_side_expression_value.type);
+        if (!element_type.has_value())
+            throw std::runtime_error{"Cannot find element type of array access."};
 
-        Constant_array_type const& constant_array_type = std::get<Constant_array_type>(left_hand_side_expression_value.type->data);
-        if (constant_array_type.value_type.empty() || constant_array_type.size == 0)
-            throw std::runtime_error{"Cannot access empty array."};
-
-        llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, *left_hand_side_expression_value.type, type_database);
+        bool const using_pointer = is_pointer(*left_hand_side_expression_value.type);
+        Type_reference const& type_reference_to_use =
+        using_pointer ?
+            element_type.value() :
+            *left_hand_side_expression_value.type;
+        llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type_reference_to_use, type_database);
         llvm::Value* const array_pointer = left_hand_side_expression_value.value;
 
         Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
         llvm::Value* const index_llvm_value = index_value.value;
         
-        llvm::Value* const element_pointer = llvm_builder.CreateGEP(array_llvm_type, array_pointer, {llvm_builder.getInt32(0), index_llvm_value}, "array_element_pointer");
+        llvm::Value* const element_pointer = llvm_builder.CreateGEP(
+            array_llvm_type,
+            array_pointer,
+            using_pointer ? llvm::ArrayRef<llvm::Value*>{index_llvm_value} : llvm::ArrayRef<llvm::Value*>{llvm_builder.getInt32(0), index_llvm_value},
+            "array_element_pointer"
+        );
+
+        // TODO add an option to the compiler to make access inbounds for safety. All out-of-bounds accesses will then cause an abort.
         
         return Value_and_type
         {
             .name = "",
             .value = element_pointer,
-            .type = constant_array_type.value_type[0]
+            .type = element_type
         };
     }
 

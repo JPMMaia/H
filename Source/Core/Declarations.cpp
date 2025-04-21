@@ -304,14 +304,20 @@ namespace h
         if (std::holds_alternative<Struct_declaration>(created_declaration.data))
         {
             Struct_declaration struct_declaration = std::get<Struct_declaration>(created_declaration.data);
-
-            std::size_t const type_instance_hash = Type_instance_hash{}(type_instance);
-            struct_declaration.name = std::pmr::string{std::format("{}@{}", type_constructor.name, type_instance_hash)};
+            struct_declaration.name = mangle_type_instance_name(type_instance);
 
             return Declaration_instance_storage{.data = struct_declaration};
         }
 
         throw std::runtime_error{"Could not instantiate type instance!"};
+    }
+
+    std::pmr::string mangle_type_instance_name(
+        Type_instance const& type_instance
+    )
+    {
+        std::size_t const type_instance_hash = Type_instance_hash{}(type_instance);
+        return std::pmr::string{std::format("{}@{}", type_instance.type_constructor.name, type_instance_hash)};
     }
 
     void add_instantiated_type_instances(
