@@ -808,6 +808,37 @@ namespace h::compiler
         }
     }
 
+    Value_and_type create_assert_expression_value(
+        Assert_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        h::Function_condition const condition = {
+            .description = expression.message.value_or(""),
+            .condition = expression.statement
+        };
+
+        create_check_condition_instructions(
+            parameters.llvm_context,
+            parameters.llvm_module,
+            *parameters.llvm_parent_function,
+            parameters.llvm_builder,
+            parameters.core_module,
+            *parameters.function_declaration.value(),
+            condition,
+            Condition_type::Assert,
+            parameters
+        );
+
+        return
+        {
+            .name = "",
+            .value = nullptr,
+            .type = std::nullopt
+        };
+    }
+
     Value_and_type create_assignment_expression_value(
         Assignment_expression const& expression,
         Statement const& statement,
@@ -3468,6 +3499,11 @@ namespace h::compiler
             Access_array_expression const& data = std::get<Access_array_expression>(expression.data);
             return create_access_array_expression_value(data, statement, new_parameters);
         }
+        else if (std::holds_alternative<Assert_expression>(expression.data))
+        {
+            Assert_expression const& data = std::get<Assert_expression>(expression.data);
+            return create_assert_expression_value(data, statement, new_parameters);
+        }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& data = std::get<Assignment_expression>(expression.data);
@@ -3783,16 +3819,13 @@ namespace h::compiler
         create_defer_instructions_pop_blocks(parameters, parameters.defer_expressions_per_block.size());
     }
 
-    enum class Condition_type
-    {
-        Precondition,
-        Postcondition,
-    };
-
     std::string_view condition_type_to_string(Condition_type const type)
     {
         switch (type)
         {
+        case Condition_type::Assert: {
+            return "assert";
+        }
         case Condition_type::Precondition: {
             return "precondition";
         }

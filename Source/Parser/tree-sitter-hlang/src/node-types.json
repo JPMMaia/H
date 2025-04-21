@@ -291,6 +291,25 @@
     }
   },
   {
+    "type": "Expression_assert",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Generic_expression",
+          "named": true
+        },
+        {
+          "type": "String",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "Expression_assignment",
     "named": true,
     "fields": {},
@@ -1880,6 +1899,10 @@
       "required": true,
       "types": [
         {
+          "type": "Expression_assert",
+          "named": true
+        },
+        {
           "type": "Expression_assignment",
           "named": true
         },
@@ -2488,6 +2511,10 @@
   },
   {
     "type": "as",
+    "named": false
+  },
+  {
+    "type": "assert",
     "named": false
   },
   {

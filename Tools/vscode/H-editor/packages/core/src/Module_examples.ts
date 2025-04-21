@@ -1602,6 +1602,85 @@ export function create_dereference_and_access_expressions(): IR.Module {
     };
 }
 
+export function create_assert_expression(statement: IR.Statement): IR.Expression {
+    const assert_expression: IR.Assert_expression = {
+        statement: statement,
+    };
+    return {
+        data: {
+            type: IR.Expression_enum.Assert_expression,
+            value: assert_expression
+        }
+    };
+}
+
+export function create_assert_expressions(): IR.Module {
+
+    const expressions: IR.Expression[] = [
+        IR.create_assert_expression(
+            "Value is not 0",
+            create_statement(
+                IR.create_binary_expression(
+                    IR.create_variable_expression("value", IR.Access_type.Read),
+                    IR.create_constant_expression(create_integer_type(32, true), "0"),
+                    IR.Binary_operation.Not_equal
+                )
+            )
+        ),
+        create_assert_expression(
+            create_statement(
+                IR.create_binary_expression(
+                    IR.create_variable_expression("value", IR.Access_type.Read),
+                    IR.create_constant_expression(create_integer_type(32, true), "1"),
+                    IR.Binary_operation.Not_equal
+                )
+            )
+        )
+    ];
+
+    const statements: IR.Statement[] = [];
+
+    for (const binary_expression of expressions) {
+        const statement: IR.Statement = {
+            expression: binary_expression
+        };
+        statements.push(statement);
+    }
+
+    return {
+        name: "Assert_expressions",
+        imports: [],
+        declarations: [
+            {
+                name: "run",
+                type: IR.Declaration_type.Function,
+                is_export: true,
+                value: {
+                    declaration: {
+                        name: "run",
+                        type: {
+                            input_parameter_types: [create_integer_type(32, true)],
+                            output_parameter_types: [],
+                            is_variadic: false,
+                        },
+                        input_parameter_names: ["value"],
+                        output_parameter_names: [],
+                        linkage: IR.Linkage.External,
+                        preconditions: [],
+                        postconditions: [],
+                    },
+                    definition: {
+                        name: "run",
+                        statements: [
+                            ...statements
+                        ]
+                    }
+                }
+            }
+        ]
+    };
+}
+
 export function create_assignment_expressions(): IR.Module {
 
     const expressions: IR.Expression[] = [

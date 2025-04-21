@@ -365,6 +365,7 @@ export enum Type_reference_enum {
 export enum Expression_enum {
     Access_expression = "Access_expression",
     Access_array_expression = "Access_array_expression",
+    Assert_expression = "Assert_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
@@ -1305,6 +1306,46 @@ export function create_access_array_expression(expression: Expression, index: Ex
         data: {
             type: Expression_enum.Access_array_expression,
             value: access_array_expression
+        }
+    };
+}
+export interface Assert_expression {
+    message?: string;
+    statement: Statement;
+}
+
+function core_to_intermediate_assert_expression(core_value: Core.Assert_expression, statement: Core.Statement): Assert_expression {
+    return {
+        message: core_value.message,
+        statement: core_to_intermediate_statement(core_value.statement),
+    };
+}
+
+function intermediate_to_core_assert_expression(intermediate_value: Assert_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Assert_expression,
+            value: {
+                message: intermediate_value.message,
+                statement: intermediate_to_core_statement(intermediate_value.statement),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_assert_expression(message: string | undefined, statement: Statement): Expression {
+    const assert_expression: Assert_expression = {
+        message: message,
+        statement: statement,
+    };
+    return {
+        data: {
+            type: Expression_enum.Assert_expression,
+            value: assert_expression
         }
     };
 }
@@ -2795,7 +2836,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assert_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -2813,6 +2854,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_access_array_expression(core_value.data.value as Core.Access_array_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Assert_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_assert_expression(core_value.data.value as Core.Assert_expression, statement)
                     };
                 }
                 case Core.Expression_enum.Assignment_expression: {
@@ -3029,6 +3076,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
         }
         case Expression_enum.Access_array_expression: {
             intermediate_to_core_access_array_expression(intermediate_value.data.value as Access_array_expression, expressions);
+            break;
+        }
+        case Expression_enum.Assert_expression: {
+            intermediate_to_core_assert_expression(intermediate_value.data.value as Assert_expression, expressions);
             break;
         }
         case Expression_enum.Assignment_expression: {

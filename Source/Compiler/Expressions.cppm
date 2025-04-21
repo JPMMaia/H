@@ -130,6 +130,13 @@ namespace h::compiler
         Expression_parameters const& parameters
     );
 
+    enum class Condition_type
+    {
+        Assert,
+        Precondition,
+        Postcondition,
+    };
+
     export void create_function_preconditions(
         llvm::LLVMContext& llvm_context,
         llvm::Module& llvm_module,
@@ -147,6 +154,18 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         h::Module const& core_module,
         h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    );
+
+    void create_check_condition_instructions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        h::Function_condition const& function_condition,
+        Condition_type const condition_type,
         Expression_parameters const& expression_parameters
     );
 

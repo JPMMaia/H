@@ -800,6 +800,11 @@ export function visit_expressions(expression: Core_intermediate_representation.E
             visit_expressions(value.index, predicate);
             break;
         }
+        case Core_intermediate_representation.Expression_enum.Assert_expression: {
+            const value = expression.data.value as Core_intermediate_representation.Assert_expression;
+            visit_expressions(value.statement.expression, predicate);
+            break;
+        }
         case Core_intermediate_representation.Expression_enum.Assignment_expression: {
             const value = expression.data.value as Core_intermediate_representation.Assignment_expression;
             visit_expressions(value.left_hand_side, predicate);

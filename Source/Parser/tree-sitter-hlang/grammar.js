@@ -101,6 +101,7 @@ module.exports = grammar({
     Function_constructor_parameters: $ => seq("(", optional(seq($.Function_parameter, repeat(seq(",", $.Function_parameter)))), ")"),
     Block: $ => seq("{", repeat($.Statement), "}"),
     Statement: $ => choice(
+      seq($.Expression_assert, ";"),
       seq($.Expression_assignment, ";"),
       $.Expression_block,
       seq($.Expression_break, ";"),
@@ -143,6 +144,7 @@ module.exports = grammar({
     Expression_access: $ => prec.left(13, seq($.Generic_expression, ".", $.Expression_access_member_name)),
     Expression_access_member_name: $ => $.Identifier,
     Expression_access_array: $ => prec.left(13, seq($.Generic_expression, "[", $.Generic_expression, "]")),
+    Expression_assert: $ => seq("assert", optional($.String), "{", $.Generic_expression, "}"),
     Expression_assignment: $ => seq($.Generic_expression, $.Expression_assignment_symbol, $.Generic_expression_or_instantiate),
     Expression_assignment_symbol: $ => choice("=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>="),
     Expression_binary: $ => choice(

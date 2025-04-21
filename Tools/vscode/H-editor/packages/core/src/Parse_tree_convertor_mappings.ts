@@ -2921,6 +2921,15 @@ function node_to_expression_without_source_location(root: Parser_node.Node, node
                 }
             };
         }
+        case "Expression_assert": {
+            const expression = node_to_expression_assert(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Assert_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_assignment": {
             const expression = node_to_expression_assignment(root, node);
             return {
@@ -3252,6 +3261,25 @@ function set_expression_access_type(expression: Core_intermediate_representation
             break;
         }
     }
+}
+
+function node_to_expression_assert(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Assert_expression {
+
+    const has_message = node.children[1].word.type === Grammar.Word_type.String;
+    const message = has_message ? get_terminal_value(node.children[1]) : undefined;
+
+    const generic_expression_node = find_node(node, "Generic_expression");
+    const generic_expression = node_to_expression(root, generic_expression_node);
+
+    let output: Core_intermediate_representation.Assert_expression = {
+        statement: { expression: generic_expression }
+    };
+
+    if (message != undefined) {
+        output.message = message.substring(1, message.length - 1);
+    }
+
+    return output;
 }
 
 function node_to_expression_assignment(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Assignment_expression {

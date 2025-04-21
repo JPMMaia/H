@@ -367,6 +367,14 @@ namespace h
         friend auto operator<=>(Access_array_expression const&, Access_array_expression const&) = default;
     };
 
+    export struct Assert_expression
+    {
+        std::optional<std::pmr::string> message;
+        Statement statement;
+
+        friend auto operator<=>(Assert_expression const&, Assert_expression const&) = default;
+    };
+
     export struct Assignment_expression
     {
         Expression_index left_hand_side;
@@ -679,6 +687,7 @@ namespace h
         using Data_type = std::variant <
             Access_expression,
             Access_array_expression,
+            Assert_expression,
             Assignment_expression,
             Binary_expression,
             Block_expression,

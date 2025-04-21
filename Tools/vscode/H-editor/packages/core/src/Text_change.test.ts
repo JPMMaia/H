@@ -1171,6 +1171,38 @@ export function run() -> ()
         assert.deepEqual(new_document_state.valid.module, expected_module);
     });
 
+    it("Handles assert expressions", async () => {
+
+        const document_state = Document.create_empty_state("");
+
+        const program = `
+module Assert_expressions;
+
+export function run(value: Int32) -> ()
+{
+    assert "Value is not 0" { value != 0i32 };
+    assert { value != 1i32 };
+}
+`;
+
+        const text_changes: Text_change.Text_change[] = [
+            {
+                range: {
+                    start: 0,
+                    end: 0
+                },
+                text: program
+            }
+        ];
+
+        const parser = await Tree_sitter_parser.create_parser();
+        const new_document_state = Text_change.update(parser, document_state, text_changes, program, false);
+        assert.equal(new_document_state.pending_text_changes.length, 0);
+
+        const expected_module = Module_examples.create_assert_expressions();
+        assert.deepEqual(new_document_state.valid.module, expected_module);
+    });
+
     it("Handles assignment expressions", async () => {
 
         const document_state = Document.create_empty_state("");

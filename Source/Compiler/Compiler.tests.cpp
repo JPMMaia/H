@@ -83,6 +83,56 @@ namespace h
     CHECK(llvm_ir_body == expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Asserts", "[LLVM_IR]")
+  {
+    char const* const input_file = "assert_expressions.hl";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+@function_contract_error_string = private unnamed_addr constant [69 x i8] c"In function 'Assert_expressions.run' assert 'Value is not 0' failed!\00"
+@function_contract_error_string.1 = private unnamed_addr constant [55 x i8] c"In function 'Assert_expressions.run' assert '' failed!\00"
+
+; Function Attrs: convergent
+define void @Assert_expressions_run(i32 noundef %"arguments[0].value") #0 {
+entry:
+  %value = alloca i32, align 4
+  store i32 %"arguments[0].value", ptr %value, align 4
+  %0 = load i32, ptr %value, align 4
+  %1 = icmp ne i32 %0, 0
+  br i1 %1, label %condition_success, label %condition_fail
+
+condition_success:                                ; preds = %entry
+  %2 = load i32, ptr %value, align 4
+  %3 = icmp ne i32 %2, 1
+  br i1 %3, label %condition_success1, label %condition_fail2
+
+condition_fail:                                   ; preds = %entry
+  %4 = call i32 @puts(ptr @function_contract_error_string)
+  call void @abort()
+  unreachable
+
+condition_success1:                               ; preds = %condition_success
+  ret void
+
+condition_fail2:                                  ; preds = %condition_success
+  %5 = call i32 @puts(ptr @function_contract_error_string.1)
+  call void @abort()
+  unreachable
+}
+
+declare i32 @puts(ptr)
+
+declare void @abort()
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Assignments", "[LLVM_IR]")
   {
     char const* const input_file = "assignment_expressions.hl";

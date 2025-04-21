@@ -1691,6 +1691,34 @@ export union My_union
     });
 });
 
+describe("Validation of expression assert", () => {
+
+    // - Expressions must evaluate to a boolean
+
+    it("Validates that assert must evaluate to a boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    assert "value is not 0" { value != 0 };
+    assert "value is not 0" { value };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 31, 6, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of expression assignment", () => {
 
     // - Left hand side and right hand side types match

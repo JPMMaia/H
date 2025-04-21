@@ -460,6 +460,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Assert_expression const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Assignment_expression const& input
         );
 
@@ -1404,6 +1410,19 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Assert_expression const& output
+        )
+    {
+        writer.StartObject();
+        write_optional(writer, "message", output.message);
+        writer.Key("statement");
+        write_object(writer, output.statement);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Assignment_expression const& output
         )
     {
@@ -1930,6 +1949,14 @@ namespace h::json
             writer.String("Access_array_expression");
             writer.Key("value");
             Access_array_expression const& value = std::get<Access_array_expression>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Assert_expression>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Assert_expression");
+            writer.Key("value");
+            Assert_expression const& value = std::get<Assert_expression>(output.data);
             write_object(writer, value);
         }
         else if (std::holds_alternative<Assignment_expression>(output.data))

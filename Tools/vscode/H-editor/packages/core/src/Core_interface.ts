@@ -102,6 +102,7 @@ export enum Type_reference_enum {
 export enum Expression_enum {
     Access_expression = "Access_expression",
     Access_array_expression = "Access_array_expression",
+    Assert_expression = "Assert_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
@@ -317,6 +318,11 @@ export interface Access_array_expression {
     index: Expression_index;
 }
 
+export interface Assert_expression {
+    message?: string;
+    statement: Statement;
+}
+
 export interface Assignment_expression {
     left_hand_side: Expression_index;
     right_hand_side: Expression_index;
@@ -494,7 +500,7 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assert_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
