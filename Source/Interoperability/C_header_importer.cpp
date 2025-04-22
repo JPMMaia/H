@@ -1021,7 +1021,7 @@ namespace h::c
         return macro;
     }
 
-    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor, Type_reference const& type_reference)
+    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor)
     {
         CXCursor const initializer_cursor = clang_Cursor_getVarDeclInitializer(cursor);
 
@@ -1038,7 +1038,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_fundamental_type_type_reference(h::Fundamental_type::C_int),
                                 std::to_string(value)
                             )
                         }
@@ -1050,7 +1050,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_fundamental_type_type_reference(h::Fundamental_type::Float32),
                                 std::to_string(value)
                             )
                         }
@@ -1063,7 +1063,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_c_string_type_reference(false),
                                 value
                             )
                         }
@@ -1108,21 +1108,21 @@ namespace h::c
         CXType const variable_type = clang_getCursorType(cursor);
         bool const is_const = clang_isConstQualifiedType(variable_type);
 
-        std::optional<h::Type_reference> const member_type_reference = create_type_reference(declarations, cursor, variable_type);
-        if (!member_type_reference.has_value())
+        std::optional<h::Type_reference> const type_reference = create_type_reference(declarations, cursor, variable_type);
+        if (!type_reference.has_value())
             return std::nullopt;
 
         Header_source_location const cursor_location = get_cursor_source_location(
             cursor
         );
 
-        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, *member_type_reference);
+        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor);
 
         return h::Global_variable_declaration
         {
             .name = std::pmr::string{variable_name},
             .unique_name = std::pmr::string{variable_name},
-            .type = std::move(*member_type_reference),
+            .type = std::move(*type_reference),
             .initial_value = initial_value.has_value() ? std::move(*initial_value) : h::Statement{},
             .is_mutable = !is_const,
             .comment = std::nullopt,

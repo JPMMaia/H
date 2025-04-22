@@ -931,6 +931,9 @@ struct My_data
 
 const auto my_global_0 = MY_FLOAT;
 float my_global_1 = 0.0f;
+
+typedef int Sint32;
+Sint32 my_global_2 = 0;
 )";
 
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
@@ -964,6 +967,19 @@ float my_global_1 = 0.0f;
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "0.000000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 6, .column = 7 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[2];
+            CHECK(declaration.name == "my_global_2");
+            CHECK(declaration.name == declaration.unique_name.value());
+            CHECK(declaration.is_mutable == true);
+            
+            CHECK(declaration.type == create_custom_type_reference("c.My_data", "Sint32"));
+            REQUIRE(declaration.type.has_value());
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(h::create_fundamental_type_type_reference(h::Fundamental_type::C_int), "0") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 9, .column = 8 });
         }
     }
 
