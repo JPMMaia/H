@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import { TextDocument } from "vscode-languageserver-textdocument";
+import * as vscode_uri from "vscode-uri";
 
 import * as Project from "./Project";
 
@@ -11,6 +12,7 @@ import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_conver
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
+type Module_name = string;
 
 export interface Server_data {
     parser: Tree_sitter_parser.Parser;
@@ -18,7 +20,7 @@ export interface Server_data {
     documents: Map<string, TextDocument>;
     document_states: Map<string, Document.State>;
     core_modules_with_source_locations: Map<string, Core.Module>;
-    cached_core_trees: Map<string, Parser_node.Node>;
+    cached_core_trees: Map<Module_name, Parser_node.Node>;
     projects: Map<string, Project.Project_data>;
     initialize_promise: Promise<void> | undefined;
 }
@@ -211,10 +213,21 @@ export async function get_parse_tree(
         return undefined;
     }
 
+    const document_uri = vscode_uri.URI.file(source_file.file_path).toString();
+
+    {
+        const cached_core_tree = server_data.cached_core_trees.get(document_uri);
+        if (cached_core_tree !== undefined) {
+            return { root: cached_core_tree, source_file_path: source_file.file_path };
+        }
+    }
+
     const parse_result = await parse_source_file_and_write_to_disk_if_needed(server_data, workspace_folder_uri, project, module_name, source_file.file_path);
     if (parse_result === undefined) {
         return undefined;
     }
+
+    server_data.cached_core_trees.set(document_uri, parse_result.core_tree);
 
     return {
         root: parse_result.core_tree,
