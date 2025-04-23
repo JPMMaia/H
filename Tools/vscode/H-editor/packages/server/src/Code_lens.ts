@@ -4,10 +4,11 @@ import * as Server_data from "./Server_data";
 
 import * as vscode from "vscode-languageserver/node";
 
-import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
+import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
 import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
 import * as Parser_node from "../../core/src/Parser_node";
+import * as Tree_sitter_parser from "../../core/src/Tree_sitter_parser";
 
 export async function create(
     parameters: vscode.CodeLensParams,
@@ -34,17 +35,11 @@ export async function create(
         return [];
     }
 
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module(document_state).name);
-    if (core_module === undefined) {
-        return [];
-    }
-
     const start_node_iterator = Parse_tree_text_iterator.begin(root, document.getText());
 
     const code_lens: vscode.CodeLens[] = [];
 
-    let iterator = Parse_tree_text_iterator.go_to_next_node_position(start_node_iterator, [1, 0, 1]);
+    let iterator = Parse_tree_text_iterator.go_to_next_node_position(start_node_iterator, [1]);
 
     while (iterator.node !== undefined) {
         const struct_ancestor = Parser_node.get_ancestor_with_name(iterator.root, iterator.node_position, "Struct");
@@ -52,7 +47,7 @@ export async function create(
             const struct_name_descendant = Parser_node.find_descendant_position_if(struct_ancestor, node => node.word.value === "Struct_name");
             if (struct_name_descendant !== undefined) {
                 const struct_name = struct_name_descendant.node.children[0].word.value;
-                const struct_layout = await get_struct_layout(server_data, workspace_uri, project, core_module, struct_name);
+                const struct_layout = await get_struct_layout(server_data, workspace_uri, project, root, struct_name);
                 if (struct_layout !== undefined) {
                     iterator = Parse_tree_text_iterator.go_to_next_node_position(iterator, struct_name_descendant.position);
                     code_lens.push(
@@ -126,14 +121,21 @@ async function get_struct_layout(
     server_data: Server_data.Server_data,
     workspace_uri: string,
     project: Project.Project_data,
-    core_module: Core.Module,
+    root: Parser_node.Node,
     struct_name: string
 ): Promise<Struct_layout | undefined> {
+
     if (project.hlang_executable === undefined) {
         return undefined;
     }
 
-    if (core_module.source_file_path === undefined) {
+    const module_name = Parse_tree_analysis.get_module_name_from_tree(root);
+    if (module_name === undefined || module_name === "") {
+        return undefined;
+    }
+
+    const source_file_path = await Server_data.get_source_file_path_of_module(server_data, workspace_uri, module_name);
+    if (source_file_path === undefined) {
         return undefined;
     }
 
@@ -141,19 +143,28 @@ async function get_struct_layout(
         server_data,
         workspace_uri,
         project,
-        core_module.name,
-        core_module.source_file_path
+        module_name,
+        source_file_path
     );
     if (parse_result === undefined) {
         return undefined;
     }
+
+    const artifact = Project.get_artifact_of_module(project, module_name);
+    const core_module_file_path = Project.map_module_name_to_parsed_file_path(workspace_uri, artifact, module_name, "generated.hl");
+    if (core_module_file_path === undefined) {
+        return undefined;
+    }
+
+    const new_core_module = Tree_sitter_parser.to_core_module(parse_result.core_tree);
+    Project.write_core_module_to_file(new_core_module, core_module_file_path);
 
     if (!Helpers.validate_input(struct_name)) {
         return undefined;
     }
 
     const args = [
-        parse_result.parsed_file_path,
+        core_module_file_path,
         struct_name
     ];
 

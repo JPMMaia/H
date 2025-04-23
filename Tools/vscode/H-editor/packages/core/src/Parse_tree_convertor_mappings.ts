@@ -41,6 +41,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Module_type_module_name", map_module_type_module_name_to_word],
             ["Module_type_type_name", map_module_type_type_name_to_word],
             ["Constant_array_length", map_constant_array_length_to_word],
+            ["Function_precondition_name", map_function_precondition_to_word],
+            ["Function_postcondition_name", map_function_postcondition_to_word],
             ["Expression_access_member_name", map_expression_access_member_name_to_word],
             ["Expression_break_loop_count", map_expression_break_loop_count_to_word],
             ["Expression_comment", map_comment_to_word],
@@ -64,6 +66,8 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
                 ["declarations", "$declaration_index", "value", "declaration", "output_parameter_names"],
                 ["declarations", "$declaration_index", "value", "declaration", "type", "output_parameter_types"],
             ]],
+            ["Function_preconditions", [["declarations", "$declaration_index", "value", "declaration", "preconditions"]]],
+            ["Function_postconditions", [["declarations", "$declaration_index", "value", "declaration", "postconditions"]]],
             ["Struct_members", [
                 ["declarations", "$declaration_index", "value", "member_names"],
                 ["declarations", "$declaration_index", "value", "member_types"]
@@ -109,6 +113,9 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
             ["Enum_value", choose_production_rule_enum_value],
             ["Global_variable_mutability", choose_production_rule_global_variable_mutability],
             ["Global_variable_type", choose_production_rule_global_variable_type],
+            ["Struct_name", choose_production_rule_struct_name],
+            ["Union_name", choose_production_rule_union_name],
+            ["Function_name", choose_production_rule_function_name],
             ["Function_parameter", choose_production_rule_function_parameter],
             ["Statement", choose_production_rule_statement],
             ["Expression_assignment_symbol", choose_production_rule_expression_assignment_symbol],
@@ -158,14 +165,14 @@ export function create_mapping(): Parse_tree_convertor.Parse_tree_mappings {
         [
             ["Module_name", create_module_changes_module_name],
             ["Import", create_module_changes_import],
-            ["Declaration", create_module_changes_declaration],
+            //["Declaration", create_module_changes_declaration],
         ]
     );
 
     const node_to_core_object_map = new Map<string, Parse_tree_convertor.Node_to_core_object_handler>(
         [
             ["Import", node_to_import_module_with_alias],
-            ["Declaration", node_to_declaration],
+            //["Declaration", node_to_declaration],
         ]
     );
 
@@ -187,7 +194,6 @@ function map_identifier_with_dots_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -196,7 +202,7 @@ function map_identifier_with_dots_to_word(
         return { value: ".", type: Grammar.Word_type.Symbol };
     }
 
-    const word = Parse_tree_convertor.map_terminal_to_word(module, stack.slice(0, stack.length - 1), production_rules, key_to_production_rule_indices, "identifier", mappings);
+    const word = Parse_tree_convertor.map_terminal_to_word(module, stack.slice(0, stack.length - 1), production_rules, "identifier", mappings);
     const split = word.value.split(".");
     return { value: split[index / 2], type: Grammar.Word_type.Alphanumeric };
 }
@@ -205,7 +211,6 @@ function map_comment_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -241,7 +246,6 @@ function map_type_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -255,7 +259,6 @@ function map_module_type_module_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -269,7 +272,6 @@ function map_module_type_type_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -283,7 +285,6 @@ function map_constant_array_length_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -293,11 +294,38 @@ function map_constant_array_length_to_word(
     return { value: constant_array_type.size.toString(), type: Grammar.Word_type.Number };
 }
 
+function map_function_precondition_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const stack_element = stack[stack.length - 3];
+    const preconditions_array = stack_element.state.value as Core_intermediate_representation.Function_condition[];
+    const precondition_index = stack_element.current_child_index - 1;
+    const precondition = preconditions_array[precondition_index];
+    return { value: `"${precondition.description}"`, type: Grammar.Word_type.String };
+}
+
+function map_function_postcondition_to_word(
+    module: Core_intermediate_representation.Module,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    production_rules: Grammar.Production_rule[],
+    terminal: string,
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): Grammar.Word {
+    const stack_element = stack[stack.length - 3];
+    const postconditions_array = stack_element.state.value as Core_intermediate_representation.Function_condition[];
+    const postcondition_index = stack_element.current_child_index - 1;
+    const postcondition = postconditions_array[postcondition_index];
+    return { value: `"${postcondition.description}"`, type: Grammar.Word_type.String };
+}
+
 function map_expression_access_member_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -311,7 +339,6 @@ function map_expression_break_loop_count_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -376,6 +403,9 @@ export function constant_expression_to_word(
                 case Core_intermediate_representation.Fundamental_type.C_ulonglong: {
                     return { value: `${constant_expression.data}cull`, type: Grammar.Word_type.Number };
                 }
+                case Core_intermediate_representation.Fundamental_type.C_bool: {
+                    return { value: `${constant_expression.data}cb`, type: Grammar.Word_type.Number };
+                }
                 default: {
                     return { value: constant_expression.data, type: Scanner.get_word_type(constant_expression.data) };
                 }
@@ -411,7 +441,6 @@ function map_expression_constant_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -425,7 +454,6 @@ function map_expression_instantiate_member_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -444,7 +472,6 @@ function map_for_loop_variable_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -458,7 +485,6 @@ function map_variable_name_to_word(
     module: Core_intermediate_representation.Module,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
     production_rules: Grammar.Production_rule[],
-    key_to_production_rule_indices: Map<string, number[]>,
     terminal: string,
     mappings: Parse_tree_convertor.Parse_tree_mappings
 ): Grammar.Word {
@@ -474,10 +500,9 @@ function choose_production_rule_identifier_with_dots(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
-    const word = Parse_tree_convertor.map_terminal_to_word(module, stack, production_rules, key_to_production_rule_indices, "identifier", mappings);
+    const word = Parse_tree_convertor.map_terminal_to_word(module, stack, production_rules, "identifier", mappings);
     const split = word.value.split(".");
     const index = split.length > 1 ? 1 : 0;
     return {
@@ -495,8 +520,7 @@ function choose_production_rule_comment_or_empty(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const comment = extract_comments_from_stack(stack, production_rules);
     const index = comment !== undefined ? 1 : 0;
@@ -516,8 +540,7 @@ function choose_production_rule_declaration(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
     const production_rule = production_rules[top.production_rule_index];
@@ -559,8 +582,7 @@ function choose_production_rule_export(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
     const declaration = top.state.value as Core_intermediate_representation.Declaration;
@@ -582,8 +604,7 @@ function choose_production_rule_type(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
 
@@ -748,8 +769,7 @@ function choose_production_rule_pointer_type(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
     const type_reference_array = top.state.value as Core_intermediate_representation.Type_reference[];
@@ -779,8 +799,7 @@ function choose_production_rule_enum_value(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
 
@@ -806,8 +825,7 @@ function choose_production_rule_global_variable_mutability(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -829,8 +847,7 @@ function choose_production_rule_global_variable_type(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
 
@@ -869,14 +886,73 @@ function get_parameter_names(
     }
 }
 
+function choose_production_rule_struct_name(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+    const struct_declaration = top.state.value.value as Core_intermediate_representation.Struct_declaration;
+    const index = struct_declaration.name.length === 0 ? 0 : 1;
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_union_name(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+    const union_declaration = top.state.value.value as Core_intermediate_representation.Union_declaration;
+    const index = union_declaration.name.length === 0 ? 0 : 1;
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
+function choose_production_rule_function_name(
+    module: Core_intermediate_representation.Module,
+    production_rules: Grammar.Production_rule[],
+    production_rule_indices: number[],
+    label: string,
+    stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
+    mappings: Parse_tree_convertor.Parse_tree_mappings
+): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
+    const top = stack[stack.length - 1];
+    const function_value = top.state.value.value as Core_intermediate_representation.Function;
+    const index = function_value.declaration.name.length === 0 ? 0 : 1;
+    return {
+        next_state: {
+            index: 0,
+            value: top.state.value
+        },
+        next_production_rule_index: production_rule_indices[index]
+    };
+}
+
 function choose_production_rule_function_parameter(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
     const top = stack[stack.length - 1];
 
@@ -952,8 +1028,7 @@ function choose_production_rule_statement(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const statement = get_statement_from_stack(stack, stack.length - 1, production_rules);
@@ -971,14 +1046,34 @@ function choose_production_rule_statement(
     };
 }
 
+export function assignment_binary_operation_to_string(additional_operation: Core_intermediate_representation.Binary_operation | undefined): string {
+    switch (additional_operation) {
+        case undefined: return "=";
+        case Core_intermediate_representation.Binary_operation.Add: return "+=";
+        case Core_intermediate_representation.Binary_operation.Subtract: return "-=";
+        case Core_intermediate_representation.Binary_operation.Multiply: return "*=";
+        case Core_intermediate_representation.Binary_operation.Divide: return "/=";
+        case Core_intermediate_representation.Binary_operation.Modulus: return "%=";
+        case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&=";
+        case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|=";
+        case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^=";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<=";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>=";
+        default: {
+            const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_assignment_symbol() did not expect '${additional_operation}'`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+}
+
 function choose_production_rule_expression_assignment_symbol(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -986,28 +1081,7 @@ function choose_production_rule_expression_assignment_symbol(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const assignment_expression = expression.data.value as Core_intermediate_representation.Assignment_expression;
 
-    const get_rhs_label = (): string => {
-        switch (assignment_expression.additional_operation) {
-            case undefined: return "=";
-            case Core_intermediate_representation.Binary_operation.Add: return "+=";
-            case Core_intermediate_representation.Binary_operation.Subtract: return "-=";
-            case Core_intermediate_representation.Binary_operation.Multiply: return "*=";
-            case Core_intermediate_representation.Binary_operation.Divide: return "/=";
-            case Core_intermediate_representation.Binary_operation.Modulus: return "%=";
-            case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&=";
-            case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|=";
-            case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^=";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<=";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>=";
-            default: {
-                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_assignment_symbol() did not expect '${assignment_expression.additional_operation}'`;
-                onThrowError(message);
-                throw Error(message);
-            }
-        }
-    };
-
-    const rhs_label = get_rhs_label();
+    const rhs_label = assignment_binary_operation_to_string(assignment_expression.additional_operation);
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
     return {
         next_state: {
@@ -1018,14 +1092,37 @@ function choose_production_rule_expression_assignment_symbol(
     };
 }
 
+export function binary_operation_to_string(operation: Core_intermediate_representation.Binary_operation): string {
+    switch (operation) {
+        case Core_intermediate_representation.Binary_operation.Add: return "+";
+        case Core_intermediate_representation.Binary_operation.Subtract: return "-";
+        case Core_intermediate_representation.Binary_operation.Multiply: return "*";
+        case Core_intermediate_representation.Binary_operation.Divide: return "/";
+        case Core_intermediate_representation.Binary_operation.Modulus: return "%";
+        case Core_intermediate_representation.Binary_operation.Equal: return "==";
+        case Core_intermediate_representation.Binary_operation.Not_equal: return "!=";
+        case Core_intermediate_representation.Binary_operation.Less_than: return "<";
+        case Core_intermediate_representation.Binary_operation.Less_than_or_equal_to: return "<=";
+        case Core_intermediate_representation.Binary_operation.Greater_than: return ">";
+        case Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to: return ">=";
+        case Core_intermediate_representation.Binary_operation.Logical_and: return "&&";
+        case Core_intermediate_representation.Binary_operation.Logical_or: return "||";
+        case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&";
+        case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|";
+        case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
+        case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
+        case Core_intermediate_representation.Binary_operation.Has: return "has";
+    }
+};
+
 function choose_production_rule_expression_binary_symbol(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1033,31 +1130,7 @@ function choose_production_rule_expression_binary_symbol(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const binary_expression = expression.data.value as Core_intermediate_representation.Binary_expression;
 
-    const get_rhs_label = (): string => {
-        switch (binary_expression.operation) {
-            case Core_intermediate_representation.Binary_operation.Add: return "+";
-            case Core_intermediate_representation.Binary_operation.Subtract: return "-";
-            case Core_intermediate_representation.Binary_operation.Multiply: return "*";
-            case Core_intermediate_representation.Binary_operation.Divide: return "/";
-            case Core_intermediate_representation.Binary_operation.Modulus: return "%";
-            case Core_intermediate_representation.Binary_operation.Equal: return "==";
-            case Core_intermediate_representation.Binary_operation.Not_equal: return "!=";
-            case Core_intermediate_representation.Binary_operation.Less_than: return "<";
-            case Core_intermediate_representation.Binary_operation.Less_than_or_equal_to: return "<=";
-            case Core_intermediate_representation.Binary_operation.Greater_than: return ">";
-            case Core_intermediate_representation.Binary_operation.Greater_than_or_equal_to: return ">=";
-            case Core_intermediate_representation.Binary_operation.Logical_and: return "&&";
-            case Core_intermediate_representation.Binary_operation.Logical_or: return "||";
-            case Core_intermediate_representation.Binary_operation.Bitwise_and: return "&";
-            case Core_intermediate_representation.Binary_operation.Bitwise_or: return "|";
-            case Core_intermediate_representation.Binary_operation.Bitwise_xor: return "^";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_left: return "<<";
-            case Core_intermediate_representation.Binary_operation.Bit_shift_right: return ">>";
-            case Core_intermediate_representation.Binary_operation.Has: return "has";
-        }
-    };
-
-    const rhs_label = get_rhs_label();
+    const rhs_label = binary_operation_to_string(binary_expression.operation);
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
     return {
         next_state: {
@@ -1074,8 +1147,7 @@ function choose_production_rule_expression_break(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1099,8 +1171,7 @@ function choose_production_rule_expression_constant(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1172,8 +1243,7 @@ function choose_production_rule_expression_for_loop_number(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1220,8 +1290,7 @@ function choose_production_rule_expression_for_loop_step(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1245,8 +1314,7 @@ function choose_production_rule_expression_for_loop_reverse(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1276,8 +1344,7 @@ function choose_production_rule_expression_if_else(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1308,8 +1375,7 @@ function choose_production_rule_expression_instantiate_expression_type(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1337,8 +1403,7 @@ function choose_production_rule_expression_return(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1362,8 +1427,7 @@ function choose_production_rule_expression_switch_case(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1388,8 +1452,7 @@ function choose_production_rule_expression_switch_case_value(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1419,8 +1482,7 @@ function choose_production_rule_expression_unary(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1444,8 +1506,7 @@ function choose_production_rule_expression_unary_0_symbol(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1477,14 +1538,30 @@ function choose_production_rule_expression_unary_0_symbol(
     };
 }
 
+export function unary_operation_to_string(operation: Core_intermediate_representation.Unary_operation): string {
+    switch (operation) {
+        case Core_intermediate_representation.Unary_operation.Not: return "!";
+        case Core_intermediate_representation.Unary_operation.Bitwise_not: return "~";
+        case Core_intermediate_representation.Unary_operation.Minus: return "-";
+        case Core_intermediate_representation.Unary_operation.Pre_increment: return "++";
+        case Core_intermediate_representation.Unary_operation.Pre_decrement: return "--";
+        case Core_intermediate_representation.Unary_operation.Indirection: return "*";
+        case Core_intermediate_representation.Unary_operation.Address_of: return "&";
+        default: {
+            const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_unary_1_symbol() did not expect '${operation}'`;
+            onThrowError(message);
+            throw Error(message);
+        }
+    }
+};
+
 function choose_production_rule_expression_unary_1_symbol(
     module: Core_intermediate_representation.Module,
     production_rules: Grammar.Production_rule[],
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1492,24 +1569,7 @@ function choose_production_rule_expression_unary_1_symbol(
     const expression = top.state.value as Core_intermediate_representation.Expression;
     const unary_expression = expression.data.value as Core_intermediate_representation.Unary_expression;
 
-    const get_rhs_label = (): string => {
-        switch (unary_expression.operation) {
-            case Core_intermediate_representation.Unary_operation.Not: return "!";
-            case Core_intermediate_representation.Unary_operation.Bitwise_not: return "~";
-            case Core_intermediate_representation.Unary_operation.Minus: return "-";
-            case Core_intermediate_representation.Unary_operation.Pre_increment: return "++";
-            case Core_intermediate_representation.Unary_operation.Pre_decrement: return "--";
-            case Core_intermediate_representation.Unary_operation.Indirection: return "*";
-            case Core_intermediate_representation.Unary_operation.Address_of: return "&";
-            default: {
-                const message = `Parse_tree_convertor_mappings.choose_production_rule_expression_unary_1_symbol() did not expect '${unary_expression.operation}'`;
-                onThrowError(message);
-                throw Error(message);
-            }
-        }
-    };
-
-    const rhs_label = get_rhs_label();
+    const rhs_label = unary_operation_to_string(unary_expression.operation);
     const index = production_rule_indices.findIndex(index => contains(production_rules[index].rhs, rhs_label));
 
     return {
@@ -1527,8 +1587,7 @@ function choose_production_rule_expression_variable_mutability(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1630,6 +1689,14 @@ function get_generic_expression(
             return {
                 expression: next_expression,
                 label: map_expression_type_to_production_rule_label(next_expression),
+            };
+        }
+        case Core_intermediate_representation.Expression_enum.Defer_expression: {
+            const defer_expression = expression.data.value as Core_intermediate_representation.Defer_expression;
+            const next_expression = defer_expression.expression_to_defer;
+            return {
+                expression: next_expression,
+                label: map_expression_type_to_production_rule_label(next_expression)
             };
         }
         case Core_intermediate_representation.Expression_enum.If_expression: {
@@ -1743,8 +1810,7 @@ function choose_production_rule_generic_expression(
     production_rule_indices: number[],
     label: string,
     stack: Parse_tree_convertor.Module_to_parse_tree_stack_element[],
-    mappings: Parse_tree_convertor.Parse_tree_mappings,
-    key_to_production_rule_indices: Map<string, number[]>
+    mappings: Parse_tree_convertor.Parse_tree_mappings
 ): { next_state: Parse_tree_convertor.State, next_production_rule_index: number } {
 
     const top = stack[stack.length - 1];
@@ -1824,6 +1890,23 @@ function choose_production_rule_generic_expression(
             next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
         };
     }
+    else if (top.node.word.value === "Function_precondition" || top.node.word.value === "Function_postcondition") {
+        const vector_state = stack[stack.length - 2];
+        const conditions = vector_state.state.value as Core_intermediate_representation.Function_condition[];
+        const condition_index = vector_state.current_child_index - 1;
+        const condition = conditions[condition_index];
+
+        const expression_label = map_expression_type_to_production_rule_label(condition.condition.expression);
+
+        const next_production_rule_index = production_rule_indices.find(index => production_rules[index].rhs[0] === expression_label);
+        return {
+            next_state: {
+                index: 0,
+                value: condition.condition.expression
+            },
+            next_production_rule_index: next_production_rule_index !== undefined ? next_production_rule_index : production_rule_indices[production_rule_indices.length - 1]
+        };
+    }
     else {
         const expression = top.state.value as Core_intermediate_representation.Expression;
         const next = get_generic_expression(stack, production_rules, expression);
@@ -1898,6 +1981,8 @@ function map_expression_type_to_production_rule_label(expression: Core_intermedi
             return "Expression_create_array";
         case Core_intermediate_representation.Expression_enum.Continue_expression:
             return "Expression_continue";
+        case Core_intermediate_representation.Expression_enum.Defer_expression:
+            return "Expression_defer";
         case Core_intermediate_representation.Expression_enum.For_loop_expression:
             return "Expression_for_loop";
         case Core_intermediate_representation.Expression_enum.If_expression:
@@ -1955,7 +2040,7 @@ function create_module_changes_module_name(
 function create_module_changes_import(
     data: Parse_tree_convertor.Create_module_changes_handler_data
 ): Module_change.Position_change_pair[] {
-    const new_import = node_to_import_module_with_alias(data.node, data.key_to_production_rule_indices);
+    const new_import = node_to_import_module_with_alias(data.node);
 
     const new_change = create_new_module_change(
         new_import,
@@ -1971,16 +2056,17 @@ function create_module_changes_import(
 }
 
 function create_module_changes_declaration(
+    root: Parser_node.Node,
     data: Parse_tree_convertor.Create_module_changes_handler_data
 ): Module_change.Position_change_pair[] {
-    const new_declaration = node_to_declaration(data.node, data.key_to_production_rule_indices);
+    const new_declaration = node_to_declaration(root, data.node);
 
-    const node = data.node.children[1];
+    const node = data.node.children[data.node.children.length - 1];
     const modify_index = data.node_position[data.node_position.length - 1];
 
     const new_change = create_new_module_change(
         new_declaration,
-        `${data.node.children[1].word.value}_name`,
+        `${node.word.value}_name`,
         "declarations",
         (name: string) => data.module.declarations.findIndex(value => value.name === name),
         modify_index,
@@ -1991,18 +2077,18 @@ function create_module_changes_declaration(
     return [new_change];
 }
 
-function node_to_declaration(
-    node: Parser_node.Node,
-    key_to_production_rule_indices: Map<string, number[]>
+export function node_to_declaration(
+    root: Parser_node.Node,
+    node: Parser_node.Node
 ): Core_intermediate_representation.Declaration {
 
-    const underlying_declaration_node = node.children[1];
+    const underlying_declaration_node = node.children[node.children.length - 1];
 
-    const is_export = is_export_node(underlying_declaration_node, key_to_production_rule_indices);
+    const is_export = is_export_declaration(node);
 
     switch (underlying_declaration_node.word.value) {
         case "Alias": {
-            const value = node_to_alias_type_declaration(node, key_to_production_rule_indices);
+            const value = node_to_alias_type_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Alias,
@@ -2011,7 +2097,7 @@ function node_to_declaration(
             };
         }
         case "Enum": {
-            const value = node_to_enum_declaration(node, key_to_production_rule_indices);
+            const value = node_to_enum_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Enum,
@@ -2020,8 +2106,17 @@ function node_to_declaration(
             };
         }
         case "Function": {
-            const declaration = node_to_function_declaration(node, key_to_production_rule_indices);
-            const definition = node_to_function_definition(node, declaration.name, key_to_production_rule_indices);
+            const linkage = is_export_declaration(node) ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
+            const comments_node = get_comments_node(node);
+
+            const function_node = node.children[node.children.length - 1];
+
+            const declaration_node = function_node.children[0];
+            const declaration = node_to_function_declaration(root, declaration_node, linkage, comments_node);
+
+            const definition_node = function_node.children[1];
+            const definition = node_to_function_definition(root, definition_node, declaration.name);
+
             const value: Core_intermediate_representation.Function = {
                 declaration: declaration,
                 definition: definition
@@ -2033,8 +2128,17 @@ function node_to_declaration(
                 value: value,
             };
         }
+        case "Function_constructor": {
+            const value = node_to_function_constructor_declaration(root, node);
+            return {
+                name: value.name,
+                type: Core_intermediate_representation.Declaration_type.Function_constructor,
+                is_export: is_export,
+                value: value,
+            };
+        }
         case "Global_variable": {
-            const declaration = node_to_global_variable_declaration(node, key_to_production_rule_indices);
+            const declaration = node_to_global_variable_declaration(root, node);
             return {
                 name: declaration.name,
                 type: Core_intermediate_representation.Declaration_type.Global_variable,
@@ -2043,7 +2147,7 @@ function node_to_declaration(
             };
         }
         case "Struct": {
-            const value = node_to_struct_declaration(node, key_to_production_rule_indices);
+            const value = node_to_struct_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Struct,
@@ -2051,8 +2155,17 @@ function node_to_declaration(
                 value: value,
             };
         }
+        case "Type_constructor": {
+            const value = node_to_type_constructor_declaration(root, node);
+            return {
+                name: value.name,
+                type: Core_intermediate_representation.Declaration_type.Type_constructor,
+                is_export: is_export,
+                value: value,
+            };
+        }
         case "Union": {
-            const value = node_to_union_declaration(node, key_to_production_rule_indices);
+            const value = node_to_union_declaration(root, node);
             return {
                 name: value.name,
                 type: Core_intermediate_representation.Declaration_type.Union,
@@ -2098,17 +2211,62 @@ function create_new_module_change(
     }
 }
 
-export function node_to_type_reference(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Type_reference[] {
+function import_alias_to_module_name(
+    root: Parser_node.Node,
+    import_alias_name_to_find: string
+): string {
+
+    const module_head = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
+    const imports = Parser_node.get_children_if(module_head, child => child.word.value === "Import");
+
+    for (const import_declaration of imports) {
+        const import_alias_name = Parser_node.get_child_if(import_declaration, child => child.word.value === "Import_alias");
+        if (import_alias_name !== undefined) {
+            const import_alias_name_value = import_alias_name.node.children[0].word.value;
+            if (import_alias_name_value === import_alias_name_to_find) {
+                const import_value = node_to_import_module_with_alias(import_declaration.node);
+                return import_value.module_name;
+            }
+        }
+    }
+
+    return undefined;
+}
+
+function get_module_name_from_tree(
+    root: Parser_node.Node
+): string {
+
+    const module_name = Parser_node.find_descendant_position_if({ node: root, position: [] }, child => child.word.value === "Module_name");
+    if (module_name === undefined) {
+        return "<undefined>";
+    }
+
+    const module_name_value = Parser_node.join_all_child_node_values(module_name.node);
+    return module_name_value;
+}
+
+export function node_to_type_reference(
+    root: Parser_node.Node,
+    node: Parser_node.Node
+): Core_intermediate_representation.Type_reference[] {
 
     const child = node.children[0];
 
     if (child.word.value === "Type_name") {
         const identifier = child.children[0].word.value;
-        return Type_utilities.parse_type_name(identifier);
+
+        if (identifier === "Type") {
+            return [Type_utilities.create_builtin_type_reference("Type")];
+        }
+
+        const module_name = get_module_name_from_tree(root);
+        return Type_utilities.parse_type_name(identifier, module_name);
     }
     else if (child.word.value === "Module_type") {
-        const module_name = find_node_value(child, "Module_type_module_name", key_to_production_rule_indices);
-        const type_name = find_node_value(child, "Module_type_type_name", key_to_production_rule_indices);
+        const module_alias_name = find_node_value(child, "Module_type_module_name");
+        const module_name = import_alias_to_module_name(root, module_alias_name);
+        const type_name = find_node_value(child, "Module_type_type_name");
         const custom_type_reference: Core_intermediate_representation.Custom_type_reference = {
             module_reference: {
                 name: module_name
@@ -2125,8 +2283,8 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
         ];
     }
     else if (child.word.value === "Pointer_type") {
-        const type_node = find_node(child, "Type", key_to_production_rule_indices) as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node, key_to_production_rule_indices);
+        const type_node = find_node(child, "Type") as Parser_node.Node;
+        const element_type = node_to_type_reference(root, type_node);
         const mutable_node = child.children.find(node => node.word.value === "mutable");
         const pointer_type: Core_intermediate_representation.Pointer_type = {
             element_type: element_type,
@@ -2142,9 +2300,9 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
         ];
     }
     else if (child.word.value === "Constant_array_type") {
-        const type_node = find_node(child, "Type", key_to_production_rule_indices) as Parser_node.Node;
-        const element_type = node_to_type_reference(type_node, key_to_production_rule_indices);
-        const length_node = find_node_value(child, "Constant_array_length", key_to_production_rule_indices);
+        const type_node = find_node(child, "Type") as Parser_node.Node;
+        const element_type = node_to_type_reference(root, type_node);
+        const length_node = find_node_value(child, "Constant_array_length");
         const constant_array_type: Core_intermediate_representation.Constant_array_type = {
             value_type: element_type,
             size: Number(length_node)
@@ -2160,18 +2318,18 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
     }
     else if (child.word.value === "Function_pointer_type") {
 
-        const input_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_input_parameters", "Function_parameter", key_to_production_rule_indices);
+        const input_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_input_parameters", "Function_parameter");
         const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
         if (is_variadic) {
             input_parameter_nodes.splice(input_parameter_nodes.length - 1, 1);
         }
 
-        const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
+        const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+        const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
 
-        const output_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_output_parameters", "Function_parameter", key_to_production_rule_indices);
-        const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
+        const output_parameter_nodes = find_nodes_inside_parent(child, "Function_pointer_type_output_parameters", "Function_parameter");
+        const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+        const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
 
         const function_pointer_type: Core_intermediate_representation.Function_pointer_type = {
             type: {
@@ -2192,21 +2350,60 @@ export function node_to_type_reference(node: Parser_node.Node, key_to_production
             }
         ];
     }
+    else if (child.word.value === "Type_instance_type") {
+        const left_hand_side_node: Parser_node.Node = {
+            word: {
+                value: "Type",
+                type: Grammar.Word_type.Alphanumeric,
+                source_location: child.word.source_location
+            },
+            state: -1,
+            production_rule_index: undefined,
+            children: [child.children[0]],
+        };;
+        const left_hand_side = node_to_type_reference(root, left_hand_side_node);
+        if (left_hand_side.length > 0) {
+            if (left_hand_side[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+                const custom_type_reference = left_hand_side[0].data.value as Core_intermediate_representation.Custom_type_reference;
+
+                const expression_nodes = find_nodes_inside_parent(child, "Type_instance_type_parameters", "Expression_instance_call_parameter");
+                const expressions = expression_nodes.map(parameter => node_to_expression(root, parameter.children[0]));
+                const statements: Core_intermediate_representation.Statement[] = expressions.map(expression => { return { expression: expression }; });
+
+                const type_instance: Core_intermediate_representation.Type_instance = {
+                    type_constructor: custom_type_reference,
+                    arguments: statements
+                };
+
+                return [
+                    {
+                        data: {
+                            type: Core_intermediate_representation.Type_reference_enum.Type_instance,
+                            value: type_instance
+                        }
+                    }
+                ];
+            }
+        }
+    }
 
     const message = `Parse_tree_convertor_mapping.node_to_type_reference(): unhandled node '${child.word.value}'`;
     onThrowError(message);
     throw Error(message);
 }
 
-function node_to_alias_type_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Alias_type_declaration {
+function node_to_alias_type_declaration(
+    root: Parser_node.Node,
+    node: Parser_node.Node
+): Core_intermediate_representation.Alias_type_declaration {
 
-    const comments_node = node.children[0];
-    const alias_node = node.children[1];
+    const comments_node = get_comments_node(node);
+    const alias_node = node.children[node.children.length - 1];
 
-    const name = find_node_value(alias_node, "Alias_name", key_to_production_rule_indices);
+    const name = find_node_value(alias_node, "Alias_name");
 
-    const alias_type_node = find_node(alias_node, "Alias_type", key_to_production_rule_indices) as Parser_node.Node;
-    const type_reference = node_to_type_reference(alias_type_node.children[0], key_to_production_rule_indices);
+    const alias_type_node = find_node(alias_node, "Alias_type") as Parser_node.Node;
+    const type_reference = node_to_type_reference(root, alias_type_node.children[0]);
 
     const output: Core_intermediate_representation.Alias_type_declaration = {
         name: name,
@@ -2218,45 +2415,45 @@ function node_to_alias_type_declaration(node: Parser_node.Node, key_to_productio
         output.comment = comments;
     }
 
-    if (alias_node.source_location !== undefined) {
-        const name_node = find_node(alias_node, "Alias_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (alias_node.source_range !== undefined) {
+        const name_node = find_node(alias_node, "Alias_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
 }
 
-function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Enum_declaration {
+function node_to_enum_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Enum_declaration {
 
-    const comments_node = node.children[0];
-    const enum_node = node.children[1];
+    const comments_node = get_comments_node(node);
+    const enum_node = node.children[node.children.length - 1];
 
-    const name = find_node_value(enum_node, "Enum_name", key_to_production_rule_indices);
+    const name = find_node_value(enum_node, "Enum_name");
 
-    const value_nodes = find_nodes_inside_parent(enum_node, "Enum_values", "Enum_value", key_to_production_rule_indices);
+    const value_nodes = find_nodes_inside_parent(enum_node, "Enum_values", "Enum_value");
 
     const values: Core_intermediate_representation.Enum_value[] = [];
 
     for (let index = 0; index < value_nodes.length; ++index) {
         const value_node = value_nodes[index];
 
-        const value_name_node = find_node(value_node, "Enum_value_name", key_to_production_rule_indices) as Parser_node.Node;
+        const value_name_node = find_node(value_node, "Enum_value_name") as Parser_node.Node;
         const value_name = value_name_node.children[0].word.value;
-        const generic_expression_node = find_node(value_node, "Generic_expression", key_to_production_rule_indices);
-        const expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node, key_to_production_rule_indices) : undefined;
+        const generic_expression_node = find_node(value_node, "Generic_expression");
+        const expression = generic_expression_node !== undefined ? node_to_expression(root, generic_expression_node) : undefined;
 
         const enum_value: Core_intermediate_representation.Enum_value = {
             name: value_name,
             value: expression !== undefined ? { expression: expression } : undefined
         };
 
-        const enum_value_comments = extract_comments_from_node(value_node.children[0]);
+        const enum_value_comments = extract_comments_from_node(get_comments_node(value_node));
         if (enum_value_comments !== undefined) {
             enum_value.comment = enum_value_comments;
         }
 
-        if (value_name_node.source_location !== undefined) {
-            enum_value.source_location = value_name_node.source_location;
+        if (value_name_node.source_range !== undefined) {
+            enum_value.source_location = value_name_node.source_range.start;
         }
 
         values.push(enum_value);
@@ -2272,29 +2469,29 @@ function node_to_enum_declaration(node: Parser_node.Node, key_to_production_rule
         output.comment = comments;
     }
 
-    if (enum_node.source_location !== undefined) {
-        const name_node = find_node(enum_node, "Enum_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (enum_node.source_range !== undefined) {
+        const name_node = find_node(enum_node, "Enum_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
 }
 
-function node_to_global_variable_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Global_variable_declaration {
+export function node_to_global_variable_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Global_variable_declaration {
 
-    const comments_node = node.children[0];
-    const global_variable_node = node.children[1];
+    const comments_node = get_comments_node(node);
+    const global_variable_node = node.children[node.children.length - 1];
 
-    const name = find_node_value(global_variable_node, "Global_variable_name", key_to_production_rule_indices);
+    const name = find_node_value(global_variable_node, "Global_variable_name");
 
-    const mutable_node_value = find_node_value(node, "Global_variable_mutability", key_to_production_rule_indices);
+    const mutable_node_value = find_node_value(node, "Global_variable_mutability");
     const is_mutable = mutable_node_value !== "var";
 
-    const variable_type_node = find_node(global_variable_node, "Global_variable_type", key_to_production_rule_indices) as Parser_node.Node;
-    const variable_type = variable_type_node.children.length > 0 ? node_to_type_reference(variable_type_node.children[1], key_to_production_rule_indices) : undefined;
+    const variable_type_node = find_node(global_variable_node, "Type") as Parser_node.Node;
+    const variable_type = variable_type_node !== undefined && variable_type_node.children.length > 0 ? node_to_type_reference(root, variable_type_node) : undefined;
 
-    const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-    const variable_value_expression = node_to_expression(variable_value_node, key_to_production_rule_indices);
+    const variable_value_node = find_node(global_variable_node, "Generic_expression_or_instantiate") as Parser_node.Node;
+    const variable_value_expression = node_to_expression(root, variable_value_node);
 
     const output: Core_intermediate_representation.Global_variable_declaration = {
         name: name,
@@ -2311,23 +2508,23 @@ function node_to_global_variable_declaration(node: Parser_node.Node, key_to_prod
         output.comment = comments;
     }
 
-    if (global_variable_node.source_location !== undefined) {
-        const name_node = find_node(global_variable_node, "Global_variable_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (global_variable_node.source_range !== undefined) {
+        const name_node = find_node(global_variable_node, "Global_variable_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
     }
 
     return output;
 }
 
-function node_to_struct_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Struct_declaration {
+function node_to_struct_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Struct_declaration {
 
-    const comments_node = node.children[0];
-    const struct_node = node.children[1];
+    const comments_node = get_comments_node(node);
+    const struct_node = node.children[node.children.length - 1];
 
-    const name = find_node_value(struct_node, "Struct_name", key_to_production_rule_indices);
-    const source_location = struct_node.source_location !== undefined ? struct_node.source_location : { line: 0, column: 0 };
+    const name = find_node_value(struct_node, "Struct_name");
+    const source_location = struct_node.source_range !== undefined ? struct_node.source_range.start : { line: 0, column: 0 };
 
-    const member_nodes = find_nodes_inside_parent(struct_node, "Struct_members", "Struct_member", key_to_production_rule_indices);
+    const member_nodes = find_nodes_inside_parent(struct_node, "Struct_members", "Struct_member");
 
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
@@ -2338,16 +2535,16 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
 
-        const member_name_node = find_node(member_node, "Struct_member_name", key_to_production_rule_indices) as Parser_node.Node;
+        const member_name_node = find_node(member_node, "Struct_member_name") as Parser_node.Node;
         const member_name = get_terminal_value(member_name_node);
 
-        const member_type_node = find_node(member_node, "Struct_member_type", key_to_production_rule_indices) as Parser_node.Node;
-        const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
+        const member_type_node = find_node(member_node, "Struct_member_type") as Parser_node.Node;
+        const member_type = node_to_type_reference(root, member_type_node.children[0]);
 
-        const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-        const member_default_value_expression = node_to_expression(member_default_value_node, key_to_production_rule_indices);
+        const member_default_value_node = find_node(member_node, "Generic_expression_or_instantiate") as Parser_node.Node;
+        const member_default_value_expression = node_to_expression(root, member_default_value_node);
 
-        const member_comment = extract_comments_from_node(member_node.children[0]);;
+        const member_comment = extract_comments_from_node(get_comments_node(member_node));
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
@@ -2356,7 +2553,7 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_range !== undefined ? member_name_node.source_range.start : source_location);
     }
 
     const output: Core_intermediate_representation.Struct_declaration = {
@@ -2374,24 +2571,86 @@ function node_to_struct_declaration(node: Parser_node.Node, key_to_production_ru
         output.comment = comments;
     }
 
-    if (struct_node.source_location !== undefined) {
-        const name_node = find_node(struct_node, "Struct_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (struct_node.source_range !== undefined) {
+        const name_node = find_node(struct_node, "Struct_name") as Parser_node.Node;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.member_source_positions = member_source_positions;
     }
 
     return output;
 }
 
-function node_to_union_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Union_declaration {
+function node_to_type_constructor_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Type_constructor {
+    const type_constructor_node = node.children[node.children.length - 1];
 
-    const comments_node = node.children[0];
-    const union_node = node.children[1];
+    const name = find_node_value(type_constructor_node, "Type_constructor_name");
 
-    const name = find_node_value(union_node, "Union_name", key_to_production_rule_indices);
-    const source_location = union_node.source_location !== undefined ? union_node.source_location : { line: 0, column: 0 };
+    const parameters = find_nodes_inside_parent(type_constructor_node, "Type_constructor_parameters", "Function_parameter");
+    const parameter_values: Core_intermediate_representation.Type_constructor_parameter[] = parameters.map(node => {
+        const name_value = find_node_value(node, "Function_parameter_name")
+        const type = find_node(node, "Function_parameter_type") as Parser_node.Node;
+        const type_value = node_to_type_reference(root, type.children[0])[0];
+        return {
+            name: name_value,
+            type: type_value
+        };
+    });
 
-    const member_nodes = find_nodes_inside_parent(union_node, "Union_members", "Union_member", key_to_production_rule_indices);
+    const statements = find_nodes_inside_parent(type_constructor_node, "Block", "Statement");
+    const statement_values = statements.map(node => node_to_statement(root, node));
+
+    const module_name = get_module_name_from_tree(root);
+    const replace_by_parameter_type = (type: Core_intermediate_representation.Type_reference): void => {
+        if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+            const value = type.data.value as Core_intermediate_representation.Custom_type_reference;
+            if (value.module_reference.name === module_name) {
+                const found = parameter_values.find(parameter => parameter.name === value.name);
+                if (found !== undefined) {
+                    type.data = {
+                        type: Core_intermediate_representation.Type_reference_enum.Parameter_type,
+                        value: {
+                            name: value.name
+                        }
+                    };
+                }
+            }
+        }
+    };
+    for (const statement of statement_values) {
+        Parse_tree_convertor.visit_types_of_expression(statement.expression, replace_by_parameter_type);
+    }
+
+    const output: Core_intermediate_representation.Type_constructor = {
+        name: name,
+        parameters: parameter_values,
+        statements: statement_values
+    };
+
+    const comments_node = get_comments_node(node);
+    const comments = extract_comments_from_node(comments_node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    if (type_constructor_node.source_range !== undefined) {
+        const name_node = find_node(type_constructor_node, "Type_constructor_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
+    }
+
+    return output;
+}
+
+function node_to_union_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Union_declaration {
+
+    const comments_node = get_comments_node(node);
+    const union_node = node.children[node.children.length - 1];
+
+    const name = find_node_value(union_node, "Union_name");
+    const source_location = union_node.source_range !== undefined ? union_node.source_range.start : { line: 0, column: 0 };
+
+    const member_nodes = find_nodes_inside_parent(union_node, "Union_members", "Union_member");
 
     const member_names: string[] = [];
     const member_types: Core_intermediate_representation.Type_reference[] = [];
@@ -2401,13 +2660,13 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
     for (let index = 0; index < member_nodes.length; ++index) {
         const member_node = member_nodes[index];
 
-        const member_name_node = find_node(member_node, "Union_member_name", key_to_production_rule_indices) as Parser_node.Node;
+        const member_name_node = find_node(member_node, "Union_member_name") as Parser_node.Node;
         const member_name = get_terminal_value(member_name_node);
 
-        const member_type_node = find_node(member_node, "Union_member_type", key_to_production_rule_indices) as Parser_node.Node;
-        const member_type = node_to_type_reference(member_type_node.children[0], key_to_production_rule_indices);
+        const member_type_node = find_node(member_node, "Union_member_type") as Parser_node.Node;
+        const member_type = node_to_type_reference(root, member_type_node.children[0]);
 
-        const member_comment = extract_comments_from_node(member_node.children[0]);;
+        const member_comment = extract_comments_from_node(get_comments_node(member_node));;
 
         member_names.push(member_name);
         member_types.push(member_type[0]);
@@ -2415,7 +2674,7 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
             member_comments.push({ index: index, comment: member_comment });
         }
 
-        member_source_positions.push(member_name_node.source_location !== undefined ? member_name_node.source_location : source_location);
+        member_source_positions.push(member_name_node.source_range !== undefined ? member_name_node.source_range.start : source_location);
     }
 
     const output: Core_intermediate_representation.Union_declaration = {
@@ -2430,26 +2689,30 @@ function node_to_union_declaration(node: Parser_node.Node, key_to_production_rul
         output.comment = comments;
     }
 
-    if (union_node.source_location !== undefined) {
-        const name_node = find_node(union_node, "Union_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (union_node.source_range !== undefined) {
+        const name_node = find_node(union_node, "Union_name") as Parser_node.Node;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.member_source_positions = member_source_positions;
     }
 
     return output;
 }
 
-function is_export_node(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): boolean {
-    const export_value = find_node_value(node, "Export", key_to_production_rule_indices);
-    return export_value.length > 0;
+export function is_export_declaration(node: Parser_node.Node): boolean {
+    return node.children.find(child => child.word.value === "export") != undefined;
 }
 
-function node_to_import_module_with_alias(
-    node: Parser_node.Node,
-    key_to_production_rule_indices: Map<string, number[]>
+function get_comments_node(node: Parser_node.Node): Parser_node.Node | undefined {
+    return node.children.find(child => child.word.value.startsWith("//"));
+}
+
+export function node_to_import_module_with_alias(
+    node: Parser_node.Node
 ): Core_intermediate_representation.Import_module_with_alias {
-    const module_name = find_node_value(node, "Import_name", key_to_production_rule_indices);
-    const alias = find_node_value(node, "Import_alias", key_to_production_rule_indices);
+    const module_name = find_node_value(node, "Import_name");
+    const alias = find_node_value(node, "Import_alias");
     return {
         module_name: module_name,
         alias: alias,
@@ -2457,37 +2720,47 @@ function node_to_import_module_with_alias(
     };
 }
 
-function find_node_child_index(node: Parser_node.Node, key: string, key_to_production_rule_indices: Map<string, number[]>): number {
-    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
-    return node.children.findIndex(child => production_rule_indices.find(index => index === child.production_rule_index) !== undefined);
+function find_node_child_index(node: Parser_node.Node, key: string): number {
+    return node.children.findIndex(child => child.word.value === key);
 }
 
-function node_to_function_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_declaration {
+function node_to_function_condition(root: Parser_node.Node, node: Parser_node.Node, is_precondition: boolean): Core_intermediate_representation.Function_condition {
+    const description = find_node_value(node, is_precondition ? "Function_precondition_name" : "Function_postcondition_name");
 
-    const comments_node = node.children[0];
-    const function_node = node.children[1];
-    const function_declaration_node = function_node.children[0];
+    const condition_node = find_node(node, "Generic_expression");
+    const condition = node_to_expression(root, condition_node);
 
-    const name = find_node_value(function_declaration_node, "Function_name", key_to_production_rule_indices);
-    const source_location = function_declaration_node.source_location !== undefined ? function_declaration_node.source_location : { line: 0, column: 0 };
+    return {
+        description: description.substring(1, description.length - 1),
+        condition: { expression: condition }
+    };
+}
 
-    const input_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_input_parameters", "Function_parameter", key_to_production_rule_indices);
+export function node_to_function_declaration(root: Parser_node.Node, node: Parser_node.Node, linkage: Core_intermediate_representation.Linkage, comments_node: Parser_node.Node | undefined): Core_intermediate_representation.Function_declaration {
+
+    const name = find_node_value(node, "Function_name");
+    const source_location = node.source_range !== undefined ? node.source_range.start : { line: 0, column: 0 };
+
+    const input_parameter_nodes = find_nodes_inside_parent(node, "Function_input_parameters", "Function_parameter");
     const is_variadic = input_parameter_nodes.length > 0 && input_parameter_nodes[input_parameter_nodes.length - 1].children[0].word.value === "...";
     if (is_variadic) {
         input_parameter_nodes.splice(input_parameter_nodes.length - 1, 1);
     }
 
-    const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
-    const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const input_parameter_names = input_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+    const input_parameter_types = input_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
+    const input_parameter_source_positions = input_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
-    const output_parameter_nodes = find_nodes_inside_parent(function_declaration_node, "Function_output_parameters", "Function_parameter", key_to_production_rule_indices);
-    const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name", key_to_production_rule_indices));
-    const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type", key_to_production_rule_indices) as Parser_node.Node).map(node => node_to_type_reference(node.children[0], key_to_production_rule_indices)[0]);
-    const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_location !== undefined ? node.source_location : source_location);
+    const output_parameter_nodes = find_nodes_inside_parent(node, "Function_output_parameters", "Function_parameter");
+    const output_parameter_names = output_parameter_nodes.map(node => find_node_value(node, "Function_parameter_name"));
+    const output_parameter_types = output_parameter_nodes.map(node => find_node(node, "Function_parameter_type") as Parser_node.Node).map(node => node_to_type_reference(root, node.children[0])[0]);
+    const output_parameter_source_positions = output_parameter_nodes.map(node => node.source_range !== undefined ? node.source_range.start : source_location);
 
-    const export_value = find_node_value(function_declaration_node, "Export", key_to_production_rule_indices);
-    const linkage = export_value.length > 0 ? Core_intermediate_representation.Linkage.External : Core_intermediate_representation.Linkage.Private;
+    const precondition_nodes = node.children.filter(child => child.word.value === "Function_precondition");
+    const preconditions = precondition_nodes.map(node => node_to_function_condition(root, node, true));
+
+    const postcondition_nodes = node.children.filter(child => child.word.value === "Function_postcondition");
+    const postconditions = postcondition_nodes.map(node => node_to_function_condition(root, node, false));
 
     const output: Core_intermediate_representation.Function_declaration = {
         name: name,
@@ -2498,7 +2771,9 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
         },
         input_parameter_names: input_parameter_names,
         output_parameter_names: output_parameter_names,
-        linkage: linkage
+        linkage: linkage,
+        preconditions: preconditions,
+        postconditions: postconditions,
     };
 
     const comments = extract_comments_from_node(comments_node);
@@ -2506,9 +2781,11 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
         output.comment = comments;
     }
 
-    if (function_declaration_node.source_location !== undefined) {
-        const name_node = find_node(function_declaration_node, "Function_name", key_to_production_rule_indices) as Parser_node.Node;
-        output.source_location = name_node.source_location;
+    if (node.source_range !== undefined) {
+        const name_node = find_node(node, "Function_name") as Parser_node.Node;
+        if (name_node !== undefined) {
+            output.source_location = name_node.source_range.start;
+        }
         output.input_parameter_source_positions = input_parameter_source_positions;
         output.output_parameter_source_positions = output_parameter_source_positions;
     }
@@ -2516,36 +2793,91 @@ function node_to_function_declaration(node: Parser_node.Node, key_to_production_
     return output;
 }
 
-function node_to_function_definition(node: Parser_node.Node, function_name: string, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Function_definition {
-
-    const function_node = node.children[1];
-    const function_definition_node = function_node.children[1];
+function node_to_function_definition(root: Parser_node.Node, node: Parser_node.Node, function_name: string): Core_intermediate_representation.Function_definition {
 
     const output: Core_intermediate_representation.Function_definition = {
         name: function_name,
         statements: []
     };
 
-    const block_node = find_node(function_definition_node, "Block", key_to_production_rule_indices);
+    const block_node = find_node(node, "Block");
     if (block_node !== undefined) {
-        const statements_node = find_node(block_node, "Statements", key_to_production_rule_indices);
-        if (statements_node !== undefined) {
-            const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
-            output.statements = statements;
-        }
+        const statement_nodes = block_node.children.slice(1, block_node.children.length - 1);
+        const statements = statement_nodes.map(node => node_to_statement(root, node));
+        output.statements = statements;
     }
 
-    if (function_definition_node.source_location !== undefined) {
-        output.source_location = (block_node !== undefined && block_node.source_location !== undefined) ? block_node.source_location : function_definition_node.source_location;
+    if (node.source_range !== undefined) {
+        output.source_location = (block_node !== undefined && block_node.source_range !== undefined) ? block_node.source_range.start : node.source_range.start;
     }
 
     return output;
 }
 
-function node_to_statement(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Statement {
+function node_to_function_constructor_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Function_constructor {
+    const function_constructor_node = node.children[node.children.length - 1];
+
+    const name = find_node_value(function_constructor_node, "Function_constructor_name");
+
+    const parameters = find_nodes_inside_parent(function_constructor_node, "Function_constructor_parameters", "Function_parameter");
+    const parameter_values: Core_intermediate_representation.Type_constructor_parameter[] = parameters.map(node => {
+        const name_value = find_node_value(node, "Function_parameter_name")
+        const type = find_node(node, "Function_parameter_type") as Parser_node.Node;
+        const type_value = node_to_type_reference(root, type.children[0])[0];
+        return {
+            name: name_value,
+            type: type_value
+        };
+    });
+
+    const statements = find_nodes_inside_parent(function_constructor_node, "Block", "Statement");
+    const statement_values = statements.map(node => node_to_statement(root, node));
+
+    const module_name = get_module_name_from_tree(root);
+    const replace_by_parameter_type = (type: Core_intermediate_representation.Type_reference): void => {
+        if (type.data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+            const value = type.data.value as Core_intermediate_representation.Custom_type_reference;
+            if (value.module_reference.name === module_name) {
+                const found = parameter_values.find(parameter => parameter.name === value.name);
+                if (found !== undefined) {
+                    type.data = {
+                        type: Core_intermediate_representation.Type_reference_enum.Parameter_type,
+                        value: {
+                            name: value.name
+                        }
+                    };
+                }
+            }
+        }
+    };
+    for (const statement of statement_values) {
+        Parse_tree_convertor.visit_types_of_expression(statement.expression, replace_by_parameter_type);
+    }
+
+    const output: Core_intermediate_representation.Function_constructor = {
+        name: name,
+        parameters: parameter_values,
+        statements: statement_values
+    };
+
+    const comments_node = get_comments_node(node);
+    const comments = extract_comments_from_node(comments_node);
+    if (comments !== undefined) {
+        output.comment = comments;
+    }
+
+    if (function_constructor_node.source_range !== undefined) {
+        const name_node = find_node(function_constructor_node, "Function_constructor_name") as Parser_node.Node;
+        output.source_location = name_node.source_range.start;
+    }
+
+    return output;
+}
+
+export function node_to_statement(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Statement {
 
     const child = node.children[0];
-    const expression = node_to_expression(child, key_to_production_rule_indices);
+    const expression = node_to_expression(root, child);
 
     const output: Core_intermediate_representation.Statement = {
         expression: expression
@@ -2554,17 +2886,17 @@ function node_to_statement(node: Parser_node.Node, key_to_production_rule_indice
     return output;
 }
 
-export function node_to_expression(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
-    const expression = node_to_expression_without_source_location(node, key_to_production_rule_indices);
+export function node_to_expression(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Expression {
+    const expression = node_to_expression_without_source_location(root, node);
 
-    if (node.source_location !== undefined) {
-        expression.source_position = node.source_location;
+    if (node.source_range !== undefined) {
+        expression.source_position = node.source_range.start;
     }
 
     return expression;
 }
 
-function node_to_expression_without_source_location(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Expression {
+function node_to_expression_without_source_location(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Expression {
 
     while (node.word.value.startsWith("Expression_level_") || node.word.value.startsWith("Generic_expression")) {
         node = node.children[0];
@@ -2572,7 +2904,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
 
     switch (node.word.value) {
         case "Expression_access": {
-            const expression = node_to_expression_access(node, key_to_production_rule_indices);
+            const expression = node_to_expression_access(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Access_expression,
@@ -2581,7 +2913,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_access_array": {
-            const expression = node_to_expression_access_array(node, key_to_production_rule_indices);
+            const expression = node_to_expression_access_array(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Access_array_expression,
@@ -2589,8 +2921,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_assert": {
+            const expression = node_to_expression_assert(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Assert_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_assignment": {
-            const expression = node_to_expression_assignment(node, key_to_production_rule_indices);
+            const expression = node_to_expression_assignment(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Assignment_expression,
@@ -2598,17 +2939,8 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
-        case "Expression_binary_addition":
-        case "Expression_binary_bitwise_and":
-        case "Expression_binary_bitwise_xor":
-        case "Expression_binary_bitwise_or":
-        case "Expression_binary_bitwise_shift":
-        case "Expression_binary_logical_and":
-        case "Expression_binary_logical_or":
-        case "Expression_binary_multiplication":
-        case "Expression_binary_relational":
-        case "Expression_binary_relational_equal": {
-            const expression = node_to_expression_binary(node, key_to_production_rule_indices);
+        case "Expression_binary": {
+            const expression = node_to_expression_binary(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Binary_expression,
@@ -2617,7 +2949,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_block": {
-            const expression = node_to_expression_block(node, key_to_production_rule_indices);
+            const expression = node_to_expression_block(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Block_expression,
@@ -2625,8 +2957,9 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
-        case "Expression_break": {
-            const expression = node_to_expression_break(node, key_to_production_rule_indices);
+        case "Expression_break":
+        case "break": {
+            const expression = node_to_expression_break(node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Break_expression,
@@ -2634,8 +2967,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_defer": {
+            const expression = node_to_expression_defer(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Defer_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_call": {
-            const expression = node_to_expression_call(node, key_to_production_rule_indices);
+            const expression = node_to_expression_call(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Call_expression,
@@ -2644,7 +2986,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_cast": {
-            const expression = node_to_expression_cast(node, key_to_production_rule_indices);
+            const expression = node_to_expression_cast(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Cast_expression,
@@ -2670,8 +3012,9 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
-        case "Expression_continue": {
-            const expression = node_to_expression_continue(node, key_to_production_rule_indices);
+        case "Expression_continue":
+        case "continue": {
+            const expression = node_to_expression_continue(node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Continue_expression,
@@ -2680,7 +3023,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_create_array": {
-            const expression = node_to_expression_create_array(node, key_to_production_rule_indices);
+            const expression = node_to_expression_create_array(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Constant_array_expression,
@@ -2688,8 +3031,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_dereference_and_access": {
+            const expression = node_to_expression_dereference_and_access(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Dereference_and_access_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_for_loop": {
-            const expression = node_to_expression_for_loop(node, key_to_production_rule_indices);
+            const expression = node_to_expression_for_loop(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.For_loop_expression,
@@ -2697,8 +3049,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_function": {
+            const expression = node_to_expression_function(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Function_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_if": {
-            const expression = node_to_expression_if(node, key_to_production_rule_indices);
+            const expression = node_to_expression_if(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.If_expression,
@@ -2706,9 +3067,18 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_instance_call": {
+            const expression = node_to_expression_instance_call(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Instance_call_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_instantiate":
         case "Expression_instantiate_with_type": {
-            const expression = node_to_expression_instantiate(node, key_to_production_rule_indices);
+            const expression = node_to_expression_instantiate(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Instantiate_expression,
@@ -2716,8 +3086,9 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
-        case "Expression_null_pointer": {
-            const expression = node_to_expression_null_pointer(node, key_to_production_rule_indices);
+        case "Expression_null_pointer":
+        case "null": {
+            const expression = node_to_expression_null_pointer(node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Null_pointer_expression,
@@ -2726,7 +3097,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_parenthesis": {
-            const expression = node_to_expression_parenthesis(node, key_to_production_rule_indices);
+            const expression = node_to_expression_parenthesis(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Parenthesis_expression,
@@ -2734,8 +3105,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_reflection_call": {
+            const expression = node_to_expression_reflection(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Reflection_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_return": {
-            const expression = node_to_expression_return(node, key_to_production_rule_indices);
+            const expression = node_to_expression_return(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Return_expression,
@@ -2743,8 +3123,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
+        case "Expression_struct": {
+            const expression = node_to_expression_struct(root, node);
+            return {
+                data: {
+                    type: Core_intermediate_representation.Expression_enum.Struct_expression,
+                    value: expression
+                }
+            };
+        }
         case "Expression_switch": {
-            const expression = node_to_expression_switch(node, key_to_production_rule_indices);
+            const expression = node_to_expression_switch(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Switch_expression,
@@ -2753,7 +3142,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_ternary_condition": {
-            const expression = node_to_expression_ternary_condition(node, key_to_production_rule_indices);
+            const expression = node_to_expression_ternary_condition(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Ternary_condition_expression,
@@ -2761,17 +3150,17 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
                 }
             };
         }
-        case "Expression_unary_0": {
-            const expression = node_to_expression_unary_0(node, key_to_production_rule_indices);
+        case "Expression_type": {
+            const expression = node_to_expression_type(root, node);
             return {
                 data: {
-                    type: Core_intermediate_representation.Expression_enum.Unary_expression,
+                    type: Core_intermediate_representation.Expression_enum.Type_expression,
                     value: expression
                 }
             };
         }
-        case "Expression_unary_1": {
-            const expression = node_to_expression_unary_1(node, key_to_production_rule_indices);
+        case "Expression_unary": {
+            const expression = node_to_expression_unary(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Unary_expression,
@@ -2789,7 +3178,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_variable_declaration": {
-            const expression = node_to_expression_variable_declaration(node, key_to_production_rule_indices);
+            const expression = node_to_expression_variable_declaration(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Variable_declaration_expression,
@@ -2798,7 +3187,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_variable_declaration_with_type": {
-            const expression = node_to_expression_variable_declaration_with_type(node, key_to_production_rule_indices);
+            const expression = node_to_expression_variable_declaration_with_type(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.Variable_declaration_with_type_expression,
@@ -2807,7 +3196,7 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
             };
         }
         case "Expression_while_loop": {
-            const expression = node_to_expression_while_loop(node, key_to_production_rule_indices);
+            const expression = node_to_expression_while_loop(root, node);
             return {
                 data: {
                     type: Core_intermediate_representation.Expression_enum.While_loop_expression,
@@ -2823,12 +3212,12 @@ function node_to_expression_without_source_location(node: Parser_node.Node, key_
     }
 }
 
-export function node_to_expression_access(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Access_expression {
+export function node_to_expression_access(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Access_expression {
 
     const generic_expression_node = node.children[0];
     const variable_expression_node = node.children[2];
 
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression = node_to_expression(root, generic_expression_node);
     const variable_expression = node_to_expression_variable_name(variable_expression_node.children[0]);
 
     const access_expression: Core_intermediate_representation.Access_expression = {
@@ -2840,13 +3229,13 @@ export function node_to_expression_access(node: Parser_node.Node, key_to_product
     return access_expression;
 }
 
-export function node_to_expression_access_array(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Access_array_expression {
+export function node_to_expression_access_array(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Access_array_expression {
 
     const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const index_expression_node = node.children[2];
-    const index_expression = node_to_expression(index_expression_node, key_to_production_rule_indices);
+    const index_expression = node_to_expression(root, index_expression_node);
 
     const access_array_expression: Core_intermediate_representation.Access_array_expression = {
         expression: generic_expression,
@@ -2874,17 +3263,36 @@ function set_expression_access_type(expression: Core_intermediate_representation
     }
 }
 
-function node_to_expression_assignment(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Assignment_expression {
+function node_to_expression_assert(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Assert_expression {
+
+    const has_message = node.children[1].word.type === Grammar.Word_type.String;
+    const message = has_message ? get_terminal_value(node.children[1]) : undefined;
+
+    const generic_expression_node = find_node(node, "Generic_expression");
+    const generic_expression = node_to_expression(root, generic_expression_node);
+
+    let output: Core_intermediate_representation.Assert_expression = {
+        statement: { expression: generic_expression }
+    };
+
+    if (message != undefined) {
+        output.message = message.substring(1, message.length - 1);
+    }
+
+    return output;
+}
+
+function node_to_expression_assignment(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Assignment_expression {
 
     const generic_expressions = [node.children[0], node.children[2]];
 
     const left_hand_side_node = generic_expressions[0];
-    const left_hand_side_expression = node_to_expression(left_hand_side_node, key_to_production_rule_indices);
+    const left_hand_side_expression = node_to_expression(root, left_hand_side_node);
 
     const right_hand_side_node = generic_expressions[1];
-    const right_hand_side_expression = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
+    const right_hand_side_expression = node_to_expression(root, right_hand_side_node);
 
-    const symbol = find_node_value(node, "Expression_assignment_symbol", key_to_production_rule_indices);
+    const symbol = find_node_value(node, "Expression_assignment_symbol");
     const additional_operation = map_production_rule_label_to_assignment_binary_operation(symbol);
 
     const access_type = additional_operation !== undefined ? Core_intermediate_representation.Access_type.Read_write : Core_intermediate_representation.Access_type.Write;
@@ -2920,18 +3328,17 @@ function map_production_rule_label_to_assignment_binary_operation(label: string)
     }
 }
 
-function node_to_expression_binary(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Binary_expression {
+function node_to_expression_binary(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Binary_expression {
 
     const left_hand_side_node = node.children[0];
     const operation_node = node.children[1];
     const right_hand_side_node = node.children[2];
 
-    const left_hand_side_expression = node_to_expression(left_hand_side_node, key_to_production_rule_indices);
+    const left_hand_side_expression = node_to_expression(root, left_hand_side_node);
 
-    const operation_node_child = operation_node.children[0];
-    const operation = map_production_rule_label_to_binary_operation(operation_node_child.word.value);
+    const operation = map_production_rule_label_to_binary_operation(operation_node.word.value);
 
-    const right_hand_side_expression = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
+    const right_hand_side_expression = node_to_expression(root, right_hand_side_node);
 
     const binary_expression: Core_intermediate_representation.Binary_expression = {
         left_hand_side: left_hand_side_expression,
@@ -2971,10 +3378,10 @@ function map_production_rule_label_to_binary_operation(label: string): Core_inte
     }
 }
 
-function node_to_expression_block(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Block_expression {
+function node_to_expression_block(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Block_expression {
 
-    const statements_node = node.children[1];
-    const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+    const statements_node = node.children.slice(1, node.children.length - 1);
+    const statements = statements_node.map(node => node_to_statement(root, node));
 
     const block_expression: Core_intermediate_representation.Block_expression = {
         statements: statements
@@ -2983,7 +3390,7 @@ function node_to_expression_block(node: Parser_node.Node, key_to_production_rule
     return block_expression;
 }
 
-function node_to_expression_break(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Break_expression {
+function node_to_expression_break(node: Parser_node.Node): Core_intermediate_representation.Break_expression {
 
     const loop_count = node.children.length > 1 ? Number(node.children[1].children[0].word.value) : 0;
 
@@ -2994,13 +3401,25 @@ function node_to_expression_break(node: Parser_node.Node, key_to_production_rule
     return break_expression;
 }
 
-function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Call_expression {
+function node_to_expression_defer(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Defer_expression {
+
+    const expression_to_defer_node = node.children[1];
+    const expression_to_defer = node_to_expression(root, expression_to_defer_node);
+
+    const defer_expression: Core_intermediate_representation.Defer_expression = {
+        expression_to_defer: expression_to_defer
+    };
+
+    return defer_expression;
+}
+
+function node_to_expression_call(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Call_expression {
 
     const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
-    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate", key_to_production_rule_indices);
-    const argument_expressions = argument_nodes.map(node => node_to_expression(node, key_to_production_rule_indices));
+    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate");
+    const argument_expressions = argument_nodes.map(node => node_to_expression(root, node));
 
     const call_expression: Core_intermediate_representation.Call_expression = {
         expression: generic_expression,
@@ -3010,13 +3429,13 @@ function node_to_expression_call(node: Parser_node.Node, key_to_production_rule_
     return call_expression;
 }
 
-function node_to_expression_cast(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Cast_expression {
+function node_to_expression_cast(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Cast_expression {
 
     const source_node = node.children[0];
-    const source_expression = node_to_expression(source_node, key_to_production_rule_indices);
+    const source_expression = node_to_expression(root, source_node);
 
-    const destination_type_node = find_node(node, "Expression_cast_destination_type", key_to_production_rule_indices);
-    const destination_type = node_to_type_reference(destination_type_node.children[0], key_to_production_rule_indices);
+    const destination_type_node = find_node(node, "Expression_type");
+    const destination_type = node_to_type_reference(root, destination_type_node.children[0]);
     if (destination_type.length === 0) {
         const message = `Cannot cast to 'void' type.`;
         onThrowError(message);
@@ -3044,7 +3463,7 @@ function node_to_expression_comment(node: Parser_node.Node): Core_intermediate_r
 }
 
 function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_representation.Constant_expression {
-    const terminal_node = node.children[0];
+    const terminal_node = Parser_node.get_next_terminal_node(node, node, []).node;
 
     switch (terminal_node.word.type) {
         case Grammar.Word_type.Alphanumeric: {
@@ -3140,6 +3559,8 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
                             return Core_intermediate_representation.Fundamental_type.C_ulong;
                         case "cull":
                             return Core_intermediate_representation.Fundamental_type.C_ulonglong;
+                        case "cb":
+                            return Core_intermediate_representation.Fundamental_type.C_bool;
                         default: {
                             const message = `${suffix} is not a C supported type.`;
                             onThrowError(message);
@@ -3209,7 +3630,7 @@ function node_to_expression_constant(node: Parser_node.Node): Core_intermediate_
     throw Error(message);
 }
 
-function node_to_expression_continue(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Continue_expression {
+function node_to_expression_continue(node: Parser_node.Node): Core_intermediate_representation.Continue_expression {
 
     const continue_expression: Core_intermediate_representation.Continue_expression = {
     };
@@ -3217,10 +3638,10 @@ function node_to_expression_continue(node: Parser_node.Node, key_to_production_r
     return continue_expression;
 }
 
-function node_to_expression_create_array(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Constant_array_expression {
+function node_to_expression_create_array(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Constant_array_expression {
 
-    const expression_nodes = find_nodes_inside_parent(node, "Expression_create_array_elements", "Generic_expression_or_instantiate", key_to_production_rule_indices);
-    const expressions = expression_nodes.map(node => node_to_expression(node, key_to_production_rule_indices));
+    const expression_nodes = node.children.slice(1, node.children.length - 1).filter(node => node.word.value !== ",");
+    const expressions = expression_nodes.map(node => node_to_expression(root, node));
     const statements = expressions.map(expression => { return { expression: expression }; });
 
     const create_array_expression: Core_intermediate_representation.Constant_array_expression = {
@@ -3230,29 +3651,45 @@ function node_to_expression_create_array(node: Parser_node.Node, key_to_producti
     return create_array_expression;
 }
 
-function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.For_loop_expression {
+export function node_to_expression_dereference_and_access(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Dereference_and_access_expression {
 
-    const head_node = find_node(node, "Expression_for_loop_head", key_to_production_rule_indices) as Parser_node.Node;
+    const generic_expression_node = node.children[0];
+    const identifier_node = node.children[2];
 
-    const variable_node = find_node_value(head_node, "Expression_for_loop_variable", key_to_production_rule_indices);
+    const generic_expression = node_to_expression(root, generic_expression_node);
+    const member_name = get_terminal_value(identifier_node);
 
-    const range_begin_node = find_node(head_node, "Expression_for_loop_range_begin", key_to_production_rule_indices) as Parser_node.Node;
+    const dereference_access_expression: Core_intermediate_representation.Dereference_and_access_expression = {
+        expression: generic_expression,
+        member_name: member_name
+    };
+
+    return dereference_access_expression;
+}
+
+function node_to_expression_for_loop(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.For_loop_expression {
+
+    const head_node = find_node(node, "Expression_for_loop_head") as Parser_node.Node;
+
+    const variable_node = find_node_value(head_node, "Expression_for_loop_variable");
+
+    const range_begin_node = find_node(head_node, "Expression_for_loop_range_begin") as Parser_node.Node;
     const range_begin_number_node = range_begin_node.children[0].children[0];
-    const range_begin_expression = node_to_expression(range_begin_number_node, key_to_production_rule_indices);
+    const range_begin_expression = node_to_expression(root, range_begin_number_node);
 
-    const range_end_node = find_node(head_node, "Expression_for_loop_range_end", key_to_production_rule_indices) as Parser_node.Node;
+    const range_end_node = find_node(head_node, "Expression_for_loop_range_end") as Parser_node.Node;
     const range_end_number_node = range_end_node.children[0].children[0];
-    const range_end_expression = node_to_expression(range_end_number_node, key_to_production_rule_indices);
+    const range_end_expression = node_to_expression(root, range_end_number_node);
 
-    const step_by_node = find_node(head_node, "Expression_for_loop_step", key_to_production_rule_indices) as Parser_node.Node;
-    const step_by_number_node = step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
-    const step_by_expression = step_by_number_node !== undefined ? node_to_expression(step_by_number_node, key_to_production_rule_indices) : undefined;
+    const step_by_node = find_node(head_node, "Expression_for_loop_step") as Parser_node.Node;
+    const step_by_number_node = step_by_node !== undefined && step_by_node.children.length > 0 ? step_by_node.children[1].children[0] : undefined;
+    const step_by_expression = step_by_number_node !== undefined ? node_to_expression(root, step_by_number_node) : undefined;
 
-    const reverse_node = find_node(head_node, "Expression_for_loop_reverse", key_to_production_rule_indices) as Parser_node.Node;
-    const is_reverse = reverse_node.children.length > 0;
+    const reverse_node = find_node(head_node, "reverse");
+    const is_reverse = reverse_node !== undefined;
 
-    const statements_node = find_node(node, "Expression_for_loop_statements", key_to_production_rule_indices) as Parser_node.Node;
-    const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+    const statements_node = find_node(node, "Expression_for_loop_statements") as Parser_node.Node;
+    const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
     const for_loop_expression: Core_intermediate_representation.For_loop_expression = {
         variable_name: variable_node,
@@ -3266,39 +3703,46 @@ function node_to_expression_for_loop(node: Parser_node.Node, key_to_production_r
     return for_loop_expression;
 }
 
-function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.If_expression {
+function node_to_expression_function(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Function_expression {
+    const linkage = Core_intermediate_representation.Linkage.Private;
+    const declaration = node_to_function_declaration(root, node, linkage, undefined);
+    const definition = node_to_function_definition(root, node, "");
+    return {
+        declaration: declaration,
+        definition: definition
+    };
+}
+
+function node_to_expression_if(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.If_expression {
 
     const series: Core_intermediate_representation.Condition_statement_pair[] = [];
 
     let current_node = node;
     while (current_node.children.length > 0) {
-        const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node : undefined;
-        const condition_expression = condition_node !== undefined ? node_to_expression(condition_node, key_to_production_rule_indices) : undefined;
+        const condition_node = current_node.word.value === "Expression_if" ? find_node(current_node, "Generic_expression") as Parser_node.Node : undefined;
+        const condition_expression = condition_node !== undefined ? node_to_expression(root, condition_node) : undefined;
 
-        const statements_node = find_node(current_node, "Expression_if_statements", key_to_production_rule_indices) as Parser_node.Node;
-        const statements = statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+        const statements_node = find_node(current_node, "Expression_if_statements") as Parser_node.Node;
+        const statements = statements_node.children.slice(1, statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
         const serie: Core_intermediate_representation.Condition_statement_pair = {
             condition: condition_expression !== undefined ? { expression: condition_expression } : undefined,
             then_statements: statements
         };
 
-        const open_block_node = current_node.children.find(child => child.word.value === "{") as Parser_node.Node;
-        if (open_block_node.source_location !== undefined) {
-            serie.block_source_position = open_block_node.source_location;
+        const open_block_node = statements_node.children[0];
+        if (open_block_node.source_range !== undefined) {
+            serie.block_source_position = open_block_node.source_range.start;
         }
 
         series.push(serie);
 
-        current_node = current_node.children[current_node.children.length - 1];
-        if (current_node.children.length === 0) {
+        current_node = find_node(current_node, "Expression_if_else");
+        if (current_node === undefined) {
             break;
         }
 
-        const child = current_node.children[current_node.children.length - 1];
-        if (child.word.value === "Expression_if") {
-            current_node = child;
-        }
+        current_node = current_node.children[current_node.children.length - 1];
     }
 
     const if_expression: Core_intermediate_representation.If_expression = {
@@ -3308,18 +3752,35 @@ function node_to_expression_if(node: Parser_node.Node, key_to_production_rule_in
     return if_expression;
 }
 
-function node_to_expression_instantiate(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Instantiate_expression {
+export function node_to_expression_instance_call(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Instance_call_expression {
 
-    const type_node_value = find_node_value(node, "Expression_instantiate_expression_type", key_to_production_rule_indices);
-    const type = type_node_value === "explicit" ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
+    const left_hand_side_node = node.children.find(child => child.word.value === "Generic_expression");
+    const left_hand_side = node_to_expression(root, left_hand_side_node);
 
-    const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_members", "Expression_instantiate_member", key_to_production_rule_indices);
+    const parameter_nodes = node.children.filter(child => child.word.value === "Expression_instance_call_parameter");
+    const argument_expressions = parameter_nodes.map(child => node_to_expression(root, child.children[0]));
+    const argument_statements = argument_expressions.map(expression => { return { expression: expression }; });
+
+    const instance_call_expression: Core_intermediate_representation.Instance_call_expression = {
+        left_hand_side: left_hand_side,
+        arguments: argument_statements
+    };
+
+    return instance_call_expression;
+}
+
+export function node_to_expression_instantiate(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Instantiate_expression {
+
+    const type_node = node.children.find(child => child.word.value === "explicit");
+    const type = type_node !== undefined ? Core_intermediate_representation.Instantiate_expression_type.Explicit : Core_intermediate_representation.Instantiate_expression_type.Default;
+
+    const member_nodes = find_nodes_inside_parent(node, "Expression_instantiate_members", "Expression_instantiate_member");
     const members: Core_intermediate_representation.Instantiate_member_value_pair[] = member_nodes.map(
         node => {
-            const member_name = find_node_value(node, "Expression_instantiate_member_name", key_to_production_rule_indices);
+            const member_name = find_node_value(node, "Expression_instantiate_member_name");
 
-            const expression_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-            const expression = node_to_expression(expression_node, key_to_production_rule_indices);
+            const expression_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
+            const expression = node_to_expression(root, expression_node);
 
             return {
                 member_name: member_name,
@@ -3336,7 +3797,7 @@ function node_to_expression_instantiate(node: Parser_node.Node, key_to_productio
     return instantiate_expression;
 }
 
-function node_to_expression_null_pointer(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Null_pointer_expression {
+function node_to_expression_null_pointer(node: Parser_node.Node): Core_intermediate_representation.Null_pointer_expression {
 
     const null_pointer_expression: Core_intermediate_representation.Null_pointer_expression = {
     };
@@ -3344,10 +3805,10 @@ function node_to_expression_null_pointer(node: Parser_node.Node, key_to_producti
     return null_pointer_expression;
 }
 
-function node_to_expression_parenthesis(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Parenthesis_expression {
+function node_to_expression_parenthesis(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Parenthesis_expression {
 
-    const generic_expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression_node = find_node(node, "Generic_expression") as Parser_node.Node;
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
     const parenthesis_expression: Core_intermediate_representation.Parenthesis_expression = {
         expression: generic_expression
@@ -3356,10 +3817,49 @@ function node_to_expression_parenthesis(node: Parser_node.Node, key_to_productio
     return parenthesis_expression;
 }
 
-function node_to_expression_return(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Return_expression {
+function node_to_expression_reflection(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Reflection_expression {
 
-    const generic_expression_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-    const generic_expression = generic_expression_node !== undefined ? node_to_expression(generic_expression_node, key_to_production_rule_indices) : undefined;
+    const name = get_terminal_value(node.children[0]);
+
+    const argument_nodes = find_nodes_inside_parent(node, "Expression_call_arguments", "Generic_expression_or_instantiate");
+    const argument_expressions = argument_nodes.map(node => node_to_expression(root, node));
+
+    const replace_by_type_expression = (expression: Core_intermediate_representation.Expression) => {
+        if (expression.data.type === Core_intermediate_representation.Expression_enum.Variable_expression) {
+            const variable_expression = expression.data.value as Core_intermediate_representation.Variable_expression;
+            const type_reference = Type_utilities.parse_type_name(variable_expression.name);
+
+            if (type_reference.length === 0 || type_reference[0].data.type === Core_intermediate_representation.Type_reference_enum.Custom_type_reference) {
+                return;
+            }
+
+            const new_expression: Core_intermediate_representation.Type_expression = {
+                type: type_reference[0]
+            };
+
+            expression.data = {
+                type: Core_intermediate_representation.Expression_enum.Type_expression,
+                value: new_expression
+            }
+        }
+    };
+
+    for (const argument_expression of argument_expressions) {
+        Parse_tree_convertor.visit_expressions(argument_expression, replace_by_type_expression)
+    }
+
+    const reflection_expression: Core_intermediate_representation.Reflection_expression = {
+        name: name.slice(1),
+        arguments: argument_expressions
+    };
+
+    return reflection_expression;
+}
+
+function node_to_expression_return(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Return_expression {
+
+    const generic_expression_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
+    const generic_expression = generic_expression_node !== undefined ? node_to_expression(root, generic_expression_node) : undefined;
 
     const return_expression: Core_intermediate_representation.Return_expression = {
         expression: generic_expression
@@ -3368,14 +3868,21 @@ function node_to_expression_return(node: Parser_node.Node, key_to_production_rul
     return return_expression;
 }
 
-function node_to_expression_switch_case(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Switch_case_expression_pair {
+function node_to_expression_struct(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Struct_expression {
+    const declaration = node_to_struct_declaration(root, node);
+    return {
+        declaration: declaration
+    };
+}
+
+function node_to_expression_switch_case(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Switch_case_expression_pair {
 
     const is_default_case = node.children[0].word.value === "default";
 
-    const case_value = !is_default_case ? node_to_expression(node.children[1].children[0], key_to_production_rule_indices) : undefined;
+    const case_value = !is_default_case ? node_to_expression(root, node.children[1].children[0]) : undefined;
 
-    const statement_nodes = find_nodes_inside_parent(node, "Expression_switch_case_statements", "Statement", key_to_production_rule_indices);
-    const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(statement_node, key_to_production_rule_indices));
+    const statement_nodes = node.children.filter(child => child.word.value === "Statement");
+    const statements = statement_nodes.map((statement_node: Parser_node.Node) => node_to_statement(root, statement_node));
 
     return {
         case_value: case_value,
@@ -3383,13 +3890,13 @@ function node_to_expression_switch_case(node: Parser_node.Node, key_to_productio
     };
 }
 
-function node_to_expression_switch(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Switch_expression {
+function node_to_expression_switch(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Switch_expression {
 
-    const value_expression_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
-    const value_expression = node_to_expression(value_expression_node, key_to_production_rule_indices);
+    const value_expression_node = find_node(node, "Generic_expression") as Parser_node.Node;
+    const value_expression = node_to_expression(root, value_expression_node);
 
-    const switch_case_nodes = find_nodes_inside_parent(node, "Expression_switch_cases", "Expression_switch_case", key_to_production_rule_indices);
-    const switch_cases = switch_case_nodes.map((switch_case_node: Parser_node.Node) => node_to_expression_switch_case(switch_case_node, key_to_production_rule_indices));
+    const switch_case_nodes = find_nodes_inside_parent(node, "Expression_switch_cases", "Expression_switch_case");
+    const switch_cases = switch_case_nodes.map((switch_case_node: Parser_node.Node) => node_to_expression_switch_case(root, switch_case_node));
 
     const switch_expression: Core_intermediate_representation.Switch_expression = {
         value: value_expression,
@@ -3399,15 +3906,15 @@ function node_to_expression_switch(node: Parser_node.Node, key_to_production_rul
     return switch_expression;
 }
 
-function node_to_expression_ternary_condition(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Ternary_condition_expression {
+function node_to_expression_ternary_condition(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Ternary_condition_expression {
 
     const condition_node = node.children[0];
     const then_node = node.children[2];
     const else_node = node.children[4];
 
-    const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
-    const then_expression = node_to_expression(then_node, key_to_production_rule_indices);
-    const else_expression = node_to_expression(else_node, key_to_production_rule_indices);
+    const condition_expression = node_to_expression(root, condition_node);
+    const then_expression = node_to_expression(root, then_node);
+    const else_expression = node_to_expression(root, else_node);
 
     const ternary_condition_expression: Core_intermediate_representation.Ternary_condition_expression = {
         condition: condition_expression,
@@ -3418,53 +3925,26 @@ function node_to_expression_ternary_condition(node: Parser_node.Node, key_to_pro
     return ternary_condition_expression;
 }
 
-function node_to_expression_unary_0(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Unary_expression {
-
-    const generic_expression_node = node.children[0];
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
-
-    const symbol = find_node_value(node, "Expression_unary_0_symbol", key_to_production_rule_indices);
-
-    const get_operation = (): Core_intermediate_representation.Unary_operation => {
-        switch (symbol) {
-            case "++": return Core_intermediate_representation.Unary_operation.Post_increment;
-            case "--": return Core_intermediate_representation.Unary_operation.Post_decrement;
-            default: {
-                const message = `Parse_tree_convertor_mappings.node_to_expression_unary_0(): Did not expect '${symbol}' as Expression_unary_after_symbol`;
-                onThrowError(message);
-                throw Error(message);
-            }
-        }
+function node_to_expression_type(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Type_expression {
+    const child = node.children[0];
+    const type_reference = node_to_type_reference(root, child);
+    return {
+        type: type_reference[0]
     };
-
-    const operation = get_operation();
-
-    if (operation === Core_intermediate_representation.Unary_operation.Post_increment || operation === Core_intermediate_representation.Unary_operation.Post_decrement) {
-        set_expression_access_type(generic_expression, Core_intermediate_representation.Access_type.Read_write);
-    }
-
-    const unary_expression: Core_intermediate_representation.Unary_expression = {
-        expression: generic_expression,
-        operation: operation
-    };
-
-    return unary_expression;
 }
 
-function node_to_expression_unary_1(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Unary_expression {
+function node_to_expression_unary(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Unary_expression {
 
     const generic_expression_node = node.children[1];
-    const generic_expression = node_to_expression(generic_expression_node, key_to_production_rule_indices);
+    const generic_expression = node_to_expression(root, generic_expression_node);
 
-    const symbol = find_node_value(node, "Expression_unary_1_symbol", key_to_production_rule_indices);
+    const symbol = node.children[0].children[0].word.value;
 
     const get_operation = (): Core_intermediate_representation.Unary_operation => {
         switch (symbol) {
             case "!": return Core_intermediate_representation.Unary_operation.Not;
             case "~": return Core_intermediate_representation.Unary_operation.Bitwise_not;
             case "-": return Core_intermediate_representation.Unary_operation.Minus;
-            case "++": return Core_intermediate_representation.Unary_operation.Pre_increment;
-            case "--": return Core_intermediate_representation.Unary_operation.Pre_decrement;
             case "&": return Core_intermediate_representation.Unary_operation.Address_of;
             case "*": return Core_intermediate_representation.Unary_operation.Indirection;
             default: {
@@ -3498,15 +3978,15 @@ function node_to_expression_variable_name(node: Parser_node.Node): Core_intermed
     return variable_expression;
 }
 
-function node_to_expression_variable_declaration(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Variable_declaration_expression {
+function node_to_expression_variable_declaration(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_expression {
 
-    const name = find_node_value(node, "Variable_name", key_to_production_rule_indices);
+    const name = find_node_value(node, "Variable_name");
 
-    const mutable_node_value = find_node_value(node, "Expression_variable_mutability", key_to_production_rule_indices);
+    const mutable_node_value = find_node_value(node, "Expression_variable_mutability");
     const is_mutable = mutable_node_value !== "var";
 
-    const right_hand_side_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
-    const right_hand_side = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
+    const right_hand_side_node = find_node(node, "Generic_expression") as Parser_node.Node;
+    const right_hand_side = node_to_expression(root, right_hand_side_node);
 
     const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_expression = {
         name: name,
@@ -3516,18 +3996,18 @@ function node_to_expression_variable_declaration(node: Parser_node.Node, key_to_
     return variable_declaration_expression;
 }
 
-function node_to_expression_variable_declaration_with_type(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.Variable_declaration_with_type_expression {
+function node_to_expression_variable_declaration_with_type(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.Variable_declaration_with_type_expression {
 
-    const name = find_node_value(node, "Variable_name", key_to_production_rule_indices);
+    const name = find_node_value(node, "Variable_name");
 
-    const mutable_node_value = find_node_value(node, "Expression_variable_mutability", key_to_production_rule_indices);
+    const mutable_node_value = find_node_value(node, "Expression_variable_mutability");
     const is_mutable = mutable_node_value !== "var";
 
-    const type_node = find_node(node, "Expression_variable_declaration_type", key_to_production_rule_indices) as Parser_node.Node;
-    const type = node_to_type_reference(type_node.children[0], key_to_production_rule_indices);
+    const type_node = find_node(node, "Expression_variable_declaration_type") as Parser_node.Node;
+    const type = node_to_type_reference(root, type_node.children[0]);
 
-    const right_hand_side_node = find_node(node, "Generic_expression_or_instantiate", key_to_production_rule_indices) as Parser_node.Node;
-    const right_hand_side = node_to_expression(right_hand_side_node, key_to_production_rule_indices);
+    const right_hand_side_node = find_node(node, "Generic_expression_or_instantiate") as Parser_node.Node;
+    const right_hand_side = node_to_expression(root, right_hand_side_node);
 
     const variable_declaration_expression: Core_intermediate_representation.Variable_declaration_with_type_expression = {
         name: name,
@@ -3538,14 +4018,14 @@ function node_to_expression_variable_declaration_with_type(node: Parser_node.Nod
     return variable_declaration_expression;
 }
 
-function node_to_expression_while_loop(node: Parser_node.Node, key_to_production_rule_indices: Map<string, number[]>): Core_intermediate_representation.While_loop_expression {
+function node_to_expression_while_loop(root: Parser_node.Node, node: Parser_node.Node): Core_intermediate_representation.While_loop_expression {
 
-    const condition_node = find_node(node, "Generic_expression", key_to_production_rule_indices) as Parser_node.Node;
+    const condition_node = find_node(node, "Generic_expression") as Parser_node.Node;
 
-    const condition_expression = node_to_expression(condition_node, key_to_production_rule_indices);
+    const condition_expression = node_to_expression(root, condition_node);
 
-    const then_statements_node = find_node(node, "Expression_while_loop_statements", key_to_production_rule_indices) as Parser_node.Node;
-    const then_statements = then_statements_node.children.map(node => node_to_statement(node, key_to_production_rule_indices));
+    const then_statements_node = find_node(node, "Expression_while_loop_statements") as Parser_node.Node;
+    const then_statements = then_statements_node.children.slice(1, then_statements_node.children.length - 1).map(node => node_to_statement(root, node));
 
     const while_loop_expression: Core_intermediate_representation.While_loop_expression = {
         condition: { expression: condition_expression },
@@ -3554,8 +4034,34 @@ function node_to_expression_while_loop(node: Parser_node.Node, key_to_production
     return while_loop_expression;
 }
 
+export function node_to_module(root: Parser_node.Node): Core_intermediate_representation.Module {
+    const module_name = get_module_name_from_tree(root);
+
+    const module_head_descendant = Parser_node.get_child_if({ node: root, position: [] }, child => child.word.value === "Module_head");
+    const import_descendants = module_head_descendant !== undefined ? Parser_node.get_children_if(module_head_descendant, child => child.word.value === "Import") : [];
+    const imports = import_descendants.map(descendant => node_to_import_module_with_alias(descendant.node));
+
+    const declarations = root.children.slice(1).map(child => node_to_declaration(root, child));
+
+    const descendant_module_declaration = Parser_node.get_child_if(module_head_descendant, child => child.word.value === "Module_declaration");
+    const comments_node = get_comments_node(descendant_module_declaration.node);
+    const comment_value = comments_node !== undefined ? remove_comments_formatting(comments_node.word.value) : undefined;
+
+    const core_module: Core_intermediate_representation.Module = {
+        name: module_name,
+        imports: imports,
+        declarations: declarations
+    };
+
+    if (comment_value !== undefined) {
+        core_module.comment = comment_value;
+    }
+
+    return core_module;
+}
+
 function get_terminal_value(node: Parser_node.Node): string {
-    if (node.production_rule_index === undefined && node.children.length === 0) {
+    if (node.children.length === 0) {
         return node.word.value;
     }
 
@@ -3574,63 +4080,47 @@ function get_terminal_value(node: Parser_node.Node): string {
     return get_terminal_value(node.children[0]);
 }
 
-function find_node(node: Parser_node.Node, key: string, key_to_production_rule_indices: Map<string, number[]>): Parser_node.Node | undefined {
-    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
-    if (production_rule_indices === undefined) {
-        return undefined;
-    }
-
-    const found_node = find_node_with_production_rule_indices(node, production_rule_indices);
-    return found_node;
+function find_node(node: Parser_node.Node, key: string): Parser_node.Node | undefined {
+    return find_descendant_node(node, key);
 }
 
-function find_nodes(node: Parser_node.Node, key: string, key_to_production_rule_indices: Map<string, number[]>): Parser_node.Node[] {
-    const production_rule_indices = key_to_production_rule_indices.get(key) as number[];
-    if (production_rule_indices === undefined) {
-        return [];
-    }
-
-    const found_nodes = find_nodes_with_production_rule_indices(node, production_rule_indices);
-    return found_nodes;
+function find_nodes(node: Parser_node.Node, key: string): Parser_node.Node[] {
+    return find_descendant_nodes(node, key);
 }
 
-function find_node_value(node: Parser_node.Node, key: string, key_to_production_rule_indices: Map<string, number[]>): string {
-    const found_node = find_node(node, key, key_to_production_rule_indices);
+function find_node_value(node: Parser_node.Node, key: string): string {
+    const found_node = find_node(node, key);
     if (found_node === undefined) {
         return "";
     }
     return get_terminal_value(found_node);
 }
 
-function find_nodes_inside_parent(node: Parser_node.Node, parent_key: string, child_key: string, key_to_production_rule_indices: Map<string, number[]>): Parser_node.Node[] {
-    const parent_node = find_node(node, parent_key, key_to_production_rule_indices);
+function find_nodes_inside_parent(node: Parser_node.Node, parent_key: string, child_key: string): Parser_node.Node[] {
+    const parent_node = find_node(node, parent_key);
     if (parent_node === undefined) {
         return [];
     }
 
-    const child_nodes = find_nodes(parent_node, child_key, key_to_production_rule_indices);
+    const child_nodes = find_nodes(parent_node, child_key);
     return child_nodes;
 }
 
-function find_node_with_production_rule_indices(node: Parser_node.Node, production_rule_indices: number[]): Parser_node.Node | undefined {
+function find_descendant_node(node: Parser_node.Node, name: string): Parser_node.Node | undefined {
 
-    const has_production_rule = (element: Parser_node.Node): boolean => {
-        return element.production_rule_index !== undefined && production_rule_indices.indexOf(element.production_rule_index) !== -1;
-    };
-
-    if (has_production_rule(node)) {
+    if (node.word.value === name) {
         return node;
     }
 
     {
-        const child = node.children.find(child => has_production_rule(child));
+        const child = node.children.find(child => child.word.value === name);
         if (child !== undefined) {
             return child;
         }
     }
 
     for (const child of node.children) {
-        const found = find_node_with_production_rule_indices(child, production_rule_indices);
+        const found = find_descendant_node(child, name);
         if (found !== undefined) {
             return found;
         }
@@ -3639,20 +4129,16 @@ function find_node_with_production_rule_indices(node: Parser_node.Node, producti
     return undefined;
 }
 
-function find_nodes_with_production_rule_indices(node: Parser_node.Node, production_rule_indices: number[]): Parser_node.Node[] {
+function find_descendant_nodes(node: Parser_node.Node, name: string): Parser_node.Node[] {
 
     const nodes: Parser_node.Node[] = [];
 
-    const has_production_rule = (element: Parser_node.Node): boolean => {
-        return element.production_rule_index !== undefined && production_rule_indices.indexOf(element.production_rule_index) !== -1;
-    };
-
-    if (has_production_rule(node)) {
+    if (node.word.value === name) {
         nodes.push(node);
     }
 
     {
-        const found_nodes = node.children.filter(child => has_production_rule(child));
+        const found_nodes = node.children.filter(child => child.word.value === name);
         nodes.push(...found_nodes);
     }
 
@@ -3662,7 +4148,7 @@ function find_nodes_with_production_rule_indices(node: Parser_node.Node, product
     }
 
     for (const child of node.children) {
-        const found_nodes = find_nodes_with_production_rule_indices(child, production_rule_indices);
+        const found_nodes = find_descendant_nodes(child, name);
         nodes.push(...found_nodes);
     }
 
@@ -3802,14 +4288,21 @@ function remove_comments_formatting(comments: string): string {
     const unformatted_comments: string[] = [];
 
     for (const comment of array) {
-        const start_index = comment.charAt(2) === " " ? 3 : 2;
+        const start_comment_index = comment.search("//");
+        const start_index = comment.charAt(start_comment_index + 2) === " " ? start_comment_index + 3 : start_comment_index + 2;
         unformatted_comments.push(comment.substring(start_index, comment.length));
     }
 
-    return unformatted_comments.join("\n");
+    const without_line_breaks = unformatted_comments.map(comment => comment.replace(/(\r)/gm, ""));
+
+    return without_line_breaks.join("\n");
 }
 
-function extract_comments_from_node(node: Parser_node.Node): string | undefined {
+function extract_comments_from_node(node: Parser_node.Node | undefined): string | undefined {
+
+    if (node === undefined) {
+        return undefined;
+    }
 
     if (node.word.value === "Comment_or_empty" || node.word.value === "Expression_comment") {
         if (node.children.length > 0) {
@@ -3819,10 +4312,10 @@ function extract_comments_from_node(node: Parser_node.Node): string | undefined 
         }
     }
     else if (node.word.value === "Module") {
-        return extract_comments_from_node(node.children[0].children[0].children[0]);
+        return extract_comments_from_node(get_comments_node(node.children[0].children[0]));
     }
 
-    return undefined;
+    return remove_comments_formatting(node.word.value);
 }
 
 function get_node_source_location(

@@ -13,3 +13,4 @@ export function run() -> ()
         int32: 0i32
     };
     value.
+}

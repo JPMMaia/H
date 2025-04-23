@@ -19,3 +19,5 @@ struct My_data
     // Value 1
     v1: Complex = {
         real: 1.0f32,
+    };
+}

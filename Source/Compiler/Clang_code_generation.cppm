@@ -54,7 +54,6 @@ namespace h::compiler
 
     export void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
         h::Function_declaration const& function_declaration,
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database
@@ -73,6 +72,7 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         std::span<llvm::Value* const> const arguments,
@@ -84,6 +84,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         clang::CodeGen::CGFunctionInfo const& function_info,
@@ -96,6 +97,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_parent_function,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
@@ -134,10 +136,31 @@ namespace h::compiler
         Value_and_type const& value_to_return
     );
 
+    export void set_function_definition_attributes(
+        llvm::LLVMContext& llvm_context,
+        Clang_module_data& clang_module_data,
+        llvm::Function& llvm_function
+    );
+
     export llvm::Type* convert_type(
         Clang_module_data const& clang_module_data,
         std::string_view const module_name,
         std::string_view const declaration_name
+    );
+
+    export llvm::Type* convert_type(
+        Clang_module_data const& clang_module_data,
+        clang::RecordDecl* const record_declaration
+    );
+
+    export llvm::FunctionType* convert_function_type(
+        Clang_module_data const& clang_module_data,
+        clang::FunctionDecl* const function_declaration
+    );
+
+    export llvm::FunctionType* get_instance_call_llvm_function_type(
+        Clang_module_data const& clang_module_data,
+        Instance_call_key const& key
     );
 
     std::optional<clang::QualType> create_type(
@@ -164,6 +187,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,

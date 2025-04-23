@@ -38,10 +38,14 @@ export function create_core_module(module: Module, language_version: Core.Langua
     const internal_enums: Core.Enum_declaration[] = [];
     const export_functions: Core.Function_declaration[] = [];
     const internal_functions: Core.Function_declaration[] = [];
+    const export_function_constructors: Core.Function_constructor[] = [];
+    const internal_function_constructors: Core.Function_constructor[] = [];
     const export_global_variables: Core.Global_variable_declaration[] = [];
     const internal_global_variables: Core.Global_variable_declaration[] = [];
     const export_structs: Core.Struct_declaration[] = [];
     const internal_structs: Core.Struct_declaration[] = [];
+    const export_type_constructors: Core.Type_constructor[] = [];
+    const internal_type_constructors: Core.Type_constructor[] = [];
     const export_unions: Core.Union_declaration[] = [];
     const internal_unions: Core.Union_declaration[] = [];
     const function_definitions: Core.Function_definition[] = [];
@@ -67,6 +71,11 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 }
                 break;
             }
+            case Declaration_type.Function_constructor: {
+                const array = declaration.is_export ? export_function_constructors : internal_function_constructors;
+                array.push(intermediate_to_core_function_constructor(declaration.value as Function_constructor));
+                break;
+            }
             case Declaration_type.Global_variable: {
                 const array = declaration.is_export ? export_global_variables : internal_global_variables;
                 array.push(intermediate_to_core_global_variable_declaration(declaration.value as Global_variable_declaration));
@@ -75,6 +84,11 @@ export function create_core_module(module: Module, language_version: Core.Langua
             case Declaration_type.Struct: {
                 const array = declaration.is_export ? export_structs : internal_structs;
                 array.push(intermediate_to_core_struct_declaration(declaration.value as Struct_declaration));
+                break;
+            }
+            case Declaration_type.Type_constructor: {
+                const array = declaration.is_export ? export_type_constructors : internal_type_constructors;
+                array.push(intermediate_to_core_type_constructor(declaration.value as Type_constructor));
                 break;
             }
             case Declaration_type.Union: {
@@ -103,6 +117,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: export_enums.length,
                 elements: export_enums
             },
+            function_constructors: {
+                size: export_function_constructors.length,
+                elements: export_function_constructors
+            },
             function_declarations: {
                 size: export_functions.length,
                 elements: export_functions
@@ -114,6 +132,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
             struct_declarations: {
                 size: export_structs.length,
                 elements: export_structs
+            },
+            type_constructors: {
+                size: export_type_constructors.length,
+                elements: export_type_constructors
             },
             union_declarations: {
                 size: export_unions.length,
@@ -129,6 +151,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
                 size: internal_enums.length,
                 elements: internal_enums
             },
+            function_constructors: {
+                size: export_function_constructors.length,
+                elements: export_function_constructors
+            },
             function_declarations: {
                 size: internal_functions.length,
                 elements: internal_functions
@@ -140,6 +166,10 @@ export function create_core_module(module: Module, language_version: Core.Langua
             struct_declarations: {
                 size: internal_structs.length,
                 elements: internal_structs
+            },
+            type_constructors: {
+                size: internal_type_constructors.length,
+                elements: internal_type_constructors
             },
             union_declarations: {
                 size: internal_unions.length,
@@ -161,8 +191,10 @@ export enum Declaration_type {
     Alias,
     Enum,
     Function,
+    Function_constructor,
     Global_variable,
     Struct,
+    Type_constructor,
     Union
 }
 
@@ -170,7 +202,7 @@ export interface Declaration {
     name: string;
     type: Declaration_type;
     is_export: boolean;
-    value: Alias_type_declaration | Enum_declaration | Function | Global_variable_declaration | Struct_declaration | Union_declaration
+    value: Alias_type_declaration | Enum_declaration | Function | Function_constructor | Global_variable_declaration | Struct_declaration | Type_constructor | Union_declaration
 }
 
 function create_declarations(module: Core.Module): Declaration[] {
@@ -179,15 +211,19 @@ function create_declarations(module: Core.Module): Declaration[] {
         ...module.export_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: true, value: core_to_intermediate_alias_type_declaration(value) }; }),
         ...module.export_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: true, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.export_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: true, value: core_to_intermediate_function(module, value) }; }),
+        ...module.export_declarations.function_constructors.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function_constructor, is_export: true, value: core_to_intermediate_function_constructor(value) }; }),
         ...module.export_declarations.global_variable_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Global_variable, is_export: true, value: core_to_intermediate_global_variable_declaration(value) }; }),
         ...module.export_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: true, value: core_to_intermediate_struct_declaration(value) }; }),
+        ...module.export_declarations.type_constructors.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Type_constructor, is_export: true, value: core_to_intermediate_type_constructor(value) }; }),
         ...module.export_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
         ...module.internal_declarations.alias_type_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Alias, is_export: false, value: core_to_intermediate_alias_type_declaration(value) }; }),
         ...module.internal_declarations.enum_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Enum, is_export: false, value: core_to_intermediate_enum_declaration(value) }; }),
         ...module.internal_declarations.function_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function, is_export: false, value: core_to_intermediate_function(module, value) }; }),
+        ...module.internal_declarations.function_constructors.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Function_constructor, is_export: false, value: core_to_intermediate_function_constructor(value) }; }),
         ...module.internal_declarations.global_variable_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Global_variable, is_export: false, value: core_to_intermediate_global_variable_declaration(value) }; }),
         ...module.internal_declarations.struct_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Struct, is_export: false, value: core_to_intermediate_struct_declaration(value) }; }),
-        ...module.internal_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: true, value: core_to_intermediate_union_declaration(value) }; }),
+        ...module.internal_declarations.type_constructors.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Type_constructor, is_export: false, value: core_to_intermediate_type_constructor(value) }; }),
+        ...module.internal_declarations.union_declarations.elements.map((value, index): Declaration => { return { name: value.name, type: Declaration_type.Union, is_export: false, value: core_to_intermediate_union_declaration(value) }; }),
     ];
 
     return declarations;
@@ -258,6 +294,11 @@ export enum Fundamental_type {
     C_longdouble = "C_longdouble",
 }
 
+export enum Linkage {
+    External = "External",
+    Private = "Private",
+}
+
 export enum Access_type {
     Read = "Read",
     Write = "Write",
@@ -308,11 +349,6 @@ export enum Unary_operation {
     Address_of = "Address_of",
 }
 
-export enum Linkage {
-    External = "External",
-    Private = "Private",
-}
-
 export enum Type_reference_enum {
     Builtin_type_reference = "Builtin_type_reference",
     Constant_array_type = "Constant_array_type",
@@ -321,12 +357,15 @@ export enum Type_reference_enum {
     Function_pointer_type = "Function_pointer_type",
     Integer_type = "Integer_type",
     Null_pointer_type = "Null_pointer_type",
+    Parameter_type = "Parameter_type",
     Pointer_type = "Pointer_type",
+    Type_instance = "Type_instance",
 }
 
 export enum Expression_enum {
     Access_expression = "Access_expression",
     Access_array_expression = "Access_array_expression",
+    Assert_expression = "Assert_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
@@ -334,19 +373,28 @@ export enum Expression_enum {
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Comment_expression = "Comment_expression",
+    Compile_time_expression = "Compile_time_expression",
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
+    Defer_expression = "Defer_expression",
+    Dereference_and_access_expression = "Dereference_and_access_expression",
     For_loop_expression = "For_loop_expression",
+    Function_expression = "Function_expression",
+    Instance_call_expression = "Instance_call_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
     Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
+    Reflection_expression = "Reflection_expression",
     Return_expression = "Return_expression",
+    Struct_expression = "Struct_expression",
     Switch_expression = "Switch_expression",
     Ternary_condition_expression = "Ternary_condition_expression",
+    Type_expression = "Type_expression",
     Unary_expression = "Unary_expression",
+    Union_expression = "Union_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
     Variable_expression = "Variable_expression",
@@ -577,8 +625,46 @@ function intermediate_to_core_custom_type_reference(intermediate_value: Custom_t
     };
 }
 
+export interface Type_instance {
+    type_constructor: Custom_type_reference;
+    arguments: Statement[];
+}
+
+function core_to_intermediate_type_instance(core_value: Core.Type_instance): Type_instance {
+    return {
+        type_constructor: core_to_intermediate_custom_type_reference(core_value.type_constructor),
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_type_instance(intermediate_value: Type_instance): Core.Type_instance {
+    return {
+        type_constructor: intermediate_to_core_custom_type_reference(intermediate_value.type_constructor),
+        arguments: {
+            size: intermediate_value.arguments.length,
+            elements: intermediate_value.arguments.map(value => intermediate_to_core_statement(value)),
+        },
+    };
+}
+
+export interface Parameter_type {
+    name: string;
+}
+
+function core_to_intermediate_parameter_type(core_value: Core.Parameter_type): Parameter_type {
+    return {
+        name: core_value.name,
+    };
+}
+
+function intermediate_to_core_parameter_type(intermediate_value: Parameter_type): Core.Parameter_type {
+    return {
+        name: intermediate_value.name,
+    };
+}
+
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Parameter_type | Pointer_type | Type_instance>;
 }
 
 function core_to_intermediate_type_reference(core_value: Core.Type_reference): Type_reference {
@@ -627,10 +713,22 @@ function core_to_intermediate_type_reference(core_value: Core.Type_reference): T
                         value: core_to_intermediate_null_pointer_type(core_value.data.value as Core.Null_pointer_type)
                     };
                 }
+                case Core.Type_reference_enum.Parameter_type: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_parameter_type(core_value.data.value as Core.Parameter_type)
+                    };
+                }
                 case Core.Type_reference_enum.Pointer_type: {
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_pointer_type(core_value.data.value as Core.Pointer_type)
+                    };
+                }
+                case Core.Type_reference_enum.Type_instance: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_type_instance(core_value.data.value as Core.Type_instance)
                     };
                 }
             }
@@ -696,11 +794,27 @@ function intermediate_to_core_type_reference(intermediate_value: Type_reference)
                 }
             };
         }
+        case Type_reference_enum.Parameter_type: {
+            return {
+                data: {
+                    type: intermediate_value.data.type,
+                    value: intermediate_to_core_parameter_type(intermediate_value.data.value as Parameter_type)
+                }
+            };
+        }
         case Type_reference_enum.Pointer_type: {
             return {
                 data: {
                     type: intermediate_value.data.type,
                     value: intermediate_to_core_pointer_type(intermediate_value.data.value as Pointer_type)
+                }
+            };
+        }
+        case Type_reference_enum.Type_instance: {
+            return {
+                data: {
+                    type: intermediate_value.data.type,
+                    value: intermediate_to_core_type_instance(intermediate_value.data.value as Type_instance)
                 }
             };
         }
@@ -951,6 +1065,111 @@ function intermediate_to_core_union_declaration(intermediate_value: Union_declar
     };
 }
 
+export interface Function_condition {
+    description: string;
+    condition: Statement;
+}
+
+function core_to_intermediate_function_condition(core_value: Core.Function_condition): Function_condition {
+    return {
+        description: core_value.description,
+        condition: core_to_intermediate_statement(core_value.condition),
+    };
+}
+
+function intermediate_to_core_function_condition(intermediate_value: Function_condition): Core.Function_condition {
+    return {
+        description: intermediate_value.description,
+        condition: intermediate_to_core_statement(intermediate_value.condition),
+    };
+}
+
+export interface Function_declaration {
+    name: string;
+    unique_name?: string;
+    type: Function_type;
+    input_parameter_names: string[];
+    output_parameter_names: string[];
+    linkage: Linkage;
+    preconditions: Function_condition[];
+    postconditions: Function_condition[];
+    comment?: string;
+    source_location?: Source_location;
+    input_parameter_source_positions?: Source_position[];
+    output_parameter_source_positions?: Source_position[];
+}
+
+function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
+    return {
+        name: core_value.name,
+        unique_name: core_value.unique_name,
+        type: core_to_intermediate_function_type(core_value.type),
+        input_parameter_names: core_value.input_parameter_names.elements,
+        output_parameter_names: core_value.output_parameter_names.elements,
+        linkage: core_value.linkage,
+        preconditions: core_value.preconditions.elements.map(value => core_to_intermediate_function_condition(value)),
+        postconditions: core_value.postconditions.elements.map(value => core_to_intermediate_function_condition(value)),
+        comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+        input_parameter_source_positions: core_value.input_parameter_source_positions !== undefined ? core_value.input_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
+        output_parameter_source_positions: core_value.output_parameter_source_positions !== undefined ? core_value.output_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
+    };
+}
+
+function intermediate_to_core_function_declaration(intermediate_value: Function_declaration): Core.Function_declaration {
+    return {
+        name: intermediate_value.name,
+        unique_name: intermediate_value.unique_name,
+        type: intermediate_to_core_function_type(intermediate_value.type),
+        input_parameter_names: {
+            size: intermediate_value.input_parameter_names.length,
+            elements: intermediate_value.input_parameter_names,
+        },
+        output_parameter_names: {
+            size: intermediate_value.output_parameter_names.length,
+            elements: intermediate_value.output_parameter_names,
+        },
+        linkage: intermediate_value.linkage,
+        preconditions: {
+            size: intermediate_value.preconditions.length,
+            elements: intermediate_value.preconditions.map(value => intermediate_to_core_function_condition(value)),
+        },
+        postconditions: {
+            size: intermediate_value.postconditions.length,
+            elements: intermediate_value.postconditions.map(value => intermediate_to_core_function_condition(value)),
+        },
+        comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
+        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements : intermediate_value.output_parameter_source_positions } : undefined,
+    };
+}
+
+export interface Function_definition {
+    name: string;
+    statements: Statement[];
+    source_location?: Source_location;
+}
+
+function core_to_intermediate_function_definition(core_value: Core.Function_definition): Function_definition {
+    return {
+        name: core_value.name,
+        statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+    };
+}
+
+function intermediate_to_core_function_definition(intermediate_value: Function_definition): Core.Function_definition {
+    return {
+        name: intermediate_value.name,
+        statements: {
+            size: intermediate_value.statements.length,
+            elements: intermediate_value.statements.map(value => intermediate_to_core_statement(value)),
+        },
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+    };
+}
+
 export interface Variable_expression {
     name: string;
     access_type: Access_type;
@@ -1087,6 +1306,46 @@ export function create_access_array_expression(expression: Expression, index: Ex
         data: {
             type: Expression_enum.Access_array_expression,
             value: access_array_expression
+        }
+    };
+}
+export interface Assert_expression {
+    message?: string;
+    statement: Statement;
+}
+
+function core_to_intermediate_assert_expression(core_value: Core.Assert_expression, statement: Core.Statement): Assert_expression {
+    return {
+        message: core_value.message,
+        statement: core_to_intermediate_statement(core_value.statement),
+    };
+}
+
+function intermediate_to_core_assert_expression(intermediate_value: Assert_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Assert_expression,
+            value: {
+                message: intermediate_value.message,
+                statement: intermediate_to_core_statement(intermediate_value.statement),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_assert_expression(message: string | undefined, statement: Statement): Expression {
+    const assert_expression: Assert_expression = {
+        message: message,
+        statement: statement,
+    };
+    return {
+        data: {
+            type: Expression_enum.Assert_expression,
+            value: assert_expression
         }
     };
 }
@@ -1412,6 +1671,47 @@ export function create_comment_expression(comment: string): Expression {
         }
     };
 }
+export interface Compile_time_expression {
+    expression: Expression;
+}
+
+function core_to_intermediate_compile_time_expression(core_value: Core.Compile_time_expression, statement: Core.Statement): Compile_time_expression {
+    return {
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_compile_time_expression(intermediate_value: Compile_time_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Compile_time_expression,
+            value: {
+                expression: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Compile_time_expression).expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+}
+
+export function create_compile_time_expression(expression: Expression): Expression {
+    const compile_time_expression: Compile_time_expression = {
+        expression: expression,
+    };
+    return {
+        data: {
+            type: Expression_enum.Compile_time_expression,
+            value: compile_time_expression
+        }
+    };
+}
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -1523,6 +1823,92 @@ export function create_continue_expression(): Expression {
         }
     };
 }
+export interface Defer_expression {
+    expression_to_defer: Expression;
+}
+
+function core_to_intermediate_defer_expression(core_value: Core.Defer_expression, statement: Core.Statement): Defer_expression {
+    return {
+        expression_to_defer: core_to_intermediate_expression(statement.expressions.elements[core_value.expression_to_defer.expression_index], statement),
+    };
+}
+
+function intermediate_to_core_defer_expression(intermediate_value: Defer_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Defer_expression,
+            value: {
+                expression_to_defer: {
+                    expression_index: -1
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Defer_expression).expression_to_defer.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression_to_defer, expressions);
+}
+
+export function create_defer_expression(expression_to_defer: Expression): Expression {
+    const defer_expression: Defer_expression = {
+        expression_to_defer: expression_to_defer,
+    };
+    return {
+        data: {
+            type: Expression_enum.Defer_expression,
+            value: defer_expression
+        }
+    };
+}
+export interface Dereference_and_access_expression {
+    expression: Expression;
+    member_name: string;
+}
+
+function core_to_intermediate_dereference_and_access_expression(core_value: Core.Dereference_and_access_expression, statement: Core.Statement): Dereference_and_access_expression {
+    return {
+        expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
+        member_name: core_value.member_name,
+    };
+}
+
+function intermediate_to_core_dereference_and_access_expression(intermediate_value: Dereference_and_access_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Dereference_and_access_expression,
+            value: {
+                expression: {
+                    expression_index: -1
+                },
+                member_name: intermediate_value.member_name,
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Dereference_and_access_expression).expression.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.expression, expressions);
+}
+
+export function create_dereference_and_access_expression(expression: Expression, member_name: string): Expression {
+    const dereference_and_access_expression: Dereference_and_access_expression = {
+        expression: expression,
+        member_name: member_name,
+    };
+    return {
+        data: {
+            type: Expression_enum.Dereference_and_access_expression,
+            value: dereference_and_access_expression
+        }
+    };
+}
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression;
@@ -1592,6 +1978,119 @@ export function create_for_loop_expression(variable_name: string, range_begin: E
         }
     };
 }
+export interface Function_expression {
+    declaration: Function_declaration;
+    definition: Function_definition;
+}
+
+function core_to_intermediate_function_expression(core_value: Core.Function_expression, statement: Core.Statement): Function_expression {
+    return {
+        declaration: core_to_intermediate_function_declaration(core_value.declaration),
+        definition: core_to_intermediate_function_definition(core_value.definition),
+    };
+}
+
+function intermediate_to_core_function_expression(intermediate_value: Function_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Function_expression,
+            value: {
+                declaration: intermediate_to_core_function_declaration(intermediate_value.declaration),
+                definition: intermediate_to_core_function_definition(intermediate_value.definition),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_function_expression(declaration: Function_declaration, definition: Function_definition): Expression {
+    const function_expression: Function_expression = {
+        declaration: declaration,
+        definition: definition,
+    };
+    return {
+        data: {
+            type: Expression_enum.Function_expression,
+            value: function_expression
+        }
+    };
+}
+export interface Instance_call_expression {
+    left_hand_side: Expression;
+    arguments: Statement[];
+}
+
+function core_to_intermediate_instance_call_expression(core_value: Core.Instance_call_expression, statement: Core.Statement): Instance_call_expression {
+    return {
+        left_hand_side: core_to_intermediate_expression(statement.expressions.elements[core_value.left_hand_side.expression_index], statement),
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_instance_call_expression(intermediate_value: Instance_call_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Instance_call_expression,
+            value: {
+                left_hand_side: {
+                    expression_index: -1
+                },
+                arguments: {
+                    size: intermediate_value.arguments.length,
+                    elements: intermediate_value.arguments.map(value => intermediate_to_core_statement(value))
+                },
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    (core_value.data.value as Core.Instance_call_expression).left_hand_side.expression_index = expressions.length;
+    intermediate_to_core_expression(intermediate_value.left_hand_side, expressions);
+}
+
+export function create_instance_call_expression(left_hand_side: Expression, args: Statement[]): Expression {
+    const instance_call_expression: Instance_call_expression = {
+        left_hand_side: left_hand_side,
+        arguments: args,
+    };
+    return {
+        data: {
+            type: Expression_enum.Instance_call_expression,
+            value: instance_call_expression
+        }
+    };
+}
+export interface Instance_call_key {
+    module_name: string;
+    function_constructor_name: string;
+    arguments: Statement[];
+}
+
+function core_to_intermediate_instance_call_key(core_value: Core.Instance_call_key): Instance_call_key {
+    return {
+        module_name: core_value.module_name,
+        function_constructor_name: core_value.function_constructor_name,
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_statement(value)),
+    };
+}
+
+function intermediate_to_core_instance_call_key(intermediate_value: Instance_call_key): Core.Instance_call_key {
+    return {
+        module_name: intermediate_value.module_name,
+        function_constructor_name: intermediate_value.function_constructor_name,
+        arguments: {
+            size: intermediate_value.arguments.length,
+            elements: intermediate_value.arguments.map(value => intermediate_to_core_statement(value)),
+        },
+    };
+}
+
 export interface Condition_statement_pair {
     condition?: Statement;
     then_statements: Statement[];
@@ -1827,6 +2326,55 @@ export function create_parenthesis_expression(expression: Expression): Expressio
         }
     };
 }
+export interface Reflection_expression {
+    name: string;
+    arguments: Expression[];
+}
+
+function core_to_intermediate_reflection_expression(core_value: Core.Reflection_expression, statement: Core.Statement): Reflection_expression {
+    return {
+        name: core_value.name,
+        arguments: core_value.arguments.elements.map(value => core_to_intermediate_expression(statement.expressions.elements[value.expression_index], statement)),
+    };
+}
+
+function intermediate_to_core_reflection_expression(intermediate_value: Reflection_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Reflection_expression,
+            value: {
+                name: intermediate_value.name,
+                arguments: {
+                    size: 0,
+                    elements: []
+                }
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+
+    for (const element of intermediate_value.arguments) {
+        (core_value.data.value as Core.Reflection_expression).arguments.elements.push({ expression_index: expressions.length });
+        intermediate_to_core_expression(element, expressions);
+    }
+    (core_value.data.value as Core.Reflection_expression).arguments.size = (core_value.data.value as Core.Reflection_expression).arguments.elements.length;
+}
+
+export function create_reflection_expression(name: string, args: Expression[]): Expression {
+    const reflection_expression: Reflection_expression = {
+        name: name,
+        arguments: args,
+    };
+    return {
+        data: {
+            type: Expression_enum.Reflection_expression,
+            value: reflection_expression
+        }
+    };
+}
 export interface Return_expression {
     expression?: Expression;
 }
@@ -1865,6 +2413,42 @@ export function create_return_expression(expression: Expression | undefined): Ex
         data: {
             type: Expression_enum.Return_expression,
             value: return_expression
+        }
+    };
+}
+export interface Struct_expression {
+    declaration: Struct_declaration;
+}
+
+function core_to_intermediate_struct_expression(core_value: Core.Struct_expression, statement: Core.Statement): Struct_expression {
+    return {
+        declaration: core_to_intermediate_struct_declaration(core_value.declaration),
+    };
+}
+
+function intermediate_to_core_struct_expression(intermediate_value: Struct_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Struct_expression,
+            value: {
+                declaration: intermediate_to_core_struct_declaration(intermediate_value.declaration),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_struct_expression(declaration: Struct_declaration): Expression {
+    const struct_expression: Struct_expression = {
+        declaration: declaration,
+    };
+    return {
+        data: {
+            type: Expression_enum.Struct_expression,
+            value: struct_expression
         }
     };
 }
@@ -1994,6 +2578,42 @@ export function create_ternary_condition_expression(condition: Expression, then_
         }
     };
 }
+export interface Type_expression {
+    type: Type_reference;
+}
+
+function core_to_intermediate_type_expression(core_value: Core.Type_expression, statement: Core.Statement): Type_expression {
+    return {
+        type: core_to_intermediate_type_reference(core_value.type),
+    };
+}
+
+function intermediate_to_core_type_expression(intermediate_value: Type_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Type_expression,
+            value: {
+                type: intermediate_to_core_type_reference(intermediate_value.type),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_type_expression(type: Type_reference): Expression {
+    const type_expression: Type_expression = {
+        type: type,
+    };
+    return {
+        data: {
+            type: Expression_enum.Type_expression,
+            value: type_expression
+        }
+    };
+}
 export interface Unary_expression {
     expression: Expression;
     operation: Unary_operation;
@@ -2036,6 +2656,42 @@ export function create_unary_expression(expression: Expression, operation: Unary
         data: {
             type: Expression_enum.Unary_expression,
             value: unary_expression
+        }
+    };
+}
+export interface Union_expression {
+    declaration: Union_declaration;
+}
+
+function core_to_intermediate_union_expression(core_value: Core.Union_expression, statement: Core.Statement): Union_expression {
+    return {
+        declaration: core_to_intermediate_union_declaration(core_value.declaration),
+    };
+}
+
+function intermediate_to_core_union_expression(intermediate_value: Union_expression, expressions: Core.Expression[]): void {
+    const index = expressions.length;
+    expressions.push({} as Core.Expression);
+    const core_value: Core.Expression = {
+        data: {
+            type: Core.Expression_enum.Union_expression,
+            value: {
+                declaration: intermediate_to_core_union_declaration(intermediate_value.declaration),
+            }
+        }
+    };
+
+    expressions[index] = core_value;
+}
+
+export function create_union_expression(declaration: Union_declaration): Expression {
+    const union_expression: Union_expression = {
+        declaration: declaration,
+    };
+    return {
+        data: {
+            type: Expression_enum.Union_expression,
+            value: union_expression
         }
     };
 }
@@ -2180,7 +2836,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
     };
 }
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assert_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
@@ -2198,6 +2854,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_access_array_expression(core_value.data.value as Core.Access_array_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Assert_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_assert_expression(core_value.data.value as Core.Assert_expression, statement)
                     };
                 }
                 case Core.Expression_enum.Assignment_expression: {
@@ -2242,6 +2904,12 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                         value: core_to_intermediate_comment_expression(core_value.data.value as Core.Comment_expression, statement)
                     };
                 }
+                case Core.Expression_enum.Compile_time_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_compile_time_expression(core_value.data.value as Core.Compile_time_expression, statement)
+                    };
+                }
                 case Core.Expression_enum.Constant_expression: {
                     return {
                         type: core_value.data.type,
@@ -2260,10 +2928,34 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                         value: core_to_intermediate_continue_expression(core_value.data.value as Core.Continue_expression, statement)
                     };
                 }
+                case Core.Expression_enum.Defer_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_defer_expression(core_value.data.value as Core.Defer_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Dereference_and_access_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_dereference_and_access_expression(core_value.data.value as Core.Dereference_and_access_expression, statement)
+                    };
+                }
                 case Core.Expression_enum.For_loop_expression: {
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_for_loop_expression(core_value.data.value as Core.For_loop_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Function_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_function_expression(core_value.data.value as Core.Function_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Instance_call_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_instance_call_expression(core_value.data.value as Core.Instance_call_expression, statement)
                     };
                 }
                 case Core.Expression_enum.If_expression: {
@@ -2296,10 +2988,22 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                         value: core_to_intermediate_parenthesis_expression(core_value.data.value as Core.Parenthesis_expression, statement)
                     };
                 }
+                case Core.Expression_enum.Reflection_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_reflection_expression(core_value.data.value as Core.Reflection_expression, statement)
+                    };
+                }
                 case Core.Expression_enum.Return_expression: {
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_return_expression(core_value.data.value as Core.Return_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Struct_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_struct_expression(core_value.data.value as Core.Struct_expression, statement)
                     };
                 }
                 case Core.Expression_enum.Switch_expression: {
@@ -2314,10 +3018,22 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                         value: core_to_intermediate_ternary_condition_expression(core_value.data.value as Core.Ternary_condition_expression, statement)
                     };
                 }
+                case Core.Expression_enum.Type_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_type_expression(core_value.data.value as Core.Type_expression, statement)
+                    };
+                }
                 case Core.Expression_enum.Unary_expression: {
                     return {
                         type: core_value.data.type,
                         value: core_to_intermediate_unary_expression(core_value.data.value as Core.Unary_expression, statement)
+                    };
+                }
+                case Core.Expression_enum.Union_expression: {
+                    return {
+                        type: core_value.data.type,
+                        value: core_to_intermediate_union_expression(core_value.data.value as Core.Union_expression, statement)
                     };
                 }
                 case Core.Expression_enum.Variable_declaration_expression: {
@@ -2362,6 +3078,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_access_array_expression(intermediate_value.data.value as Access_array_expression, expressions);
             break;
         }
+        case Expression_enum.Assert_expression: {
+            intermediate_to_core_assert_expression(intermediate_value.data.value as Assert_expression, expressions);
+            break;
+        }
         case Expression_enum.Assignment_expression: {
             intermediate_to_core_assignment_expression(intermediate_value.data.value as Assignment_expression, expressions);
             break;
@@ -2390,6 +3110,10 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_comment_expression(intermediate_value.data.value as Comment_expression, expressions);
             break;
         }
+        case Expression_enum.Compile_time_expression: {
+            intermediate_to_core_compile_time_expression(intermediate_value.data.value as Compile_time_expression, expressions);
+            break;
+        }
         case Expression_enum.Constant_expression: {
             intermediate_to_core_constant_expression(intermediate_value.data.value as Constant_expression, expressions);
             break;
@@ -2402,8 +3126,24 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_continue_expression(intermediate_value.data.value as Continue_expression, expressions);
             break;
         }
+        case Expression_enum.Defer_expression: {
+            intermediate_to_core_defer_expression(intermediate_value.data.value as Defer_expression, expressions);
+            break;
+        }
+        case Expression_enum.Dereference_and_access_expression: {
+            intermediate_to_core_dereference_and_access_expression(intermediate_value.data.value as Dereference_and_access_expression, expressions);
+            break;
+        }
         case Expression_enum.For_loop_expression: {
             intermediate_to_core_for_loop_expression(intermediate_value.data.value as For_loop_expression, expressions);
+            break;
+        }
+        case Expression_enum.Function_expression: {
+            intermediate_to_core_function_expression(intermediate_value.data.value as Function_expression, expressions);
+            break;
+        }
+        case Expression_enum.Instance_call_expression: {
+            intermediate_to_core_instance_call_expression(intermediate_value.data.value as Instance_call_expression, expressions);
             break;
         }
         case Expression_enum.If_expression: {
@@ -2426,8 +3166,16 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_parenthesis_expression(intermediate_value.data.value as Parenthesis_expression, expressions);
             break;
         }
+        case Expression_enum.Reflection_expression: {
+            intermediate_to_core_reflection_expression(intermediate_value.data.value as Reflection_expression, expressions);
+            break;
+        }
         case Expression_enum.Return_expression: {
             intermediate_to_core_return_expression(intermediate_value.data.value as Return_expression, expressions);
+            break;
+        }
+        case Expression_enum.Struct_expression: {
+            intermediate_to_core_struct_expression(intermediate_value.data.value as Struct_expression, expressions);
             break;
         }
         case Expression_enum.Switch_expression: {
@@ -2438,8 +3186,16 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
             intermediate_to_core_ternary_condition_expression(intermediate_value.data.value as Ternary_condition_expression, expressions);
             break;
         }
+        case Expression_enum.Type_expression: {
+            intermediate_to_core_type_expression(intermediate_value.data.value as Type_expression, expressions);
+            break;
+        }
         case Expression_enum.Unary_expression: {
             intermediate_to_core_unary_expression(intermediate_value.data.value as Unary_expression, expressions);
+            break;
+        }
+        case Expression_enum.Union_expression: {
+            intermediate_to_core_union_expression(intermediate_value.data.value as Union_expression, expressions);
             break;
         }
         case Expression_enum.Variable_declaration_expression: {
@@ -2465,76 +3221,108 @@ function intermediate_to_core_expression(intermediate_value: Expression, express
     }
 }
 
-export interface Function_declaration {
+export interface Type_constructor_parameter {
     name: string;
-    unique_name?: string;
-    type: Function_type;
-    input_parameter_names: string[];
-    output_parameter_names: string[];
-    linkage: Linkage;
+    type: Type_reference;
+}
+
+function core_to_intermediate_type_constructor_parameter(core_value: Core.Type_constructor_parameter): Type_constructor_parameter {
+    return {
+        name: core_value.name,
+        type: core_to_intermediate_type_reference(core_value.type),
+    };
+}
+
+function intermediate_to_core_type_constructor_parameter(intermediate_value: Type_constructor_parameter): Core.Type_constructor_parameter {
+    return {
+        name: intermediate_value.name,
+        type: intermediate_to_core_type_reference(intermediate_value.type),
+    };
+}
+
+export interface Type_constructor {
+    name: string;
+    parameters: Type_constructor_parameter[];
+    statements: Statement[];
     comment?: string;
     source_location?: Source_location;
-    input_parameter_source_positions?: Source_position[];
-    output_parameter_source_positions?: Source_position[];
 }
 
-function core_to_intermediate_function_declaration(core_value: Core.Function_declaration): Function_declaration {
+function core_to_intermediate_type_constructor(core_value: Core.Type_constructor): Type_constructor {
     return {
         name: core_value.name,
-        unique_name: core_value.unique_name,
-        type: core_to_intermediate_function_type(core_value.type),
-        input_parameter_names: core_value.input_parameter_names.elements,
-        output_parameter_names: core_value.output_parameter_names.elements,
-        linkage: core_value.linkage,
+        parameters: core_value.parameters.elements.map(value => core_to_intermediate_type_constructor_parameter(value)),
+        statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
         comment: core_value.comment,
         source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
-        input_parameter_source_positions: core_value.input_parameter_source_positions !== undefined ? core_value.input_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
-        output_parameter_source_positions: core_value.output_parameter_source_positions !== undefined ? core_value.output_parameter_source_positions.elements.map(value => core_to_intermediate_source_position(value)) : undefined,
     };
 }
 
-function intermediate_to_core_function_declaration(intermediate_value: Function_declaration): Core.Function_declaration {
+function intermediate_to_core_type_constructor(intermediate_value: Type_constructor): Core.Type_constructor {
     return {
         name: intermediate_value.name,
-        unique_name: intermediate_value.unique_name,
-        type: intermediate_to_core_function_type(intermediate_value.type),
-        input_parameter_names: {
-            size: intermediate_value.input_parameter_names.length,
-            elements: intermediate_value.input_parameter_names,
+        parameters: {
+            size: intermediate_value.parameters.length,
+            elements: intermediate_value.parameters.map(value => intermediate_to_core_type_constructor_parameter(value)),
         },
-        output_parameter_names: {
-            size: intermediate_value.output_parameter_names.length,
-            elements: intermediate_value.output_parameter_names,
-        },
-        linkage: intermediate_value.linkage,
-        comment: intermediate_value.comment,
-        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
-        input_parameter_source_positions: intermediate_value.input_parameter_source_positions !== undefined ? { size: intermediate_value.input_parameter_source_positions.length, elements : intermediate_value.input_parameter_source_positions } : undefined,
-        output_parameter_source_positions: intermediate_value.output_parameter_source_positions !== undefined ? { size: intermediate_value.output_parameter_source_positions.length, elements : intermediate_value.output_parameter_source_positions } : undefined,
-    };
-}
-
-export interface Function_definition {
-    name: string;
-    statements: Statement[];
-    source_location?: Source_location;
-}
-
-function core_to_intermediate_function_definition(core_value: Core.Function_definition): Function_definition {
-    return {
-        name: core_value.name,
-        statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
-        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
-    };
-}
-
-function intermediate_to_core_function_definition(intermediate_value: Function_definition): Core.Function_definition {
-    return {
-        name: intermediate_value.name,
         statements: {
             size: intermediate_value.statements.length,
             elements: intermediate_value.statements.map(value => intermediate_to_core_statement(value)),
         },
+        comment: intermediate_value.comment,
+        source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
+    };
+}
+
+export interface Function_constructor_parameter {
+    name: string;
+    type: Type_reference;
+}
+
+function core_to_intermediate_function_constructor_parameter(core_value: Core.Function_constructor_parameter): Function_constructor_parameter {
+    return {
+        name: core_value.name,
+        type: core_to_intermediate_type_reference(core_value.type),
+    };
+}
+
+function intermediate_to_core_function_constructor_parameter(intermediate_value: Function_constructor_parameter): Core.Function_constructor_parameter {
+    return {
+        name: intermediate_value.name,
+        type: intermediate_to_core_type_reference(intermediate_value.type),
+    };
+}
+
+export interface Function_constructor {
+    name: string;
+    parameters: Function_constructor_parameter[];
+    statements: Statement[];
+    comment?: string;
+    source_location?: Source_location;
+}
+
+function core_to_intermediate_function_constructor(core_value: Core.Function_constructor): Function_constructor {
+    return {
+        name: core_value.name,
+        parameters: core_value.parameters.elements.map(value => core_to_intermediate_function_constructor_parameter(value)),
+        statements: core_value.statements.elements.map(value => core_to_intermediate_statement(value)),
+        comment: core_value.comment,
+        source_location: core_value.source_location !== undefined ? core_to_intermediate_source_location(core_value.source_location) : undefined,
+    };
+}
+
+function intermediate_to_core_function_constructor(intermediate_value: Function_constructor): Core.Function_constructor {
+    return {
+        name: intermediate_value.name,
+        parameters: {
+            size: intermediate_value.parameters.length,
+            elements: intermediate_value.parameters.map(value => intermediate_to_core_function_constructor_parameter(value)),
+        },
+        statements: {
+            size: intermediate_value.statements.length,
+            elements: intermediate_value.statements.map(value => intermediate_to_core_statement(value)),
+        },
+        comment: intermediate_value.comment,
         source_location: intermediate_value.source_location !== undefined ? intermediate_to_core_source_location(intermediate_value.source_location) : undefined,
     };
 }

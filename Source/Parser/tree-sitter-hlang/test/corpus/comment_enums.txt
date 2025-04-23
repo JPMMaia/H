@@ -1,0 +1,51 @@
+=========================
+Comment enums
+=========================
+
+module Comment_enums;
+
+// Enum comment
+// Another line
+enum My_enum
+{
+    // This is A
+    A = 1,
+    B = 2,
+    // This is C
+    C = 3,
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Comment)
+    (Enum
+      (Enum_name
+        (Identifier))
+      (Enum_values
+        (Enum_value
+          (Comment)
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Comment)
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))))))

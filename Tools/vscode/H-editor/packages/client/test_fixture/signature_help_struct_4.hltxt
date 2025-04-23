@@ -14,4 +14,5 @@ struct Complex
 struct My_data
 {
     // Value 0
-    v0: Complex = {
+    v0: Complex = {};
+}

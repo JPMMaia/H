@@ -1,5 +1,6 @@
 module;
 
+#include <format>
 #include <functional>
 #include <memory_resource>
 #include <optional>
@@ -28,6 +29,17 @@ namespace h
         {
             Fundamental_type const data = std::get<Fundamental_type>(type.data);
             return data == Fundamental_type::Bool;
+        }
+
+        return false;
+    }
+
+    bool is_c_bool(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return data == Fundamental_type::C_bool;
         }
 
         return false;
@@ -159,6 +171,11 @@ namespace h
         }
 
         throw std::runtime_error{ "Type is not a function type!" };
+    }
+
+    bool is_function_pointer(Type_reference const& type)
+    {
+        return std::holds_alternative<Function_pointer_type>(type.data);
     }
 
 
@@ -360,5 +377,27 @@ namespace h
         }
 
         return false;
+    }
+
+    std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type)
+    {
+        if (std::holds_alternative<Constant_array_type>(type.data))
+        {
+            Constant_array_type const& constant_array_type = std::get<Constant_array_type>(type.data);
+            if (constant_array_type.value_type.empty())
+                return std::nullopt;
+
+            return constant_array_type.value_type.front();
+        }
+        else if (std::holds_alternative<Pointer_type>(type.data))
+        {
+            Pointer_type const& pointer_type = std::get<Pointer_type>(type.data);
+            if (pointer_type.element_type.empty())
+                return std::nullopt;
+
+            return pointer_type.element_type.front();
+        }
+
+        return std::nullopt;
     }
 }

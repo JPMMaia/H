@@ -1,0 +1,59 @@
+=========================
+Assert expressions
+=========================
+
+module Assert_expressions;
+
+export function run(value: Int32) -> ()
+{
+    assert "Value is not 0" { value != 0i32 };
+    assert { value != 1i32 };
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_assert
+              (String)
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))))))
+          (Statement
+            (Expression_assert
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number))))))))))))

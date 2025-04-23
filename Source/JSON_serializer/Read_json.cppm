@@ -141,6 +141,24 @@ namespace h::json
     }
 
     export template<>
+        bool read_enum(Linkage& output, std::string_view const value)
+    {
+        if (value == "External")
+        {
+            output = Linkage::External;
+            return true;
+        }
+        else if (value == "Private")
+        {
+            output = Linkage::Private;
+            return true;
+        }
+
+        std::cerr << std::format("Failed to read enum 'Linkage' with value '{}'\n", value);
+        return false;
+    }
+
+    export template<>
         bool read_enum(Access_type& output, std::string_view const value)
     {
         if (value == "Read")
@@ -355,29 +373,18 @@ namespace h::json
         return false;
     }
 
-    export template<>
-        bool read_enum(Linkage& output, std::string_view const value)
-    {
-        if (value == "External")
-        {
-            output = Linkage::External;
-            return true;
-        }
-        else if (value == "Private")
-        {
-            output = Linkage::Private;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Linkage' with value '{}'\n", value);
-        return false;
-    }
-
     export std::optional<int> get_enum_value(std::string_view const type, std::string_view const value)
     {
         if (type == "Fundamental_type")
         {
             Fundamental_type enum_value;
+            read_enum(enum_value, value);
+            return static_cast<int>(enum_value);
+        }
+
+        if (type == "Linkage")
+        {
+            Linkage enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -413,13 +420,6 @@ namespace h::json
         if (type == "Unary_operation")
         {
             Unary_operation enum_value;
-            read_enum(enum_value, value);
-            return static_cast<int>(enum_value);
-        }
-
-        if (type == "Linkage")
-        {
-            Linkage enum_value;
             read_enum(enum_value, value);
             return static_cast<int>(enum_value);
         }
@@ -464,6 +464,8 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_module_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_array_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_custom_type_reference(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_type_instance(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_parameter_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_indexed_comment(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_statement(Stack_state* state, std::string_view const key);
@@ -473,10 +475,14 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_union_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_condition(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression_index(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_access_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_access_array_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_assert_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_assignment_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_binary_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_block_expression(Stack_state* state, std::string_view const key);
@@ -484,10 +490,16 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_call_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_cast_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_comment_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_compile_time_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_constant_array_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_defer_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_dereference_and_access_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_for_loop_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_instance_call_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_instance_call_key(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_condition_statement_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_if_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_instantiate_member_value_pair(Stack_state* state, std::string_view const key);
@@ -495,17 +507,23 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_invalid_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_null_pointer_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_parenthesis_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_reflection_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_struct_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_switch_case_expression_pair(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_switch_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_ternary_condition_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_type_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_unary_expression(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_union_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_declaration_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_variable_declaration_with_type_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_while_loop_expression(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_expression(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key);
-    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_type_constructor_parameter(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_type_constructor(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_constructor_parameter(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_function_constructor(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_language_version(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_import_module_with_alias(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_module_dependencies(Stack_state* state, std::string_view const key);
@@ -904,6 +922,67 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_type_instance(Stack_state* state, std::string_view const key)
+    {
+        h::Type_instance* parent = static_cast<h::Type_instance*>(state->pointer);
+
+        if (key == "type_constructor")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type_constructor,
+                .type = "Custom_type_reference",
+                .get_next_state = get_next_state_custom_type_reference,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_parameter_type(Stack_state* state, std::string_view const key)
+    {
+        h::Parameter_type* parent = static_cast<h::Parameter_type*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_type_reference(Stack_state* state, std::string_view const key)
     {
         h::Type_reference* parent = static_cast<h::Type_reference*>(state->pointer);
@@ -912,7 +991,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_pointer_type, h::Integer_type, h::Null_pointer_type, h::Pointer_type>;
+                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_pointer_type, h::Integer_type, h::Null_pointer_type, h::Parameter_type, h::Pointer_type, h::Type_instance>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Builtin_type_reference")
@@ -957,10 +1036,22 @@ namespace h::json
                     state->type = "Null_pointer_type";
                     return;
                 }
+                if (type == "Parameter_type")
+                {
+                    *pointer = Parameter_type{};
+                    state->type = "Parameter_type";
+                    return;
+                }
                 if (type == "Pointer_type")
                 {
                     *pointer = Pointer_type{};
                     state->type = "Pointer_type";
+                    return;
+                }
+                if (type == "Type_instance")
+                {
+                    *pointer = Type_instance{};
+                    state->type = "Type_instance";
                     return;
                 }
             };
@@ -1016,9 +1107,19 @@ namespace h::json
                             return get_next_state_null_pointer_type;
                         }
 
+                        if (state->type == "Parameter_type")
+                        {
+                            return get_next_state_parameter_type;
+                        }
+
                         if (state->type == "Pointer_type")
                         {
                             return get_next_state_pointer_type;
+                        }
+
+                        if (state->type == "Type_instance")
+                        {
+                            return get_next_state_type_instance;
                         }
 
                         return nullptr;
@@ -1039,7 +1140,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_pointer_type,Integer_type,Null_pointer_type,Pointer_type>",
+                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_pointer_type,Integer_type,Null_pointer_type,Parameter_type,Pointer_type,Type_instance>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -1745,6 +1846,312 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_function_condition(Stack_state* state, std::string_view const key)
+    {
+        h::Function_condition* parent = static_cast<h::Function_condition*>(state->pointer);
+
+        if (key == "description")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->description,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "condition")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->condition,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key)
+    {
+        h::Function_declaration* parent = static_cast<h::Function_declaration*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Function_type",
+                .get_next_state = get_next_state_function_type,
+            };
+        }
+
+        if (key == "input_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "output_parameter_names")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->output_parameter_names,
+                .type = "std::pmr::vector<std::pmr::string>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "linkage")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->linkage,
+                .type = "Linkage",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "preconditions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->preconditions,
+                .type = "std::pmr::vector<Function_condition>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_condition
+            };
+        }
+
+        if (key == "postconditions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_condition>* parent = static_cast<std::pmr::vector<Function_condition>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->postconditions,
+                .type = "std::pmr::vector<Function_condition>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_condition
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        if (key == "input_parameter_source_positions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->input_parameter_source_positions = std::pmr::vector<Source_position>{};
+            return Stack_state
+            {
+                .pointer = &parent->input_parameter_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_position
+            };
+        }
+
+        if (key == "output_parameter_source_positions")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+            parent->output_parameter_source_positions = std::pmr::vector<Source_position>{};
+            return Stack_state
+            {
+                .pointer = &parent->output_parameter_source_positions.value(),
+                .type = "std::pmr::vector<Source_position>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_source_position
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key)
+    {
+        h::Function_definition* parent = static_cast<h::Function_definition*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "statements")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->statements,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_variable_expression(Stack_state* state, std::string_view const key)
     {
         h::Variable_expression* parent = static_cast<h::Variable_expression*>(state->pointer);
@@ -1855,6 +2262,35 @@ namespace h::json
                 .pointer = &parent->index,
                 .type = "Expression_index",
                 .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_assert_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Assert_expression* parent = static_cast<h::Assert_expression*>(state->pointer);
+
+        if (key == "message")
+        {
+            parent->message = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->message.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "statement")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->statement,
+                .type = "Statement",
+                .get_next_state = get_next_state_statement,
             };
         }
 
@@ -2092,6 +2528,24 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_compile_time_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Compile_time_expression* parent = static_cast<h::Compile_time_expression*>(state->pointer);
+
+        if (key == "expression")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_constant_expression(Stack_state* state, std::string_view const key)
     {
         h::Constant_expression* parent = static_cast<h::Constant_expression*>(state->pointer);
@@ -2156,6 +2610,53 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_continue_expression(Stack_state* state, std::string_view const key)
     {
         h::Continue_expression* parent = static_cast<h::Continue_expression*>(state->pointer);
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_defer_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Defer_expression* parent = static_cast<h::Defer_expression*>(state->pointer);
+
+        if (key == "expression_to_defer")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression_to_defer,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_dereference_and_access_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Dereference_and_access_expression* parent = static_cast<h::Dereference_and_access_expression*>(state->pointer);
+
+        if (key == "expression")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->expression,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        if (key == "member_name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->member_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
 
         return {};
     }
@@ -2236,6 +2737,132 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->then_statements,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_function_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Function_expression* parent = static_cast<h::Function_expression*>(state->pointer);
+
+        if (key == "declaration")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->declaration,
+                .type = "Function_declaration",
+                .get_next_state = get_next_state_function_declaration,
+            };
+        }
+
+        if (key == "definition")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->definition,
+                .type = "Function_definition",
+                .get_next_state = get_next_state_function_definition,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_instance_call_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Instance_call_expression* parent = static_cast<h::Instance_call_expression*>(state->pointer);
+
+        if (key == "left_hand_side")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->left_hand_side,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_instance_call_key(Stack_state* state, std::string_view const key)
+    {
+        h::Instance_call_key* parent = static_cast<h::Instance_call_key*>(state->pointer);
+
+        if (key == "module_name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->module_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "function_constructor_name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->function_constructor_name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
                 .type = "std::pmr::vector<Statement>",
                 .get_next_state = get_next_state_vector,
                 .set_vector_size = set_vector_size,
@@ -2448,6 +3075,49 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_reflection_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Reflection_expression* parent = static_cast<h::Reflection_expression*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Expression_index>* parent = static_cast<std::pmr::vector<Expression_index>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->arguments,
+                .type = "std::pmr::vector<Expression_index>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_expression_index
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_return_expression(Stack_state* state, std::string_view const key)
     {
         h::Return_expression* parent = static_cast<h::Return_expression*>(state->pointer);
@@ -2460,6 +3130,24 @@ namespace h::json
                 .pointer = &parent->expression.value(),
                 .type = "Expression_index",
                 .get_next_state = get_next_state_expression_index
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_struct_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Struct_expression* parent = static_cast<h::Struct_expression*>(state->pointer);
+
+        if (key == "declaration")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->declaration,
+                .type = "Struct_declaration",
+                .get_next_state = get_next_state_struct_declaration,
             };
         }
 
@@ -2592,6 +3280,24 @@ namespace h::json
         return {};
     }
 
+    export std::optional<Stack_state> get_next_state_type_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Type_expression* parent = static_cast<h::Type_expression*>(state->pointer);
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
+            };
+        }
+
+        return {};
+    }
+
     export std::optional<Stack_state> get_next_state_unary_expression(Stack_state* state, std::string_view const key)
     {
         h::Unary_expression* parent = static_cast<h::Unary_expression*>(state->pointer);
@@ -2615,6 +3321,24 @@ namespace h::json
                 .pointer = &parent->operation,
                 .type = "Unary_operation",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_union_expression(Stack_state* state, std::string_view const key)
+    {
+        h::Union_expression* parent = static_cast<h::Union_expression*>(state->pointer);
+
+        if (key == "declaration")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->declaration,
+                .type = "Union_declaration",
+                .get_next_state = get_next_state_union_declaration,
             };
         }
 
@@ -2763,7 +3487,7 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::For_loop_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Return_expression, h::Switch_expression, h::Ternary_condition_expression, h::Unary_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
+                using Variant_type = std::variant<h::Access_expression, h::Access_array_expression, h::Assert_expression, h::Assignment_expression, h::Binary_expression, h::Block_expression, h::Break_expression, h::Call_expression, h::Cast_expression, h::Comment_expression, h::Compile_time_expression, h::Constant_expression, h::Constant_array_expression, h::Continue_expression, h::Defer_expression, h::Dereference_and_access_expression, h::For_loop_expression, h::Function_expression, h::Instance_call_expression, h::If_expression, h::Instantiate_expression, h::Invalid_expression, h::Null_pointer_expression, h::Parenthesis_expression, h::Reflection_expression, h::Return_expression, h::Struct_expression, h::Switch_expression, h::Ternary_condition_expression, h::Type_expression, h::Unary_expression, h::Union_expression, h::Variable_declaration_expression, h::Variable_declaration_with_type_expression, h::Variable_expression, h::While_loop_expression>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
                 if (type == "Access_expression")
@@ -2776,6 +3500,12 @@ namespace h::json
                 {
                     *pointer = Access_array_expression{};
                     state->type = "Access_array_expression";
+                    return;
+                }
+                if (type == "Assert_expression")
+                {
+                    *pointer = Assert_expression{};
+                    state->type = "Assert_expression";
                     return;
                 }
                 if (type == "Assignment_expression")
@@ -2820,6 +3550,12 @@ namespace h::json
                     state->type = "Comment_expression";
                     return;
                 }
+                if (type == "Compile_time_expression")
+                {
+                    *pointer = Compile_time_expression{};
+                    state->type = "Compile_time_expression";
+                    return;
+                }
                 if (type == "Constant_expression")
                 {
                     *pointer = Constant_expression{};
@@ -2838,10 +3574,34 @@ namespace h::json
                     state->type = "Continue_expression";
                     return;
                 }
+                if (type == "Defer_expression")
+                {
+                    *pointer = Defer_expression{};
+                    state->type = "Defer_expression";
+                    return;
+                }
+                if (type == "Dereference_and_access_expression")
+                {
+                    *pointer = Dereference_and_access_expression{};
+                    state->type = "Dereference_and_access_expression";
+                    return;
+                }
                 if (type == "For_loop_expression")
                 {
                     *pointer = For_loop_expression{};
                     state->type = "For_loop_expression";
+                    return;
+                }
+                if (type == "Function_expression")
+                {
+                    *pointer = Function_expression{};
+                    state->type = "Function_expression";
+                    return;
+                }
+                if (type == "Instance_call_expression")
+                {
+                    *pointer = Instance_call_expression{};
+                    state->type = "Instance_call_expression";
                     return;
                 }
                 if (type == "If_expression")
@@ -2874,10 +3634,22 @@ namespace h::json
                     state->type = "Parenthesis_expression";
                     return;
                 }
+                if (type == "Reflection_expression")
+                {
+                    *pointer = Reflection_expression{};
+                    state->type = "Reflection_expression";
+                    return;
+                }
                 if (type == "Return_expression")
                 {
                     *pointer = Return_expression{};
                     state->type = "Return_expression";
+                    return;
+                }
+                if (type == "Struct_expression")
+                {
+                    *pointer = Struct_expression{};
+                    state->type = "Struct_expression";
                     return;
                 }
                 if (type == "Switch_expression")
@@ -2892,10 +3664,22 @@ namespace h::json
                     state->type = "Ternary_condition_expression";
                     return;
                 }
+                if (type == "Type_expression")
+                {
+                    *pointer = Type_expression{};
+                    state->type = "Type_expression";
+                    return;
+                }
                 if (type == "Unary_expression")
                 {
                     *pointer = Unary_expression{};
                     state->type = "Unary_expression";
+                    return;
+                }
+                if (type == "Union_expression")
+                {
+                    *pointer = Union_expression{};
+                    state->type = "Union_expression";
                     return;
                 }
                 if (type == "Variable_declaration_expression")
@@ -2950,6 +3734,11 @@ namespace h::json
                             return get_next_state_access_array_expression;
                         }
 
+                        if (state->type == "Assert_expression")
+                        {
+                            return get_next_state_assert_expression;
+                        }
+
                         if (state->type == "Assignment_expression")
                         {
                             return get_next_state_assignment_expression;
@@ -2985,6 +3774,11 @@ namespace h::json
                             return get_next_state_comment_expression;
                         }
 
+                        if (state->type == "Compile_time_expression")
+                        {
+                            return get_next_state_compile_time_expression;
+                        }
+
                         if (state->type == "Constant_expression")
                         {
                             return get_next_state_constant_expression;
@@ -3000,9 +3794,29 @@ namespace h::json
                             return get_next_state_continue_expression;
                         }
 
+                        if (state->type == "Defer_expression")
+                        {
+                            return get_next_state_defer_expression;
+                        }
+
+                        if (state->type == "Dereference_and_access_expression")
+                        {
+                            return get_next_state_dereference_and_access_expression;
+                        }
+
                         if (state->type == "For_loop_expression")
                         {
                             return get_next_state_for_loop_expression;
+                        }
+
+                        if (state->type == "Function_expression")
+                        {
+                            return get_next_state_function_expression;
+                        }
+
+                        if (state->type == "Instance_call_expression")
+                        {
+                            return get_next_state_instance_call_expression;
                         }
 
                         if (state->type == "If_expression")
@@ -3030,9 +3844,19 @@ namespace h::json
                             return get_next_state_parenthesis_expression;
                         }
 
+                        if (state->type == "Reflection_expression")
+                        {
+                            return get_next_state_reflection_expression;
+                        }
+
                         if (state->type == "Return_expression")
                         {
                             return get_next_state_return_expression;
+                        }
+
+                        if (state->type == "Struct_expression")
+                        {
+                            return get_next_state_struct_expression;
                         }
 
                         if (state->type == "Switch_expression")
@@ -3045,9 +3869,19 @@ namespace h::json
                             return get_next_state_ternary_condition_expression;
                         }
 
+                        if (state->type == "Type_expression")
+                        {
+                            return get_next_state_type_expression;
+                        }
+
                         if (state->type == "Unary_expression")
                         {
                             return get_next_state_unary_expression;
+                        }
+
+                        if (state->type == "Union_expression")
+                        {
+                            return get_next_state_union_expression;
                         }
 
                         if (state->type == "Variable_declaration_expression")
@@ -3088,7 +3922,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Access_expression,Access_array_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Constant_expression,Constant_array_expression,Continue_expression,For_loop_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Return_expression,Switch_expression,Ternary_condition_expression,Unary_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
+                .type = "std::variant<Access_expression,Access_array_expression,Assert_expression,Assignment_expression,Binary_expression,Block_expression,Break_expression,Call_expression,Cast_expression,Comment_expression,Compile_time_expression,Constant_expression,Constant_array_expression,Continue_expression,Defer_expression,Dereference_and_access_expression,For_loop_expression,Function_expression,Instance_call_expression,If_expression,Instantiate_expression,Invalid_expression,Null_pointer_expression,Parenthesis_expression,Reflection_expression,Return_expression,Struct_expression,Switch_expression,Ternary_condition_expression,Type_expression,Unary_expression,Union_expression,Variable_declaration_expression,Variable_declaration_with_type_expression,Variable_expression,While_loop_expression>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -3108,9 +3942,9 @@ namespace h::json
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_function_declaration(Stack_state* state, std::string_view const key)
+    export std::optional<Stack_state> get_next_state_type_constructor_parameter(Stack_state* state, std::string_view const key)
     {
-        h::Function_declaration* parent = static_cast<h::Function_declaration*>(state->pointer);
+        h::Type_constructor_parameter* parent = static_cast<h::Type_constructor_parameter*>(state->pointer);
 
         if (key == "name")
         {
@@ -3118,17 +3952,6 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->name,
-                .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
-        if (key == "unique_name")
-        {
-            parent->unique_name = std::pmr::string{};
-            return Stack_state
-            {
-                .pointer = &parent->unique_name.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
             };
@@ -3140,150 +3963,17 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->type,
-                .type = "Function_type",
-                .get_next_state = get_next_state_function_type,
-            };
-        }
-
-        if (key == "input_parameter_names")
-        {
-            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
-            {
-                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
-                parent->resize(size);
-            };
-
-            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
-            {
-                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
-                return &((*parent)[index]);
-            };
-
-            return Stack_state
-            {
-                .pointer = &parent->input_parameter_names,
-                .type = "std::pmr::vector<std::pmr::string>",
-                .get_next_state = get_next_state_vector,
-                .set_vector_size = set_vector_size,
-                .get_element = get_element,
-                .get_next_state_element = nullptr
-            };
-        }
-
-        if (key == "output_parameter_names")
-        {
-            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
-            {
-                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
-                parent->resize(size);
-            };
-
-            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
-            {
-                std::pmr::vector<std::pmr::string>* parent = static_cast<std::pmr::vector<std::pmr::string>*>(state->pointer);
-                return &((*parent)[index]);
-            };
-
-            return Stack_state
-            {
-                .pointer = &parent->output_parameter_names,
-                .type = "std::pmr::vector<std::pmr::string>",
-                .get_next_state = get_next_state_vector,
-                .set_vector_size = set_vector_size,
-                .get_element = get_element,
-                .get_next_state_element = nullptr
-            };
-        }
-
-        if (key == "linkage")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->linkage,
-                .type = "Linkage",
-                .get_next_state = nullptr,
-            };
-        }
-
-        if (key == "comment")
-        {
-            parent->comment = std::pmr::string{};
-            return Stack_state
-            {
-                .pointer = &parent->comment.value(),
-                .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
-        if (key == "source_location")
-        {
-            parent->source_location = Source_location{};
-            return Stack_state
-            {
-                .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
-            };
-        }
-
-        if (key == "input_parameter_source_positions")
-        {
-            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
-            {
-                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
-                parent->resize(size);
-            };
-
-            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
-            {
-                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
-                return &((*parent)[index]);
-            };
-            parent->input_parameter_source_positions = std::pmr::vector<Source_position>{};
-            return Stack_state
-            {
-                .pointer = &parent->input_parameter_source_positions.value(),
-                .type = "std::pmr::vector<Source_position>",
-                .get_next_state = get_next_state_vector,
-                .set_vector_size = set_vector_size,
-                .get_element = get_element,
-                .get_next_state_element = get_next_state_source_position
-            };
-        }
-
-        if (key == "output_parameter_source_positions")
-        {
-            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
-            {
-                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
-                parent->resize(size);
-            };
-
-            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
-            {
-                std::pmr::vector<Source_position>* parent = static_cast<std::pmr::vector<Source_position>*>(state->pointer);
-                return &((*parent)[index]);
-            };
-            parent->output_parameter_source_positions = std::pmr::vector<Source_position>{};
-            return Stack_state
-            {
-                .pointer = &parent->output_parameter_source_positions.value(),
-                .type = "std::pmr::vector<Source_position>",
-                .get_next_state = get_next_state_vector,
-                .set_vector_size = set_vector_size,
-                .get_element = get_element,
-                .get_next_state_element = get_next_state_source_position
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
             };
         }
 
         return {};
     }
 
-    export std::optional<Stack_state> get_next_state_function_definition(Stack_state* state, std::string_view const key)
+    export std::optional<Stack_state> get_next_state_type_constructor(Stack_state* state, std::string_view const key)
     {
-        h::Function_definition* parent = static_cast<h::Function_definition*>(state->pointer);
+        h::Type_constructor* parent = static_cast<h::Type_constructor*>(state->pointer);
 
         if (key == "name")
         {
@@ -3293,6 +3983,31 @@ namespace h::json
                 .pointer = &parent->name,
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "parameters")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_constructor_parameter>* parent = static_cast<std::pmr::vector<Type_constructor_parameter>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_constructor_parameter>* parent = static_cast<std::pmr::vector<Type_constructor_parameter>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->parameters,
+                .type = "std::pmr::vector<Type_constructor_parameter>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_constructor_parameter
             };
         }
 
@@ -3318,6 +4033,136 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_location",
+                .get_next_state = get_next_state_source_location
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_function_constructor_parameter(Stack_state* state, std::string_view const key)
+    {
+        h::Function_constructor_parameter* parent = static_cast<h::Function_constructor_parameter*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "type")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->type,
+                .type = "Type_reference",
+                .get_next_state = get_next_state_type_reference,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_function_constructor(Stack_state* state, std::string_view const key)
+    {
+        h::Function_constructor* parent = static_cast<h::Function_constructor*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "parameters")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_constructor_parameter>* parent = static_cast<std::pmr::vector<Function_constructor_parameter>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_constructor_parameter>* parent = static_cast<std::pmr::vector<Function_constructor_parameter>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->parameters,
+                .type = "std::pmr::vector<Function_constructor_parameter>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_constructor_parameter
+            };
+        }
+
+        if (key == "statements")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Statement>* parent = static_cast<std::pmr::vector<Statement>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->statements,
+                .type = "std::pmr::vector<Statement>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_statement
+            };
+        }
+
+        if (key == "comment")
+        {
+            parent->comment = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
             };
         }
 
@@ -3615,6 +4460,56 @@ namespace h::json
             };
         }
 
+        if (key == "function_constructors")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Function_constructor>* parent = static_cast<std::pmr::vector<Function_constructor>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Function_constructor>* parent = static_cast<std::pmr::vector<Function_constructor>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->function_constructors,
+                .type = "std::pmr::vector<Function_constructor>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_function_constructor
+            };
+        }
+
+        if (key == "type_constructors")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_constructor>* parent = static_cast<std::pmr::vector<Type_constructor>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_constructor>* parent = static_cast<std::pmr::vector<Type_constructor>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->type_constructors,
+                .type = "std::pmr::vector<Type_constructor>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_constructor
+            };
+        }
+
         return {};
     }
 
@@ -3672,6 +4567,17 @@ namespace h::json
             {
                 .pointer = &parent->name,
                 .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "content_hash")
+        {
+            parent->content_hash = std::uint64_t{};
+            return Stack_state
+            {
+                .pointer = &parent->content_hash.value(),
+                .type = "std::uint64_t",
                 .get_next_state = nullptr,
             };
         }
@@ -3858,6 +4764,26 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Type_instance>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Type_instance",
+                .get_next_state = get_next_state_type_instance
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Parameter_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Parameter_type",
+                .get_next_state = get_next_state_parameter_type
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Type_reference>)
         {
             return Stack_state
@@ -3948,6 +4874,36 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Function_condition>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_condition",
+                .get_next_state = get_next_state_function_condition
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_declaration",
+                .get_next_state = get_next_state_function_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_definition>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_definition",
+                .get_next_state = get_next_state_function_definition
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Variable_expression>)
         {
             return Stack_state
@@ -3985,6 +4941,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Access_array_expression",
                 .get_next_state = get_next_state_access_array_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Assert_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Assert_expression",
+                .get_next_state = get_next_state_assert_expression
             };
         }
 
@@ -4058,6 +5024,16 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Compile_time_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Compile_time_expression",
+                .get_next_state = get_next_state_compile_time_expression
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Constant_expression>)
         {
             return Stack_state
@@ -4088,6 +5064,26 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Defer_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Defer_expression",
+                .get_next_state = get_next_state_defer_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Dereference_and_access_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Dereference_and_access_expression",
+                .get_next_state = get_next_state_dereference_and_access_expression
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::For_loop_expression>)
         {
             return Stack_state
@@ -4095,6 +5091,36 @@ namespace h::json
                 .pointer = output,
                 .type = "For_loop_expression",
                 .get_next_state = get_next_state_for_loop_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_expression",
+                .get_next_state = get_next_state_function_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Instance_call_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Instance_call_expression",
+                .get_next_state = get_next_state_instance_call_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Instance_call_key>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Instance_call_key",
+                .get_next_state = get_next_state_instance_call_key
             };
         }
 
@@ -4168,6 +5194,16 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Reflection_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Reflection_expression",
+                .get_next_state = get_next_state_reflection_expression
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Return_expression>)
         {
             return Stack_state
@@ -4175,6 +5211,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Return_expression",
                 .get_next_state = get_next_state_return_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Struct_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Struct_expression",
+                .get_next_state = get_next_state_struct_expression
             };
         }
 
@@ -4208,6 +5254,16 @@ namespace h::json
             };
         }
 
+        if constexpr (std::is_same_v<Struct_type, h::Type_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Type_expression",
+                .get_next_state = get_next_state_type_expression
+            };
+        }
+
         if constexpr (std::is_same_v<Struct_type, h::Unary_expression>)
         {
             return Stack_state
@@ -4215,6 +5271,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Unary_expression",
                 .get_next_state = get_next_state_unary_expression
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Union_expression>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Union_expression",
+                .get_next_state = get_next_state_union_expression
             };
         }
 
@@ -4258,23 +5324,43 @@ namespace h::json
             };
         }
 
-        if constexpr (std::is_same_v<Struct_type, h::Function_declaration>)
+        if constexpr (std::is_same_v<Struct_type, h::Type_constructor_parameter>)
         {
             return Stack_state
             {
                 .pointer = output,
-                .type = "Function_declaration",
-                .get_next_state = get_next_state_function_declaration
+                .type = "Type_constructor_parameter",
+                .get_next_state = get_next_state_type_constructor_parameter
             };
         }
 
-        if constexpr (std::is_same_v<Struct_type, h::Function_definition>)
+        if constexpr (std::is_same_v<Struct_type, h::Type_constructor>)
         {
             return Stack_state
             {
                 .pointer = output,
-                .type = "Function_definition",
-                .get_next_state = get_next_state_function_definition
+                .type = "Type_constructor",
+                .get_next_state = get_next_state_type_constructor
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_constructor_parameter>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_constructor_parameter",
+                .get_next_state = get_next_state_function_constructor_parameter
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Function_constructor>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Function_constructor",
+                .get_next_state = get_next_state_function_constructor
             };
         }
 

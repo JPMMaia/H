@@ -279,7 +279,7 @@ suite("Should get definition location of global variables", () => {
     test("Gets definition location of define when used as expression", async () => {
         const document_uri = get_document_uri("projects/project_1/definition_global_variable_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(6, 20), [
-            new vscode.Location(get_document_uri("projects/complex/complex.h"), to_range(24, 8, 24, 10))
+            new vscode.Location(get_document_uri("build/Complex/c.entry.generated.hltxt"), to_range(12, 11, 12, 13))
         ]);
     });
 });

@@ -36,4 +36,12 @@ export function run_while_loops(size: Int32) -> ()
             index += 1;
         }
     }
+
+    {
+        var c_boolean = 1cb;
+        while c_boolean
+        {
+            c_boolean = 0cb;
+        }
+    }
 }

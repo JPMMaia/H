@@ -25,4 +25,7 @@ function run() -> ()
     var instance_0: My_data = {
         v0: {
             real: 1.0f32,
+        }
+    };
+}
 

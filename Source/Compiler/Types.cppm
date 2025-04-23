@@ -18,7 +18,9 @@ module;
 export module h.compiler.types;
 
 import h.compiler.clang_data;
+import h.core.hash;
 import h.core;
+import h.core.declarations;
 import h.core.struct_layout;
 
 namespace h::compiler
@@ -43,6 +45,7 @@ namespace h::compiler
     {
         Builtin_types builtin;
         std::pmr::unordered_map<Module_name, LLVM_type_map> name_to_llvm_type;
+        std::pmr::unordered_map<Type_instance, llvm::Type*, Type_instance_hash> type_instance_to_llvm_type;
     };
 
     export struct Debug_type_database

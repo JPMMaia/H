@@ -1,0 +1,175 @@
+=========================
+Enums
+=========================
+
+module Enums;
+
+export enum My_enum
+{
+    Value_0 = 0,
+    Value_1,
+    Value_2,
+    
+    Value_10 = 10,
+    Value_11,
+}
+
+export function use_enums(enum_argument: My_enum) -> (result: Int32)
+{
+    var my_value = My_enum.Value_1;
+
+    switch enum_argument
+    {
+        case My_enum.Value_0:
+        case My_enum.Value_1:
+        case My_enum.Value_2:
+            return 0;
+
+        case My_enum.Value_10:
+        case My_enum.Value_11:
+            return 1;
+    }
+
+    return 2;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Enum
+      (Enum_name
+        (Identifier))
+      (Enum_values
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier)))
+        (Enum_value
+          (Enum_value_name
+            (Identifier)))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_access
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Expression_access_member_name
+                    (Identifier))))))
+          (Statement
+            (Expression_switch
+              (Generic_expression
+                (Expression_variable
+                  (Variable_name
+                    (Identifier))))
+              (Expression_switch_cases
+                (Expression_switch_case
+                  (Expression_switch_case_value
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier)))))
+                (Expression_switch_case
+                  (Expression_switch_case_value
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier)))))
+                (Expression_switch_case
+                  (Expression_switch_case_value
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))
+                  (Statement
+                    (Expression_return
+                      (Generic_expression_or_instantiate
+                        (Generic_expression
+                          (Expression_constant
+                            (Number)))))))
+                (Expression_switch_case
+                  (Expression_switch_case_value
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier)))))
+                (Expression_switch_case
+                  (Expression_switch_case_value
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))
+                  (Statement
+                    (Expression_return
+                      (Generic_expression_or_instantiate
+                        (Generic_expression
+                          (Expression_constant
+                            (Number))))))))))
+          (Statement
+            (Expression_return
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_constant
+                    (Number)))))))))))

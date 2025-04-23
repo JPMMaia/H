@@ -1,0 +1,464 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Generate read JSON",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+				"args": [
+					"read",
+					"h.json_serializer.read_json",
+					"h::json",
+					"h.core",
+					"${workspaceFolder}/Source/Core/Core.cppm",
+					"${workspaceFolder}/Source/JSON_serializer/Read_json.cppm"
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Generate write JSON",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+				"args": [
+					"write",
+					"h.json_serializer.write_json",
+					"h::json",
+					"h.core",
+					"${workspaceFolder}/Source/Core/Core.cppm",
+					"${workspaceFolder}/Source/JSON_serializer/Write_json.cppm"
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Generate JSON operators",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+				"args": [
+					"operators",
+					"h.json_serializer.operators",
+					"h::json",
+					"h.core",
+					"${workspaceFolder}/Source/Core/Core.cppm",
+					"${workspaceFolder}/Source/JSON_serializer/Operators.cppm"
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Replace Compiler Tests",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/tests_result_replacer/Debug/H_Tools_Replace_tests_results.exe",
+				"args": [
+					"${workspaceFolder}/build/Source/Compiler/Debug/H_compiler_tests.exe",
+					"${workspaceFolder}/Source/Compiler/Compiler.tests.cpp",
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "C Header Importer tests",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Interoperability/Debug/H_c_header_importer_tests.exe",
+				"args": [],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Generate TypeScript interface",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+				"args": [
+					"typescript_interface",
+					"${workspaceFolder}/Source/Core/Core.cppm",
+					"${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_interface.ts"
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Generate TypeScript intermediate representation",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
+				"args": [
+					"typescript_intermediate_representation",
+					"${workspaceFolder}/Source/Core/Core.cppm",
+					"${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_intermediate_representation.ts"
+				],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "hlang build-executable",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"build-executable",
+					"${workspaceFolder}/Examples/hl/hello_world.hl",
+					"--entry=main",
+					"--output=${workspaceFolder}/build/tmp/hello_world.exe",
+					"--build-directory=${workspaceFolder}/build/tmp/build",
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build/tmp",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "hlang build-artifact",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"build-artifact",
+					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/../MythologyEngine/build",
+					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
+					"--repository=${workspaceFolder}/Libraries/hlang_repository.json"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/../MythologyEngine",
+				"environment": [],
+				"console": "integratedTerminal",
+				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
+			},
+			{
+				"name": "hlang build-artifact MythologyEngine",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"build-artifact",
+					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/../MythologyEngine/build",
+					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
+					"--repository=${workspaceFolder}/../H/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/../MythologyEngine",
+				"environment": [],
+				"console": "integratedTerminal",
+				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
+			},
+			{
+				"name": "hlang run-with-jit",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"run-with-jit",
+					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/build/tmp",
+					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
+					"--repository=${workspaceFolder}/Libraries/hlang_repository.json"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build/tmp",
+				"environment": [],
+				"console": "integratedTerminal",
+				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
+			},
+			{
+				"name": "hlang run-with-jit MythologyEngine",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"run-with-jit",
+					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/../MythologyEngine/build",
+					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
+					"--repository=${workspaceFolder}/../H/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/../MythologyEngine",
+				"environment": [],
+				"console": "integratedTerminal",
+				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
+			},
+			{
+				"name": "hlang import-c-header",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"import-c-header",
+					"c.complex",
+					"${workspaceFolder}/../H/Tools/vscode/H-editor/packages/client/test_fixture/projects/complex/complex.h",
+					"${workspaceFolder}/../H/Tools/vscode/H-editor/packages/client/test_fixture/build/Complex/c.complex.h",
+					/*"SDL3.SDL",
+					"${workspaceFolder}/../SDL/include/SDL3/SDL.h",
+					"${workspaceFolder}/SDL3.hl",
+					"--header-search-path=${workspaceFolder}/../SDL/include"*/
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "hlang print-struct-layout",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"print-struct-layout",
+					"${workspaceFolder}/Tools/vscode/H-editor/packages/client/test_fixture/build/no_artifact/code_lens_0.generated.hl",
+					"My_struct"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Parser",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Parser/Debug/hlang_parser.exe",
+				"args": [
+					"${workspaceFolder}/Examples/txt/hello_world.hltxt",
+					"${workspaceFolder}/build/tmp/hello_world.hl",
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build/tmp",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Compiler Tests",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Compiler/Debug/H_compiler_tests.exe",
+				"args": [
+					"[JIT]"
+				],
+				"stopAtEntry": false,
+				"cwd": "${workspaceFolder}/build/tmp",
+				"environment": [],
+				"console": "integratedTerminal"
+			},
+			{
+				"name": "Python build_utilities",
+				"type": "debugpy",
+				"request": "launch",
+				"program": "${workspaceFolder}/Scripts/build_utilities.py",
+				"args": [
+					"generate_examples"
+				],
+			}
+		],
+		"compounds": []
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "Package VSCode Extension",
+				"command": "vsce",
+				"type": "shell",
+				"args": [
+					"package"
+				],
+				"presentation": {
+					"reveal": "always"
+				},
+				"group": "none",
+				"options": {
+					"cwd": "${workspaceFolder}/Tools/vscode/H-editor"
+				},
+				"problemMatcher": []
+			},
+			{
+				"label": "Install Debug Hlang",
+				"type": "shell",
+				"command": "python",
+				"args": [
+					"${workspaceFolder}/Scripts/build_utilities.py",
+					"install_hlang",
+					"${workspaceFolder}/../Hlang_install",
+					"--configuration",
+					"debug",
+				],
+				"presentation": {
+					"reveal": "always"
+				},
+				"problemMatcher": []
+			}
+		]
+	},
+	"settings": {
+		"files.associations": {
+			"vector": "cpp",
+			"algorithm": "cpp",
+			"array": "cpp",
+			"atomic": "cpp",
+			"bit": "cpp",
+			"cctype": "cpp",
+			"charconv": "cpp",
+			"chrono": "cpp",
+			"clocale": "cpp",
+			"cmath": "cpp",
+			"compare": "cpp",
+			"concepts": "cpp",
+			"cstddef": "cpp",
+			"cstdint": "cpp",
+			"cstdio": "cpp",
+			"cstdlib": "cpp",
+			"cstring": "cpp",
+			"ctime": "cpp",
+			"cwchar": "cpp",
+			"exception": "cpp",
+			"format": "cpp",
+			"forward_list": "cpp",
+			"functional": "cpp",
+			"initializer_list": "cpp",
+			"iomanip": "cpp",
+			"ios": "cpp",
+			"iosfwd": "cpp",
+			"istream": "cpp",
+			"iterator": "cpp",
+			"limits": "cpp",
+			"list": "cpp",
+			"locale": "cpp",
+			"map": "cpp",
+			"memory": "cpp",
+			"memory_resource": "cpp",
+			"mutex": "cpp",
+			"new": "cpp",
+			"numeric": "cpp",
+			"optional": "cpp",
+			"ostream": "cpp",
+			"ratio": "cpp",
+			"sstream": "cpp",
+			"stdexcept": "cpp",
+			"stop_token": "cpp",
+			"streambuf": "cpp",
+			"string": "cpp",
+			"system_error": "cpp",
+			"thread": "cpp",
+			"tuple": "cpp",
+			"type_traits": "cpp",
+			"typeinfo": "cpp",
+			"unordered_map": "cpp",
+			"utility": "cpp",
+			"valarray": "cpp",
+			"xfacet": "cpp",
+			"xhash": "cpp",
+			"xiosbase": "cpp",
+			"xlocale": "cpp",
+			"xlocbuf": "cpp",
+			"xlocinfo": "cpp",
+			"xlocmes": "cpp",
+			"xlocmon": "cpp",
+			"xlocnum": "cpp",
+			"xloctime": "cpp",
+			"xmemory": "cpp",
+			"xstddef": "cpp",
+			"xstring": "cpp",
+			"xtr1common": "cpp",
+			"xtree": "cpp",
+			"xutility": "cpp",
+			"*.inc": "cpp",
+			"variant": "cpp",
+			"filesystem": "cpp",
+			"bitset": "cpp",
+			"cinttypes": "cpp",
+			"condition_variable": "cpp",
+			"deque": "cpp",
+			"fstream": "cpp",
+			"future": "cpp",
+			"iostream": "cpp",
+			"queue": "cpp",
+			"random": "cpp",
+			"regex": "cpp",
+			"set": "cpp",
+			"shared_mutex": "cpp",
+			"span": "cpp",
+			"stack": "cpp",
+			"unordered_set": "cpp",
+			"*.def": "cpp",
+			"*.cppm": "cpp",
+			"ranges": "cpp",
+			"cassert": "cpp",
+			"complex": "cpp",
+			"string_view": "cpp",
+			"any": "cpp",
+			"codecvt": "cpp",
+			"coroutine": "cpp",
+			"resumable": "cpp"
+		},
+		"cmake.configureSettings": {
+			"CMAKE_TOOLCHAIN_FILE": "${workspaceFolder}/../vcpkg/scripts/buildsystems/vcpkg.cmake"
+		},
+		"cmake.configureArgs": [
+			//"--debug-find"
+		],
+		"cmake.configureOnOpen": false,
+		"editor.defaultFormatter": "ms-vscode.cpptools",
+		"C_Cpp.formatting": "vcFormat",
+		"[json]": {
+			"editor.defaultFormatter": "vscode.json-language-features"
+		},
+		"[jsonc]": {
+			"editor.defaultFormatter": "vscode.json-language-features"
+		},
+		"C_Cpp.vcFormat.newLine.beforeOpenBrace.lambda": "newLine",
+		"C_Cpp.vcFormat.indent.lambdaBracesWhenParameter": false,
+		"testMate.cpp.debug.configTemplate": {
+			"type": "cppvsdbg",
+			"linux": {
+				"type": "cppdbg",
+				"MIMode": "gdb"
+			},
+			"darwin": {
+				"type": "cppdbg",
+				"MIMode": "lldb"
+			},
+			"win32": {
+				"type": "cppvsdbg"
+			},
+			"program": "${exec}",
+			"args": "${argsArray}",
+			"cwd": "${cwd}",
+			"env": "${envObj}",
+			"environment": "${envObjArray}",
+			"sourceFileMap": "${sourceFileMapObj}",
+			"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
+			"showDisplayString": true,
+			"console": "integratedTerminal"
+		},
+		"editor.formatOnSave": false
+	}
+}

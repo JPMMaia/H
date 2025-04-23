@@ -14,3 +14,5 @@ function run() -> (result: Complex)
 {
     return {
         real: 1.0f32,
+    };
+}

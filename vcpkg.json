@@ -4,10 +4,11 @@
     "dependencies": [
         "argparse",
         "catch2",
-        "docopt",
         "nlohmann-json",
         "rapidjson",
+        "tree-sitter",
         "xxhash",
+        "zlib",
         {
             "name": "llvm",
             "features": [

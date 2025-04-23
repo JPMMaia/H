@@ -1,0 +1,109 @@
+=========================
+Unary expressions
+=========================
+
+module Unary_expressions;
+
+export function foo(
+    my_integer: Int32,
+    my_boolean: Bool
+) -> ()
+{
+    var not_variable = !my_boolean;
+    var bitwise_not_variable = ~my_integer;
+    var minus_variable = -my_integer;
+    var address_of_variable = &my_integer;
+    var indirection_variable = *address_of_variable;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_unary
+                  (Expression_unary_symbol)
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_unary
+                  (Expression_unary_symbol)
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_unary
+                  (Expression_unary_symbol)
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_unary
+                  (Expression_unary_symbol)
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_unary
+                  (Expression_unary_symbol)
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier)))))))))))))

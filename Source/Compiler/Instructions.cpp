@@ -4,23 +4,32 @@ module;
 
 module h.compiler.instructions;
 
+import h.core.types;
+
 namespace h::compiler
 {
     llvm::AllocaInst* create_alloca_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_function,
         llvm::Type* const llvm_type,
-        std::string_view const name
+        std::string_view const name,
+        llvm::Value* const array_size
     )
     {
         // If the value is not sized, we cannot create alloca for it.
         if (!llvm_type->isSized())
             return nullptr;
 
-        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, nullptr, name.data());
+        llvm::BasicBlock* llvm_original_insert_block = llvm_builder.GetInsertBlock();
+        llvm_builder.SetInsertPointPastAllocas(&llvm_function);
+
+        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, array_size, name.data());
         
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
         instruction->setAlignment(type_alignment);
+
+        llvm_builder.SetInsertPoint(llvm_original_insert_block);
 
         return instruction;
     }
@@ -89,19 +98,95 @@ namespace h::compiler
     }
 
     llvm::Value* create_memset_to_0_call(
-        llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
-        llvm::Module& llvm_module,
         llvm::Value* const destination_pointer,
-        std::uint64_t const type_alloc_size_in_bytes
+        std::uint64_t const type_alloc_size_in_bytes,
+        llvm::MaybeAlign const alignment
     )
     {
-        llvm::Value* const raw_pointer = llvm_builder.CreateBitCast(destination_pointer, llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0));
-        llvm::Value* const size_in_bytes_value = llvm::ConstantInt::get(llvm_builder.getInt64Ty(), type_alloc_size_in_bytes);
-
         llvm::Value* const zero_value = llvm_builder.getInt8(0);
-        llvm::Value* const is_volatile = llvm_builder.getInt1(false);
-        llvm::Function* const memset_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::memset);
-        return llvm_builder.CreateCall(memset_function, {raw_pointer, zero_value, size_in_bytes_value, is_volatile});
+        bool const is_volatile = false;
+
+        return llvm_builder.CreateMemSet(destination_pointer, zero_value, type_alloc_size_in_bytes, alignment, is_volatile);
+    }
+
+    llvm::Value* convert_to_boolean(
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Value* const llvm_value,
+        std::optional<h::Type_reference> const& type
+    )
+    {
+        return (type.has_value() && is_c_bool(*type)) ?
+            llvm_builder.CreateTrunc(llvm_value, llvm::Type::getInt1Ty(llvm_context)) :
+            llvm_value;
+    }
+
+    llvm::Value* create_null_terminated_string_value(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::string_view const string
+    )
+    {
+        llvm::Constant* const string_constant = llvm::ConstantDataArray::getString(llvm_context, string, true);
+
+        llvm::GlobalVariable* const global_string = new llvm::GlobalVariable(
+            llvm_module,
+            string_constant->getType(),
+            true,  
+            llvm::GlobalValue::PrivateLinkage,
+            string_constant,
+            "function_contract_error_string"
+        );
+
+        global_string->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
+
+        return global_string;
+    }
+
+    llvm::Value* create_log_error_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder,
+        std::string_view const message
+    )
+    {
+        llvm::Function* puts_function = llvm_module.getFunction("puts");
+        if (!puts_function)
+        {
+            llvm::FunctionType* const puts_function_type = llvm::FunctionType::get(
+                llvm::Type::getInt32Ty(llvm_context),
+                llvm::Type::getInt8Ty(llvm_context)->getPointerTo(),
+                false
+            );
+
+            puts_function = llvm::Function::Create(puts_function_type, llvm::Function::ExternalLinkage, "puts", llvm_module);
+        }
+
+        llvm::Value* const message_value = create_null_terminated_string_value(
+            llvm_context,
+            llvm_module,
+            llvm_builder,
+            message
+        );
+
+        return llvm_builder.CreateCall(puts_function, {message_value});
+    }
+
+    llvm::Value* create_abort_instruction(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::IRBuilder<>& llvm_builder
+    )
+    {
+        llvm::Function* abort_function = llvm_module.getFunction("abort");
+        if (!abort_function)
+        {
+            llvm::FunctionType* const abort_function_type = llvm::FunctionType::get(llvm::Type::getVoidTy(llvm_context), false);
+            abort_function = llvm::Function::Create(abort_function_type, llvm::Function::ExternalLinkage, "abort", llvm_module);
+        }
+
+        return llvm_builder.CreateCall(abort_function);
     }
 }

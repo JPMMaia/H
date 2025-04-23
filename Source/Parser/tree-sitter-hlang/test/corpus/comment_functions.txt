@@ -1,0 +1,61 @@
+=========================
+Comment functions
+=========================
+
+module Comment_functions;
+
+// Function comment
+// No arguments
+export function use_comments() -> ()
+{
+    // This is a comment
+    var i = 0;
+
+    // This is another comment
+    // And yet another
+    var x = 0;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Comment)
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters)
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_comment
+              (Comment)))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_constant
+                  (Number)))))
+          (Statement
+            (Expression_comment
+              (Comment)))
+          (Statement
+            (Expression_comment
+              (Comment)))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_constant
+                  (Number))))))))))

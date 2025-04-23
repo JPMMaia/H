@@ -1,33 +1,39 @@
-#include <docopt.h>
+#include <argparse/argparse.hpp>
 
 #include <filesystem>
-#include <map>
+#include <iostream>
 #include <string>
 
 import h.parser;
 
-static constexpr char g_usage[] =
-R"(H parser
-
-    Usage:
-      h_parser <source_file> <output_file>
-      h_parser (-h | --help)
-      h_parser --version
-
-    Options:
-      -h --help                                   Show this screen.
-      --version                                   Show version.
-)";
-
 int main(int const argc, char const* const* argv)
 {
-  std::map<std::string, docopt::value> const arguments = docopt::docopt(g_usage, { argv + 1, argv + argc }, true, "H Parser 0.1.0");
+    argparse::ArgumentParser program("hlang_parser");
 
-  std::filesystem::path const source_file_path = arguments.at("<source_file>").asString();
-  std::filesystem::path const output_file_path = arguments.at("<output_file>").asString();
+    // hlang <source_file> <output_file>
+    program.add_argument("source_file")
+        .help("Source file to parse")
+        .required();
+    program.add_argument("output_file")
+        .help("Destination file path.")
+        .required();
 
-  h::parser::Parser const parser = h::parser::create_parser();
-  h::parser::parse(parser, source_file_path, output_file_path);
+    try
+    {
+        program.parse_args(argc, argv);
+    }
+    catch (std::exception const& error)
+    {
+        std::cerr << error.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
 
-  return 0;
+    std::filesystem::path const source_file_path = program.get<std::string>("source_file");
+    std::filesystem::path const output_file_path = program.get<std::string>("output_file");
+
+    h::parser::Parser const parser = h::parser::create_parser();
+    h::parser::parse(parser, source_file_path, output_file_path);
+
+    return 0;
 }

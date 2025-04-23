@@ -39,19 +39,15 @@ export async function get_hover(
     }
     const after_cursor_node_position = after_cursor.node_position;
 
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module(document_state).name);
-    if (core_module === undefined) {
-        return undefined;
-    }
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
 
     const ancestor_type = Parser_node.get_ancestor_with_name(root, after_cursor_node_position, "Type_name");
     if (ancestor_type !== undefined) {
         const parent_node = Parser_node.get_node_at_position(root, Parser_node.get_parent_position(ancestor_type.position));
-        const type_reference = Parse_tree_analysis.get_type_reference_from_node(server_data.language_description, core_module, parent_node);
-        const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_core_module);
+        const type_reference = Parse_tree_analysis.get_type_reference_from_node(root, parent_node);
+        const type_declaration = await Parse_tree_analysis.get_type_reference_declaration(type_reference, get_parse_tree);
         if (type_declaration !== undefined) {
-            const content = Helpers.get_tooltip_of_declaration(type_declaration.core_module, type_declaration.declaration);
+            const content = Helpers.get_tooltip_of_declaration(type_declaration.root, type_declaration.declaration);
             const range = Helpers.get_terminal_node_vscode_range(root, after_cursor.text, after_cursor.node_position);
             return {
                 contents: content,
@@ -65,9 +61,9 @@ export async function get_hover(
     ]);
     if (ancestor_declaration_name !== undefined && after_cursor.node !== undefined) {
         const declaration_name = after_cursor.node.word.value;
-        const declaration = core_module.declarations.find(declaration => declaration.name === declaration_name);
-        if (declaration !== undefined) {
-            const content = Helpers.get_tooltip_of_declaration(core_module, declaration);
+        const declaration_info = await Parse_tree_analysis.get_declaration_using_parse_tree(root, declaration_name);
+        if (declaration_info !== undefined) {
+            const content = Helpers.get_tooltip_of_declaration(root, declaration_info.declaration);
             const range = Helpers.get_terminal_node_vscode_range(root, after_cursor.text, after_cursor.node_position);
             return {
                 contents: content,
@@ -92,19 +88,31 @@ export async function get_hover(
     ]);
     if (ancestor_expression !== undefined) {
         if (ancestor_expression.node.word.value === "Expression_access") {
-            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor_expression.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Access_expression) {
-                const access_expression = expression.data.value as Core.Access_expression;
-                const components = await Parse_tree_analysis.get_access_expression_components(server_data.language_description, core_module, access_expression, root, ancestor_expression.node, ancestor_expression.position, get_core_module);
-                const member_name_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
-                if (member_name_component.type === Parse_tree_analysis.Component_type.Member_name) {
+                const components = await Parse_tree_analysis.get_access_expression_components_using_nodes(root, ancestor_expression, get_parse_tree);
+                const selected_component = Parse_tree_analysis.select_access_expression_component(components, before_cursor.node, before_cursor.node_position, after_cursor.node_position);
+                if (selected_component.type === Parse_tree_analysis.Component_type.Declaration) {
+                    const declaration_component = selected_component;
+                    const module_declaration = declaration_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
+                    const content = Helpers.get_tooltip_of_declaration(module_declaration.root, module_declaration.declaration);
+                    if (content !== undefined) {
+                        const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, declaration_component.node_position);
+                        return {
+                            contents: content,
+                            range: range
+                        };
+                    }
+                }
+                else if (selected_component.type === Parse_tree_analysis.Component_type.Member_name) {
+                    const member_name_component = selected_component;
                     const declaration_component = components[components.length - 2];
                     if (declaration_component !== undefined && declaration_component.type === Parse_tree_analysis.Component_type.Declaration) {
-                        const module_declaration = declaration_component.value as { core_module: Core.Module, declaration: Core.Declaration };
+                        const module_declaration = declaration_component.value as { root: Parser_node.Node, declaration: Core.Declaration, declaration_name_node_position: number[] };
                         const member_name = member_name_component.value as string;
                         const member_index = Helpers.get_declaration_member_index(module_declaration.declaration, member_name);
                         if (member_index !== undefined) {
-                            const content = Helpers.get_tooltip_of_declaration_member(module_declaration.core_module, module_declaration.declaration, member_index);
+                            const content = Helpers.get_tooltip_of_declaration_member(module_declaration.root, module_declaration.declaration, member_index);
                             if (content !== undefined) {
                                 const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, member_name_component.node_position);
                                 return {
@@ -118,9 +126,9 @@ export async function get_hover(
             }
         }
         else if (ancestor_expression.node.word.value === "Expression_instantiate_member_name") {
-            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(server_data.language_description, core_module, root, before_cursor.node_position, false, get_core_module);
+            const instantiate_member_info = await Parse_tree_analysis.find_instantiate_member_from_node(root, before_cursor.node_position, false, get_parse_tree);
             if (instantiate_member_info !== undefined) {
-                const content = Helpers.get_tooltip_of_declaration_member(core_module, instantiate_member_info.declaration, instantiate_member_info.member_index);
+                const content = Helpers.get_tooltip_of_declaration_member(root, instantiate_member_info.declaration, instantiate_member_info.member_index);
                 if (content !== undefined) {
                     const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, ancestor_expression.position);
                     return {
@@ -132,13 +140,13 @@ export async function get_hover(
         }
         else if (ancestor_expression.node.word.value === "Expression_variable") {
 
-            const expression = Parse_tree_analysis.get_expression_from_node(server_data.language_description, core_module, ancestor_expression.node);
+            const expression = Parse_tree_analysis.get_expression_from_node(root, ancestor_expression.node);
             if (expression.data.type === Core.Expression_enum.Variable_expression) {
                 const variable_expression = expression.data.value as Core.Variable_expression;
-                const declaration = core_module.declarations.find(declaration => declaration.name === variable_expression.name);
+                const declaration_info = await Parse_tree_analysis.get_declaration_using_parse_tree(root, variable_expression.name);
 
-                if (declaration !== undefined) {
-                    const content = Helpers.get_tooltip_of_declaration(core_module, declaration);
+                if (declaration_info !== undefined) {
+                    const content = Helpers.get_tooltip_of_declaration(root, declaration_info.declaration);
                     const range = Helpers.get_terminal_node_vscode_range(root, before_cursor.text, ancestor_expression.position);
                     return {
                         contents: content,

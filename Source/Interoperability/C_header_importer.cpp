@@ -8,6 +8,7 @@ module;
 #include <memory_resource>
 #include <numeric>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <variant>
@@ -18,6 +19,8 @@ module;
 #include <clang-c/Index.h>
 
 module h.c_header_converter;
+
+import h.c_header_hash;
 
 import h.core;
 import h.core.declarations;
@@ -48,6 +51,9 @@ namespace h::c
 
         std::string_view string_view() const noexcept
         {
+            if (value.data == nullptr)
+                return std::string_view{};
+
             return clang_getCString(value);
         }
 
@@ -723,6 +729,238 @@ namespace h::c
         };
     }
 
+    std::string_view get_line_without_comments(std::string_view const line, bool const is_multi_line_comment)
+    {
+        std::size_t begin_index = 0;
+
+        if (is_multi_line_comment && line.size() >= 2)
+        {
+            if (line.starts_with("/**"))
+                begin_index = 3;
+            else if (line.starts_with("/*"))
+                begin_index = 2;
+            else if (line.starts_with(" */"))
+                begin_index = 3;
+            else if (line.starts_with(" *"))
+                begin_index = 2;
+        }
+
+        std::string_view const rest_of_line{line.begin() + begin_index, line.end()};
+        if (rest_of_line.starts_with(" "))
+            return rest_of_line.substr(1);
+
+        return rest_of_line;
+    }
+
+    bool is_whitespace_or_newline(char const character)
+    {
+        switch (character)
+        {
+        case ' ':
+        case '\t':
+        case '\r':
+        case '\n':
+            return true;
+        default:
+            return false;
+        }
+    }
+    
+    bool is_empty_line(std::string_view const line)
+    {
+        return std::ranges::all_of(line, is_whitespace_or_newline);
+    }
+
+    std::pmr::string remove_whitespace_or_new_line_characters(std::string_view const text)
+    {
+        std::size_t start_index = 0;
+        if (text.starts_with(" "))
+            start_index += 1;
+
+        std::pmr::string output;
+        output.reserve(text.size());
+
+        for (std::size_t index = start_index; index < text.size(); ++index)
+        {
+            char const character = text[index];
+
+            if (character == '\n' || character == '\r')
+            {
+                if (index + 1 < text.size() && text[index + 1] != ' ')
+                    output.push_back(' ');
+                
+                continue;
+            }
+            
+            output.push_back(character);
+        }
+
+        return output;
+    }
+
+    bool is_input_parameter_line_comment(std::string_view const line)
+    {
+        return line.starts_with("\\param") || line.starts_with("@param");
+    }
+
+    bool is_output_parameter_line_comment(std::string_view const line)
+    {
+        return line.starts_with("\\return") || line.starts_with("@return");
+    }
+
+    bool is_parameter_line_comment(std::string_view const line)
+    {
+        return is_input_parameter_line_comment(line) || is_output_parameter_line_comment(line);
+    }
+
+    std::pmr::string format_input_parameter_line_comment(std::string_view const line)
+    {
+        constexpr std::size_t begin_parameter_name_index = 7;
+        std::size_t const end_parameter_name_index = line.find_first_of(" ", begin_parameter_name_index);
+        std::string_view const parameter_name = line.substr(begin_parameter_name_index, end_parameter_name_index - begin_parameter_name_index);
+
+        std::string_view const rest_of_line = line.substr(end_parameter_name_index + 1);
+
+        std::string const formatted_line = std::format("@input_parameter {}: {}", parameter_name, rest_of_line);
+        return std::pmr::string{formatted_line};
+    }
+
+    std::pmr::string format_output_parameter_line_comment(std::string_view const line)
+    {
+        std::string_view const rest_of_line = line.substr(8);
+
+        std::string const formatted_line = std::format("@output_parameter result: {}", rest_of_line);
+        return std::pmr::string{formatted_line};
+    }
+
+    std::pair<std::optional<std::pmr::string>, std::size_t> get_continuous_text(
+        std::span<std::pmr::string const> const lines,
+        std::size_t const line_index,
+        bool const is_multi_line_comment
+    )
+    {
+        std::stringstream stream;
+
+        std::size_t current_line_index = line_index;
+        while (current_line_index < lines.size())
+        {
+            std::pmr::string const& line = lines[current_line_index];
+            std::string_view const line_without_comments = get_line_without_comments(line, is_multi_line_comment);
+
+            if (is_empty_line(line_without_comments))
+            {
+                current_line_index += 1;    
+                break;
+            }
+            else if (is_parameter_line_comment(line_without_comments) && current_line_index > line_index)
+            {
+                break;
+            }
+
+            stream << line_without_comments;
+
+            current_line_index += 1;
+        }
+
+        std::string const result = stream.str();
+        if (result.empty())
+            return std::make_pair(std::optional<std::pmr::string>{}, current_line_index);
+
+        std::pmr::string const clean_line = remove_whitespace_or_new_line_characters(result);
+
+        return std::make_pair(std::optional<std::pmr::string>{std::pmr::string{clean_line}}, current_line_index);
+    }
+
+    std::optional<std::pmr::string> create_function_comment(
+        CXCursor const cursor
+    )
+    {
+        String const raw_comment_string = clang_Cursor_getRawCommentText(cursor);
+        std::string_view const raw_comment = raw_comment_string.string_view();
+        if (raw_comment.empty())
+            return std::nullopt;
+
+        bool const is_multi_line_comment = raw_comment.starts_with("/*");
+
+        std::pmr::string short_description;
+        std::pmr::string long_description;
+        std::pmr::vector<std::pmr::string> input_parameter_descriptions;
+        std::pmr::vector<std::pmr::string> output_parameter_descriptions;
+
+        std::size_t new_lines = 0;
+
+        std::pmr::vector<std::pmr::string> lines;
+        for (auto const& line : std::views::split(raw_comment, '\n'))
+            lines.push_back(std::pmr::string{line.begin(), line.end()});
+
+        std::size_t line_index = 0;
+        while (line_index < lines.size())
+        {
+            std::pair<std::optional<std::pmr::string>, std::size_t> const result = get_continuous_text(lines, line_index, is_multi_line_comment);
+
+            std::optional<std::pmr::string> const continuous_text = result.first;
+            if (continuous_text.has_value())
+            {
+                if (short_description.empty())
+                {
+                    short_description = *continuous_text;
+                }
+                else if (is_input_parameter_line_comment(*continuous_text))
+                {
+                    input_parameter_descriptions.push_back(*continuous_text);
+                }
+                else if (is_output_parameter_line_comment(*continuous_text))
+                {
+                    output_parameter_descriptions.push_back(*continuous_text);
+                }
+                else
+                {
+                    if (!long_description.empty())
+                        long_description += "\n\n";
+                    long_description += *continuous_text;
+                }
+            }
+            
+            line_index = result.second;
+        }
+
+        std::stringstream stream;
+
+        if (!short_description.empty())
+        {
+            stream << short_description << '\n';
+            if (!long_description.empty() || (input_parameter_descriptions.size() + output_parameter_descriptions.size()) > 0)
+                stream << '\n';
+        }
+
+        if (!long_description.empty())
+        {
+            stream << long_description << '\n';
+            if ((input_parameter_descriptions.size() + output_parameter_descriptions.size()) > 0)
+                stream << '\n';
+        }
+
+        for (std::pmr::string const& comment : input_parameter_descriptions)
+        {
+            if (!comment.empty())
+            {
+                std::pmr::string formatted_comment = format_input_parameter_line_comment(comment);
+                stream << formatted_comment << '\n';
+            }
+        }
+
+        for (std::pmr::string const& comment : output_parameter_descriptions)
+        {
+            if (!comment.empty())
+            {
+                std::pmr::string formatted_comment = format_output_parameter_line_comment(comment);
+                stream << formatted_comment << '\n';
+            }
+        }
+
+        return std::pmr::string{stream.str()};
+    }
+
     h::Function_declaration create_function_declaration(C_declarations const& declarations, CXCursor const cursor)
     {
         String const cursor_spelling = { clang_getCursorSpelling(cursor) };
@@ -745,6 +983,8 @@ namespace h::c
         std::pmr::vector<h::Source_position> input_parameter_source_positions = create_input_parameter_source_positions(cursor);
         std::pmr::vector<h::Source_position> output_parameter_source_positions = create_output_parameter_source_positions(cursor, h_function_type.output_parameter_types.size());
 
+        std::optional<std::pmr::string> comment = create_function_comment(cursor);
+
         return h::Function_declaration
         {
             .name = std::pmr::string{function_name},
@@ -753,6 +993,7 @@ namespace h::c
             .input_parameter_names = std::move(input_parameter_names),
             .output_parameter_names = std::move(output_parameter_names),
             .linkage = h::Linkage::External,
+            .comment = std::move(comment),
             .source_location = cursor_location.source_location,
             .input_parameter_source_positions = std::move(input_parameter_source_positions),
             .output_parameter_source_positions = std::move(output_parameter_source_positions),
@@ -780,7 +1021,7 @@ namespace h::c
         return macro;
     }
 
-    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor, Type_reference const& type_reference)
+    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor)
     {
         CXCursor const initializer_cursor = clang_Cursor_getVarDeclInitializer(cursor);
 
@@ -797,7 +1038,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_fundamental_type_type_reference(h::Fundamental_type::C_int),
                                 std::to_string(value)
                             )
                         }
@@ -809,7 +1050,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_fundamental_type_type_reference(h::Fundamental_type::Float32),
                                 std::to_string(value)
                             )
                         }
@@ -822,7 +1063,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                type_reference,
+                                h::create_c_string_type_reference(false),
                                 value
                             )
                         }
@@ -867,21 +1108,21 @@ namespace h::c
         CXType const variable_type = clang_getCursorType(cursor);
         bool const is_const = clang_isConstQualifiedType(variable_type);
 
-        std::optional<h::Type_reference> const member_type_reference = create_type_reference(declarations, cursor, variable_type);
-        if (!member_type_reference.has_value())
+        std::optional<h::Type_reference> const type_reference = create_type_reference(declarations, cursor, variable_type);
+        if (!type_reference.has_value())
             return std::nullopt;
 
         Header_source_location const cursor_location = get_cursor_source_location(
             cursor
         );
 
-        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, *member_type_reference);
+        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor);
 
         return h::Global_variable_declaration
         {
             .name = std::pmr::string{variable_name},
             .unique_name = std::pmr::string{variable_name},
-            .type = std::move(*member_type_reference),
+            .type = std::move(*type_reference),
             .initial_value = initial_value.has_value() ? std::move(*initial_value) : h::Statement{},
             .is_mutable = !is_const,
             .comment = std::nullopt,
@@ -2165,13 +2406,11 @@ namespace h::c
     h::Module import_header(
         std::string_view const header_name,
         std::filesystem::path const& header_path,
-        Options const& options
+        Options const& options,
+        CXIndex const index,
+        CXTranslationUnit const unit
     )
     {
-        CXIndex index = clang_createIndex(0, 0);
-
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
-
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
             C_declarations* const declarations = reinterpret_cast<C_declarations*>(client_data);
@@ -2248,10 +2487,6 @@ namespace h::c
             declarations
         );
 
-        clang_disposeTranslationUnit(unit);
-        clang_disposeIndex(index);
-
-
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
         transform_names(declarations_with_fixed_width_integers, options.remove_prefixes);
 
@@ -2264,7 +2499,9 @@ namespace h::c
             declarations_with_fixed_width_integers.global_variable_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
             declarations_with_fixed_width_integers.union_declarations,
-            declarations_with_fixed_width_integers.function_declarations
+            declarations_with_fixed_width_integers.function_declarations,
+            {},
+            {}
         );
         
         h::Module header_module
@@ -2294,10 +2531,43 @@ namespace h::c
         return header_module;
     }
 
+    h::Module import_header(
+        std::string_view const header_name,
+        std::filesystem::path const& header_path,
+        Options const& options
+    )
+    {
+        CXIndex index = clang_createIndex(0, 0);
+        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+
+        h::Module header_module = import_header(header_name, header_path, options, index, unit);
+
+        clang_disposeTranslationUnit(unit);
+        clang_disposeIndex(index);
+
+        return header_module;
+    }
+
     void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
-        h::Module const header_module = import_header(header_name, header_path, options);
+        std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
 
+        if (current_header_hash.has_value() && std::filesystem::exists(output_path))
+        {
+            std::optional<h::json::Header> const core_header = h::json::read_header(output_path);
+            if (core_header.has_value())
+            {
+                std::optional<std::uint64_t> const cached_header_hash = core_header->content_hash;
+                if (cached_header_hash.has_value())
+                {
+                    if (current_header_hash.value() == cached_header_hash.value())
+                        return;
+                }
+            }
+        }
+
+        h::Module header_module = import_header(header_name, header_path, options);
+        header_module.content_hash = current_header_hash;
         h::json::write<h::Module>(output_path, header_module);
     }
 

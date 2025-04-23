@@ -10,10 +10,12 @@ module;
 #include <string>
 #include <string_view>
 #include <span>
+#include <unordered_map>
 
 module h.compiler.common;
 
 import h.core;
+import h.core.hash;
 
 namespace h::compiler
 {
@@ -23,7 +25,7 @@ namespace h::compiler
     }
 
     std::string mangle_name(
-        Module const& core_module,
+        std::string_view const module_name,
         std::string_view const declaration_name,
         std::optional<std::string_view> const unique_name
     )
@@ -31,10 +33,19 @@ namespace h::compiler
         if (unique_name.has_value())
             return std::string{ *unique_name };
 
-        std::pmr::string module_name = core_module.name;
-        std::replace(module_name.begin(), module_name.end(), '.', '_');
+        std::pmr::string module_name_prefix{module_name};
+        std::replace(module_name_prefix.begin(), module_name_prefix.end(), '.', '_');
 
-        return std::format("{}_{}", module_name, declaration_name);
+        return std::format("{}_{}", module_name_prefix, declaration_name);
+    }
+
+    std::string mangle_name(
+        Module const& core_module,
+        std::string_view const declaration_name,
+        std::optional<std::string_view> const unique_name
+    )
+    {
+        return mangle_name(core_module.name, declaration_name, unique_name);
     }
 
     std::string mangle_function_name(
@@ -76,74 +87,16 @@ namespace h::compiler
         return mangle_name(core_module, declaration_name, unique_name);
     }
 
-    template<typename T>
-    concept Has_name = requires(T a)
-    {
-        { a.name } -> std::convertible_to<std::pmr::string>;
-    };
-
-    template<Has_name Type>
-    Type const* get_value(
+    llvm::Function* get_llvm_function(
+        std::string_view const module_name,
+        llvm::Module& llvm_module,
         std::string_view const name,
-        std::span<Type const> const values
+        std::optional<std::string_view> const unique_name
     )
     {
-        auto const location = std::find_if(values.begin(), values.end(), [name](Type const& value) { return value.name == name; });
-        return location != values.end() ? *location : nullptr;
-    }
-
-    template<Has_name Type>
-    std::optional<Type const*> get_value(
-        std::string_view const name,
-        std::pmr::vector<Type> const& span_0,
-        std::pmr::vector<Type> const& span_1
-    )
-    {
-        auto const find_declaration = [name](Type const& declaration) -> bool { return declaration.name == name; };
-
-        {
-            auto const location = std::find_if(span_0.begin(), span_0.end(), find_declaration);
-            if (location != span_0.end())
-                return &(*location);
-        }
-
-        {
-            auto const location = std::find_if(span_1.begin(), span_1.end(), find_declaration);
-            if (location != span_1.end())
-                return &(*location);
-        }
-
-        return std::nullopt;
-    }
-
-    std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view const name)
-    {
-        return get_value(name, module.export_declarations.alias_type_declarations, module.internal_declarations.alias_type_declarations);
-    }
-
-    std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view const name)
-    {
-        return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
-    }
-
-    std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name)
-    {
-        return get_value(name, module.export_declarations.global_variable_declarations, module.internal_declarations.global_variable_declarations);
-    }
-
-    std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view const name)
-    {
-        return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);
-    }
-
-    std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view const name)
-    {
-        return get_value(name, module.export_declarations.struct_declarations, module.internal_declarations.struct_declarations);
-    }
-
-    std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view const name)
-    {
-        return get_value(name, module.export_declarations.union_declarations, module.internal_declarations.union_declarations);
+        std::string const mangled_name = mangle_name(module_name, name, unique_name);
+        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
+        return llvm_function;
     }
 
     llvm::Function* get_llvm_function(
@@ -158,8 +111,23 @@ namespace h::compiler
 
         std::optional<std::pmr::string> const& unique_name = function_declaration.value()->unique_name;
 
-        std::string const mangled_name = mangle_name(core_module, name, unique_name);
-        llvm::Function* const llvm_function = llvm_module.getFunction(mangled_name);
-        return llvm_function;
+        return get_llvm_function(core_module.name, llvm_module, name, unique_name);
+    }
+
+    h::Module const* get_module(
+        std::string_view const module_name,
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies
+    )
+    {
+        if (core_module.name == module_name)
+            return &core_module;
+
+        // TODO this allocates memory unnecessarily
+        auto const location = core_module_dependencies.find(std::pmr::string{module_name});
+        if (location != core_module_dependencies.end())
+            return &location->second;
+
+        return nullptr;
     }
 }

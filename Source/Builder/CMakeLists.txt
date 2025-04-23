@@ -32,4 +32,3 @@ target_sources(H_builder_executable PRIVATE
 
 install(TARGETS H_builder_executable)
 
-copy_parser_javascript_to_folder(H_builder_executable)

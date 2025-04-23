@@ -1,0 +1,27 @@
+=========================
+Comment alias
+=========================
+
+module Comment_alias;
+
+// Alias comment
+// Another line
+using My_int = Int32;
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Comment)
+    (Alias
+      (Alias_name
+        (Identifier))
+      (Alias_type
+        (Type
+          (Type_name
+            (Identifier)))))))

@@ -1,0 +1,107 @@
+=========================
+Contracts
+=========================
+
+module Contracts;
+
+export function run(x: Int32) -> (result: Int32)
+    precondition "x >= 0" { x >= 0 }
+    precondition "x <= 8" { x <= 8 }
+    postcondition "result >= 0" { result >= 0 }
+    postcondition "result <= 64" { result <= 64 }
+{
+    return x*x;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_precondition
+          (Function_precondition_name
+            (String))
+          (Generic_expression
+            (Expression_binary
+              (Generic_expression
+                (Expression_variable
+                  (Variable_name
+                    (Identifier))))
+              (Generic_expression
+                (Expression_constant
+                  (Number))))))
+        (Function_precondition
+          (Function_precondition_name
+            (String))
+          (Generic_expression
+            (Expression_binary
+              (Generic_expression
+                (Expression_variable
+                  (Variable_name
+                    (Identifier))))
+              (Generic_expression
+                (Expression_constant
+                  (Number))))))
+        (Function_postcondition
+          (Function_postcondition_name
+            (String))
+          (Generic_expression
+            (Expression_binary
+              (Generic_expression
+                (Expression_variable
+                  (Variable_name
+                    (Identifier))))
+              (Generic_expression
+                (Expression_constant
+                  (Number))))))
+        (Function_postcondition
+          (Function_postcondition_name
+            (String))
+          (Generic_expression
+            (Expression_binary
+              (Generic_expression
+                (Expression_variable
+                  (Variable_name
+                    (Identifier))))
+              (Generic_expression
+                (Expression_constant
+                  (Number)))))))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_return
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_binary
+                    (Generic_expression
+                      (Expression_variable
+                        (Variable_name
+                          (Identifier))))
+                    (Generic_expression
+                      (Expression_variable
+                        (Variable_name
+                          (Identifier))))))))))))))

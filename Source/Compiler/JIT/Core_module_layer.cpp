@@ -114,6 +114,13 @@ namespace h::compiler
             llvm::orc::ThreadSafeModule thread_safe_module{ std::move(llvm_module), std::move(thread_safe_context) };
             m_base_layer.emit(std::move(materialization_responsibility), std::move(thread_safe_module));
         }
+        catch (std::exception const& exception)
+        {
+            std::fprintf(stderr, "%s\n", exception.what());
+
+            if (materialization_responsibility != nullptr)
+                materialization_responsibility->failMaterialization();
+        }
         catch (...)
         {
             if (materialization_responsibility != nullptr)

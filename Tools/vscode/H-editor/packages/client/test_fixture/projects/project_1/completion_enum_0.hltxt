@@ -5,3 +5,4 @@ import c.complex as complex;
 export function run() -> ()
 {
     var value = complex.Precision.
+}

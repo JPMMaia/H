@@ -20,6 +20,7 @@ export module h.compiler;
 
 import h.core;
 import h.compiler.clang_data;
+import h.compiler.expressions;
 import h.compiler.types;
 
 namespace h::compiler
@@ -52,13 +53,10 @@ namespace h::compiler
 
     export struct Compilation_options
     {
-        bool debug;
-        bool is_optimized;
-    };
-
-    export struct LLVM_options
-    {
-        std::optional<std::string_view> const target_triple;
+        std::optional<std::string_view> target_triple;
+        bool is_optimized = false;
+        bool debug = true;
+        Contract_options contract_options = Contract_options::Log_error_and_abort;
     };
 
     export std::optional<h::Module> read_core_module(
@@ -70,7 +68,7 @@ namespace h::compiler
     );
 
     export LLVM_data initialize_llvm(
-        LLVM_options const& options
+        Compilation_options const& compilation_options
     );
 
     export std::unique_ptr<llvm::Module> create_llvm_module(

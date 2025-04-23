@@ -13,5 +13,18 @@ module.exports = withDefaults({
         filename: 'server.js',
         path: path.join(__dirname, '../../dist')
     },
+    module: {
+        rules: [
+            {
+                test: /\.ts$/,
+                use: "ts-loader",
+                exclude: /node_modules/
+            }
+        ]
+    },
+    externals: {
+        'tree-sitter-hlang': 'commonjs tree-sitter-hlang',
+        "tree-sitter": "commonjs tree-sitter"
+    },
     devtool: 'source-map'
 });

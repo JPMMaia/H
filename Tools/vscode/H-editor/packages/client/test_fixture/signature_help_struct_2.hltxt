@@ -19,6 +19,6 @@ struct My_data
 function run() -> ()
 {
     var instance_0: My_data = {
-        v0: {
-            
-
+        v0: {}
+    };
+}

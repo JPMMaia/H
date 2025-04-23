@@ -8,7 +8,7 @@ module;
 export module h.compiler.recompilation;
 
 import h.core;
-import h.compiler.hash;
+import h.core.hash;
 
 namespace h::compiler
 {

@@ -16,7 +16,7 @@ module h.compiler.recompilation;
 import h.common;
 import h.compiler;
 import h.compiler.common;
-import h.compiler.hash;
+import h.core.hash;
 import h.core;
 import h.core.types;
 import h.json_serializer;

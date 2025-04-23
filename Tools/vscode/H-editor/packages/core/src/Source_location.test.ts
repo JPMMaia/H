@@ -2,51 +2,18 @@ import "mocha";
 
 import * as assert from "assert";
 import * as Core_intermediate_representation from "./Core_intermediate_representation";
-import * as Language from "./Language";
-import * as Parse_tree_convertor from "./Parse_tree_convertor";
-import * as Parse_tree_text_iterator from "./Parse_tree_text_iterator";
-import * as Parser from "./Parser";
-import * as Scanner from "./Scanner";
-import * as Storage_cache from "./Storage_cache";
+import * as Text_change from "./Text_change";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 
-function run_test(language_description: Language.Description, input_text: string): Core_intermediate_representation.Module {
-    const scanned_words = Scanner.scan(input_text, 0, input_text.length, { line: 1, column: 1 });
-
-    const parse_tree_result = Parser.parse_incrementally(
-        "",
-        undefined,
-        undefined,
-        scanned_words,
-        undefined,
-        language_description.actions_table,
-        language_description.go_to_table,
-        language_description.array_infos,
-        language_description.map_word_to_terminal
-    );
-
-    if (parse_tree_result.status !== Parser.Parse_status.Accept) {
-        const messages = parse_tree_result.diagnostics.map(value => value.message).join("\n");
-        console.log(`Failed to parse:\n${messages}`);
-        process.exit(-1);
-    }
-
-    const parse_tree = (parse_tree_result.changes[0].value as Parser.Modify_change).new_node;
-    Parse_tree_text_iterator.add_source_locations_to_parse_tree_nodes(parse_tree, input_text);
-
-    const module = Parse_tree_convertor.parse_tree_to_module(parse_tree, language_description.production_rules, language_description.mappings, language_description.key_to_production_rule_indices);
-    return module;
+async function run_test(input_text: string): Promise<Core_intermediate_representation.Module> {
+    const parser = await Tree_sitter_parser.create_parser();
+    const result = Text_change.full_parse_with_source_locations(parser, "", input_text, true);
+    return result.module;
 }
 
 describe("Addition of Source_location", () => {
 
-    let language_description: any;
-
-    before(() => {
-        const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-        language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
-    });
-
-    it("Adds source location to alias", () => {
+    it("Adds source location to alias", async () => {
 
         const program = `
 module Source_location;
@@ -55,13 +22,13 @@ module Source_location;
 using My_alias = Int32;
 `;
 
-        const module = run_test(language_description, program);
+        const module = await run_test(program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Enum_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 7 });
     });
 
-    it("Adds source location to enums", () => {
+    it("Adds source location to enums", async () => {
 
         const program = `
 module Source_location;
@@ -75,7 +42,7 @@ enum My_enum
 }
 `;
 
-        const module = run_test(language_description, program);
+        const module = await run_test(program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Enum_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 6 });
@@ -85,7 +52,7 @@ enum My_enum
         assert.deepEqual(declaration.values[2].source_location, { line: 9, column: 5 });
     });
 
-    it("Adds source location to structs", () => {
+    it("Adds source location to structs", async () => {
 
         const program = `
 module Source_location;
@@ -100,7 +67,7 @@ struct My_struct
 }
 `;
 
-        const module = run_test(language_description, program);
+        const module = await run_test(program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 8 });
@@ -111,7 +78,7 @@ struct My_struct
         ]);
     });
 
-    it("Adds source location to unions", () => {
+    it("Adds source location to unions", async () => {
 
         const program = `
 module Source_location;
@@ -126,7 +93,7 @@ union My_union
 }
 `;
 
-        const module = run_test(language_description, program);
+        const module = await run_test(program);
 
         const declaration = module.declarations[0].value as Core_intermediate_representation.Struct_declaration;
         assert.deepEqual(declaration.source_location, { line: 5, column: 7 });
@@ -137,7 +104,7 @@ union My_union
         ]);
     });
 
-    it("Adds source location to function", () => {
+    it("Adds source location to function", async () => {
 
         const program = `
 module Source_location;
@@ -168,7 +135,7 @@ function my_function(a: Int32, b: Int32) -> (c: Int32)
 }
 `;
 
-        const module = run_test(language_description, program);
+        const module = await run_test(program);
 
         const function_value = module.declarations[0].value as Core_intermediate_representation.Function;
 

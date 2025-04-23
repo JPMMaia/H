@@ -401,6 +401,51 @@ namespace h::compiler
         return {};
     }
 
+    C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name)
+    {
+        if (artifact.info.has_value() && std::holds_alternative<Library_info>(*artifact.info))
+        {
+            Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+            auto const is_c_header = [&](C_header const& c_header) -> bool
+            {
+                return c_header.module_name == module_name;
+            };
+
+            auto const location = std::find_if(library_info.c_headers.begin(), library_info.c_headers.end(), is_c_header);
+            if (location != library_info.c_headers.end())
+            {
+                C_header const& c_header = *location;
+                return &c_header;
+            }
+        }
+
+        return nullptr;
+    }
+
+    C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name)
+    {
+        if (artifact.info.has_value() && std::holds_alternative<Library_info>(*artifact.info))
+        {
+            Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+            C_header const* const c_header = find_c_header(artifact, module_name);
+            if (c_header != nullptr)
+            {
+                if (c_header->options_key.has_value())
+                {
+                    auto const location = library_info.c_header_options.find(c_header->options_key.value());
+                    if (location != library_info.c_header_options.end())
+                    {
+                        return &location->second;
+                    }
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
     static std::optional<std::filesystem::path> search_file(
         std::string_view const filename,
         std::span<std::filesystem::path const> const search_paths

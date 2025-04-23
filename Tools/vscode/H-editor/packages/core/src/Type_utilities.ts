@@ -66,7 +66,7 @@ export function is_pointer_type(name: string): boolean {
 
 function create_type_reference(
     type: Core_intermediate_representation.Type_reference_enum,
-    value: Core_intermediate_representation.Builtin_type_reference | Core_intermediate_representation.Constant_array_type | Core_intermediate_representation.Custom_type_reference | Core_intermediate_representation.Fundamental_type | Core_intermediate_representation.Function_type | Core_intermediate_representation.Integer_type | Core_intermediate_representation.Pointer_type
+    value: Core_intermediate_representation.Builtin_type_reference | Core_intermediate_representation.Constant_array_type | Core_intermediate_representation.Custom_type_reference | Core_intermediate_representation.Fundamental_type | Core_intermediate_representation.Function_type | Core_intermediate_representation.Integer_type | Core_intermediate_representation.Pointer_type | Core_intermediate_representation.Type_instance
 ): Core_intermediate_representation.Type_reference {
     return {
         data: {
@@ -76,7 +76,94 @@ function create_type_reference(
     };
 }
 
-export function parse_type_name(name: string): Core_intermediate_representation.Type_reference[] {
+export function create_builtin_type_reference(name: string): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Builtin_type_reference,
+        { value: name }
+    );
+}
+
+export function create_custom_type_reference(module_name: string, name: string): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Custom_type_reference,
+            value: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
+            }
+        }
+    };
+}
+
+export function create_fundamental_type(value: Core_intermediate_representation.Fundamental_type): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+            value: value
+        }
+    };
+}
+
+export function create_integer_type(number_of_bits: number, is_signed: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Integer_type,
+            value: {
+                number_of_bits: number_of_bits,
+                is_signed: is_signed
+            }
+        }
+    };
+}
+
+export function create_type_instance(module_name: string, name: string, type_arguments: Core_intermediate_representation.Statement[]): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Type_instance,
+        {
+            type_constructor: {
+                module_reference: {
+                    name: module_name
+                },
+                name: name
+            },
+            arguments: type_arguments
+        }
+    );
+}
+
+export function create_parameter_type(name: string): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Parameter_type,
+            value: {
+                name: name
+            }
+        }
+    };
+}
+
+export function create_pointer_type(element_type: Core_intermediate_representation.Type_reference[], is_mutable: boolean): Core_intermediate_representation.Type_reference {
+    return {
+        data: {
+            type: Core_intermediate_representation.Type_reference_enum.Pointer_type,
+            value: {
+                element_type: element_type,
+                is_mutable: is_mutable
+            }
+        }
+    };
+}
+
+export function create_string_type(): Core_intermediate_representation.Type_reference {
+    return create_type_reference(
+        Core_intermediate_representation.Type_reference_enum.Fundamental_type,
+        Core_intermediate_representation.Fundamental_type.String
+    );
+}
+
+export function parse_type_name(name: string, module_name?: string): Core_intermediate_representation.Type_reference[] {
 
     if (is_integer_type(name)) {
         const type = parse_integer_type(name);
@@ -92,7 +179,7 @@ export function parse_type_name(name: string): Core_intermediate_representation.
     else {
         const type: Core_intermediate_representation.Custom_type_reference = {
             module_reference: {
-                name: ""
+                name: module_name !== undefined ? module_name : ""
             },
             name: name
         };
@@ -100,9 +187,23 @@ export function parse_type_name(name: string): Core_intermediate_representation.
     }
 }
 
+export interface Module_name_and_imports_getter {
+    get_module_name(): string;
+    get_imports(): Core_intermediate_representation.Import_module_with_alias[];
+}
+
+export function create_module_name_and_imports_getter_from_module(
+    core_module: Core_intermediate_representation.Module
+): Module_name_and_imports_getter {
+    return {
+        get_module_name: () => core_module.name,
+        get_imports: () => core_module.imports
+    };
+}
+
 export function get_type_name(
     type_reference: Core_intermediate_representation.Type_reference[],
-    core_module?: Core_intermediate_representation.Module
+    module_name_and_imports_getter?: Module_name_and_imports_getter
 ): string {
 
     if (type_reference.length === 0) {
@@ -120,19 +221,21 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Constant_array_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Constant_array_type;
-                const value_type_name = get_type_name(value.value_type, core_module);
+                const value_type_name = get_type_name(value.value_type, module_name_and_imports_getter);
                 return `${value_type_name}[${value.size}]`;
             }
         case Core_intermediate_representation.Type_reference_enum.Custom_type_reference:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Custom_type_reference;
                 const module_name = value.module_reference.name;
-                if (core_module !== undefined) {
-                    if (module_name === core_module.name) {
+                if (module_name_and_imports_getter !== undefined) {
+                    const current_module_name = module_name_and_imports_getter.get_module_name();
+                    if (module_name === current_module_name) {
                         return value.name;
                     }
                     else {
-                        const import_module = core_module.imports.find(value => value.module_name === module_name);
+                        const imports = module_name_and_imports_getter.get_imports();
+                        const import_module = imports.find(value => value.module_name === module_name);
                         if (import_module !== undefined) {
                             return `${import_module.alias}.${value.name}`;
                         }
@@ -150,12 +253,12 @@ export function get_type_name(
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Function_pointer_type;
 
-                const input_parameter_type_names = value.type.input_parameter_types.map(value => get_type_name([value]), core_module);
+                const input_parameter_type_names = value.type.input_parameter_types.map(value => get_type_name([value]), module_name_and_imports_getter);
                 const input_parameters = input_parameter_type_names.map((typeName, index) => `${value.input_parameter_names[index]}: ${typeName}`);
                 const input_parameters_plus_variadic = value.type.is_variadic ? input_parameters.concat("...") : input_parameters;
                 const input_parameters_string = "(" + input_parameters_plus_variadic.join(", ") + ")";
 
-                const output_parameter_type_names = value.type.output_parameter_types.map(value => get_type_name([value]), core_module);
+                const output_parameter_type_names = value.type.output_parameter_types.map(value => get_type_name([value]), module_name_and_imports_getter);
                 const output_parameters = output_parameter_type_names.map((typeName, index) => `${value.output_parameter_names[index]}: ${typeName}`);
                 const output_parameters_string = "(" + output_parameters.join(", ") + ")";
 
@@ -172,7 +275,7 @@ export function get_type_name(
         case Core_intermediate_representation.Type_reference_enum.Pointer_type:
             {
                 const value = type_reference_value.data.value as Core_intermediate_representation.Pointer_type;
-                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type, core_module);
+                const valueTypeName = value.element_type.length === 0 ? "void" : get_type_name(value.element_type, module_name_and_imports_getter);
                 const mutableKeyword = value.is_mutable ? "mutable " : "";
                 return `*${mutableKeyword}${valueTypeName}`;
             }

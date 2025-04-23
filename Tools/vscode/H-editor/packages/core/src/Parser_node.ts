@@ -6,12 +6,42 @@ export interface Source_location {
     column: number;
 }
 
+export interface Source_range {
+    start: Source_location;
+    end: Source_location;
+}
+
+export function create_source_range(start_line: number, start_column: number, end_line: number, end_column: number): Source_range {
+    return {
+        start: {
+            line: start_line,
+            column: start_column
+        },
+        end: {
+            line: end_line,
+            column: end_column
+        }
+    };
+}
+
+function compare_locations(first: Source_location, second: Source_location): number {
+    if (first.line !== second.line) {
+        return first.line - second.line;
+    }
+
+    return first.column - second.column;
+}
+
+export function source_ranges_overlap(first: Source_range, second: Source_range): boolean {
+    return compare_locations(first.start, second.end) <= 0 && compare_locations(second.start, first.end) <= 0;
+}
+
 export interface Node {
     word: Scanner.Scanned_word;
     state: number;
     production_rule_index: number | undefined;
     children: Node[];
-    source_location?: Source_location;
+    source_range?: Source_range;
 }
 
 export function create_empty_node(): Node {
@@ -133,13 +163,13 @@ export function is_same_position(first: number[], second: number[]): boolean {
 }
 
 export function is_terminal_node(node: Node): boolean {
-    return node.children.length === 0 && node.production_rule_index === undefined;
+    return node.children.length === 0;
 }
 
 export function get_next_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
 
     const is_terminal_node = (node: Node, position: number[]): boolean => {
-        return node.children.length === 0 && node.production_rule_index === undefined;
+        return node.children.length === 0;
     };
 
     return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node);
@@ -147,7 +177,7 @@ export function get_next_terminal_node(root: Node, current_node: Node, current_n
 
 export function get_next_sibling_terminal_node(root: Node, current_node: Node, current_node_position: number[]): { node: Node, position: number[] } | undefined {
     const is_terminal_node = (node: Node, position: number[]): boolean => {
-        return node.children.length === 0 && node.production_rule_index === undefined;
+        return node.children.length === 0;
     };
 
     return get_next_node_with_condition(root, current_node, current_node_position, is_terminal_node, Iterate_direction.Up);
@@ -189,6 +219,16 @@ export function get_previous_node_with_condition(root: Node, current_node: Node,
 
 export function get_parent_position(position: number[]): number[] {
     return [...position.slice(0, position.length - 1)];
+}
+
+export function get_parent(root: Node, position: number[]): { node: Node, position: number[] } {
+    const parent_position = get_parent_position(position);
+    if (parent_position.length === 0) {
+        return { node: root, position: [] };
+    }
+
+    const parent_node = get_node_at_position(root, parent_position);
+    return { node: parent_node, position: parent_position };
 }
 
 export function have_same_parent(node_positions: number[][]): boolean {
@@ -303,6 +343,23 @@ export function get_leftmost_descendant(node: Node, position: number[]): { node:
     };
 }
 
+export function get_previous_sibling(root: Node, position: number[]): { node: Node, position: number[] } | undefined {
+    if (position.length === 0) {
+        return undefined;
+    }
+
+    const child_index = position[position.length - 1];
+    if (child_index === 0) {
+        return undefined;
+    }
+
+    const parent_position = get_parent_position(position);
+    const previous_sibling_position = [...parent_position, child_index - 1];
+
+    const previous_sibling = get_node_at_position(root, previous_sibling_position);
+    return { node: previous_sibling, position: previous_sibling_position };
+}
+
 export enum Iterate_direction {
     Down,
     Up
@@ -339,7 +396,7 @@ export function iterate_forward_with_repetition(root: Node, current_node: Node, 
         };
     }
     else if (direction === Iterate_direction.Down && current_node.children.length === 0) {
-        if (current_node.production_rule_index !== undefined) {
+        if (current_node.children.length > 0) {
             return {
                 next_node: current_node,
                 next_position: current_position,
@@ -491,7 +548,7 @@ export function join_all_child_node_values(node: Node): string {
 
     while (stack.length > 0) {
         const current_node = stack.pop() as Node;
-        if (current_node.children.length === 0 && current_node.production_rule_index === undefined) {
+        if (current_node.children.length === 0) {
             values.push(current_node.word.value);
         }
 
@@ -585,6 +642,32 @@ export function get_child(ancestor: { node: Node, position: number[] }, child_in
         node: ancestor.node.children[child_index],
         position: [...ancestor.position, child_index]
     };
+}
+
+export function get_children_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] }[] {
+
+    const children: { node: Node, position: number[] }[] = [];
+
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
+        if (predicate(child)) {
+            children.push({ node: child, position: [...ancestor.position, index] });
+        }
+    }
+
+    return children;
+}
+
+export function get_child_if(ancestor: { node: Node, position: number[] }, predicate: (node: Node) => boolean): { node: Node, position: number[] } | undefined {
+
+    for (let index = 0; index < ancestor.node.children.length; ++index) {
+        const child = ancestor.node.children[index];
+        if (predicate(child)) {
+            return { node: child, position: [...ancestor.position, index] };
+        }
+    }
+
+    return undefined;
 }
 
 export function has_ancestor_with_name(

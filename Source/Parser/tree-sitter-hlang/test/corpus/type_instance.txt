@@ -1,0 +1,83 @@
+=========================
+Type instance
+=========================
+
+module Type_instance;
+
+import Type_constructor as Type_constructor;
+
+function run() -> ()
+{
+    var a: Type_constructor.Dynamic_array<Int32> = {};
+    var b: *mutable Type_constructor.Dynamic_array<Int32> = null;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier))))
+    (Import
+      (Import_name
+        (Identifier_with_dots
+          (Identifier)))
+      (Import_alias
+        (Identifier))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters)
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration_with_type
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Expression_variable_declaration_type
+                (Type
+                  (Type_instance_type
+                    (Module_type
+                      (Module_type_module_name
+                        (Identifier))
+                      (Module_type_type_name
+                        (Identifier)))
+                    (Type_instance_type_parameters
+                      (Expression_instance_call_parameter
+                        (Expression_type
+                          (Type
+                            (Type_name
+                              (Identifier)))))))))
+              (Generic_expression_or_instantiate
+                (Expression_instantiate
+                  (Expression_instantiate_members)))))
+          (Statement
+            (Expression_variable_declaration_with_type
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Expression_variable_declaration_type
+                (Type
+                  (Pointer_type
+                    (Type
+                      (Type_instance_type
+                        (Module_type
+                          (Module_type_module_name
+                            (Identifier))
+                          (Module_type_type_name
+                            (Identifier)))
+                        (Type_instance_type_parameters
+                          (Expression_instance_call_parameter
+                            (Expression_type
+                              (Type
+                                (Type_name
+                                  (Identifier)))))))))))
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_null_pointer))))))))))

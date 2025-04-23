@@ -9,6 +9,7 @@ module;
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <span>

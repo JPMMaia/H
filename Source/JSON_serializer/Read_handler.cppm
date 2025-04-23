@@ -215,10 +215,20 @@ namespace h::json
 
         bool Int(int const number)
         {
+            return Int64(number);
+        }
+
+        bool Uint(unsigned const number)
+        {
+            return Uint64(number);
+        }
+
+        bool Int64(std::int64_t const number)
+        {
             if constexpr (g_debug)
             {
                 bool const new_line = !is_vector_element(this->state_stack);
-                print_debug(std::format("Int({})", number), this->state_stack, new_line);
+                print_debug(std::format("Int64({})", number), this->state_stack, new_line);
             }
 
             handle_vector_state(this->state_stack, this->array_indices);
@@ -238,12 +248,12 @@ namespace h::json
             return true;
         }
 
-        bool Uint(unsigned const number)
+        bool Uint64(std::uint64_t const number)
         {
             if constexpr (g_debug)
             {
                 bool const new_line = !is_vector_element(this->state_stack);
-                print_debug(std::format("Uint({})", number), this->state_stack, new_line);
+                print_debug(std::format("Uint64({})", number), this->state_stack, new_line);
             }
 
             handle_vector_state(this->state_stack, this->array_indices);
@@ -273,32 +283,6 @@ namespace h::json
             return true;
         }
 
-        bool Int64(std::int64_t const number)
-        {
-            if constexpr (g_debug)
-            {
-                bool const new_line = !is_vector_element(this->state_stack);
-                print_debug(std::format("Int64({})", number), this->state_stack, new_line);
-            }
-
-            handle_vector_state(this->state_stack, this->array_indices);
-
-            return true;
-        }
-
-        bool Uint64(std::uint64_t const number)
-        {
-            if constexpr (g_debug)
-            {
-                bool const new_line = !is_vector_element(this->state_stack);
-                print_debug(std::format("Uint64({})", number), this->state_stack, new_line);
-            }
-
-            handle_vector_state(this->state_stack, this->array_indices);
-
-            return true;
-        }
-
         bool Double(double const number)
         {
             if constexpr (g_debug)
@@ -309,6 +293,7 @@ namespace h::json
 
             handle_vector_state(this->state_stack, this->array_indices);
 
+            this->state_stack.pop_back();
             return true;
         }
 

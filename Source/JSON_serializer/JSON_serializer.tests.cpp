@@ -799,6 +799,20 @@ namespace h
         CHECK(actual == expected);
     }
 
+    TEST_CASE("Write empty Function_declaration")
+    {
+        h::Function_declaration const input = {};
+
+        std::string const expected = "{\"name\":\"\",\"type\":{\"input_parameter_types\":{\"size\":0,\"elements\":[]},\"output_parameter_types\":{\"size\":0,\"elements\":[]},\"is_variadic\":false},\"input_parameter_names\":{\"size\":0,\"elements\":[]},\"output_parameter_names\":{\"size\":0,\"elements\":[]},\"linkage\":\"External\",\"preconditions\":{\"size\":0,\"elements\":[]},\"postconditions\":{\"size\":0,\"elements\":[]}}";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
+        CHECK(actual == expected);
+    }
+
     h::Function_definition create_expected_function_definition()
     {
         std::pmr::vector<Expression> expressions
@@ -960,6 +974,7 @@ namespace h
         {
             .language_version = language_version,
             .name = "module_name",
+            .content_hash = 12089789297091071925,
             .dependencies = std::move(dependencies),
             .export_declarations = std::move(export_declarations),
             .internal_declarations = Module_declarations{},
@@ -977,6 +992,7 @@ namespace h
                 "patch": 3
             },
             "name": "module_name",
+            "content_hash": 12089789297091071925,
             "dependencies": {
                 "alias_imports": {
                     "size": 1,

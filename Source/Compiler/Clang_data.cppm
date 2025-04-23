@@ -23,6 +23,7 @@ module;
 
 #include <memory>
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -33,6 +34,7 @@ export module h.compiler.clang_data;
 
 import h.core;
 import h.core.declarations;
+import h.core.hash;
 import h.core.string_hash;
 
 namespace h::compiler
@@ -60,6 +62,8 @@ namespace h::compiler
     export struct Clang_declaration_database
     {
         std::pmr::unordered_map<std::pmr::string, Clang_module_declarations, h::String_hash, h::String_equal> map;
+        std::pmr::unordered_map<h::Type_instance, clang::RecordDecl*, Type_instance_hash> instances;
+        std::pmr::unordered_map<h::Instance_call_key, clang::FunctionDecl*, Instance_call_key_hash> call_instances;
     };
 
     export struct Clang_module_data

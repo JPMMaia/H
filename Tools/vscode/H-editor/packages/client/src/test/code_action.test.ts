@@ -10,7 +10,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.RefactorRewrite,
-                edit: create_replace_workspace_edit(document_uri, to_range(12, 31, 12, 31), "\n        a: 0,\n        b: 1,\n        c: 2,\n        d: 3\n    ")
+                edit: create_replace_workspace_edit(document_uri, to_range(12, 30, 12, 32), "{\n        a: 0,\n        b: 1,\n        c: 2,\n        d: 3\n    }")
             }
         ]);
     });
@@ -21,7 +21,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.RefactorRewrite,
-                edit: create_replace_workspace_edit(document_uri, to_range(13, 8, 13, 12), "a: 0,\n        b: 2,\n        c: 2,\n        d: 3")
+                edit: create_replace_workspace_edit(document_uri, to_range(12, 30, 14, 5), "{\n        a: 0,\n        b: 2,\n        c: 2,\n        d: 3\n    }")
             }
         ]);
     });
@@ -37,7 +37,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.RefactorRewrite,
-                edit: create_replace_workspace_edit(document_uri, to_range(23, 29, 23, 29), "\n        x: {},\n        y: {\n            b: 5\n        },\n        z: {\n            d: 7\n        }\n    ")
+                edit: create_replace_workspace_edit(document_uri, to_range(23, 28, 23, 30), "{\n        x: {},\n        y: {\n            b: 5\n        },\n        z: {\n            d: 7\n        }\n    }")
             }
         ]);
     });
@@ -48,7 +48,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.RefactorRewrite,
-                edit: create_replace_workspace_edit(document_uri, to_range(24, 12, 24, 12), "\n            a: 0,\n            b: 1,\n            c: 2,\n            d: 3\n        ")
+                edit: create_replace_workspace_edit(document_uri, to_range(24, 11, 24, 13), "{\n            a: 0,\n            b: 1,\n            c: 2,\n            d: 3\n        }")
             }
         ]);
     });
@@ -59,7 +59,7 @@ suite("Should get instantiate expression add missing members code action", () =>
             {
                 title: "Add missing instantiate members",
                 kind: vscode.CodeActionKind.QuickFix,
-                edit: create_replace_workspace_edit(document_uri, to_range(12, 40, 12, 40), "\n        a: 0,\n        b: 1,\n        c: 2,\n        d: 3\n    ")
+                edit: create_replace_workspace_edit(document_uri, to_range(12, 30, 12, 41), "explicit {\n        a: 0,\n        b: 1,\n        c: 2,\n        d: 3\n    }")
             }
         ]);
     });

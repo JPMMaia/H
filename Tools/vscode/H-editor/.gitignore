@@ -9,4 +9,5 @@ tsconfig.lsif.json
 *.lsif
 *.db
 tsconfig.tsbuildinfo
-.vscode
+.vscode-test/
+Testing

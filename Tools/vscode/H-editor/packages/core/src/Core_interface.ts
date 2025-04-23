@@ -31,6 +31,11 @@ export enum Fundamental_type {
     C_longdouble = "C_longdouble",
 }
 
+export enum Linkage {
+    External = "External",
+    Private = "Private",
+}
+
 export enum Access_type {
     Read = "Read",
     Write = "Write",
@@ -81,11 +86,6 @@ export enum Unary_operation {
     Address_of = "Address_of",
 }
 
-export enum Linkage {
-    External = "External",
-    Private = "Private",
-}
-
 export enum Type_reference_enum {
     Builtin_type_reference = "Builtin_type_reference",
     Constant_array_type = "Constant_array_type",
@@ -94,12 +94,15 @@ export enum Type_reference_enum {
     Function_pointer_type = "Function_pointer_type",
     Integer_type = "Integer_type",
     Null_pointer_type = "Null_pointer_type",
+    Parameter_type = "Parameter_type",
     Pointer_type = "Pointer_type",
+    Type_instance = "Type_instance",
 }
 
 export enum Expression_enum {
     Access_expression = "Access_expression",
     Access_array_expression = "Access_array_expression",
+    Assert_expression = "Assert_expression",
     Assignment_expression = "Assignment_expression",
     Binary_expression = "Binary_expression",
     Block_expression = "Block_expression",
@@ -107,19 +110,28 @@ export enum Expression_enum {
     Call_expression = "Call_expression",
     Cast_expression = "Cast_expression",
     Comment_expression = "Comment_expression",
+    Compile_time_expression = "Compile_time_expression",
     Constant_expression = "Constant_expression",
     Constant_array_expression = "Constant_array_expression",
     Continue_expression = "Continue_expression",
+    Defer_expression = "Defer_expression",
+    Dereference_and_access_expression = "Dereference_and_access_expression",
     For_loop_expression = "For_loop_expression",
+    Function_expression = "Function_expression",
+    Instance_call_expression = "Instance_call_expression",
     If_expression = "If_expression",
     Instantiate_expression = "Instantiate_expression",
     Invalid_expression = "Invalid_expression",
     Null_pointer_expression = "Null_pointer_expression",
     Parenthesis_expression = "Parenthesis_expression",
+    Reflection_expression = "Reflection_expression",
     Return_expression = "Return_expression",
+    Struct_expression = "Struct_expression",
     Switch_expression = "Switch_expression",
     Ternary_condition_expression = "Ternary_condition_expression",
+    Type_expression = "Type_expression",
     Unary_expression = "Unary_expression",
+    Union_expression = "Union_expression",
     Variable_declaration_expression = "Variable_declaration_expression",
     Variable_declaration_with_type_expression = "Variable_declaration_with_type_expression",
     Variable_expression = "Variable_expression",
@@ -180,8 +192,17 @@ export interface Custom_type_reference {
     name: string;
 }
 
+export interface Type_instance {
+    type_constructor: Custom_type_reference;
+    arguments: Vector<Statement>;
+}
+
+export interface Parameter_type {
+    name: string;
+}
+
 export interface Type_reference {
-    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Pointer_type>;
+    data: Variant<Type_reference_enum, Builtin_type_reference | Constant_array_type | Custom_type_reference | Fundamental_type | Function_pointer_type | Integer_type | Null_pointer_type | Parameter_type | Pointer_type | Type_instance>;
 }
 
 export interface Indexed_comment {
@@ -251,6 +272,32 @@ export interface Union_declaration {
     member_source_positions?: Vector<Source_position>;
 }
 
+export interface Function_condition {
+    description: string;
+    condition: Statement;
+}
+
+export interface Function_declaration {
+    name: string;
+    unique_name?: string;
+    type: Function_type;
+    input_parameter_names: Vector<string>;
+    output_parameter_names: Vector<string>;
+    linkage: Linkage;
+    preconditions: Vector<Function_condition>;
+    postconditions: Vector<Function_condition>;
+    comment?: string;
+    source_location?: Source_location;
+    input_parameter_source_positions?: Vector<Source_position>;
+    output_parameter_source_positions?: Vector<Source_position>;
+}
+
+export interface Function_definition {
+    name: string;
+    statements: Vector<Statement>;
+    source_location?: Source_location;
+}
+
 export interface Variable_expression {
     name: string;
     access_type: Access_type;
@@ -269,6 +316,11 @@ export interface Access_expression {
 export interface Access_array_expression {
     expression: Expression_index;
     index: Expression_index;
+}
+
+export interface Assert_expression {
+    message?: string;
+    statement: Statement;
 }
 
 export interface Assignment_expression {
@@ -306,6 +358,10 @@ export interface Comment_expression {
     comment: string;
 }
 
+export interface Compile_time_expression {
+    expression: Expression_index;
+}
+
 export interface Constant_expression {
     type: Type_reference;
     data: string;
@@ -318,6 +374,15 @@ export interface Constant_array_expression {
 export interface Continue_expression {
 }
 
+export interface Defer_expression {
+    expression_to_defer: Expression_index;
+}
+
+export interface Dereference_and_access_expression {
+    expression: Expression_index;
+    member_name: string;
+}
+
 export interface For_loop_expression {
     variable_name: string;
     range_begin: Expression_index;
@@ -325,6 +390,22 @@ export interface For_loop_expression {
     range_comparison_operation: Binary_operation;
     step_by?: Expression_index;
     then_statements: Vector<Statement>;
+}
+
+export interface Function_expression {
+    declaration: Function_declaration;
+    definition: Function_definition;
+}
+
+export interface Instance_call_expression {
+    left_hand_side: Expression_index;
+    arguments: Vector<Statement>;
+}
+
+export interface Instance_call_key {
+    module_name: string;
+    function_constructor_name: string;
+    arguments: Vector<Statement>;
 }
 
 export interface Condition_statement_pair {
@@ -358,8 +439,17 @@ export interface Parenthesis_expression {
     expression: Expression_index;
 }
 
+export interface Reflection_expression {
+    name: string;
+    arguments: Vector<Expression_index>;
+}
+
 export interface Return_expression {
     expression?: Expression_index;
+}
+
+export interface Struct_expression {
+    declaration: Struct_declaration;
 }
 
 export interface Switch_case_expression_pair {
@@ -378,9 +468,17 @@ export interface Ternary_condition_expression {
     else_statement: Statement;
 }
 
+export interface Type_expression {
+    type: Type_reference;
+}
+
 export interface Unary_expression {
     expression: Expression_index;
     operation: Unary_operation;
+}
+
+export interface Union_expression {
+    declaration: Union_declaration;
 }
 
 export interface Variable_declaration_expression {
@@ -402,26 +500,33 @@ export interface While_loop_expression {
 }
 
 export interface Expression {
-    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Constant_expression | Constant_array_expression | Continue_expression | For_loop_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Return_expression | Switch_expression | Ternary_condition_expression | Unary_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
+    data: Variant<Expression_enum, Access_expression | Access_array_expression | Assert_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
     source_position?: Source_position;
 }
 
-export interface Function_declaration {
+export interface Type_constructor_parameter {
     name: string;
-    unique_name?: string;
-    type: Function_type;
-    input_parameter_names: Vector<string>;
-    output_parameter_names: Vector<string>;
-    linkage: Linkage;
-    comment?: string;
-    source_location?: Source_location;
-    input_parameter_source_positions?: Vector<Source_position>;
-    output_parameter_source_positions?: Vector<Source_position>;
+    type: Type_reference;
 }
 
-export interface Function_definition {
+export interface Type_constructor {
     name: string;
+    parameters: Vector<Type_constructor_parameter>;
     statements: Vector<Statement>;
+    comment?: string;
+    source_location?: Source_location;
+}
+
+export interface Function_constructor_parameter {
+    name: string;
+    type: Type_reference;
+}
+
+export interface Function_constructor {
+    name: string;
+    parameters: Vector<Function_constructor_parameter>;
+    statements: Vector<Statement>;
+    comment?: string;
     source_location?: Source_location;
 }
 
@@ -448,6 +553,8 @@ export interface Module_declarations {
     struct_declarations: Vector<Struct_declaration>;
     union_declarations: Vector<Union_declaration>;
     function_declarations: Vector<Function_declaration>;
+    function_constructors: Vector<Function_constructor>;
+    type_constructors: Vector<Type_constructor>;
 }
 
 export interface Module_definitions {
@@ -457,6 +564,7 @@ export interface Module_definitions {
 export interface Module {
     language_version: Language_version;
     name: string;
+    content_hash?: number;
     dependencies: Module_dependencies;
     export_declarations: Module_declarations;
     internal_declarations: Module_declarations;

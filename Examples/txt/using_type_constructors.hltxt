@@ -1,0 +1,24 @@
+module Type_constructor;
+
+export type_constructor Dynamic_array(element_type: Type)
+{
+    return struct
+    {
+        data: *element_type = null;
+        length: Uint64 = 0u64;    
+    };
+}
+
+using My_dynamic_array = Dynamic_array<Float32>;
+
+struct My_struct
+{
+    array: Dynamic_array<Int64> = {};
+}
+
+function run(instance_0: Dynamic_array<Float16>) -> ()
+{
+    var instance_1: Dynamic_array<Int32> = {};
+    var instance_2: My_struct = {};
+    var instance_3: My_dynamic_array = {};
+}

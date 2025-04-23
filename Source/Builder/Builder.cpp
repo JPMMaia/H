@@ -75,6 +75,8 @@ namespace h::builder
         h::compiler::Linker_options const& linker_options
     )
     {
+        std::chrono::high_resolution_clock::time_point const start_time_point = std::chrono::high_resolution_clock::now();
+
         create_directory_if_it_does_not_exist(build_directory_path);
         create_directory_if_it_does_not_exist(output_path.parent_path());
 
@@ -91,15 +93,17 @@ namespace h::builder
         // Read module names:
         for (std::filesystem::path const& parsed_file_path : parsed_source_file_paths)
         {
-            std::optional<std::pmr::string> const module_name = h::json::read_module_name(parsed_file_path);
-            if (!module_name.has_value())
-                h::common::print_message_and_exit(std::format("Failed to read module name of {}", parsed_file_path.generic_string()));
+            std::optional<h::json::Header> const header = h::json::read_header(parsed_file_path);
+            if (!header.has_value())
+                h::common::print_message_and_exit(std::format("Failed to read header of {}", parsed_file_path.generic_string()));
 
-            module_name_to_file_path_map.insert(std::make_pair(module_name.value(), parsed_file_path));
+            module_name_to_file_path_map.insert(std::make_pair(header->module_name, parsed_file_path));
         }
 
         std::pmr::vector<std::filesystem::path> object_file_paths;
         object_file_paths.reserve(source_file_paths.size());
+
+        h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(compilation_options);
 
         // Compile each module:
         for (std::filesystem::path const& parsed_file_path : parsed_source_file_paths)
@@ -110,7 +114,6 @@ namespace h::builder
 
             std::string_view const entry_point = linker_options.entry_point;
 
-            h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm({});
             h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
 
             std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.bc", core_module.value().name);
@@ -126,8 +129,11 @@ namespace h::builder
         std::filesystem::path const output_executable_path = target.operating_system == "windows" ? std::format("{}.exe", output_path.generic_string()) : output_path;
         if (h::compiler::link(object_file_paths, libraries, output_executable_path, linker_options))
         {
+            std::chrono::high_resolution_clock::time_point const end_time_point = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> const duration = end_time_point - start_time_point;
+
             std::uintmax_t const executable_size = std::filesystem::file_size(output_executable_path);
-            std::puts(std::format("Created {} ({} bytes)", output_executable_path.generic_string(), executable_size).c_str());
+            std::puts(std::format("Created {} ({} bytes) in {}.", output_executable_path.generic_string(), executable_size, duration).c_str());
         }
     }
 
@@ -342,7 +348,7 @@ namespace h::builder
                 if (!header_path.has_value())
                     h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
 
-                std::filesystem::path const header_module_filename = header_path.value().filename().replace_extension("hl");
+                std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
                 h::compiler::C_header_options const* const c_header_options = get_c_header_options(library_info, c_header);
 
@@ -438,9 +444,11 @@ namespace h::builder
         if (!core_module.has_value())
             h::common::print_message_and_exit(std::format("Failed to read module of '{}'", input_file_path.generic_string()));
 
-        h::compiler::LLVM_options const options
+        h::compiler::Compilation_options const options
         {
-            .target_triple = target_triple
+            .target_triple = target_triple,
+            .is_optimized = false,
+            .debug = true,
         };
         h::compiler::LLVM_data llvm_data = h::compiler::initialize_llvm(options);
 

@@ -1,12 +1,12 @@
 add_library(H_compiler)
 add_library(H::Compiler ALIAS H_compiler)
 
-add_subdirectory("Builtin")
-
 target_compile_features(H_compiler PRIVATE cxx_std_23)
 
 target_link_libraries(H_compiler PRIVATE H::Core H::Common H::C_header_importer H::JSON_serializer H::Parser)
 
+# TODO find a way to not hardcode this when installing
+set(BUILTIN_HL_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/Builtin/Builtin.hl")
 target_compile_definitions(H_compiler PRIVATE BUILTIN_HL_FILE_PATH="${BUILTIN_HL_FILE_PATH}")
 
 ## LLVM ##
@@ -53,13 +53,15 @@ target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 if(WIN32)
    find_package(ZLIB REQUIRED)
    get_target_property(ZLIB_IMPORTED_LOCATION_DEBUG ZLIB::ZLIB IMPORTED_LOCATION_DEBUG)
-   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG PARENT_PATH ZLIB_IMPORTED_LOCATION_DIRECTORY)
-
-   find_program(ZLIB_DLL_DEBUG "zlibd1.dll")
+   
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG PARENT_PATH ZLIB_IMPORTED_LOCATION_DEBUG_DIRECTORY)
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG_DIRECTORY PARENT_PATH ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY)
+   find_program(ZLIB_DLL_DEBUG "zlibd1.dll" PATHS "${ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY}")
    install(FILES ${ZLIB_DLL_DEBUG} TYPE BIN CONFIGURATIONS Debug)
    
-   find_file(ZLIB_DLL_RELEASE "zlib1.dll")
-   install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Release)
+   cmake_path(GET ZLIB_IMPORTED_LOCATION_DEBUG_PARENT_DIRECTORY PARENT_PATH ZLIB_IMPORTED_LOCATION_RELEASE_PARENT_DIRECTORY)
+   find_program(ZLIB_DLL_RELEASE "zlib1.dll" PATHS "${ZLIB_IMPORTED_LOCATION_RELEASE_PARENT_DIRECTORY}" REQUIRED)
+   install(FILES ${ZLIB_DLL_RELEASE} TYPE BIN CONFIGURATIONS Debug Release)
 endif()
 
 find_package(Clang CONFIG REQUIRED)
@@ -71,6 +73,11 @@ target_link_libraries(
    clangCodeGen
    libclang
 )
+
+if (WIN32)
+   find_program(LIBCLANG_DLL_LOCATION "libclang.dll" REQUIRED)
+   install(FILES ${LIBCLANG_DLL_LOCATION} TYPE BIN CONFIGURATIONS Debug Release)
+endif ()
 
 ## End LLVM ##
 
@@ -89,6 +96,8 @@ else()
 endif()
 
 target_sources(H_compiler PRIVATE
+   "Analysis.cppm"
+   "Analysis.cpp"
    "Clang_code_generation.cppm"
    "Clang_code_generation.cpp"
    "Clang_data.cppm"
@@ -100,8 +109,6 @@ target_sources(H_compiler PRIVATE
    "Debug_info.cpp"
    "Expressions.cppm"
    "Expressions.cpp"
-   "Hash.cppm"
-   "Hash.cpp"
    "Instructions.cppm"
    "Instructions.cpp"
    "Linker.cppm"
@@ -163,7 +170,6 @@ if(BUILD_TESTING)
       "JIT/JIT_runner.tests.cpp"
    )
 
-   copy_parser_javascript_to_folder(H_compiler_tests)
    add_dependencies(H_compiler_tests C_standard_library)
 
    include(Catch)

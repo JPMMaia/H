@@ -1,0 +1,52 @@
+=========================
+Hello world
+=========================
+
+module Hello_world;
+
+import C.stdio as stdio;
+
+export function hello() -> ()
+{
+    stdio.puts("Hello world!");
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier))))
+    (Import
+      (Import_name
+        (Identifier_with_dots
+          (Identifier)
+          (Identifier)))
+      (Import_alias
+        (Identifier))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters)
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_call
+              (Generic_expression
+                (Expression_access
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Expression_access_member_name
+                    (Identifier))))
+              (Expression_call_arguments
+                (Generic_expression_or_instantiate
+                  (Generic_expression
+                    (Expression_constant
+                      (String))))))))))))

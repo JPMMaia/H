@@ -1,0 +1,130 @@
+=========================
+Ternary condition expressions
+=========================
+
+module Ternary_condition_expressions;
+
+export function run_ternary_conditions(first_boolean: Bool, second_boolean: Bool) -> ()
+{
+    var a = first_boolean ? 1 : 0;
+    var b = first_boolean == false ? 1 : 0;
+    var c = !first_boolean ? 1 : 0;
+    var d = first_boolean ? second_boolean ? 2 : 1 : 0;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_ternary_condition
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_ternary_condition
+                  (Generic_expression
+                    (Expression_binary
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Generic_expression
+                        (Expression_constant
+                          (Boolean)))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_ternary_condition
+                  (Generic_expression
+                    (Expression_unary
+                      (Expression_unary_symbol)
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_ternary_condition
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_ternary_condition
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))))
+                  (Generic_expression
+                    (Expression_constant
+                      (Number))))))))))))

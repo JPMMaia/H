@@ -32,12 +32,14 @@ module;
 
 module h.compiler.clang_code_generation;
 
+import h.compiler.analysis;
 import h.compiler.common;
 import h.compiler.debug_info;
 import h.compiler.instructions;
 import h.compiler.types;
 import h.core;
 import h.core.declarations;
+import h.core.execution_engine;
 import h.core.string_hash;
 import h.core.types;
 
@@ -169,14 +171,13 @@ namespace h::compiler
         clang_enum_declarations.emplace(enum_declaration.name, clang_enum_declaration);
     }
 
-    void add_clang_struct_declaration(
-        std::pmr::unordered_map<std::pmr::string, clang::RecordDecl*, h::String_hash, h::String_equal>& clang_struct_declarations,
+    clang::RecordDecl* create_clang_struct_declaration(
         clang::ASTContext& clang_ast_context,
-        h::Module const& core_module,
+        std::string_view const module_name,
         h::Struct_declaration const& struct_declaration
     )
     {
-        std::string const mangled_name = mangle_struct_name(core_module, struct_declaration.name);
+        std::string const mangled_name = mangle_name(module_name, struct_declaration.name, struct_declaration.unique_name);
         clang::IdentifierInfo* const struct_name = &clang_ast_context.Idents.get(mangled_name);
 
         clang::RecordDecl* const record_declaration = clang::RecordDecl::Create(
@@ -188,19 +189,17 @@ namespace h::compiler
             struct_name
         );
 
-        clang_struct_declarations.emplace(struct_declaration.name, record_declaration);
+        return record_declaration;
     }
 
-    void add_clang_struct_definition(
-        std::pmr::unordered_map<std::pmr::string, clang::RecordDecl*, h::String_hash, h::String_equal>& clang_struct_declarations,
+    void set_clang_struct_definition(
         clang::ASTContext& clang_ast_context,
+        clang::RecordDecl& record_declaration,
         h::Struct_declaration const& struct_declaration,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     )
     {
-        clang::RecordDecl* record_declaration = clang_struct_declarations.at(struct_declaration.name);
-
         for (std::size_t member_index = 0; member_index < struct_declaration.member_types.size(); ++member_index)
         {
             std::string_view const member_name = struct_declaration.member_names[member_index];
@@ -216,7 +215,7 @@ namespace h::compiler
             clang::IdentifierInfo* field_name = &clang_ast_context.Idents.get(member_name);
             clang::FieldDecl* field = clang::FieldDecl::Create(
                 clang_ast_context,
-                record_declaration,
+                &record_declaration,
                 clang::SourceLocation(),
                 clang::SourceLocation(),
                 field_name,
@@ -227,10 +226,10 @@ namespace h::compiler
                 clang::ICIS_NoInit
             );
 
-            record_declaration->addDecl(field);
+            record_declaration.addDecl(field);
         }
 
-        record_declaration->completeDefinition();
+        record_declaration.completeDefinition();
     }
 
     void add_clang_union_declaration(
@@ -339,8 +338,7 @@ namespace h::compiler
         return function_proto_type;
     }
 
-    void add_clang_function_declaration(
-        std::pmr::unordered_map<std::pmr::string, clang::FunctionDecl*, h::String_hash, h::String_equal>& clang_function_declarations,
+    clang::FunctionDecl* create_clang_function_declaration(
         clang::ASTContext& clang_ast_context,
         h::Function_declaration const& function_declaration,
         Declaration_database const& declaration_database,
@@ -411,7 +409,7 @@ namespace h::compiler
             }
         }
 
-        clang_function_declarations.emplace(function_declaration.name, clang_function_declaration);
+        return clang_function_declaration;
     }
 
     void add_clang_declarations(
@@ -435,12 +433,14 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.export_declarations.struct_declarations)
         {
-            add_clang_struct_declaration(iterator->second.struct_declarations, clang_ast_context, core_module, struct_declaration);
+            clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, core_module.name, struct_declaration);
+            iterator->second.struct_declarations.emplace(struct_declaration.name, record_declaration);
         }
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
-            add_clang_struct_declaration(iterator->second.struct_declarations, clang_ast_context, core_module, struct_declaration);
+            clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, core_module.name, struct_declaration);
+            iterator->second.struct_declarations.emplace(struct_declaration.name, record_declaration);
         }
 
         for (h::Union_declaration const& union_declaration : core_module.export_declarations.union_declarations)
@@ -465,12 +465,14 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.export_declarations.struct_declarations)
         {
-            add_clang_struct_definition(iterator->second.struct_declarations, clang_ast_context, struct_declaration, declaration_database, clang_declaration_database);
+            clang::RecordDecl* const record_declaration = iterator->second.struct_declarations.at(struct_declaration.name);
+            set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
         }
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
-            add_clang_struct_definition(iterator->second.struct_declarations, clang_ast_context, struct_declaration, declaration_database, clang_declaration_database);
+            clang::RecordDecl* const record_declaration = iterator->second.struct_declarations.at(struct_declaration.name);
+            set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
         }
 
         for (h::Union_declaration const& union_declaration : core_module.export_declarations.union_declarations)
@@ -485,12 +487,14 @@ namespace h::compiler
 
         for (h::Function_declaration const& function_declaration : core_module.export_declarations.function_declarations)
         {
-            add_clang_function_declaration(iterator->second.function_declarations, clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            iterator->second.function_declarations.emplace(function_declaration.name, clang_declaration);
         }
 
         for (h::Function_declaration const& function_declaration : core_module.internal_declarations.function_declarations)
         {
-            add_clang_function_declaration(iterator->second.function_declarations, clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_declaration, declaration_database, clang_declaration_database);
+            iterator->second.function_declarations.emplace(function_declaration.name, clang_declaration);
         }
     }
 
@@ -521,9 +525,54 @@ namespace h::compiler
         assert(&code_generator->CGM() != nullptr);
 
         Clang_declaration_database clang_declaration_database;
+
+        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        {
+            Type_instance const& type_instance = pair.first;
+            Declaration_instance_storage const& storage = pair.second;
+
+            if (std::holds_alternative<Struct_declaration>(storage.data))
+            {
+                Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
+
+                clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, type_instance.type_constructor.module_reference.name, struct_declaration);
+                clang_declaration_database.instances.emplace(type_instance, record_declaration);
+            }
+            else
+            {
+                throw std::runtime_error{"Could not create clang type instance declaration!"};
+            }
+        }
+
         for (Module const* module_dependency : sorted_core_module_dependencies)
             add_clang_declarations(clang_declaration_database, clang_ast_context, *module_dependency, declaration_database);
         add_clang_declarations(clang_declaration_database, clang_ast_context, core_module, declaration_database);
+
+        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        {
+            Type_instance const& type_instance = pair.first;
+            Declaration_instance_storage const& storage = pair.second;
+
+            if (std::holds_alternative<Struct_declaration>(storage.data))
+            {
+                Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
+                clang::RecordDecl* const record_declaration = clang_declaration_database.instances.at(type_instance);
+                set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
+            }
+            else
+            {
+                throw std::runtime_error{"Could not create clang type instance declaration!"};
+            }
+        }
+
+        for (std::pair<Instance_call_key, Function_expression const> const& pair : declaration_database.call_instances)
+        {
+            Instance_call_key const& key = pair.first;
+            Function_expression const& function_expression = pair.second;
+
+            clang::FunctionDecl* const clang_declaration = create_clang_function_declaration(clang_ast_context, function_expression.declaration, declaration_database, clang_declaration_database);
+            clang_declaration_database.call_instances.emplace(key, clang_declaration);
+        }
 
         return Clang_module_data
         {
@@ -586,7 +635,6 @@ namespace h::compiler
 
     void set_llvm_function_argument_names(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
         h::Function_declaration const& function_declaration,
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database
@@ -687,6 +735,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_parent_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         clang::CodeGen::CGFunctionInfo const& function_info,
@@ -716,7 +765,7 @@ namespace h::compiler
                     llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
                     llvm::Align const original_return_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
                     
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_return_llvm_type);
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_return_llvm_type);
 
                     transformed_arguments.values.push_back(alloca_instruction);
                     transformed_arguments.attributes.push_back(std::pmr::vector<llvm::Attribute>{{ llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef) }});
@@ -781,6 +830,7 @@ namespace h::compiler
                             llvm_context,
                             llvm_builder,
                             llvm_data_layout,
+                            llvm_parent_function,
                             original_argument,
                             original_argument_llvm_type,
                             new_type,
@@ -814,7 +864,7 @@ namespace h::compiler
                     std::uint64_t const original_argument_size_in_bits = llvm_data_layout.getTypeAllocSize(original_argument_llvm_type);
                     llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
                     
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, original_argument_llvm_type);
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_argument_llvm_type);
 
                     create_memcpy_call(
                         llvm_context,
@@ -919,6 +969,7 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        llvm::Function& llvm_parent_function,
         Clang_module_data& clang_module_data,
         h::Module const& core_module,
         h::Function_type const& function_type,
@@ -931,7 +982,7 @@ namespace h::compiler
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
 
-        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, core_module, function_type, function_info, arguments, type_database);
+        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, llvm_parent_function, core_module, function_type, function_info, arguments, type_database);
 
         llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function_type, &llvm_function_callee, transformed_arguments.values);
 
@@ -954,6 +1005,7 @@ namespace h::compiler
             llvm_context,
             llvm_builder,
             llvm_data_layout,
+            llvm_parent_function,
             core_module,
             function_type,
             function_info,
@@ -1063,7 +1115,7 @@ namespace h::compiler
                         llvm::StructType* const function_argument_struct_type = static_cast<llvm::StructType*>(function_argument_type);
                         llvm::ArrayRef<llvm::Type*> const function_argument_elements = function_argument_struct_type->elements();
 
-                        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, restored_argument_llvm_type, restored_argument_name.data());
+                        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_function, restored_argument_llvm_type, restored_argument_name.data());
                         restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
 
                         set_function_input_parameter_debug_information(
@@ -1100,6 +1152,7 @@ namespace h::compiler
                             llvm_context,
                             llvm_builder,
                             llvm_data_layout,
+                            llvm_function,
                             function_argument,
                             function_argument_type,
                             restored_argument_llvm_type,
@@ -1130,7 +1183,7 @@ namespace h::compiler
                     llvm::Type* const pointer_type = llvm::PointerType::get(llvm::Type::getInt8Ty(llvm_context), 0);
                     llvm::Align const pointer_type_alignment = llvm_data_layout.getABITypeAlign(pointer_type);
 
-                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, pointer_type, restored_argument_name.data());
+                    llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_function, pointer_type, restored_argument_name.data());
                     restored_arguments.push_back(Value_and_type{.name = restored_argument_name, .value = alloca_instruction, .type = restored_argument_type});
 
                     set_function_input_parameter_debug_information(
@@ -1210,6 +1263,7 @@ namespace h::compiler
                     llvm_context,
                     llvm_builder,
                     llvm_data_layout,
+                    llvm_function,
                     value_to_return.value,
                     original_return_llvm_type,
                     new_return_llvm_type,
@@ -1266,6 +1320,18 @@ namespace h::compiler
         }
     }
 
+    void set_function_definition_attributes(
+        llvm::LLVMContext& llvm_context,
+        Clang_module_data& clang_module_data,
+        llvm::Function& llvm_function
+    )
+    {
+        llvm::AttrBuilder attributes_builder{llvm_context};
+        clang::CodeGen::addDefaultFunctionDefinitionAttributes(clang_module_data.code_generator->CGM(), attributes_builder);
+        
+        llvm_function.addFnAttrs(attributes_builder);
+    }
+
     llvm::ConstantInt* get_constant(
         llvm::LLVMContext& llvm_context,
         unsigned value
@@ -1277,6 +1343,7 @@ namespace h::compiler
     llvm::Value* create_alloca_and_store_if_not_pointer(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const llvm_value,
         llvm::Type* const llvm_type
     )
@@ -1284,7 +1351,7 @@ namespace h::compiler
         if (llvm_value->getType()->isPointerTy())
             return llvm_value;
 
-        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_type);
+        llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, llvm_type);
         llvm_builder.CreateAlignedStore(llvm_value, alloca_instruction, llvm_data_layout.getABITypeAlign(llvm_type));
         return alloca_instruction;
     }
@@ -1293,6 +1360,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
@@ -1304,13 +1372,13 @@ namespace h::compiler
         {
             if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+                llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, llvm_parent_function, source_llvm_value, source_llvm_type);
                 llvm::Value* const load_instruction = llvm_builder.CreateAlignedLoad(destination_llvm_type, source_llvm_pointer_value, llvm_data_layout.getABITypeAlign(source_llvm_type));
                 return load_instruction;
             }
             else
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
             
                 llvm::StructType* const source_struct_llvm_type = static_cast<llvm::StructType*>(source_llvm_type);
                 llvm::ArrayRef<llvm::Type*> const source_struct_elements = source_struct_llvm_type->elements();
@@ -1329,13 +1397,13 @@ namespace h::compiler
         {
             if (convertion_type == Convertion_type::From_original_to_abi)
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
                 llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                 return destination;
             }
             else
             {
-                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type);
+                llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type);
                 llvm::Value* const pointer_to_destination = llvm_builder.CreateInBoundsGEP(destination_llvm_type, destination, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
                 llvm_builder.CreateAlignedStore(source_llvm_value, pointer_to_destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                 return destination;
@@ -1343,7 +1411,7 @@ namespace h::compiler
         }
         else if (source_llvm_type->isStructTy() && !destination_llvm_type->isStructTy())
         {
-            llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, source_llvm_value, source_llvm_type);
+            llvm::Value* const source_llvm_pointer_value = create_alloca_and_store_if_not_pointer(llvm_builder, llvm_data_layout, llvm_parent_function, source_llvm_value, source_llvm_type);
 
             llvm::Value* const pointer_to_source = llvm_builder.CreateInBoundsGEP(source_llvm_type, source_llvm_pointer_value, {get_constant(llvm_context, 0), get_constant(llvm_context, 0)});
             llvm::LoadInst* const destination_value = llvm_builder.CreateAlignedLoad(destination_llvm_type, pointer_to_source, llvm_data_layout.getABITypeAlign(source_llvm_type));
@@ -1376,6 +1444,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
         llvm::Type* const destination_llvm_type,
@@ -1395,7 +1464,7 @@ namespace h::compiler
             {
                 if (alloca_name.has_value())
                 {
-                    llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+                    llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type, alloca_name->data());
                     llvm_builder.CreateAlignedStore(source_llvm_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
                     return destination;
                 }
@@ -1410,6 +1479,7 @@ namespace h::compiler
             llvm_context,
             llvm_builder,
             llvm_data_layout,
+            llvm_parent_function,
             source_llvm_value,
             source_llvm_type,
             destination_llvm_type,
@@ -1419,7 +1489,7 @@ namespace h::compiler
 
         if (alloca_name.has_value() && !llvm::AllocaInst::classof(converted_value))
         {
-            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, alloca_name->data());
+            llvm::AllocaInst* const destination = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, destination_llvm_type, alloca_name->data());
             llvm_builder.CreateAlignedStore(converted_value, destination, llvm_data_layout.getABITypeAlign(destination_llvm_type));
             return destination;
         }
@@ -1433,6 +1503,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
+        llvm::Function& llvm_parent_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
         clang::CodeGen::CGFunctionInfo const& function_info,
@@ -1462,6 +1533,7 @@ namespace h::compiler
                     llvm_context,
                     llvm_builder,
                     llvm_data_layout,
+                    llvm_parent_function,
                     call_instruction,
                     new_return_llvm_type,
                     original_return_llvm_type,
@@ -1514,9 +1586,7 @@ namespace h::compiler
             if (location != clang_declarations.struct_declarations.end())
             {
                 clang::RecordDecl* const record_declaration = location->second;
-                clang::QualType const qual_type = clang_module_data.ast_context.getRecordType(record_declaration);
-                llvm::Type* const clang_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), qual_type);
-                return clang_type;
+                return convert_type(clang_module_data, record_declaration);
             }
         }
 
@@ -1525,13 +1595,48 @@ namespace h::compiler
             if (location != clang_declarations.union_declarations.end())
             {
                 clang::RecordDecl* const record_declaration = location->second;
-                clang::QualType const qual_type = clang_module_data.ast_context.getRecordType(record_declaration);
-                llvm::Type* const clang_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), qual_type);
-                return clang_type;
+                return convert_type(clang_module_data, record_declaration);
             }
         }
 
         throw std::runtime_error{ std::format("Could not find type '{}.{}'", module_name, declaration_name) };
+    }
+
+    llvm::Type* convert_type(
+        Clang_module_data const& clang_module_data,
+        clang::RecordDecl* const record_declaration
+    )
+    {
+        clang::QualType const qual_type = clang_module_data.ast_context.getRecordType(record_declaration);
+        llvm::Type* const clang_type = clang::CodeGen::convertTypeForMemory(clang_module_data.code_generator->CGM(), qual_type);
+        return clang_type;
+    }
+
+    llvm::FunctionType* convert_function_type(
+        Clang_module_data const& clang_module_data,
+        clang::FunctionDecl* const function_declaration
+    )
+    {
+        return clang::CodeGen::convertFreeFunctionType(clang_module_data.code_generator->CGM(), function_declaration);
+    }
+
+    llvm::FunctionType* get_instance_call_llvm_function_type(
+        Clang_module_data const& clang_module_data,
+        Instance_call_key const& key
+    )
+    {
+        Clang_declaration_database const& clang_declaration_database = clang_module_data.declaration_database;
+
+        auto const location = clang_declaration_database.call_instances.find(key);
+        if (location == clang_declaration_database.call_instances.end())
+            return nullptr;
+
+        clang::FunctionDecl* const clang_function_declaration = location->second;
+
+        return convert_function_type(
+            clang_module_data,
+            clang_function_declaration
+        );
     }
 
     std::optional<clang::QualType> create_type(
@@ -1712,6 +1817,21 @@ namespace h::compiler
                 return clang_ast_context.getPointerType(*element_type);
             else
                 return clang_ast_context.getPointerType(clang_ast_context.VoidTy);
+        }
+        else if (std::holds_alternative<h::Type_instance>(type_reference.data))
+        {
+            h::Type_instance const& type_instance = std::get<h::Type_instance>(type_reference.data);
+
+            {
+                auto const location = clang_declaration_database.instances.find(type_instance);
+                if (location != clang_declaration_database.instances.end())
+                {
+                    clang::RecordDecl* const record_declaration = location->second;
+                    return clang_ast_context.getRecordType(record_declaration);
+                }
+            }
+            
+            return std::nullopt;
         }
 
         return std::nullopt;

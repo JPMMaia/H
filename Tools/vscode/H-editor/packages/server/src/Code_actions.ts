@@ -6,8 +6,8 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 
 import * as Core from "../../core/src/Core_intermediate_representation";
 import * as Document from "../../core/src/Document";
-import * as Language from "../../core/src/Language";
 import * as Parse_tree_analysis from "../../core/src/Parse_tree_analysis";
+import * as Parse_tree_convertor_mappings from "../../core/src/Parse_tree_convertor_mappings";
 import * as Parse_tree_text_iterator from "../../core/src/Parse_tree_text_iterator";
 import * as Parser_node from "../../core/src/Parser_node";
 import * as Scan_new_changes from "../../core/src/Scan_new_changes";
@@ -33,11 +33,7 @@ export async function get_code_actions(
         return [];
     }
 
-    const get_core_module = Server_data.create_get_core_module(server_data, workspace_uri);
-    const core_module = await get_core_module(Document.get_module(document_state).name);
-    if (core_module === undefined) {
-        return [];
-    }
+    const get_parse_tree = Server_data.create_get_parse_tree(server_data, workspace_uri);
 
     const code_actions: vscode.CodeAction[] = [];
 
@@ -51,24 +47,21 @@ export async function get_code_actions(
 
         if (ancestor !== undefined) {
             if (ancestor.node.word.value === "Expression_instantiate") {
-                const instantiate_members_node_array = Parser_node.find_descendant_position_if(ancestor, node => node.word.value === "Expression_instantiate_members");
-                if (instantiate_members_node_array !== undefined) {
-                    const descendant_instantiate_members = Parser_node.get_children(instantiate_members_node_array);
 
-                    const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
-                        parameters.textDocument.uri,
-                        server_data.language_description,
-                        document_state,
-                        core_module,
-                        root,
-                        { node: ancestor.node, position: [...ancestor.position] },
-                        descendant_instantiate_members,
-                        parameters.context.diagnostics,
-                        get_core_module
-                    );
-                    if (add_missing_members_code_action !== undefined) {
-                        code_actions.push(add_missing_members_code_action);
-                    }
+                const expression_iterator = Parse_tree_text_iterator.go_to_previous_node_position(start_iterator, ancestor.position);
+
+                const add_missing_members_code_action = await create_add_missing_members_to_instantiate_expression(
+                    parameters.textDocument.uri,
+                    document_state,
+                    document.getText(),
+                    root,
+                    { node: ancestor.node, position: [...ancestor.position] },
+                    expression_iterator.offset,
+                    parameters.context.diagnostics,
+                    get_parse_tree
+                );
+                if (add_missing_members_code_action !== undefined) {
+                    code_actions.push(add_missing_members_code_action);
                 }
             }
         }
@@ -142,17 +135,16 @@ function get_start_iterator(
 
 async function create_add_missing_members_to_instantiate_expression(
     document_uri: vscode.DocumentUri,
-    language_description: Language.Description,
     document_state: Document.State,
-    core_module: Core.Module,
+    text: string,
     root: Parser_node.Node,
     descendant_instantiate_expression: { node: Parser_node.Node, position: number[] },
-    descendant_instantiate_members: { node: Parser_node.Node, position: number[] }[],
+    instantiate_expression_source_offset: number,
     diagnostics: vscode.Diagnostic[],
-    get_core_module: (module_name: string) => Promise<Core.Module | undefined>
+    get_parse_tree: (module_name: string) => Promise<Parser_node.Node | undefined>
 ): Promise<vscode.CodeAction | undefined> {
 
-    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(language_description, core_module, root, descendant_instantiate_expression.position, get_core_module);
+    const module_declaration = await Parse_tree_analysis.find_instantiate_declaration_from_node(root, descendant_instantiate_expression.position, get_parse_tree);
     if (module_declaration === undefined || module_declaration.declaration.type !== Core.Declaration_type.Struct) {
         return undefined;
     }
@@ -162,21 +154,13 @@ async function create_add_missing_members_to_instantiate_expression(
         return undefined;
     }
 
-    const find_instantiate_member = (member_name: string): { node: Parser_node.Node, position: number[] } | undefined => {
-        return descendant_instantiate_members.find(value => {
-            if (value.node.children.length > 0 && value.node.children[0].children.length > 0) {
-                return value.node.children[0].children[0].word.value === member_name;
-            }
-            else {
-                return false;
-            }
-        });
-    };
+    const instantiate_expression = Parse_tree_convertor_mappings.node_to_expression_instantiate(root, descendant_instantiate_expression.node);
 
     {
         let are_all_members_present = true;
         for (const member_info of member_infos) {
-            if (find_instantiate_member(member_info.member_name) === undefined) {
+            const instantiate_member = instantiate_expression.members.find(value => value.member_name === member_info.member_name);
+            if (instantiate_member === undefined) {
                 are_all_members_present = false;
                 break;
             }
@@ -187,26 +171,17 @@ async function create_add_missing_members_to_instantiate_expression(
         }
     }
 
-    const members_text: string[] = [];
+    for (let member_index = 0; member_index < member_infos.length; ++member_index) {
+        const member_info = member_infos[member_index];
 
-    for (const member_info of member_infos) {
-        const descendant_member = find_instantiate_member(member_info.member_name);
-        if (descendant_member !== undefined) {
-            const member_text = Text_formatter.to_unformatted_text(descendant_member.node);
-            members_text.push(member_text);
-        }
-        else {
+        const instantiate_member = instantiate_expression.members.find(value => value.member_name === member_info.member_name);
+
+        if (instantiate_member === undefined) {
             if (member_info.member_default_value === undefined) {
-                return undefined;
+                continue;
             }
 
-            const member_default_value_text = Parse_tree_analysis.create_member_default_value_text(member_info.member_default_value);
-            if (member_default_value_text === undefined) {
-                return undefined;
-            }
-
-            const member_text = `${member_info.member_name}: ${member_default_value_text}`;
-            members_text.push(member_text);
+            instantiate_expression.members.splice(member_index, 0, { member_name: member_info.member_name, value: member_info.member_default_value });
         }
     }
 
@@ -215,37 +190,21 @@ async function create_add_missing_members_to_instantiate_expression(
         return undefined;
     }
 
-    const descendant_instantiate_expression_type = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_expression_type");
-    if (descendant_instantiate_expression_type === undefined) {
-        return undefined;
-    }
-
-    const instantiate_type_text = descendant_instantiate_expression_type.node.children.length > 0 ? `${descendant_instantiate_expression_type.node.children[0].word.value} ` : "";
-
-    const unformatted_text = `${instantiate_type_text}{${members_text.join(", ")}}`;
-
-    const unformatted_text_change: Parse_tree_analysis.Text_change_2 = {
-        range: original_text_range,
-        text: unformatted_text
-    };
-
-    const formatted_text_change = Parse_tree_analysis.format_text(language_description, document_state, unformatted_text_change);
-    if (formatted_text_change === undefined) {
-        return undefined;
-    }
+    const indentation = Text_formatter.calculate_current_indentation(text, instantiate_expression_source_offset);
+    const formatted_text = Text_formatter.format_expression_instantiate(instantiate_expression, indentation, {});
 
     const edit: vscode.TextEdit = {
         range: {
             start: {
-                line: formatted_text_change.range.start.line - 1,
-                character: formatted_text_change.range.start.column - 1
+                line: original_text_range.start.line - 1,
+                character: original_text_range.start.column - 1
             },
             end: {
-                line: formatted_text_change.range.end.line - 1,
-                character: formatted_text_change.range.end.column - 1
+                line: original_text_range.end.line - 1,
+                character: original_text_range.end.column - 1
             }
         },
-        newText: formatted_text_change.text
+        newText: formatted_text
     };
 
     const title = "Add missing instantiate members";
@@ -253,7 +212,7 @@ async function create_add_missing_members_to_instantiate_expression(
     changes[document_uri] = [edit];
     const workspace_edit: vscode.WorkspaceEdit = { changes: changes };
 
-    const is_explicit = instantiate_type_text.startsWith("explicit");
+    const is_explicit = instantiate_expression.type === Core.Instantiate_expression_type.Explicit;
 
     const code_action_kind = is_explicit ? vscode.CodeActionKind.QuickFix : vscode.CodeActionKind.RefactorRewrite;
     const code_action = vscode.CodeAction.create(title, workspace_edit, code_action_kind);
@@ -276,16 +235,4 @@ async function create_add_missing_members_to_instantiate_expression(
     }
 
     return code_action;
-}
-
-function get_instantiate_expression_type(
-    descendant_instantiate_expression: { node: Parser_node.Node, position: number[] }
-): Core.Instantiate_expression_type {
-    const descendant = Parser_node.find_descendant_position_if(descendant_instantiate_expression, node => node.word.value === "Expression_instantiate_expression_type");
-
-    if (descendant !== undefined && descendant.node.children.length === 1 && descendant.node.children[0].word.value === "explicit") {
-        return Core.Instantiate_expression_type.Explicit;
-    }
-
-    return Core.Instantiate_expression_type.Default;
 }

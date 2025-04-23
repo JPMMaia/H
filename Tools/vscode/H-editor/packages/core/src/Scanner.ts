@@ -555,6 +555,9 @@ export function get_word_type(value: string): Grammar.Word_type {
     else if (is_parenthesis(first_character)) {
         return Grammar.Word_type.Symbol;
     }
+    else if (is_comment(value, 0)) {
+        return Grammar.Word_type.Comment;
+    }
     else if (is_symbol(first_character)) {
         return Grammar.Word_type.Symbol;
     }

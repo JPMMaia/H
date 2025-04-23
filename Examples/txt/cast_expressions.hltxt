@@ -1,0 +1,9 @@
+module Cast_expressions;
+
+using My_uint = Uint32;
+
+export function run(first: My_uint) -> ()
+{
+    var a = 1u32;
+    var b = a == (first as Uint32);
+}

@@ -1,0 +1,35 @@
+=========================
+Variadic functions
+=========================
+
+module Variadic;
+
+export function my_function(first: Int32, ...) -> ()
+{
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))
+          (Function_parameter))
+        (Function_output_parameters))
+      (Function_definition
+        (Block)))))

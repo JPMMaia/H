@@ -1,0 +1,254 @@
+=========================
+Enum flags
+=========================
+
+module Enum_flags;
+
+export enum My_enum_flag
+{
+    Flag_1 = 0x01,
+    Flag_2 = 0x02,
+    Flag_3 = 0x04,
+    Flag_4 = 0x08,
+}
+
+export function use_enums(enum_argument: My_enum_flag) -> (result: Int32)
+{
+    var a = My_enum_flag.Flag_1 | My_enum_flag.Flag_2;
+    var b = enum_argument & My_enum_flag.Flag_1;
+    var c = enum_argument ^ My_enum_flag.Flag_1;
+
+    if a == enum_argument {
+        return 0;
+    }
+
+    if enum_argument has My_enum_flag.Flag_1 {
+        return 1;
+    }
+
+    if enum_argument has My_enum_flag.Flag_2 {
+        return 2;
+    }
+
+    if enum_argument has My_enum_flag.Flag_3 {
+        return 3;
+    }
+
+    return 4;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier)))))
+  (Declaration
+    (Enum
+      (Enum_name
+        (Identifier))
+      (Enum_values
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number))))
+        (Enum_value
+          (Enum_value_name
+            (Identifier))
+          (Generic_expression
+            (Expression_constant
+              (Number)))))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier))))))
+        (Function_output_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_if
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))))
+              (Expression_if_statements
+                (Statement
+                  (Expression_return
+                    (Generic_expression_or_instantiate
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))))))))
+          (Statement
+            (Expression_if
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))
+              (Expression_if_statements
+                (Statement
+                  (Expression_return
+                    (Generic_expression_or_instantiate
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))))))))
+          (Statement
+            (Expression_if
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))
+              (Expression_if_statements
+                (Statement
+                  (Expression_return
+                    (Generic_expression_or_instantiate
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))))))))
+          (Statement
+            (Expression_if
+              (Generic_expression
+                (Expression_binary
+                  (Generic_expression
+                    (Expression_variable
+                      (Variable_name
+                        (Identifier))))
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))))
+              (Expression_if_statements
+                (Statement
+                  (Expression_return
+                    (Generic_expression_or_instantiate
+                      (Generic_expression
+                        (Expression_constant
+                          (Number)))))))))
+          (Statement
+            (Expression_return
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_constant
+                    (Number)))))))))))

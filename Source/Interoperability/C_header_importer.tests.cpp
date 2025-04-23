@@ -89,7 +89,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == stdio_header_path);
 
-        h::Function_declaration const& actual = find_function_declaration(header_module, "puts");
+        h::Function_declaration const& actual = h::c::find_function_declaration(header_module, "puts");
 
         CHECK(actual.name == "puts");
 
@@ -125,7 +125,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == time_header_path);
 
-        h::Alias_type_declaration const& actual = find_alias_type_declaration(header_module, "time_t");
+        h::Alias_type_declaration const& actual = h::c::find_alias_type_declaration(header_module, "time_t");
 
         CHECK(actual.name == "time_t");
 
@@ -144,7 +144,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Enum_declaration const& actual = find_enum_declaration(header_module, "VkPhysicalDeviceType");
+        h::Enum_declaration const& actual = h::c::find_enum_declaration(header_module, "VkPhysicalDeviceType");
 
         CHECK(actual.name == "VkPhysicalDeviceType");
         REQUIRE(actual.unique_name.has_value());
@@ -177,7 +177,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
 
         CHECK(actual.name == "VkCommandPoolCreateInfo");
 
@@ -220,7 +220,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkExtent2D");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkExtent2D");
 
         CHECK(actual.name == "VkExtent2D");
 
@@ -276,7 +276,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkRect2D");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkRect2D");
 
         CHECK(actual.name == "VkRect2D");
 
@@ -357,7 +357,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkClearAttachment");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkClearAttachment");
 
         CHECK(actual.name == "VkClearAttachment");
 
@@ -515,7 +515,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Struct_declaration const& actual = find_struct_declaration(header_module, "VkBufferCreateInfo");
+        h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkBufferCreateInfo");
 
         CHECK(actual.name == "VkBufferCreateInfo");
 
@@ -586,7 +586,7 @@ namespace h::c
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
-        h::Union_declaration const& actual = find_union_declaration(header_module, "VkClearColorValue");
+        h::Union_declaration const& actual = h::c::find_union_declaration(header_module, "VkClearColorValue");
 
         CHECK(actual.name == "VkClearColorValue");
 
@@ -931,6 +931,9 @@ struct My_data
 
 const auto my_global_0 = MY_FLOAT;
 float my_global_1 = 0.0f;
+
+typedef int Sint32;
+Sint32 my_global_2 = 0;
 )";
 
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
@@ -964,6 +967,19 @@ float my_global_1 = 0.0f;
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "0.000000") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 6, .column = 7 });
+        }
+
+        {
+            h::Global_variable_declaration const& declaration = header_module.export_declarations.global_variable_declarations[2];
+            CHECK(declaration.name == "my_global_2");
+            CHECK(declaration.name == declaration.unique_name.value());
+            CHECK(declaration.is_mutable == true);
+            
+            CHECK(declaration.type == create_custom_type_reference("c.My_data", "Sint32"));
+            REQUIRE(declaration.type.has_value());
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(h::create_fundamental_type_type_reference(h::Fundamental_type::C_int), "0") }));
+
+            CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 9, .column = 8 });
         }
     }
 
@@ -1049,6 +1065,62 @@ float my_global_1 = 0.0f;
             CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(*declaration.type, "20") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 9, .column = 9 });
+        }
+    }
+
+    TEST_CASE("Function comments are imported")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "function comments";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+/**
+ * Adds the two given values and returns
+ * the result.
+ *
+ * \param first the first parameter.
+ * \param second the second parameter.
+ * \return the result of adding the first
+ * and second parameters.
+ *
+ * Another line.
+ *
+ * Another comment.
+ */
+int add(int first, int second)
+{
+    return first + second;
+}
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.comments", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Function_declaration const& declaration = header_module.export_declarations.function_declarations[0];
+            CHECK(declaration.name == "add");
+            CHECK(declaration.name == declaration.unique_name.value());
+            
+            CHECK(declaration.comment.has_value());
+            if (declaration.comment.has_value())
+            {
+                std::pmr::string const expected_comment = R"(Adds the two given values and returns the result.
+
+Another line.
+
+Another comment.
+
+@input_parameter first: the first parameter.
+@input_parameter second: the second parameter.
+@output_parameter result: the result of adding the first and second parameters.
+)";
+
+                CHECK(*declaration.comment == expected_comment);
+            }
         }
     }
 

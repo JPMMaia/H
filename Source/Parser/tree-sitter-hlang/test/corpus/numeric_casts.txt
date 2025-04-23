@@ -1,0 +1,334 @@
+=========================
+Numeric casts
+=========================
+
+module Numeric_casts;
+
+import Module_a as module_a;
+
+export function main() -> (result: Int32)
+{
+    var i64_to_i8 = 1i64 as Int8;
+    var i64_to_i16 = 1i64 as Int16;
+    var i64_to_i32 = 1i64 as Int32;
+
+    var u64_to_u8 = 1u64 as Uint8;
+    var u64_to_u16 = 1u64 as Uint16;
+    var u64_to_u32 = 1u64 as Uint32;
+
+    var i8_to_i16 = 1i8 as Int16;
+    var u8_to_u16 = 1u8 as Uint16;
+    
+    var i32_to_u32 = 1i32 as Uint32;
+    var u32_to_i32 = 1u32 as Int32;
+
+    var i32_to_f16 = 1i32 as Float16;
+    var i32_to_f32 = 1i32 as Float32;
+    var i32_to_f64 = 1i32 as Float64;
+
+    var f16_to_i32 = 1.0f16 as Int32;
+    var f32_to_i32 = 1.0f32 as Int32;
+    var f64_to_i32 = 1.0f64 as Int32;
+
+    var i32_to_flags = 1i32 as module_a.Flags;
+    var flags_to_i32 = module_a.Flags as Int32;
+
+    return 0;
+}
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Module_name
+        (Identifier_with_dots
+          (Identifier))))
+    (Import
+      (Import_name
+        (Identifier_with_dots
+          (Identifier)))
+      (Import_alias
+        (Identifier))))
+  (Declaration
+    (Function
+      (Function_declaration
+        (Function_name
+          (Identifier))
+        (Function_input_parameters)
+        (Function_output_parameters
+          (Function_parameter
+            (Function_parameter_name
+              (Identifier))
+            (Function_parameter_type
+              (Type
+                (Type_name
+                  (Identifier)))))))
+      (Function_definition
+        (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_constant
+                      (Number)))
+                  (Expression_type
+                    (Type
+                      (Module_type
+                        (Module_type_module_name
+                          (Identifier))
+                        (Module_type_type_name
+                          (Identifier)))))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_cast
+                  (Generic_expression
+                    (Expression_access
+                      (Generic_expression
+                        (Expression_variable
+                          (Variable_name
+                            (Identifier))))
+                      (Expression_access_member_name
+                        (Identifier))))
+                  (Expression_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))))
+          (Statement
+            (Expression_return
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_constant
+                    (Number)))))))))))

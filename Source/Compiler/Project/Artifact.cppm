@@ -78,6 +78,9 @@ namespace h::compiler
 
     export std::span<C_header const> get_c_headers(Artifact const& artifact);
 
+    export C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name);
+    export C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name);
+
     export std::optional<std::filesystem::path> find_c_header_path(
         std::string_view c_header,
         std::span<std::filesystem::path const> search_paths

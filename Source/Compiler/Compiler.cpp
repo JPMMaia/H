@@ -46,11 +46,13 @@ import h.common;
 import h.core;
 import h.core.declarations;
 import h.core.types;
+import h.compiler.analysis;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.debug_info;
 import h.compiler.expressions;
+import h.compiler.instructions;
 import h.compiler.types;
 import h.json_serializer;
 
@@ -149,8 +151,9 @@ namespace h::compiler
     }
 
     llvm::Function& to_function(
+        llvm::LLVMContext& llvm_context,
         Clang_module_data& clang_module_data,
-        Module const& core_module,
+        std::string_view const module_name,
         llvm::FunctionType& llvm_function_type,
         Function_declaration const& function_declaration,
         Declaration_database const& declaration_database
@@ -158,7 +161,7 @@ namespace h::compiler
     {
         llvm::GlobalValue::LinkageTypes const linkage = to_linkage(function_declaration.linkage);
 
-        std::string const mangled_name = mangle_name(core_module, function_declaration.name, function_declaration.unique_name);
+        std::string const mangled_name = mangle_name(module_name, function_declaration.name, function_declaration.unique_name);
 
         llvm::Function* const llvm_function = llvm::Function::Create(
             &llvm_function_type,
@@ -174,13 +177,14 @@ namespace h::compiler
 
         set_llvm_function_argument_names(
             clang_module_data,
-            core_module,
             function_declaration,
             *llvm_function,
             declaration_database
         );
 
         llvm_function->setCallingConv(llvm::CallingConv::C);
+
+        set_function_definition_attributes(llvm_context, clang_module_data, *llvm_function);
 
         return *llvm_function;
     }
@@ -191,8 +195,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         Module const& core_module,
         Function_declaration const& function_declaration,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -203,8 +207,9 @@ namespace h::compiler
         );
 
         llvm::Function& llvm_function = to_function(
+            llvm_context,
             clang_module_data,
-            core_module,
+            core_module.name,
             *llvm_function_type,
             function_declaration,
             declaration_database
@@ -335,8 +340,8 @@ namespace h::compiler
         Clang_module_data& clang_module_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -358,6 +363,7 @@ namespace h::compiler
             .type_database = type_database,
             .enum_value_constants = enum_value_constants,
             .blocks = {},
+            .defer_expressions_per_block = {},
             .function_declaration = {},
             .function_arguments = {},
             .local_variables = {},
@@ -389,10 +395,11 @@ namespace h::compiler
         Function_declaration const& function_declaration,
         Function_definition const& function_definition,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* debug_info,
+        Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -441,6 +448,9 @@ namespace h::compiler
 
         {
             std::pmr::vector<Block_info> block_infos;
+            
+            std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block;
+            defer_expressions_per_block.push_back({});
 
             std::pmr::vector<Value_and_type> function_arguments = generate_function_arguments(
                 llvm_context,
@@ -478,40 +488,66 @@ namespace h::compiler
                 .type_database = type_database,
                 .enum_value_constants = enum_value_constants,
                 .blocks = block_infos,
+                .defer_expressions_per_block = defer_expressions_per_block,
                 .function_declaration = &function_declaration,
                 .function_arguments = function_arguments,
                 .local_variables = {},
                 .expression_type = std::nullopt,
                 .debug_info = debug_info,
+                .contract_options = compilation_options.contract_options,
                 .source_position = std::nullopt,
                 .temporaries_allocator = temporaries_allocator,
             };
 
-            create_statement_values(function_definition.statements, expression_parameters);
-        }
+            bool const enable_function_contracts = compilation_options.contract_options != Contract_options::Disabled;
 
-        auto const return_void_is_missing = [&]() -> bool
-        {
-            if (!llvm_function.getReturnType()->isVoidTy())
-                return false;
-
-            if (!function_definition.statements.empty())
+            if (enable_function_contracts)
             {
-                Statement const& statement = function_definition.statements.back();
-                if (!statement.expressions.empty())
-                {
-                    Expression const& expression = statement.expressions[0];
-                    if (std::holds_alternative<Return_expression>(expression.data))
-                        return false;
-                }
+                create_function_preconditions(
+                    llvm_context,
+                    llvm_module,
+                    llvm_function,
+                    llvm_builder,
+                    core_module,
+                    function_declaration,
+                    expression_parameters
+                );
             }
 
-            return true;
-        };
+            create_statement_values(function_definition.statements, expression_parameters, true);
 
-        if (return_void_is_missing())
-        {
-            llvm_builder.CreateRetVoid();
+            auto const return_void_is_missing = [&]() -> bool
+            {
+                if (!llvm_function.getReturnType()->isVoidTy())
+                    return false;
+
+                if (!function_definition.statements.empty())
+                {
+                    Statement const& statement = function_definition.statements.back();
+                    if (!statement.expressions.empty())
+                    {
+                        Expression const& expression = statement.expressions[0];
+                        if (std::holds_alternative<Return_expression>(expression.data))
+                            return false;
+                    }
+                }
+
+                return true;
+            };
+
+            if (return_void_is_missing())
+            {
+                create_function_postconditions(
+                    llvm_context,
+                    llvm_module,
+                    llvm_function,
+                    llvm_builder,
+                    core_module,
+                    function_declaration,
+                    expression_parameters
+                );
+                llvm_builder.CreateRetVoid();
+            }
         }
 
         // Delete the last block if it has no predecessors.
@@ -528,6 +564,8 @@ namespace h::compiler
         if (debug_info != nullptr)
             pop_debug_scope(*debug_info);
 
+        set_function_definition_attributes(llvm_context, clang_module_data, llvm_function);
+
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
             llvm::errs() << "\n Function body:\n";
             llvm_function.dump();
@@ -543,10 +581,11 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
-        Declaration_database const& declaration_database,
-        Type_database const& type_database,
+        Declaration_database& declaration_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Debug_info* const debug_info,
+        Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -567,7 +606,7 @@ namespace h::compiler
 
             Function_declaration const& declaration = *find_function_declaration(core_module, definition.name).value();
 
-            llvm::Function* llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
+            llvm::Function* const llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
             if (!llvm_function)
             {
                 std::string_view const function_name = definition.name;
@@ -589,6 +628,56 @@ namespace h::compiler
                 type_database,
                 enum_value_constants,
                 debug_info,
+                compilation_options,
+                temporaries_allocator
+            );
+        }
+
+        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        {
+            h::Instance_call_key const& key = pair.first;
+            clang::FunctionDecl* const clang_function_declaration = pair.second;
+
+            Function_expression const* function_expression = get_instance_call_function_expression(
+                declaration_database,
+                key
+            );
+            if (function_expression == nullptr)
+                throw std::runtime_error{"Could not find instance call function expression!"};
+
+            h::Function_declaration const& function_declaration = function_expression->declaration;
+
+            llvm::Function* const llvm_function = get_llvm_function(key.module_name, llvm_module, function_declaration.name, function_declaration.unique_name);
+            if (!llvm_function)
+            {
+                std::string_view const function_name = function_declaration.name;
+                std::string_view const module_name = key.module_name;
+                throw std::runtime_error{ std::format("Function '{}' not found in module '{}'.", function_name, module_name) };
+            }
+
+            h::Module const* instance_module = get_module(
+                key.module_name,
+                core_module,
+                core_module_dependencies
+            );
+            if (instance_module == nullptr)
+                throw std::runtime_error{ std::format("Could not find module '{}'", key.module_name) };
+
+            create_function_definition(
+                llvm_context,
+                llvm_data_layout,
+                llvm_module,
+                *llvm_function,
+                clang_module_data,
+                *instance_module,
+                function_declaration,
+                function_expression->definition,
+                core_module_dependencies,
+                declaration_database,
+                type_database,
+                enum_value_constants,
+                debug_info,
+                compilation_options,
                 temporaries_allocator
             );
         }
@@ -714,8 +803,8 @@ namespace h::compiler
         std::span<Function_declaration const> const function_declarations,
         std::optional<std::span<std::pmr::string const> const> const functions_to_add,
         std::span<Global_variable_declaration const> const global_variable_declarations,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -781,6 +870,7 @@ namespace h::compiler
                     .type_database = type_database,
                     .enum_value_constants = {},
                     .blocks = {},
+                    .defer_expressions_per_block = {},
                     .function_declaration = {},
                     .function_arguments = {},
                     .local_variables = {},
@@ -821,13 +911,55 @@ namespace h::compiler
         }
     }
 
+    void add_instance_call_declarations(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        Clang_module_data& clang_module_data,
+        Declaration_database& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        auto& llvm_function_list = llvm_module.getFunctionList();
+
+        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        {
+            h::Instance_call_key const& key = pair.first;
+            clang::FunctionDecl* const clang_function_declaration = pair.second;
+
+            Function_expression const* function_expression = get_instance_call_function_expression(
+                declaration_database,
+                key
+            );
+            if (function_expression == nullptr)
+                throw std::runtime_error{"Could not find instance call function expression!"};
+
+            h::Function_declaration const& function_declaration = function_expression->declaration;
+
+            llvm::FunctionType* const llvm_function_type = convert_function_type(
+                clang_module_data,
+                clang_function_declaration
+            );
+
+            llvm::Function& llvm_function = to_function(
+                llvm_context,
+                clang_module_data,
+                key.module_name,
+                *llvm_function_type,
+                function_declaration,
+                declaration_database
+            );
+
+            llvm_function_list.push_back(&llvm_function);
+        }
+    }
+
     void add_dependency_module_declarations(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
-        Type_database const& type_database,
-        Declaration_database const& declaration_database,
+        Type_database& type_database,
+        Declaration_database& declaration_database,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -868,7 +1000,7 @@ namespace h::compiler
         llvm::Module& llvm_module,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
-        Type_database const& type_database,
+        Type_database& type_database,
         Enum_value_constants const& enum_value_constants,
         Compilation_options const& compilation_options
     )
@@ -960,7 +1092,7 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         std::optional<std::span<std::string_view const>> const functions_to_compile,
-        Declaration_database const& declaration_database,
+        Declaration_database& declaration_database,
         Type_database& type_database,
         Compilation_options const& compilation_options
     )
@@ -971,6 +1103,7 @@ namespace h::compiler
 
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, {});
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, {});
+        add_instance_call_declarations(llvm_context, *llvm_module, clang_module_data, declaration_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, core_module, core_module_dependencies, {});
 
@@ -1008,6 +1141,7 @@ namespace h::compiler
             type_database,
             enum_value_constants,
             debug_info.get(),
+            compilation_options,
             {}
         );
 
@@ -1045,7 +1179,7 @@ namespace h::compiler
     }
 
     LLVM_data initialize_llvm(
-        LLVM_options const& options
+        Compilation_options const& options
     )
     {
         // Initialize the target registry:
@@ -1106,12 +1240,13 @@ namespace h::compiler
             *module_analysis_manager
         );
 
-        llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+        llvm::OptimizationLevel const optimization_level = options.is_optimized ? llvm::OptimizationLevel::O2 : llvm::OptimizationLevel::O0;
+        llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(optimization_level);
 
         Clang_data clang_data = create_clang_data(
             *llvm_context,
             llvm::Triple{ target_triple },
-            0 // TODO set according to optimization level
+            options.is_optimized ? 2 : 0
         );
 
         return LLVM_data
@@ -1193,10 +1328,14 @@ namespace h::compiler
             add_declarations(declaration_database, *module_dependency);
         add_declarations(declaration_database, core_module);
 
+        // TODO do this a different place so we can modify original
+        Module new_core_module = core_module;
+        process_module(new_core_module, declaration_database, {});
+
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
-            core_module,
+            new_core_module,
             sorted_core_module_dependencies,
             declaration_database
         );
@@ -1204,9 +1343,12 @@ namespace h::compiler
         Type_database type_database = create_type_database(*llvm_data.context);
         for (Module const* module_dependency : sorted_core_module_dependencies)
             add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *module_dependency);
-        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, core_module);
+        add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, new_core_module);
 
-        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
+        std::unique_ptr<llvm::Module> llvm_module = create_module(*llvm_data.context, llvm_data.target_triple, llvm_data.data_layout, clang_module_data, new_core_module, core_module_dependencies, functions_to_compile, declaration_database, type_database, compilation_options);
+        
+        optimize_llvm_module(llvm_data, *llvm_module);
+        
         return llvm_module;
     }
 
@@ -1308,7 +1450,7 @@ namespace h::compiler
         Compilation_options const& compilation_options
     )
     {
-        LLVM_data llvm_data = initialize_llvm({});
+        LLVM_data llvm_data = initialize_llvm(compilation_options);
         LLVM_module_data llvm_module_data = create_llvm_module(llvm_data, core_module, module_name_to_file_path_map, compilation_options);
 
         llvm_module_data.module->print(llvm::errs(), nullptr);

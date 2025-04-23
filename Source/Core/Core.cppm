@@ -7,6 +7,7 @@ module;
 #include <ostream>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -32,6 +33,8 @@ namespace h
         friend auto operator<=>(Source_position const& lhs, Source_position const& rhs) = default;
     };
 
+    struct Function_declaration;
+    struct Statement;
     struct Type_reference;
 
     export enum class Fundamental_type
@@ -128,6 +131,21 @@ namespace h
         friend auto operator<=>(Custom_type_reference const&, Custom_type_reference const&) = default;
     };
 
+    export struct Type_instance
+    {
+        Custom_type_reference type_constructor;
+        std::pmr::vector<Statement> arguments;
+
+        friend auto operator<=>(Type_instance const&, Type_instance const&) = default;
+    };
+
+    export struct Parameter_type
+    {
+        std::pmr::string name;
+
+        friend auto operator<=>(Parameter_type const&, Parameter_type const&) = default;
+    };
+
     export struct Type_reference
     {
         using Data_type = std::variant<
@@ -138,7 +156,9 @@ namespace h
             Function_pointer_type,
             Integer_type,
             Null_pointer_type,
-            Pointer_type
+            Parameter_type,
+            Pointer_type,
+            Type_instance
         >;
 
         Data_type data;
@@ -239,6 +259,47 @@ namespace h
         friend auto operator<=>(Union_declaration const&, Union_declaration const&) = default;
     };
 
+    export struct Function_condition
+    {
+        std::pmr::string description;
+        Statement condition;
+
+        friend auto operator<=>(Function_condition const&, Function_condition const&) = default;
+    };
+
+    export enum class Linkage
+    {
+        External,
+        Private
+    };
+
+    export struct Function_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        Function_type type;
+        std::pmr::vector<std::pmr::string> input_parameter_names;
+        std::pmr::vector<std::pmr::string> output_parameter_names;
+        Linkage linkage;
+        std::pmr::vector<Function_condition> preconditions;
+        std::pmr::vector<Function_condition> postconditions;
+        std::optional<std::pmr::string> comment;
+        std::optional<Source_location> source_location;
+        std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
+        std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
+
+        friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
+    };
+
+    export struct Function_definition
+    {
+        std::pmr::string name;
+        std::pmr::vector<Statement> statements;
+        std::optional<Source_location> source_location;
+
+        friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
+    };
+
     export enum Access_type
     {
         Read = 1,
@@ -249,7 +310,7 @@ namespace h
     export struct Variable_expression
     {
         std::pmr::string name;
-        Access_type access_type;
+        Access_type access_type = Access_type::Read;
 
         friend auto operator<=>(Variable_expression const&, Variable_expression const&) = default;
     };
@@ -304,6 +365,14 @@ namespace h
         Expression_index index;
 
         friend auto operator<=>(Access_array_expression const&, Access_array_expression const&) = default;
+    };
+
+    export struct Assert_expression
+    {
+        std::optional<std::pmr::string> message;
+        Statement statement;
+
+        friend auto operator<=>(Assert_expression const&, Assert_expression const&) = default;
     };
 
     export struct Assignment_expression
@@ -368,6 +437,13 @@ namespace h
         friend auto operator<=>(Comment_expression const&, Comment_expression const&) = default;
     };
 
+    export struct Compile_time_expression
+    {
+        Expression_index expression;
+
+        friend auto operator<=>(Compile_time_expression const&, Compile_time_expression const&) = default;
+    };
+
     export struct Constant_expression
     {
         Type_reference type;
@@ -388,6 +464,21 @@ namespace h
         friend auto operator<=>(Continue_expression const&, Continue_expression const&) = default;
     };
 
+    export struct Defer_expression
+    {
+        Expression_index expression_to_defer;
+        
+        friend auto operator<=>(Defer_expression const&, Defer_expression const&) = default;
+    };
+
+    export struct Dereference_and_access_expression
+    {
+        Expression_index expression;
+        std::pmr::string member_name;
+
+        friend auto operator<=>(Dereference_and_access_expression const&, Dereference_and_access_expression const&) = default;
+    };
+
     export struct For_loop_expression
     {
         std::pmr::string variable_name;
@@ -398,6 +489,31 @@ namespace h
         std::pmr::vector<Statement> then_statements;
 
         friend auto operator<=>(For_loop_expression const&, For_loop_expression const&) = default;
+    };
+
+    export struct Function_expression
+    {
+        Function_declaration declaration;
+        Function_definition definition;
+
+        friend auto operator<=>(Function_expression const&, Function_expression const&) = default;
+    };
+
+    export struct Instance_call_expression
+    {
+        Expression_index left_hand_side;
+        std::pmr::vector<Statement> arguments;
+
+        friend auto operator<=>(Instance_call_expression const&, Instance_call_expression const&) = default;
+    };
+
+    export struct Instance_call_key
+    {
+        std::pmr::string module_name;
+        std::pmr::string function_constructor_name;
+        std::pmr::vector<Statement> arguments;
+
+        friend auto operator<=>(Instance_call_key const&, Instance_call_key const&) = default;
     };
 
     export struct Condition_statement_pair
@@ -457,11 +573,26 @@ namespace h
         friend auto operator<=>(Parenthesis_expression const&, Parenthesis_expression const&) = default;
     };
 
+    export struct Reflection_expression
+    {
+        std::pmr::string name;
+        std::pmr::vector<Expression_index> arguments;
+
+        friend auto operator<=>(Reflection_expression const&, Reflection_expression const&) = default;
+    };
+
     export struct Return_expression
     {
         std::optional<Expression_index> expression;
 
         friend auto operator<=>(Return_expression const&, Return_expression const&) = default;
+    };
+
+    export struct Struct_expression
+    {
+        Struct_declaration declaration;
+
+        friend auto operator<=>(Struct_expression const&, Struct_expression const&) = default;
     };
 
     export struct Switch_case_expression_pair
@@ -489,6 +620,13 @@ namespace h
         friend auto operator<=>(Ternary_condition_expression const&, Ternary_condition_expression const&) = default;
     };
 
+    export struct Type_expression
+    {
+        Type_reference type;
+
+        friend auto operator<=>(Type_expression const&, Type_expression const&) = default;
+    };
+
     export enum class Unary_operation
     {
         Not,
@@ -508,6 +646,13 @@ namespace h
         Unary_operation operation;
 
         friend auto operator<=>(Unary_expression const&, Unary_expression const&) = default;
+    };
+
+    export struct Union_expression
+    {
+        Union_declaration declaration;
+
+        friend auto operator<=>(Union_expression const&, Union_expression const&) = default;
     };
 
     export struct Variable_declaration_expression
@@ -542,6 +687,7 @@ namespace h
         using Data_type = std::variant <
             Access_expression,
             Access_array_expression,
+            Assert_expression,
             Assignment_expression,
             Binary_expression,
             Block_expression,
@@ -549,19 +695,28 @@ namespace h
             Call_expression,
             Cast_expression,
             Comment_expression,
+            Compile_time_expression,
             Constant_expression,
             Constant_array_expression,
             Continue_expression,
+            Defer_expression,
+            Dereference_and_access_expression,
             For_loop_expression,
+            Function_expression,
+            Instance_call_expression,
             If_expression,
             Instantiate_expression,
             Invalid_expression,
             Null_pointer_expression,
             Parenthesis_expression,
+            Reflection_expression,
             Return_expression,
+            Struct_expression,
             Switch_expression,
             Ternary_condition_expression,
+            Type_expression,
             Unary_expression,
+            Union_expression,
             Variable_declaration_expression,
             Variable_declaration_with_type_expression,
             Variable_expression,
@@ -574,35 +729,42 @@ namespace h
         friend auto operator<=>(Expression const&, Expression const&) = default;
     };
 
-    export enum class Linkage
-    {
-        External,
-        Private
-    };
-
-    export struct Function_declaration
+    export struct Type_constructor_parameter
     {
         std::pmr::string name;
-        std::optional<std::pmr::string> unique_name;
-        Function_type type;
-        std::pmr::vector<std::pmr::string> input_parameter_names;
-        std::pmr::vector<std::pmr::string> output_parameter_names;
-        Linkage linkage;
+        Type_reference type;
+
+        friend auto operator<=>(Type_constructor_parameter const&, Type_constructor_parameter const&) = default;
+    };
+
+    export struct Type_constructor
+    {
+        std::pmr::string name;
+        std::pmr::vector<Type_constructor_parameter> parameters;
+        std::pmr::vector<Statement> statements;
         std::optional<std::pmr::string> comment;
         std::optional<Source_location> source_location;
-        std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
-        std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
 
-        friend auto operator<=>(Function_declaration const&, Function_declaration const&) = default;
+        friend auto operator<=>(Type_constructor const&, Type_constructor const&) = default;
     };
 
-    export struct Function_definition
+    export struct Function_constructor_parameter
     {
         std::pmr::string name;
+        Type_reference type;
+
+        friend auto operator<=>(Function_constructor_parameter const&, Function_constructor_parameter const&) = default;
+    };
+
+    export struct Function_constructor
+    {
+        std::pmr::string name;
+        std::pmr::vector<Function_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
+        std::optional<std::pmr::string> comment;
         std::optional<Source_location> source_location;
 
-        friend auto operator<=>(Function_definition const&, Function_definition const&) = default;
+        friend auto operator<=>(Function_constructor const&, Function_constructor const&) = default;
     };
 
     export struct Language_version
@@ -638,6 +800,8 @@ namespace h
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Union_declaration> union_declarations;
         std::pmr::vector<Function_declaration> function_declarations;
+        std::pmr::vector<Function_constructor> function_constructors;
+        std::pmr::vector<Type_constructor> type_constructors;
 
         friend auto operator<=>(Module_declarations const&, Module_declarations const&) = default;
     };
@@ -653,6 +817,7 @@ namespace h
     {
         Language_version language_version;
         std::pmr::string name;
+        std::optional<std::uint64_t> content_hash;
         Module_dependencies dependencies;
         Module_declarations export_declarations;
         Module_declarations internal_declarations;
@@ -673,4 +838,15 @@ namespace h
         Module const& core_module,
         Module_reference const& module_reference
     );
+
+    export Custom_type_reference const* find_declaration_type_reference(
+        Type_reference const& type_reference
+    );
+
+    export std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view name);
+    export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
+    export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
+    export std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name);
+    export std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view name);
+    export std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view name);
 }

@@ -26,7 +26,9 @@ namespace h::compiler
 {
     export enum class Block_type
     {
+        None,
         For_loop,
+        If,
         Switch,
         While_loop
     };
@@ -45,6 +47,12 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, Enum_constants> map;
     };
 
+    export enum class Contract_options
+    {
+        Disabled,
+        Log_error_and_abort,
+    };
+
     export struct Expression_parameters
     {
         llvm::LLVMContext& llvm_context;
@@ -55,15 +63,17 @@ namespace h::compiler
         Clang_module_data& clang_module_data;
         Module const& core_module;
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies;
-        Declaration_database const& declaration_database;
-        Type_database const& type_database;
+        Declaration_database& declaration_database;
+        Type_database& type_database;
         Enum_value_constants const& enum_value_constants;
         std::span<Block_info const> blocks;
+        std::span<std::pmr::vector<Statement>> defer_expressions_per_block;
         std::optional<Function_declaration const*> function_declaration;
         std::span<Value_and_type const> function_arguments;
         std::span<Value_and_type const> local_variables;
         std::optional<Type_reference> expression_type;
         Debug_info* debug_info;
+        Contract_options contract_options; 
         std::optional<Source_position> source_position;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
@@ -103,6 +113,64 @@ namespace h::compiler
 
     export void create_statement_values(
         std::span<Statement const> statements,
+        Expression_parameters const& parameters,
+        bool const execute_defer_expressions_at_end
+    );
+
+    export void create_defer_instructions_at_end_of_block(
+        Expression_parameters const& parameters
+    );
+
+    export void create_defer_instructions_pop_blocks(
+        Expression_parameters const& parameters,
+        std::size_t const blocks_to_pop_count
+    );
+
+    export void create_defer_instructions_at_return(
+        Expression_parameters const& parameters
+    );
+
+    enum class Condition_type
+    {
+        Assert,
+        Precondition,
+        Postcondition,
+    };
+
+    export void create_function_preconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    );
+
+    export void create_function_postconditions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        Expression_parameters const& expression_parameters
+    );
+
+    void create_check_condition_instructions(
+        llvm::LLVMContext& llvm_context,
+        llvm::Module& llvm_module,
+        llvm::Function& llvm_function,
+        llvm::IRBuilder<>& llvm_builder,
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        h::Function_condition const& function_condition,
+        Condition_type const condition_type,
+        Expression_parameters const& expression_parameters
+    );
+
+    Value_and_type create_variable_expression_value(
+        Variable_expression const& expression,
         Expression_parameters const& parameters
     );
 }

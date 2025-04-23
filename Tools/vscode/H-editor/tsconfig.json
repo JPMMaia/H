@@ -9,7 +9,12 @@
     ],
     "outDir": "./out",
     "rootDir": ".",
-    "sourceMap": true
+    "sourceMap": true,
+    "types": [
+      "@types/emscripten",
+      "@types/node",
+      "mocha"
+    ]
   },
   "include": [
     "packages/core/src/**/*.ts",

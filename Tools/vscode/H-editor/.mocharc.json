@@ -1,9 +1,13 @@
 {
-    "loader": "ts-node/register",
+    "spec": "packages/core/src/**/*.test.ts",
     "extension": [
         "ts"
     ],
-    "spec": [
-        "packages/core/src/**/*.test.ts"
+    "require": [
+        "ts-node/register"
+    ],
+    "node-args": [
+        "--loader",
+        "ts-node/esm"
     ]
 }

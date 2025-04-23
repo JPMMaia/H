@@ -15,3 +15,5 @@ function run() -> ()
     mutable instance: Complex = {};
     instance = {
         real: 1.0f32,
+    };
+}

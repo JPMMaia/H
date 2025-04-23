@@ -4,12 +4,10 @@ import * as assert from "assert";
 
 import * as Core from "./Core_intermediate_representation";
 import * as Grammar from "./Grammar";
-import * as Language from "./Language";
-import * as Parse_tree_text_position_cache from "./Parse_tree_text_position_cache";
 import * as Parser_node from "./Parser_node";
 import * as Scanner from "./Scanner";
-import * as Storage_cache from "./Storage_cache";
 import * as Text_change from "./Text_change";
+import * as Tree_sitter_parser from "./Tree_sitter_parser";
 import * as Validation from "./Validation";
 
 function create_node(
@@ -26,7 +24,7 @@ function create_node(
         state: -1,
         production_rule_index: 1,
         children: children,
-        source_location: { line: -1, column: -1 }
+        source_range: undefined
     };
 }
 
@@ -45,7 +43,13 @@ function create_terminal_node(
         state: -1,
         production_rule_index: undefined,
         children: [],
-        source_location: source_location
+        source_range: {
+            start: source_location,
+            end: {
+                line: source_location.line,
+                column: source_location.column + word_value.length
+            }
+        }
     };
 }
 
@@ -61,20 +65,7 @@ function test_validate_parser_node(
     node: Parser_node.Node,
     expected_diagnostics: Validation.Diagnostic[]
 ): void {
-    const text_position_cache = Parse_tree_text_position_cache.create_empty_cache();
-    text_position_cache.elements.push(
-        {
-            text_position: {
-                line: node.children[0].word.source_location.line,
-                column: node.children[0].word.source_location.column,
-                offset: 0
-            },
-            node: node.children[0],
-            node_position: [...create_dummy_node_position(), 0]
-        }
-    );
-
-    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node, text_position_cache);
+    const actual_diagnostics = Validation.validate_parser_node(create_dummy_uri(), create_dummy_node_position(), node);
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
 
@@ -303,12 +294,11 @@ async function test_validate_module(
     expected_diagnostics: Validation.Diagnostic[]
 ): Promise<void> {
 
-    const cache = Storage_cache.create_storage_cache("out/tests/language_description_cache");
-    const language_description = Language.create_default_description(cache, "out/tests/graphviz.gv");
+    const parser = await Tree_sitter_parser.create_parser();
 
     const uri = create_dummy_uri();
 
-    const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, input_text);
+    const parse_result = Text_change.full_parse_with_source_locations(parser, uri, input_text, true);
 
     assert.notEqual(parse_result.module, undefined);
     if (parse_result.module === undefined) {
@@ -321,7 +311,7 @@ async function test_validate_module(
     }
 
     const dependencies_parse_result: { module: Core.Module, parse_tree: Parser_node.Node }[] = input_dependencies_text.map(text => {
-        const parse_result = Text_change.full_parse_with_source_locations(language_description, uri, text);
+        const parse_result = Text_change.full_parse_with_source_locations(parser, uri, text, true);
         assert.notEqual(parse_result.module, undefined);
         assert.notEqual(parse_result.parse_tree, undefined);
         return {
@@ -330,30 +320,26 @@ async function test_validate_module(
         };
     });
 
-    const get_core_module = async (module_name: string): Promise<Core.Module | undefined> => {
+    const get_parse_tree = async (module_name: string): Promise<Parser_node.Node | undefined> => {
         if (module_name === parse_result.module?.name) {
-            return parse_result.module;
+            return parse_result.parse_tree;
         }
 
         const dependency = dependencies_parse_result.find(dependency => dependency.module.name === module_name);
         if (dependency === undefined) {
             return undefined;
         }
-        return dependency.module;
+        return dependency.parse_tree;
     };
-
-    const text_position_cache = Parse_tree_text_position_cache.create_cache(parse_result.parse_tree, input_text);
 
     const actual_diagnostics = await Validation.validate_module(
         uri,
-        language_description,
         input_text,
         parse_result.module,
         parse_result.parse_tree,
         [],
         parse_result.parse_tree,
-        text_position_cache,
-        get_core_module
+        get_parse_tree
     );
     assert.deepEqual(actual_diagnostics, expected_diagnostics);
 }
@@ -787,6 +773,150 @@ enum My_enum
     });
 });
 
+describe("Validation of function contracts", () => {
+
+    // - Expressions must evaluate to a boolean
+    // - Preconditions can only reference function inputs
+    // - Postconditions can reference both function inputs and outputs
+    // - Expressions can also reference global constants, enum values and call functions (with no side effects, can be required in the future)
+
+    it("Validates that precondition and postcondition must evaluate to a boolean", async () => {
+        const input = `module Test;
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "first > 0 && second > 0" { first > 0 && second > 0 }
+    precondition "first" { first }
+    postcondition "result > 0" { result > 0 }
+    postcondition "result" { result }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(5, 28, 5, 33),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(7, 30, 7, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that precondition can only reference function inputs, global constants, enum values and call functions", async () => {
+        const input = `module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_precondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "validate with function" { check_precondition(first) }
+    precondition "validate with global constant" { first + g_my_constant > 0 }
+    precondition "validate with global non-constant" { first + g_my_mutable > 0 }
+    precondition "validate with enum value" { first > (My_enum.First as Int32) }
+    precondition "validate with function output" { result > 0 }
+    precondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(19, 64, 19, 76),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(21, 52, 21, 58),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'result' does not exist.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(22, 53, 22, 57),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'beep' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that postcondition can only reference function inputs, function outputs, global constants, enum values and call functions", async () => {
+        const input = `module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_postcondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    postcondition "validate with function" { check_postcondition(result) }
+    postcondition "validate with global constant" { result + g_my_constant > 0 }
+    postcondition "validate with global non-constant" { result + g_my_mutable > 0 }
+    postcondition "validate with enum value" { result > (My_enum.First as Int32) }
+    postcondition "validate with function input" { first + second == result }
+    postcondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(19, 66, 19, 78),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                related_information: [],
+            },
+            {
+                location: create_diagnostic_location(22, 54, 22, 58),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Variable 'beep' does not exist.",
+                related_information: [],
+            }
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+});
+
 describe("Validation of integer types", () => {
 
     // - Number of bits cannot be larger than 64
@@ -858,7 +988,7 @@ using My_type_2 = B.My_struct_2;
 
 struct My_struct
 {
-    a: Int32;
+    a: Int32 = 0;
 }
 `;
 
@@ -954,6 +1084,7 @@ describe("Validation of declarations", () => {
 
     // - Must have different names
     // - Names must not collide with existing types
+    // - Name must not be empty
 
     it("Validates that a declaration name is not a duplicate", async () => {
         const input = `module Test;
@@ -1511,7 +1642,7 @@ function run() -> ()
 }
 `;
 
-        const test_2_input = `module Test_2
+        const test_2_input = `module Test_2;
 
 export enum My_enum
 {
@@ -1557,6 +1688,34 @@ export union My_union
         ];
 
         await test_validate_module(input, [test_2_input], expected_diagnostics);
+    });
+});
+
+describe("Validation of expression assert", () => {
+
+    // - Expressions must evaluate to a boolean
+
+    it("Validates that assert must evaluate to a boolean", async () => {
+        const input = `module Test;
+
+function run(value: Int32) -> ()
+{
+    assert "value is not 0" { value != 0 };
+    assert "value is not 0" { value };
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
+            {
+                location: create_diagnostic_location(6, 31, 6, 36),
+                source: Validation.Source.Parse_tree_validation,
+                severity: Validation.Diagnostic_severity.Error,
+                message: "Expression type 'Int32' does not match expected type 'Bool'.",
+                related_information: [],
+            },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
     });
 });
 
@@ -1609,75 +1768,33 @@ function run() -> ()
 
     var result_0 = -int_value;
     var result_1 = -float_value;
-
-    var result_2 = ++int_value;
-    var result_3 = ++float_value;
-    var result_4 = --int_value;
-    var result_5 = --float_value;
-
-    var result_6 = int_value++;
-    var result_7 = float_value++;
-    var result_8 = int_value--;
-    var result_9 = float_value--;
     
-    var result_10 = ~int_value;
-    var result_11 = ~float_value;
+    var result_2 = ~int_value;
+    var result_3 = ~float_value;
 
     var instance: My_struct = {};
-    var result_12 = -instance;
-    var result_13 = ++instance;
-    var result_14 = --instance;
-    var result_15 = instance++;
-    var result_16 = instance--;
-    var result_17 = ~instance;
+    var result_4 = -instance;
+    var result_5 = ~instance;
 }
 `;
 
         const expected_diagnostics: Validation.Diagnostic[] = [
             {
-                location: create_diagnostic_location(26, 21, 26, 22),
+                location: create_diagnostic_location(16, 20, 16, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(29, 21, 29, 22),
+                location: create_diagnostic_location(19, 20, 19, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '-' to expression.",
                 related_information: [],
             },
             {
-                location: create_diagnostic_location(30, 21, 30, 23),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '++' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(31, 21, 31, 23),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '--' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(32, 29, 32, 31),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '++' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(33, 29, 33, 31),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Cannot apply unary operation '--' to expression.",
-                related_information: [],
-            },
-            {
-                location: create_diagnostic_location(34, 21, 34, 22),
+                location: create_diagnostic_location(20, 20, 20, 21),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
                 message: "Cannot apply unary operation '~' to expression.",
@@ -2064,6 +2181,9 @@ function run(value: Int32) -> (result: Int32)
     }
     else if 1 {
         return 3;
+    }
+    else if 1cb {
+        return 4;
     }
 }
 `;
@@ -2577,7 +2697,7 @@ function run(value: Int32) -> ()
         await test_validate_module(input, [], expected_diagnostics);
     });
 
-    it("Validates that in comparison operations both types must be comparable", async () => {
+    it("Validates that in comparison operations both types must be comparable 0", async () => {
         const input = `module Test;
 
 struct My_struct
@@ -2600,9 +2720,26 @@ function run(value: Int32) -> ()
                 location: create_diagnostic_location(14, 13, 14, 36),
                 source: Validation.Source.Parse_tree_validation,
                 severity: Validation.Diagnostic_severity.Error,
-                message: "Binary operation '<' can only be applied to comparable types.",
+                message: "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
                 related_information: [],
             },
+        ];
+
+        await test_validate_module(input, [], expected_diagnostics);
+    });
+
+    it("Validates that in comparison operations both types must be comparable 1", async () => {
+        const input = `module Test;
+
+using My_uint = Uint32;
+
+function run(first: My_uint, second: My_uint) -> ()
+{
+    var a = first < second;
+}
+`;
+
+        const expected_diagnostics: Validation.Diagnostic[] = [
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
@@ -2976,31 +3113,6 @@ function run(value: Int32) -> (result: Int32)
         ];
 
         await test_validate_module(input, [], expected_diagnostics);
-    });
-});
-
-describe("Validation of expression invalid", () => {
-
-    // - There can't be any invalid expressions
-
-    it("Validates that there aren't any invalid expressions", () => {
-        const node = create_node("Expression_invalid",
-            [
-                create_terminal_node("", Grammar.Word_type.Invalid, { line: 2, column: 7 })
-            ]
-        );
-
-        const expected_diagnostics: Validation.Diagnostic[] = [
-            {
-                location: create_diagnostic_location(2, 7, 2, 7),
-                source: Validation.Source.Parse_tree_validation,
-                severity: Validation.Diagnostic_severity.Error,
-                message: "Invalid expression.",
-                related_information: [],
-            }
-        ];
-
-        test_validate_parser_node(node, expected_diagnostics);
     });
 });
 
@@ -3397,7 +3509,7 @@ export using Flags = Uint32;
 
 export enum My_enum
 {
-    A = 0
+    A = 0,
 }
 
 export struct My_struct

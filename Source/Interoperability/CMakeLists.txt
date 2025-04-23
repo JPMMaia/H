@@ -3,17 +3,31 @@ add_library(H::C_header_importer ALIAS H_C_header_importer)
 
 target_compile_features(H_C_header_importer PUBLIC cxx_std_23)
 
-target_link_libraries(H_C_header_importer PUBLIC H::Core H::JSON_serializer)
+target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_serializer)
 
 ## LLVM ##
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(H_C_header_importer PRIVATE libclang)
+target_link_libraries(H_C_header_importer PRIVATE libclang clangTooling)
 
 ## End LLVM ##
 
+if(WIN32)
+   find_package(xxHash CONFIG REQUIRED)
+   target_link_libraries(H_C_header_importer PRIVATE xxHash::xxhash)
+   install(IMPORTED_RUNTIME_ARTIFACTS xxHash::xxhash)
+else()
+   find_package(PkgConfig REQUIRED)
+   pkg_check_modules(XXHASH REQUIRED IMPORTED_TARGET libxxhash)
+
+   target_include_directories(H_C_header_importer PRIVATE ${XXHASH_INCLUDE_DIRS})
+   target_link_libraries(H_C_header_importer PRIVATE PkgConfig::XXHASH)
+endif()
+
 target_sources(H_C_header_importer PRIVATE
+   "C_header_hash.cppm"
+   "C_header_hash.cpp"
    "C_header_importer.cppm"
    "C_header_importer.cpp"
 )
@@ -45,7 +59,7 @@ if(BUILD_TESTING)
          VULKAN_HEADERS_LOCATION="${vulkan_headers_location}"
    )
 
-   target_sources(H_C_header_importer_tests PRIVATE "C_header_importer.tests.cpp")
+   target_sources(H_C_header_importer_tests PRIVATE "C_header_hash.tests.cpp" "C_header_importer.tests.cpp")
 
    include(Catch)
    catch_discover_tests(H_C_header_importer_tests)

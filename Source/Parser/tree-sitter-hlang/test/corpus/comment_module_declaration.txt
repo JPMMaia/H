@@ -1,0 +1,17 @@
+=========================
+Comment module declaration
+=========================
+
+// This is a very long
+// module decription
+module Comment_module_declaration;
+
+---
+
+(Module
+  (Module_head
+    (Module_declaration
+      (Comment)
+      (Module_name
+        (Identifier_with_dots
+          (Identifier))))))
