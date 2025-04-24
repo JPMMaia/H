@@ -1,9 +1,10 @@
 module;
 
-#include <exception>
+#include <algorithm>
 #include <memory_resource>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <variant>
 #include <vector>
 

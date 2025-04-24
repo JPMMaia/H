@@ -3,6 +3,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>

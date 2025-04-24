@@ -2,6 +2,7 @@ module;
 
 #include <memory_resource>
 #include <string_view>
+#include <string>
 #include <vector>
 
 module h.core.expressions;

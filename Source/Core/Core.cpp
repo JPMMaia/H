@@ -11,6 +11,7 @@ module;
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -20,6 +21,48 @@ import h.common;
 
 namespace h
 {
+    template<typename... Ts>
+    std::strong_ordering operator<=>(std::variant<Ts...> const& lhs, std::variant<Ts...> const& rhs)
+    {
+        std::size_t const i = lhs.index();
+        std::size_t const j = rhs.index();
+        if (i != j)
+            return i <=> j;
+
+        std::strong_ordering result = std::strong_ordering::equal;
+        
+        auto const visitor = [&](auto const& lhs_value) -> void {
+            using real_type = std::remove_cv_t<std::remove_reference_t<decltype(lhs_value)>>;
+            auto const& rhs_value = std::get<real_type>(rhs);
+            result = lhs_value <=> rhs_value;
+        };
+
+        std::visit(visitor, lhs);
+
+        return result;
+    }
+
+    std::strong_ordering operator<=>(Type_reference const& lhs, Type_reference const& rhs) = default;
+    std::strong_ordering operator<=>(Expression const& lhs, Expression const& rhs) = default;
+    std::strong_ordering operator<=>(Statement const& lhs, Statement const& rhs) = default;
+
+    bool operator==(Statement const& lhs, Statement const& rhs)
+    {
+        if (lhs.expressions.size() != rhs.expressions.size())
+            return false;
+
+        for (std::size_t index = 0; index < lhs.expressions.size(); ++index)
+        {
+            std::strong_ordering const result = lhs.expressions[index] <=> rhs.expressions[index];
+            if (result != std::strong_ordering::equal)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool operator==(Type_instance const& lhs, Type_instance const& rhs) = default;
+
     Module const& find_module(
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
@@ -43,19 +86,6 @@ namespace h
     )
     {
         return module_reference.name;
-        /*if (module_reference.name == "" || module_reference.name == core_module.name)
-            return core_module.name;
-
-        auto const location = std::find_if(
-            core_module.dependencies.alias_imports.begin(),
-            core_module.dependencies.alias_imports.end(),
-            [&module_reference](Import_module_with_alias const& alias_import) { return alias_import.alias == module_reference.name; }
-        );
-
-        if (location == core_module.dependencies.alias_imports.end())
-            h::common::print_message_and_exit(std::format("Could not find import alias '{}' in module '{}'", module_reference.name, core_module.name));
-
-        return location->module_name;*/
     }
 
     Custom_type_reference const* find_declaration_type_reference(
