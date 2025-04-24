@@ -6,21 +6,24 @@ target_compile_definitions(H_core PUBLIC "_SCL_SECURE_NO_WARNINGS")
 
 target_link_libraries(H_core PRIVATE H::Common)
 
-target_sources(H_core PRIVATE 
-    "Core.cppm"
-    "Core.cpp"
-    "Declarations.cppm"
-    "Declarations.cpp"
-    "Expressions.cppm"
-    "Expressions.cpp"
-    "Hash.cppm"
-    "Hash.cpp"
-    "String_hash.cppm"
-    "Struct_layout.cppm"
-    "Types.cppm"
-    "Types.cpp"
-    "Execution_engine/Execution_engine.cppm"
-    "Execution_engine/Execution_engine.cpp"
+target_sources(H_core
+   PUBLIC FILE_SET modules TYPE CXX_MODULES
+      FILES
+         "Core.cppm"
+         "Declarations.cppm"
+         "Expressions.cppm"
+         "Hash.cppm"
+         "String_hash.cppm"
+         "Struct_layout.cppm"
+         "Types.cppm"
+         "Execution_engine/Execution_engine.cppm"
+   PRIVATE
+      "Core.cpp"
+      "Declarations.cpp"
+      "Expressions.cpp"
+      "Hash.cpp"
+      "Types.cpp"
+      "Execution_engine/Execution_engine.cpp"
 )
 
 if(WIN32)

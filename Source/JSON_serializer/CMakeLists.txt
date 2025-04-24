@@ -8,13 +8,15 @@ target_link_libraries(H_JSON_serializer PUBLIC H::Core)
 find_package(RapidJSON CONFIG REQUIRED)
 target_link_libraries(H_JSON_serializer PUBLIC rapidjson)
 
-target_sources(H_JSON_serializer PRIVATE
-    "JSON_serializer.cppm"
-    "Operators.cppm"
-    "Read_handler.cppm"
-    "Read_json.cppm"
-    "Read_header_handler.cppm"
-    "Write_json.cppm"
+target_sources(H_JSON_serializer
+    PUBLIC FILE_SET modules TYPE CXX_MODULES
+        FILES
+            "JSON_serializer.cppm"
+            "Read_handler.cppm"
+            "Operators.cppm"
+            "Read_json.cppm"
+            "Read_header_handler.cppm"
+            "Write_json.cppm"
 )
 
 

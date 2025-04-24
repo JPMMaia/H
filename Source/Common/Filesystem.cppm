@@ -1,6 +1,7 @@
 module;
 
 #include <filesystem>
+#include <vector>
 
 export module h.common.filesystem;
 

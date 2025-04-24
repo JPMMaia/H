@@ -25,11 +25,14 @@ else()
    target_link_libraries(H_C_header_importer PRIVATE PkgConfig::XXHASH)
 endif()
 
-target_sources(H_C_header_importer PRIVATE
-   "C_header_hash.cppm"
-   "C_header_hash.cpp"
-   "C_header_importer.cppm"
-   "C_header_importer.cpp"
+target_sources(H_C_header_importer
+   PUBLIC FILE_SET modules TYPE CXX_MODULES
+      FILES
+         "C_header_hash.cppm"
+         "C_header_importer.cppm"
+   PRIVATE
+      "C_header_hash.cpp"
+      "C_header_importer.cpp"
 )
 
 if(BUILD_TESTING)

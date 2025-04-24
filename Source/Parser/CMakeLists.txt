@@ -20,12 +20,20 @@ target_compile_features(H_parser PRIVATE cxx_std_23)
 
 target_link_libraries(H_parser PUBLIC H::Common)
 
-find_package(unofficial-tree-sitter CONFIG REQUIRED)
-target_link_libraries(H_parser PRIVATE unofficial::tree-sitter::tree-sitter)
+if (WIN32)
+   find_package(unofficial-tree-sitter CONFIG REQUIRED)
+   target_link_libraries(H_parser PRIVATE unofficial::tree-sitter::tree-sitter)
+else ()
+   find_library(TREE_SITTER_LIBRARY tree-sitter REQUIRED)
+   target_link_libraries(H_parser PRIVATE ${TREE_SITTER_LIBRARY})
+endif()
 
-target_sources(H_parser PRIVATE
-   "Parser.cppm"
-   "Parser.cpp"
+target_sources(H_parser
+   PUBLIC FILE_SET modules TYPE CXX_MODULES
+      FILES
+         "Parser.cppm"
+   PRIVATE
+      "Parser.cpp"
 )
 
 
