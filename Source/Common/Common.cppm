@@ -10,6 +10,7 @@ export module h.common;
 namespace h::common
 {
     export void print_message_and_exit(std::string const& message);
+    export void print_message_and_exit(char const* const message);
 
     export std::optional<std::pmr::string> get_file_contents(char const* const path);
     export std::optional<std::pmr::string> get_file_contents(std::filesystem::path const& path);

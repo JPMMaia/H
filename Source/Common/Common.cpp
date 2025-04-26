@@ -17,6 +17,11 @@ namespace h::common
         std::exit(-1);
     }
 
+    void print_message_and_exit(char const* const message)
+    {
+        std::puts(message);
+        std::exit(-1);
+    }
 
     std::optional<std::pmr::string> get_file_contents(char const* const path)
     {
