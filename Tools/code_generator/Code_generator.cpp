@@ -11,6 +11,7 @@ module;
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
@@ -1216,6 +1217,7 @@ namespace h::tools::code_generator
 
         output_stream << "module;\n";
         output_stream << '\n';
+        output_stream << "#include <filesystem>\n";
         output_stream << "#include <format>\n";
         output_stream << "#include <iostream>\n";
         output_stream << "#include <memory_resource>\n";
@@ -1754,6 +1756,7 @@ namespace h::tools::code_generator
 
         output_stream << "module;\n";
         output_stream << '\n';
+        output_stream << "#include <filesystem>\n";
         output_stream << "#include <iostream>\n";
         output_stream << "#include <memory_resource>\n";
         output_stream << "#include <optional>\n";
@@ -1926,6 +1929,7 @@ namespace h::tools::code_generator
 
         output_stream << "module;\n";
         output_stream << '\n';
+        output_stream << "#include <filesystem>\n";
         output_stream << "#include <istream>\n";
         output_stream << "#include <optional>\n";
         output_stream << "#include <ostream>\n";

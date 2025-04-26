@@ -30,6 +30,7 @@ namespace h::compiler
             llvm::orc::IndirectStubsManager& indirect_stubs_manager,
             llvm::orc::MangleAndInterner& mangle
         );
+        virtual ~Recompile_module_layer() = default;
 
         virtual llvm::Error add(
             llvm::orc::ResourceTrackerSP resource_tracker,

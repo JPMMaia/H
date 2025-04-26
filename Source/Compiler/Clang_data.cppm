@@ -44,12 +44,6 @@ namespace h::compiler
         std::unique_ptr<clang::CompilerInstance> compiler_instance;
     };
 
-    export Clang_data create_clang_data(
-        llvm::LLVMContext& llvm_context,
-        llvm::Triple const& llvm_triple,
-        unsigned int const optimization_level
-    );
-
     export struct Clang_module_declarations
     {
         std::pmr::unordered_map<std::pmr::string, clang::FunctionDecl*, h::String_hash, h::String_equal> function_declarations;
@@ -72,12 +66,4 @@ namespace h::compiler
         std::unique_ptr<clang::CodeGenerator> code_generator;
         Clang_declaration_database declaration_database;
     };
-
-    export Clang_module_data create_clang_module_data(
-        llvm::LLVMContext& llvm_context,
-        Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
-        Declaration_database const& declaration_database
-    );
 }

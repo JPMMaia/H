@@ -234,7 +234,7 @@ namespace h::compiler
     {
         llvm::Expected<llvm::orc::ExecutorAddr> function_address = jit_data.llvm_jit->lookup({ function_name.data(), function_name.size() });
         if (!function_address)
-            h::common::print_message_and_exit(std::format("Error while looking up function '{}': {}", function_name, llvm::toString(std::move(function_address.takeError()))));
+            h::common::print_message_and_exit(std::format("Error while looking up function '{}': {}", function_name, llvm::toString(function_address.takeError())));
 
         int(*function_pointer)() = function_address->toPtr<int(*)()>();
 

@@ -195,4 +195,18 @@ namespace h::compiler
         clang::CodeGen::ABIArgInfo const& abi_argument_info,
         Convertion_type const convertion_type
     );
+
+    export Clang_data create_clang_data(
+        llvm::LLVMContext& llvm_context,
+        llvm::Triple const& llvm_triple,
+        unsigned int const optimization_level
+    );
+
+    export Clang_module_data create_clang_module_data(
+        llvm::LLVMContext& llvm_context,
+        Clang_data const& clang_data,
+        h::Module const& core_module,
+        std::span<h::Module const* const> const sorted_core_module_dependencies,
+        Declaration_database const& declaration_database
+    );
 }

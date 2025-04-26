@@ -1,9 +1,11 @@
 module;
 
 #include <algorithm>
+#include <format>
 #include <memory_resource>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -227,7 +229,7 @@ namespace h::compiler
             {
                 h::Instance_call_expression instance_call_expression =
                 {
-                    .left_hand_side = data.expression.expression_index,
+                    .left_hand_side = { data.expression.expression_index },
                     .arguments = instance_call_arguments.value()
                 };
 

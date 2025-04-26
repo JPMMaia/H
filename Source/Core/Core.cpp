@@ -42,6 +42,7 @@ namespace h
         return result;
     }
 
+    std::strong_ordering operator<=>(Type_instance const& lhs, Type_instance const& rhs) = default;
     std::strong_ordering operator<=>(Type_reference const& lhs, Type_reference const& rhs) = default;
     std::strong_ordering operator<=>(Expression const& lhs, Expression const& rhs) = default;
     std::strong_ordering operator<=>(Statement const& lhs, Statement const& rhs) = default;
@@ -62,10 +63,15 @@ namespace h
     }
 
     bool operator==(Type_instance const& lhs, Type_instance const& rhs) = default;
+    
+    bool operator==(Type_reference const& lhs, Type_reference const& rhs)
+    {
+        return false; // TODo
+    }
 
-    Module const& find_module(
-        Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
+    h::Module const& find_module(
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies,
         std::string_view const name
     )
     {
@@ -81,8 +87,8 @@ namespace h
     }
 
     std::string_view find_module_name(
-        Module const& core_module,
-        Module_reference const& module_reference
+        h::Module const& core_module,
+        h::Module_reference const& module_reference
     )
     {
         return module_reference.name;
@@ -146,32 +152,32 @@ namespace h
         return std::nullopt;
     }
 
-    std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view const name)
+    std::optional<Alias_type_declaration const*> find_alias_type_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.alias_type_declarations, module.internal_declarations.alias_type_declarations);
     }
 
-    std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view const name)
+    std::optional<Enum_declaration const*> find_enum_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
     }
 
-    std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name)
+    std::optional<Global_variable_declaration const*> find_global_variable_declaration(h::Module const& module, std::string_view name)
     {
         return get_value(name, module.export_declarations.global_variable_declarations, module.internal_declarations.global_variable_declarations);
     }
 
-    std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view const name)
+    std::optional<Function_declaration const*> find_function_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);
     }
 
-    std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view const name)
+    std::optional<Struct_declaration const*> find_struct_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.struct_declarations, module.internal_declarations.struct_declarations);
     }
 
-    std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view const name)
+    std::optional<Union_declaration const*> find_union_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.union_declarations, module.internal_declarations.union_declarations);
     }

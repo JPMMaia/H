@@ -2,6 +2,7 @@ module;
 
 #include <cassert>
 #include <cstddef>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include <memory_resource>

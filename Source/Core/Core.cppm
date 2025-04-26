@@ -185,7 +185,10 @@ namespace h
         Data_type data;
 
         friend std::strong_ordering operator<=>(Type_reference const&, Type_reference const&);
+        friend bool operator==(Type_reference const& lhs, Type_reference const& rhs);
     };
+
+    bool operator==(Type_reference const& lhs, Type_reference const& rhs);
 
     export struct Indexed_comment
     {

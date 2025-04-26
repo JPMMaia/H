@@ -1,5 +1,6 @@
 module;
 
+#include <clang/AST/Decl.h>
 #include <llvm/Analysis/ConstantFolding.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/IR/DIBuilder.h>

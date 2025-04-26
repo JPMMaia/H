@@ -4,7 +4,7 @@ add_library(H::Tools::Code_generator ALIAS H_Tools_Code_generator)
 target_compile_features(H_Tools_Code_generator PUBLIC cxx_std_23)
 
 find_package(RapidJSON CONFIG REQUIRED)
-target_link_libraries(H_Tools_Code_generator PRIVATE rapidjson)
+target_link_libraries(H_Tools_Code_generator PRIVATE RapidJSON)
 
 target_sources(H_Tools_Code_generator 
     PUBLIC

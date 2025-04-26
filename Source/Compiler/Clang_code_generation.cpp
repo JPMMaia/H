@@ -15,6 +15,7 @@ module;
 #include <clang/CodeGen/CodeGenABITypes.h>
 #include <clang/CodeGen/CGFunctionInfo.h>
 #include <clang/CodeGen/ModuleBuilder.h>
+#include <clang/Frontend/CompilerInstance.h>
 #include <llvm/ADT/APSInt.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -522,7 +523,6 @@ namespace h::compiler
             )
         };
         code_generator->Initialize(clang_ast_context);
-        assert(&code_generator->CGM() != nullptr);
 
         Clang_declaration_database clang_declaration_database;
 

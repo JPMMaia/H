@@ -1,6 +1,7 @@
 module;
 
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Module.h>
 
 module h.compiler.instructions;
 

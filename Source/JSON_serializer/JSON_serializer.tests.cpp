@@ -962,12 +962,12 @@ namespace h
 
         Module_declarations export_declarations
         {
-            .function_declarations = create_expected_function_declaration()
+            .function_declarations = { create_expected_function_declaration() }
         };
 
         Module_definitions definitions
         {
-            .function_definitions = create_expected_function_definition()
+            .function_definitions = { create_expected_function_definition() }
         };
 
         return h::Module

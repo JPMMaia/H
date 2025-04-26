@@ -52,7 +52,7 @@ namespace h::compiler
         std::pmr::vector<Repository> repositories;
         repositories.reserve(repository_file_paths.size());
 
-        for (std::filesystem::path const path : repository_file_paths)
+        for (std::filesystem::path const& path : repository_file_paths)
         {
             Repository repository = get_repository(path);
             repositories.push_back(std::move(repository));

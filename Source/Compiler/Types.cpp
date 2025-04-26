@@ -1,5 +1,6 @@
 module;
 
+#include <clang/AST/Decl.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/DerivedTypes.h>
