@@ -15,20 +15,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 	const mode: string | undefined = process.env.mode;
 	const use_webpack_server = mode !== "debug";
 
-	// The server is implemented in node
-	const server_module = context.asAbsolutePath(
-		use_webpack_server ?
-			path.join("dist", "server.js") :
-			path.join("out", "packages", "server", "src", "server.js")
-	);
+	const hlang_language_server_path = process.env.hlang_language_server;
+	const use_cpp_server = hlang_language_server_path !== undefined;
+
+	const server_module = use_cpp_server ?
+		hlang_language_server_path :
+		context.asAbsolutePath(
+			use_webpack_server ?
+				path.join("dist", "server.js") :
+				path.join("out", "packages", "server", "src", "server.js")
+		);
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const server_options: ServerOptions = {
-		run: { module: server_module, transport: TransportKind.ipc },
+		run: { module: server_module, transport: use_cpp_server ? TransportKind.stdio : TransportKind.ipc },
 		debug: {
 			module: server_module,
-			transport: TransportKind.ipc
+			transport: use_cpp_server ? TransportKind.stdio : TransportKind.ipc
 		}
 	};
 

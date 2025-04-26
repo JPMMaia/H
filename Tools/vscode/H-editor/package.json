@@ -13,7 +13,7 @@
     "vscode": "^1.95.0"
   },
   "categories": [],
-  "main": "./dist/client.js",
+  "main": "./out/packages/client/src/extension.js",
   "activationEvents": [],
   "contributes": {
     "breakpoints": [
