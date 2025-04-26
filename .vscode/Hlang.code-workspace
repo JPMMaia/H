@@ -286,9 +286,10 @@
 		"tasks": [
 			{
 				"label": "Package VSCode Extension",
-				"command": "vsce",
+				"command": "npm",
 				"type": "shell",
 				"args": [
+					"run",
 					"package"
 				],
 				"presentation": {
