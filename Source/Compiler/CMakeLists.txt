@@ -20,35 +20,38 @@ target_compile_definitions(H_compiler PUBLIC ${LLVM_DEFINITIONS} LLVM_DISABLE_AB
 
 target_include_directories(H_compiler PUBLIC ${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(
-   llvm_libs
-   BinaryFormat
-   Core
-   LibDriver
-   LTO
-   MC
-   nativecodegen
-   OrcDebugging
-   OrcJIT
-   Object
-   Option
-   Passes
-   ProfileData
-   Support
-   TargetParser
-   WindowsDriver
-   WindowsManifest
-   X86
-   X86asmparser
-)
+if (WIN32)
+   llvm_map_components_to_libnames(
+      llvm_libs
+      BinaryFormat
+      Core
+      LibDriver
+      LTO
+      MC
+      nativecodegen
+      OrcDebugging
+      OrcJIT
+      Object
+      Option
+      Passes
+      ProfileData
+      Support
+      TargetParser
+      WindowsDriver
+      WindowsManifest
+      X86
+      X86asmparser
+   )
+   
+   target_link_libraries(H_compiler PUBLIC ${llvm_libs})
 
-target_link_libraries(H_compiler PUBLIC ${llvm_libs})
+   find_library(lldCOFF lldCOFF REQUIRED)
+   target_link_libraries(H_compiler PUBLIC ${lldCOFF})
+endif()
+
 
 find_library(lldCommon lldCommon REQUIRED)
 target_link_libraries(H_compiler PUBLIC ${lldCommon})
-
-find_library(lldCOFF lldCOFF REQUIRED)
-target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 
 if(WIN32)
    find_package(ZLIB REQUIRED)
@@ -66,13 +69,22 @@ endif()
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_compiler PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(
-   H_compiler
-   PRIVATE
-   clangBasic
-   clangCodeGen
-   libclang
-)
+
+if(WIN32)
+   target_link_libraries(
+      H_compiler
+      PRIVATE
+      clangBasic
+      clangCodeGen
+      libclang
+   )
+else()
+   target_link_libraries(
+      H_compiler
+      PRIVATE
+      libclang
+   )
+endif()
 
 if (WIN32)
    find_program(LIBCLANG_DLL_LOCATION "libclang.dll" REQUIRED)

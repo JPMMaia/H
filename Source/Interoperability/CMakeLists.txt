@@ -9,7 +9,11 @@ target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_seria
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(H_C_header_importer PRIVATE libclang clangTooling)
+target_link_libraries(H_C_header_importer PRIVATE libclang)
+
+if(WIN32)
+   target_link_libraries(H_C_header_importer PRIVATE clangTooling)
+endif()
 
 ## End LLVM ##
 
