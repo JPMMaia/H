@@ -74,7 +74,7 @@ int main(int const argc, char const* const* argv)
     // TODO if debug
     //trigger_breakpoint();
 
-    std::printf("Hlang Language Server started");
+    //std::printf("Hlang Language Server started");
 
     Server server = create_server();
     Message_handler message_handler = create_message_handler(server, *stdin, *stdout);

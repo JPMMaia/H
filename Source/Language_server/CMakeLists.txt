@@ -5,6 +5,8 @@ target_compile_features(H_language_server PUBLIC cxx_std_23)
 
 target_link_libraries(H_language_server PUBLIC H::Common H::Compiler)
 
+target_link_libraries(H_language_server PRIVATE lsp)
+
 find_package(argparse CONFIG REQUIRED)
 target_link_libraries(H_language_server PRIVATE argparse::argparse)
 
