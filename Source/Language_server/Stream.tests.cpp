@@ -3,7 +3,7 @@
 
 #include <catch2/catch_all.hpp>
 
-import h.language_server.request;
+import h.language_server.message;
 import h.language_server.stream;
 
 namespace h::language_server
@@ -19,7 +19,7 @@ namespace h::language_server
         std::fwrite(content.data(), sizeof(char), content.size(), &input_stream);
     }
 
-    TEST_CASE("Initialize Request")
+    TEST_CASE("Read Initialize Request", "[Stream]")
     {
         std::FILE* input_stream = std::tmpfile();
         REQUIRE(input_stream != nullptr);

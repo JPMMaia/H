@@ -9,8 +9,9 @@
 import h.compiler.artifact;
 import h.compiler.repository;
 
-import h.language_server.request;
-import h.language_server.stream;
+import h.language_server.breakpoint;
+import h.language_server.message_handler;
+import h.language_server.server;
 
 struct Source_file_info
 {
@@ -38,6 +39,8 @@ std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string co
 
     return output;
 }
+
+using namespace h::language_server;
 
 int main(int const argc, char const* const* argv)
 {
@@ -68,9 +71,13 @@ int main(int const argc, char const* const* argv)
     std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(program.get<std::vector<std::string>>("--repository"));
     std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);*/
 
+    // TODO if debug
+    //trigger_breakpoint();
+
     std::printf("Hlang Language Server started");
 
-    std::optional<h::language_server::Request> request = h::language_server::read_request();
-
+    Server server = create_server();
+    Message_handler message_handler = create_message_handler(server, *stdin, *stdout);
+    process_messages(message_handler);
     return 0;
 }

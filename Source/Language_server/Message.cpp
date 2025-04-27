@@ -5,7 +5,7 @@ module;
 
 #include <nlohmann/json.hpp>
 
-module h.language_server.request;
+module h.language_server.message;
 
 namespace h::language_server
 {

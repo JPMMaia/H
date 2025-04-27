@@ -1,5 +1,7 @@
 module;
 
+#include <nlohmann/json.hpp>
+
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -11,7 +13,7 @@ module h.language_server.stream;
 
 import h.common;
 
-import h.language_server.request;
+import h.language_server.message;
 
 constexpr bool g_debug = true;
 
@@ -109,5 +111,42 @@ namespace h::language_server
         read_line(input_stream, buffer_view);
 
         return read_message(input_stream, buffer_view, content_length);
+    }
+
+    static void write_content_length(
+        std::FILE& output_stream,
+        std::uint32_t const content_length
+    )
+    {   
+        std::fprintf(
+            &output_stream,
+            "Content-Length: %u",
+            content_length
+        );
+    }
+
+    void write_response(
+        std::FILE& output_stream,
+        Response const& response
+    )
+    {
+        std::string const response_string = nlohmann::to_string(response.data);
+
+        std::uint32_t const content_length = static_cast<std::uint32_t>(response_string.length()); 
+        write_content_length(output_stream, content_length);
+
+        std::fwrite(
+            "\r\n\r\n",
+            sizeof(char), 
+            4, 
+            &output_stream
+        );
+        
+        std::fwrite(
+            response_string.c_str(),
+            sizeof(char),
+            response_string.size(),
+            &output_stream
+        );
     }
 }

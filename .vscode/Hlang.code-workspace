@@ -206,6 +206,12 @@
 				"preLaunchTask": "Build Language Server"
 			},
 			{
+				"name": "Attach to Language Server",
+				"type": "lldb-dap",
+				"request": "attach",
+				"program": "${workspaceFolder}/build/Source/Language_server/H_language_server"
+			}
+			{
 				"name": "Run Language Client",
 				"type": "extensionHost",
 				"request": "launch",
@@ -223,7 +229,7 @@
 				"env": {
 					"mode": "debug",
 					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/H_language_server"
-				}
+				},
 			},
 			{
 				"name": "Parser",

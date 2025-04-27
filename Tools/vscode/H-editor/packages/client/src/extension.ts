@@ -2,8 +2,10 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {
+	Executable,
 	LanguageClient,
 	LanguageClientOptions,
+	NodeModule,
 	ServerOptions,
 	TransportKind
 } from 'vscode-languageclient/node.js';
@@ -26,14 +28,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 				path.join("out", "packages", "server", "src", "server.js")
 		);
 
+	const executable: Executable = {
+		command: hlang_language_server_path,
+		args: [],
+		transport: TransportKind.stdio,
+	};
+
+	const node_module: NodeModule = {
+		module: server_module,
+		transport: TransportKind.ipc
+	};
+
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
-	const server_options: ServerOptions = {
-		run: { module: server_module, transport: use_cpp_server ? TransportKind.stdio : TransportKind.ipc },
-		debug: {
-			module: server_module,
-			transport: use_cpp_server ? TransportKind.stdio : TransportKind.ipc
-		}
+	const server_options: ServerOptions = use_cpp_server ? {
+		run: executable,
+		debug: executable
+	} : {
+		run: node_module,
+		debug: node_module
 	};
 
 	// Options to control the language client
