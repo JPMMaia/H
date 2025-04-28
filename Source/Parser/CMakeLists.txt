@@ -12,13 +12,16 @@ install(
     RENAME "parser.js"
 )
 
+add_subdirectory("tree-sitter-hlang")
 
 add_library(H_parser)
 add_library(H::Parser ALIAS H_parser)
 
 target_compile_features(H_parser PRIVATE cxx_std_23)
 
-target_link_libraries(H_parser PUBLIC H::Common)
+target_link_libraries(H_parser PUBLIC H::Common H::Core)
+
+target_link_libraries(H_parser PRIVATE tree-sitter-hlang)
 
 if (WIN32)
    find_package(unofficial-tree-sitter CONFIG REQUIRED)
@@ -31,8 +34,14 @@ endif()
 target_sources(H_parser
    PUBLIC FILE_SET modules TYPE CXX_MODULES
       FILES
+         "Convertor.cppm"
+         "Formatter.cppm"
+         "Parse_tree.cppm"
          "Parser.cppm"
    PRIVATE
+      "Convertor.cpp"
+      "Formatter.cpp"
+      "Parse_tree.cpp"
       "Parser.cpp"
 )
 
@@ -54,3 +63,24 @@ target_sources(H_parser_executable PRIVATE
 )
 
 install(TARGETS H_parser_executable)
+
+
+if(BUILD_TESTING)
+   add_executable(H_parser_tests)
+   target_link_libraries(H_parser_tests PRIVATE H_parser)
+
+   find_package(Catch2 CONFIG REQUIRED)
+   target_link_libraries(H_parser_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
+
+   target_sources(H_parser_tests
+      PRIVATE FILE_SET modules TYPE CXX_MODULES
+         FILES
+            "Module_examples.cppm"
+      PRIVATE
+         "Convertor.tests.cpp"
+         "Module_examples.cpp"
+   )
+
+   include(Catch)
+   catch_discover_tests(H_parser_tests)
+endif()
