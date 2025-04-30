@@ -72,13 +72,15 @@ if(BUILD_TESTING)
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_parser_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
+   target_compile_definitions(
+      H_parser_tests
+      PRIVATE
+         TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
+   )
+
    target_sources(H_parser_tests
-      PRIVATE FILE_SET modules TYPE CXX_MODULES
-         FILES
-            "Module_examples.cppm"
       PRIVATE
          "Convertor.tests.cpp"
-         "Module_examples.cpp"
    )
 
    include(Catch)
