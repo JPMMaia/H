@@ -35,10 +35,18 @@ namespace h::parser
             root,
             {}
         );
+        
+        std::pmr::polymorphic_allocator<> output_allocator;
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
+        Format_options const format_options = {
+            .output_allocator = output_allocator,
+            .temporaries_allocator = temporaries_allocator,
+        };
 
         std::pmr::string const converted_text = format_module(
             converted_module,
-            {}
+            format_options
         );
 
         CHECK(converted_text == source);

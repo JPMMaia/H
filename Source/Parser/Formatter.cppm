@@ -1,6 +1,8 @@
 module;
 
+#include <cstdint>
 #include <memory_resource>
+#include <span>
 #include <string>
 
 export module h.parser.formatter;
@@ -17,6 +19,244 @@ namespace h::parser
 
     export std::pmr::string format_module(
         h::Module const& core_module,
+        Format_options const& options
+    );
+
+    struct String_buffer
+    {
+        std::stringstream string_stream;
+    };
+
+    void add_format_expression(
+        String_buffer& buffer,
+        Statement const& statement,
+        Expression const& expression,
+        std::uint32_t const indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_access(
+        String_buffer& buffer,
+        Statement const& statement,
+        Access_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_access_array(
+        String_buffer& buffer,
+        Statement const& statement,
+        Access_array_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_assignment(
+        String_buffer& buffer,
+        Statement const& statement,
+        Assignment_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_binary(
+        String_buffer& buffer,
+        Statement const& statement,
+        Binary_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_block(
+        String_buffer& buffer,
+        std::span<Statement const> const statements,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_block(
+        String_buffer& buffer,
+        Statement const& statement,
+        Block_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_break(
+        String_buffer& buffer,
+        Statement const& statement,
+        Break_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_call(
+        String_buffer& buffer,
+        Statement const& statement,
+        Call_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_cast(
+        String_buffer& buffer,
+        Statement const& statement,
+        Cast_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_compile_time(
+        String_buffer& buffer,
+        Statement const& statement,
+        Compile_time_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_constant(
+        String_buffer& buffer,
+        Statement const& statement,
+        Constant_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_constant_array(
+        String_buffer& buffer,
+        Statement const& statement,
+        Constant_array_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_continue(
+        String_buffer& buffer,
+        Statement const& statement,
+        Continue_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_defer(
+        String_buffer& buffer,
+        Statement const& statement,
+        Defer_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_dereference_and_access(
+        String_buffer& buffer,
+        Statement const& statement,
+        Dereference_and_access_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_for_loop(
+        String_buffer& buffer,
+        Statement const& statement,
+        For_loop_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_if(
+        String_buffer& buffer,
+        Statement const& statement,
+        If_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_instantiate(
+        String_buffer& buffer,
+        Statement const& statement,
+        Instantiate_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_invalid(
+        String_buffer& buffer,
+        Statement const& statement,
+        Invalid_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_null_pointer(
+        String_buffer& buffer,
+        Statement const& statement,
+        Null_pointer_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_parenthesis(
+        String_buffer& buffer,
+        Statement const& statement,
+        Parenthesis_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_reflection(
+        String_buffer& buffer,
+        Statement const& statement,
+        Reflection_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_return(
+        String_buffer& buffer,
+        Statement const& statement,
+        Return_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_switch(
+        String_buffer& buffer,
+        Statement const& statement,
+        Switch_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_ternary_condition(
+        String_buffer& buffer,
+        Statement const& statement,
+        Ternary_condition_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_type(
+        String_buffer& buffer,
+        Statement const& statement,
+        Type_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_unary(
+        String_buffer& buffer,
+        Statement const& statement,
+        Unary_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_variable(
+        String_buffer& buffer,
+        Statement const& statement,
+        Variable_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_while_loop(
+        String_buffer& buffer,
+        Statement const& statement,
+        While_loop_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_binary_operation_symbol(
+        String_buffer& buffer,
+        Binary_operation operation
+    );
+
+    Expression const& get_expression(
+        Statement const& statement,
+        Expression_index const expression_index
+    );
+
+    void add_format_type_name(
+        String_buffer& buffer,
+        std::span<Type_reference const> types,
         Format_options const& options
     );
 }
