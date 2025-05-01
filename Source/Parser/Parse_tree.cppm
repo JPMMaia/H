@@ -1,8 +1,8 @@
 module;
 
-#include <cstdint>
-#include <filesystem>
-#include <string>
+#include <memory_resource>
+#include <optional>
+#include <string_view>
 #include <vector>
 
 #include <tree_sitter/api.h>
@@ -23,5 +23,50 @@ namespace h::parser
         TSTree* ts_tree;
     };
 
-    export Parse_node get_root_node(Parse_tree const& tree);
+    export std::string_view get_node_value(
+        Parse_node const& node
+    );
+
+    export Parse_node get_root_node(
+        Parse_tree const& tree
+    );
+
+    export std::optional<Parse_node> get_parent_node(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::string_view const child_key
+    );
+
+    export std::optional<Parse_node> get_child_node(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::size_t const child_index
+    );
+
+    export std::optional<Parse_node> get_child_node(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::string_view const child_key
+    );
+
+    export std::pmr::vector<Parse_node> get_child_nodes(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::pmr::vector<Parse_node> get_child_nodes(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::string_view const child_key,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::pmr::vector<Parse_node> get_child_nodes_of_parent(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::string_view const parent_key,
+        std::string_view const child_key,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
 }

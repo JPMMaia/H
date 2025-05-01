@@ -30,26 +30,32 @@ namespace h::parser
         Parse_tree tree = parse(parser, nullptr, source);
         Parse_node const root = get_root_node(tree);
 
-        h::Module const converted_module = parse_node_to_module(
+        std::optional<h::Module> const converted_module = parse_node_to_module(
             tree,
             root,
+            input_file_path,
             {}
         );
-        
-        std::pmr::polymorphic_allocator<> output_allocator;
-        std::pmr::polymorphic_allocator<> temporaries_allocator;
 
-        Format_options const format_options = {
-            .output_allocator = output_allocator,
-            .temporaries_allocator = temporaries_allocator,
-        };
+        CHECK(converted_module.has_value());
+        if (converted_module.has_value())
+        {
+            std::pmr::polymorphic_allocator<> output_allocator;
+            std::pmr::polymorphic_allocator<> temporaries_allocator;
 
-        std::pmr::string const converted_text = format_module(
-            converted_module,
-            format_options
-        );
+            Format_options const format_options =
+            {
+                .output_allocator = output_allocator,
+                .temporaries_allocator = temporaries_allocator,
+            };
 
-        CHECK(converted_text == source);
+            std::pmr::string const converted_text = format_module(
+                converted_module.value(),
+                format_options
+            );
+
+            CHECK(converted_text == source);
+        }
 
         destroy_tree(std::move(tree));
         destroy_parser(std::move(parser));
