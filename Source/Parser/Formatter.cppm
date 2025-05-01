@@ -27,6 +27,12 @@ namespace h::parser
         std::stringstream string_stream;
     };
 
+    void add_format_function_definition(
+        String_buffer& buffer,
+        Function_definition const& function_definition,
+        Format_options const& options
+    );
+
     void add_format_expression(
         String_buffer& buffer,
         Statement const& statement,

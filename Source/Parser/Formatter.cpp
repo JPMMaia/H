@@ -47,27 +47,50 @@ namespace h::parser
 
     static void add_comment(
         String_buffer& buffer,
-        std::string_view const comment
+        std::string_view const comment,
+        std::uint32_t const indentation
     )
     {
-        // TODO
         add_text(buffer, "// ");
-        add_text(buffer, comment);
+
+        for (std::size_t index = 0; index < comment.size(); ++index)
+        {
+            char const character = comment[index];
+            
+            if (character == '\n')
+            {
+                add_new_line(buffer);
+                add_indentation(buffer, indentation);
+                add_text(buffer, "// ");
+            }
+            else
+            {
+                add_text(buffer, std::string_view{&character, 1});
+            }
+        }
+
+        add_new_line(buffer);
+        add_indentation(buffer, indentation);
+    }
+
+    static std::optional<std::string_view> get_declaration_comment(
+        Declaration const& declaration
+    )
+    {
+        return std::nullopt;
     }
 
     static void add_format_declaration(
         String_buffer& buffer,
+        h::Module const& core_module,
         Declaration const& declaration,
         bool const is_export,
         Format_options const& options
     )
     {
-        // TODO get declaration comment
-        /*if (declaration.comment)
-        {
-            add_comment(buffer, *declaration.comment);
-            add_new_line(buffer);
-        }*/
+        std::optional<std::string_view> const comment = get_declaration_comment(declaration);
+        if (comment.has_value())
+            add_comment(buffer, comment.value(), 0);
 
         if (is_export)
             add_text(buffer, "export ");
@@ -87,7 +110,16 @@ namespace h::parser
             else if constexpr (std::is_same_v<Declaration_type, Function_declaration>)
             {
                 add_format_function_declaration(buffer, value, options);
-                // TODO format function definition
+
+                std::optional<Function_definition const*> function_definition = find_function_definition(core_module, value.name);
+                if (function_definition.has_value())
+                {
+                    add_format_function_definition(buffer, *function_definition.value(), options);
+                }
+                else
+                {
+                    add_text(buffer, ";");
+                }
             }
             else if constexpr (std::is_same_v<Declaration_type, Global_variable_declaration>)
             {
@@ -829,7 +861,7 @@ namespace h::parser
         add_text(buffer, ")");
     }
 
-    static void add_format_function_definition(
+    void add_format_function_definition(
         String_buffer& buffer,
         Function_definition const& function_definition,
         Format_options const& options
@@ -925,7 +957,7 @@ namespace h::parser
             );
             if (member_comment_it != struct_declaration.member_comments.end())
             {
-                add_comment(buffer, member_comment_it->comment);
+                add_comment(buffer, member_comment_it->comment, 4);
                 add_new_line(buffer);
                 add_text(buffer, "    ");
             }
@@ -973,7 +1005,7 @@ namespace h::parser
             );
             if (member_comment_it != union_declaration.member_comments.end())
             {
-                add_comment(buffer, member_comment_it->comment);
+                add_comment(buffer, member_comment_it->comment, 4);
                 add_new_line(buffer);
                 add_text(buffer, "    ");
             }
@@ -1003,6 +1035,108 @@ namespace h::parser
         add_text(buffer, ";");
     }
 
+    struct Declaration_info
+    {
+        Declaration declaration = {};
+        bool is_export = false;
+        std::optional<Source_location> const* source_location;
+    };
+
+    void add_sorted_declaration_info(
+        std::pmr::vector<Declaration_info>& declaration_infos,
+        Declaration_info element
+    )
+    {
+        if (!element.source_location->has_value())
+        {
+            declaration_infos.push_back(element);
+            return;
+        }
+
+        for (std::size_t index = 0; index < declaration_infos.size(); ++index)
+        {
+            Declaration_info const& current_element = declaration_infos[index];
+            if (!current_element.source_location->has_value())
+            {
+                declaration_infos.push_back(element);
+                return;
+            }
+
+            if (element.source_location->value() < current_element.source_location->value())
+            {
+                declaration_infos.insert(declaration_infos.begin() + index, element);
+                return;
+            }
+        }
+
+        declaration_infos.push_back(element);
+    }
+
+    void add_sorted_declaration_infos(
+        std::pmr::vector<Declaration_info>& declaration_infos,
+        Module_declarations const& declarations,
+        bool const is_export
+    )
+    {
+        auto const process = [&](auto const& declaration) -> void
+        {
+            Declaration_info info
+            {
+                .declaration = {.data = &declaration},
+                .is_export = is_export,
+                .source_location = &declaration.source_location
+            };
+
+            add_sorted_declaration_info(declaration_infos, info);
+        };
+
+        for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
+            process(declaration);
+
+        for (Enum_declaration const& declaration : declarations.enum_declarations)
+            process(declaration);
+
+        for (Global_variable_declaration const& declaration : declarations.global_variable_declarations)
+            process(declaration);
+
+        for (Struct_declaration const& declaration : declarations.struct_declarations)
+            process(declaration);
+
+        for (Union_declaration const& declaration : declarations.union_declarations)
+            process(declaration);
+
+        for (Function_declaration const& declaration : declarations.function_declarations)
+            process(declaration);
+
+        for (Function_constructor const& declaration : declarations.function_constructors)
+            process(declaration);
+
+        for (Type_constructor const& declaration : declarations.type_constructors)
+            process(declaration);
+    }
+
+    std::pmr::vector<Declaration_info> get_declaration_infos(
+        h::Module const& core_module,
+        std::pmr::polymorphic_allocator<> const& allocator
+    )
+    {
+        std::pmr::vector<Declaration_info> output{allocator};
+
+        add_sorted_declaration_infos(
+            output,
+            core_module.export_declarations,
+            true
+        );
+
+        add_sorted_declaration_infos(
+            output,
+            core_module.internal_declarations,
+            false
+        );
+
+        return output;
+    }
+
     std::pmr::string format_module(
         h::Module const& core_module,
         Format_options const& options
@@ -1012,7 +1146,7 @@ namespace h::parser
 
         if (core_module.comment.has_value())
         {
-            add_comment(buffer, core_module.comment.value());
+            add_comment(buffer, core_module.comment.value(), 0);
             add_new_line(buffer);
         }
 
@@ -1030,15 +1164,13 @@ namespace h::parser
             add_new_line(buffer);
         }
 
-        // TODO declarations
-        std::pmr::vector<Declaration> const declarations;
-        if (declarations.size() > 0)
+        std::pmr::vector<Declaration_info> const declaration_infos = get_declaration_infos(core_module, options.temporaries_allocator);
+        if (declaration_infos.size() > 0)
             add_new_line(buffer);
 
-        for (h::Declaration const& declaration : declarations)
+        for (Declaration_info const& declaration_info : declaration_infos)
         {
-            bool const is_export = true; // TODO
-            add_format_declaration(buffer, declaration, is_export, options);
+            add_format_declaration(buffer, core_module, declaration_info.declaration, declaration_info.is_export, options);
             add_new_line(buffer);
         }
 
