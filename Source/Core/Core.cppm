@@ -876,6 +876,7 @@ namespace h
     export std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view name);
     export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
     export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
+    export std::optional<Function_definition const*> find_function_definition(Module const& module, std::string_view name);
     export std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name);
     export std::optional<Struct_declaration const*> find_struct_declaration(Module const& module, std::string_view name);
     export std::optional<Union_declaration const*> find_union_declaration(Module const& module, std::string_view name);

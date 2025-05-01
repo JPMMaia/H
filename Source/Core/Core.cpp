@@ -172,6 +172,11 @@ namespace h
         return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);
     }
 
+    std::optional<Function_definition const*> find_function_definition(Module const& module, std::string_view name)
+    {
+        return get_value(name, module.definitions.function_definitions, {});
+    }
+
     std::optional<Struct_declaration const*> find_struct_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.struct_declarations, module.internal_declarations.struct_declarations);
