@@ -27,6 +27,42 @@ namespace h::parser
         std::stringstream string_stream;
     };
 
+    void add_format_alias_type_declaration(
+        String_buffer& buffer,
+        Alias_type_declaration const& alias_declaration,
+        Format_options const& options
+    );
+
+    void add_format_enum_declaration(
+        String_buffer& buffer,
+        Enum_declaration const& enum_declaration,
+        Format_options const& options
+    );
+
+    void add_format_global_variable_declaration(
+        String_buffer& buffer,
+        Global_variable_declaration const& declaration,
+        Format_options const& options
+    );
+
+    void add_format_struct_declaration(
+        String_buffer& buffer,
+        Struct_declaration const& struct_declaration,
+        Format_options const& options
+    );
+
+    void add_format_union_declaration(
+        String_buffer& buffer,
+        Union_declaration const& union_declaration,
+        Format_options const& options
+    );
+
+    void add_format_function_declaration(
+        String_buffer& buffer,
+        Function_declaration const& function_declaration,
+        Format_options const& options
+    );
+
     void add_format_function_definition(
         String_buffer& buffer,
         Function_definition const& function_definition,

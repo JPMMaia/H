@@ -44,19 +44,6 @@ namespace h::parser
         return get_node_value(tree, module_name.value());
     }
 
-    static std::pmr::vector<Parse_node> get_declaration_nodes(
-        Parse_tree const& tree, 
-        Parse_node const& node, 
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::optional<Parse_node> const module_body = get_child_node(tree, node, "Module_body");
-        if (!module_body.has_value())
-            return {};
-
-        return get_child_nodes(tree, module_body.value(), output_allocator);
-    }
-
     std::optional<h::Module> parse_node_to_module(
         Parse_tree const& tree,
         Parse_node const& node,
@@ -88,10 +75,11 @@ namespace h::parser
             .alias_imports = output.dependencies.alias_imports
         };
 
-        std::pmr::vector<Parse_node> declaration_nodes = get_declaration_nodes(tree, node, temporaries_allocator);
-        for (Parse_node const& node : declaration_nodes)
+        std::pmr::vector<Parse_node> const child_nodes = get_child_nodes(tree, node, temporaries_allocator);
+        for (std::size_t child_index = 1; child_index < child_nodes.size(); ++child_index)
         {
-            node_to_declaration(output, module_info, tree, node, output_allocator, temporaries_allocator);
+            Parse_node const declaration_node = child_nodes[child_index];
+            node_to_declaration(output, module_info, tree, declaration_node, output_allocator, temporaries_allocator);
         }
 
         return output;
@@ -236,21 +224,25 @@ namespace h::parser
             else
                 core_module.internal_declarations.union_declarations.push_back(std::move(declaration));
         }
-        else*/ if (declaration_type == "Function_declaration")
+        else*/ if (declaration_type == "Function")
         {
-            Function_declaration const declaration = node_to_function_declaration(
+            std::optional<Parse_node> const function_declaration_node = get_child_node(tree, declaration_value_node.value(), 0);
+            if (!function_declaration_node.has_value())
+                return;
+
+            Function_declaration const function_declaration = node_to_function_declaration(
                 module_info,
                 tree,
-                declaration_value_node.value(),
+                function_declaration_node.value(),
                 is_export ? h::Linkage::External : h::Linkage::Private,
                 output_allocator,
                 temporaries_allocator
             );
 
             if (is_export)
-                core_module.export_declarations.function_declarations.push_back(std::move(declaration));
+                core_module.export_declarations.function_declarations.push_back(std::move(function_declaration));
             else
-                core_module.internal_declarations.function_declarations.push_back(std::move(declaration));
+                core_module.internal_declarations.function_declarations.push_back(std::move(function_declaration));
 
             // TODO add function definition
         }
@@ -296,7 +288,7 @@ namespace h::parser
             if (!type_name_node.has_value())
                 return {};
 
-            std::string_view const type_name = get_node_symbol(type_name_node.value());
+            std::string_view const type_name = get_node_value(tree, type_name_node.value());
 
             if (type_name == "Type")
                 return create_builtin_type_reference(create_string("Type", output_allocator));
@@ -466,9 +458,10 @@ namespace h::parser
             parameter_names.push_back(std::move(parameter_name));
 
             std::optional<Parse_node> const parameter_type_node = get_child_node(tree, parameter_node, "Function_parameter_type");
+            std::optional<Parse_node> const type_node = parameter_type_node.has_value() ? get_child_node(tree, parameter_type_node.value(), 0) : std::nullopt;
             std::optional<Type_reference> parameter_type = 
-                parameter_type_node.has_value() ?
-                node_to_type_reference(module_info, tree, parameter_type_node.value(), output_allocator, temporaries_allocator) :
+                type_node.has_value() ?
+                node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator) :
                 std::nullopt;
 
             if (parameter_type.has_value())

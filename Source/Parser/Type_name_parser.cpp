@@ -19,7 +19,7 @@ namespace h::parser
     {
         if (type_name.starts_with("Int"))
         {
-            std::string_view const number_of_bits_string = type_name.substr(2);
+            std::string_view const number_of_bits_string = type_name.substr(3);
             int const number_of_bits = std::atoi(number_of_bits_string.data());
             return create_integer_type_type_reference(
                 static_cast<std::uint32_t>(number_of_bits),
@@ -28,7 +28,7 @@ namespace h::parser
         }
         else if (type_name.starts_with("Uint"))
         {
-            std::string_view const number_of_bits_string = type_name.substr(3);
+            std::string_view const number_of_bits_string = type_name.substr(4);
             int const number_of_bits = std::atoi(number_of_bits_string.data());
             return create_integer_type_type_reference(
                 static_cast<std::uint32_t>(number_of_bits),

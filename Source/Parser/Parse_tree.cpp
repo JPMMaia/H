@@ -120,14 +120,16 @@ namespace h::parser
     {
         std::pmr::vector<Parse_node> output{output_allocator};
         
+        std::uint32_t const named_child_count = ts_node_named_child_count(node.ts_node);
+        output.reserve(named_child_count);
+        
         std::uint32_t const child_count = ts_node_child_count(node.ts_node);
-        output.reserve(child_count);
 
         for (std::uint32_t child_index = 0; child_index < child_count; ++child_index)
         {
             TSNode const child_node = ts_node_child(node.ts_node, child_index);
 
-            std::string_view const child_value = ts_node_grammar_type(node.ts_node);
+            std::string_view const child_value = ts_node_grammar_type(child_node);
             if (child_value == child_key)
                 output.push_back({.ts_node = child_node});
         }

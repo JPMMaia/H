@@ -29,6 +29,22 @@ namespace h::parser
         buffer.string_stream << text;
     }
 
+    static void add_integer_text(
+        String_buffer& buffer,
+        std::int64_t const value
+    )
+    {
+        buffer.string_stream << value;
+    }
+
+    static void add_integer_text(
+        String_buffer& buffer,
+        std::uint64_t const value
+    )
+    {
+        buffer.string_stream << value;
+    }
+
     static void add_new_line(
         String_buffer& buffer
     )
@@ -99,19 +115,19 @@ namespace h::parser
         {
             using Declaration_type = std::decay_t<decltype(value)>;
 
-            if constexpr (std::is_same_v<Declaration_type, Alias_type_declaration>)
+            if constexpr (std::is_same_v<Declaration_type, Alias_type_declaration const*>)
             {
-                add_format_alias_type_declaration(buffer, value, options);
+                add_format_alias_type_declaration(buffer, *value, options);
             }
-            else if constexpr (std::is_same_v<Declaration_type, Enum_declaration>)
+            else if constexpr (std::is_same_v<Declaration_type, Enum_declaration const*>)
             {
-                add_format_enum_declaration(buffer, value, options);
+                add_format_enum_declaration(buffer, *value, options);
             }
-            else if constexpr (std::is_same_v<Declaration_type, Function_declaration>)
+            else if constexpr (std::is_same_v<Declaration_type, Function_declaration const*>)
             {
-                add_format_function_declaration(buffer, value, options);
+                add_format_function_declaration(buffer, *value, options);
 
-                std::optional<Function_definition const*> function_definition = find_function_definition(core_module, value.name);
+                std::optional<Function_definition const*> function_definition = find_function_definition(core_module, value->name);
                 if (function_definition.has_value())
                 {
                     add_format_function_definition(buffer, *function_definition.value(), options);
@@ -121,17 +137,17 @@ namespace h::parser
                     add_text(buffer, ";");
                 }
             }
-            else if constexpr (std::is_same_v<Declaration_type, Global_variable_declaration>)
+            else if constexpr (std::is_same_v<Declaration_type, Global_variable_declaration const*>)
             {
-                add_format_global_variable_declaration(buffer, value, options);
+                add_format_global_variable_declaration(buffer, *value, options);
             }
-            else if constexpr (std::is_same_v<Declaration_type, Struct_declaration>)
+            else if constexpr (std::is_same_v<Declaration_type, Struct_declaration const*>)
             {
-                add_format_struct_declaration(buffer, value, options);
+                add_format_struct_declaration(buffer, *value, options);
             }
-            else if constexpr (std::is_same_v<Declaration_type, Union_declaration>)
+            else if constexpr (std::is_same_v<Declaration_type, Union_declaration const*>)
             {
-                add_format_union_declaration(buffer, value, options);   
+                add_format_union_declaration(buffer, *value, options);   
             }
             
             // TODO add function constructor and type constructor
@@ -814,6 +830,11 @@ namespace h::parser
                 add_text(buffer, ".");
                 add_text(buffer, value.name);
             }
+            else if constexpr (std::is_same_v<Value_type, Integer_type>)
+            {
+                add_text(buffer, value.is_signed ? "Int" : "Uint");
+                add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
+            }
             
             // TODO add rest
         };
@@ -821,7 +842,7 @@ namespace h::parser
         std::visit(visitor, type.data);
     }
 
-    static void add_format_function_declaration(
+    void add_format_function_declaration(
         String_buffer& buffer,
         Function_declaration const& function_declaration,
         Format_options const& options
@@ -830,7 +851,6 @@ namespace h::parser
         add_text(buffer, "function ");
         add_text(buffer, function_declaration.name);
         
-        // Input parameters
         add_text(buffer, "(");
         for (std::size_t i = 0; i < function_declaration.input_parameter_names.size(); ++i)
         {
@@ -848,7 +868,6 @@ namespace h::parser
         }
         add_text(buffer, ")");
 
-        // Output parameters
         add_text(buffer, " -> (");
         for (std::size_t i = 0; i < function_declaration.output_parameter_names.size(); ++i)
         {
@@ -896,7 +915,7 @@ namespace h::parser
         add_text(buffer, ",");
     }
 
-    static void add_format_enum_declaration(
+    void add_format_enum_declaration(
         String_buffer& buffer,
         Enum_declaration const& enum_declaration,
         Format_options const& options
@@ -916,7 +935,7 @@ namespace h::parser
         add_text(buffer, "}");
     }
 
-    static void add_format_global_variable_declaration(
+    void add_format_global_variable_declaration(
         String_buffer& buffer,
         Global_variable_declaration const& declaration,
         Format_options const& options
@@ -929,7 +948,7 @@ namespace h::parser
         add_text(buffer, ";");
     }
 
-    static void add_format_struct_declaration(
+    void add_format_struct_declaration(
         String_buffer& buffer,
         Struct_declaration const& struct_declaration,
         Format_options const& options
@@ -982,7 +1001,7 @@ namespace h::parser
         add_text(buffer, "}");
     }
 
-    static void add_format_union_declaration(
+    void add_format_union_declaration(
         String_buffer& buffer,
         Union_declaration const& union_declaration,
         Format_options const& options
@@ -1022,7 +1041,7 @@ namespace h::parser
         add_text(buffer, "}");
     }
 
-    static void add_format_alias_type_declaration(
+    void add_format_alias_type_declaration(
         String_buffer& buffer,
         Alias_type_declaration const& alias_declaration,
         Format_options const& options
