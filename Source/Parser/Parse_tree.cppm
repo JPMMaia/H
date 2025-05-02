@@ -2,6 +2,7 @@ module;
 
 #include <memory_resource>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -15,15 +16,21 @@ namespace h::parser
 {
     export struct Parse_node
     {
-        TSNode* ts_node;
+        TSNode ts_node;
     };
 
     export struct Parse_tree
     {
+        std::string_view const source;
         TSTree* ts_tree;
     };
 
     export std::string_view get_node_value(
+        Parse_tree const& tree,
+        Parse_node const& node
+    );
+
+    export std::string_view get_node_symbol(
         Parse_node const& node
     );
 
@@ -40,13 +47,18 @@ namespace h::parser
     export std::optional<Parse_node> get_child_node(
         Parse_tree const& tree,
         Parse_node const& node,
-        std::size_t const child_index
+        std::uint32_t const child_index
     );
 
     export std::optional<Parse_node> get_child_node(
         Parse_tree const& tree,
         Parse_node const& node,
         std::string_view const child_key
+    );
+
+    export std::optional<Parse_node> get_last_child_node(
+        Parse_tree const& tree,
+        Parse_node const& node
     );
 
     export std::pmr::vector<Parse_node> get_child_nodes(

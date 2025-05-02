@@ -15,16 +15,27 @@ import h.core;
 namespace h::parser
 {
     std::string_view get_node_value(
+        Parse_tree const& tree,
         Parse_node const& node
     )
     {
-        return ts_node_grammar_type(*node.ts_node);
+        std::uint32_t const start_byte = ts_node_start_byte(node.ts_node);
+        std::uint32_t const end_byte = ts_node_end_byte(node.ts_node);
+        std::uint32_t const count = end_byte - start_byte;
+        return tree.source.substr(start_byte, count);
+    }
+
+    std::string_view get_node_symbol(
+        Parse_node const& node
+    )
+    {
+        return ts_node_grammar_type(node.ts_node);
     }
 
     Parse_node get_root_node(Parse_tree const& tree)
     {
-        // TODO
-        return {};
+        TSNode const root_node = ts_tree_root_node(tree.ts_tree);
+        return Parse_node{ .ts_node = root_node };
     }
 
     std::optional<Parse_node> get_parent_node(
@@ -33,18 +44,18 @@ namespace h::parser
         std::string_view const child_key
     )
     {
-        // TODO
-        return std::nullopt;
+        TSNode const parent_node = ts_node_parent(node.ts_node);
+        return Parse_node{ .ts_node = parent_node };
     }
 
     std::optional<Parse_node> get_child_node(
         Parse_tree const& tree,
         Parse_node const& node,
-        std::size_t const child_index
+        std::uint32_t const child_index
     )
     {
-        // TODO
-        return {};
+        TSNode const child_node = ts_node_child(node.ts_node, child_index);
+        return Parse_node{ .ts_node = child_node };
     }
 
     std::optional<Parse_node> get_child_node(
@@ -53,8 +64,31 @@ namespace h::parser
         std::string_view const child_key
     )
     {
-        // TODO
-        return {};
+        std::uint32_t const child_count = ts_node_child_count(node.ts_node);
+
+        for (std::uint32_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            TSNode const child_node = ts_node_child(node.ts_node, child_index);
+
+            std::string_view const child_value = ts_node_grammar_type(child_node);
+            if (child_value == child_key)
+                return Parse_node{ .ts_node = child_node };
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<Parse_node> get_last_child_node(
+        Parse_tree const& tree,
+        Parse_node const& node
+    )
+    {
+        std::uint32_t const child_count = ts_node_child_count(node.ts_node);
+        if (child_count == 0)
+            return std::nullopt;
+
+        TSNode const child_node = ts_node_child(node.ts_node, child_count - 1);
+        return Parse_node{ .ts_node = child_node };
     }
 
     std::pmr::vector<Parse_node> get_child_nodes(
@@ -63,8 +97,18 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        // TODO
-        return {};
+        std::pmr::vector<Parse_node> output{output_allocator};
+        
+        std::uint32_t const child_count = ts_node_child_count(node.ts_node);
+        output.resize(child_count);
+
+        for (std::uint32_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            TSNode const child_node = ts_node_child(node.ts_node, child_index);
+            output[child_index] = {.ts_node = child_node};
+        }
+        
+        return output;
     }
 
     std::pmr::vector<Parse_node> get_child_nodes(
@@ -74,8 +118,21 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        // TODO
-        return {};
+        std::pmr::vector<Parse_node> output{output_allocator};
+        
+        std::uint32_t const child_count = ts_node_child_count(node.ts_node);
+        output.reserve(child_count);
+
+        for (std::uint32_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            TSNode const child_node = ts_node_child(node.ts_node, child_index);
+
+            std::string_view const child_value = ts_node_grammar_type(node.ts_node);
+            if (child_value == child_key)
+                output.push_back({.ts_node = child_node});
+        }
+        
+        return output;
     }
 
     std::pmr::vector<Parse_node> get_child_nodes_of_parent(
@@ -86,7 +143,10 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        // TODO
-        return {};
+        std::optional<Parse_node> const parent_node = get_child_node(tree, node, parent_key);
+        if (!parent_node.has_value())
+            return std::pmr::vector<Parse_node>{output_allocator};
+
+        return get_child_nodes(tree, parent_node.value(), child_key, output_allocator);
     }
 }

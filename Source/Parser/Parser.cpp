@@ -72,7 +72,11 @@ namespace h::parser
     Parse_tree parse(Parser const& parser, Parse_tree* previous_parse_tree, std::string_view const source)
     {
         TSTree* tree = ts_parser_parse_string(parser.parser, nullptr, source.data(), source.size());
-        return Parse_tree{ .ts_tree = tree };
+        return Parse_tree
+        { 
+            .source = source,
+            .ts_tree = tree
+        };
     }
 
     void destroy_tree(Parse_tree&& tree)
