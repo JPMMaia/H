@@ -1,0 +1,12 @@
+{
+    "testMate.cpp.debug.configTemplate": {
+        "type": "lldb-dap",
+        "program": "${exec}",
+        "args": "${argsArray}",
+        "cwd": "${cwd}",
+        "env": "${envObj}",
+        "environment": "${envObjArray}",
+        "sourceFileMap": "${sourceFileMapObj}",
+        "showDisplayString": true,
+    }
+}
