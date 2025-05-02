@@ -46,6 +46,18 @@ namespace h
     }
 
 
+    Type_reference create_builtin_type_reference(std::pmr::string value)
+    {
+        return Type_reference
+        {
+            .data = Builtin_type_reference
+            {
+                .value = std::move(value),
+            }
+        }; 
+    }
+
+
     Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size)
     {
         return Type_reference
