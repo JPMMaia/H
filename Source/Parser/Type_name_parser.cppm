@@ -16,4 +16,8 @@ namespace h::parser
         std::string_view const type_name,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
+
+    export std::uint32_t parse_number_of_bits(
+        std::string_view const suffix
+    );
 }

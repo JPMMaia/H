@@ -137,6 +137,26 @@ namespace h::parser
         return output;
     }
 
+    std::pmr::vector<Parse_node> get_named_child_nodes(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<Parse_node> output{output_allocator};
+        
+        std::uint32_t const named_child_count = ts_node_named_child_count(node.ts_node);
+        output.resize(named_child_count);
+        
+        for (std::uint32_t child_index = 0; child_index < named_child_count; ++child_index)
+        {
+            TSNode const child_node = ts_node_named_child(node.ts_node, child_index);
+            output[child_index] = {.ts_node = child_node};
+        }
+        
+        return output;
+    }
+
     std::pmr::vector<Parse_node> get_child_nodes_of_parent(
         Parse_tree const& tree,
         Parse_node const& node,

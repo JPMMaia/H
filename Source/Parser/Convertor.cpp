@@ -1,5 +1,6 @@
 module;
 
+#include <cctype>
 #include <filesystem>
 #include <memory_resource>
 #include <optional>
@@ -22,6 +23,31 @@ namespace h::parser
     )
     {
         return std::pmr::string{value, output_allocator};
+    }
+
+    std::string_view get_number_suffix(
+        std::string_view const value
+    )
+    {
+        std::size_t const start = value.starts_with("0x") ? 0 : 2;
+
+        for (std::size_t index = start; index < value.size(); ++index)
+        {
+            char const character = value[index];
+
+            if (std::isalpha(character) && character != '.')
+                return value.substr(index);
+        }
+
+        return "";
+    }
+
+    std::string_view get_string_suffix(
+        std::string_view const value
+    )
+    {
+        auto const location = value.rfind("\"");
+        return value.substr(location + 1);
     }
 
     static std::optional<std::string_view> get_module_name(
@@ -230,7 +256,7 @@ namespace h::parser
             if (!function_declaration_node.has_value())
                 return;
 
-            Function_declaration const function_declaration = node_to_function_declaration(
+            Function_declaration function_declaration = node_to_function_declaration(
                 module_info,
                 tree,
                 function_declaration_node.value(),
@@ -239,12 +265,25 @@ namespace h::parser
                 temporaries_allocator
             );
 
+            std::optional<Parse_node> const function_definition_node = get_child_node(tree, declaration_value_node.value(), 1);
+            if (function_definition_node.has_value() && get_node_symbol(*function_definition_node) == "Function_definition")
+            {
+                Function_definition function_definition = node_to_function_definition(
+                    module_info,
+                    tree,
+                    function_definition_node.value(),
+                    function_declaration.name,
+                    output_allocator,
+                    temporaries_allocator
+                );
+    
+                core_module.definitions.function_definitions.push_back(std::move(function_definition));
+            }
+
             if (is_export)
                 core_module.export_declarations.function_declarations.push_back(std::move(function_declaration));
             else
                 core_module.internal_declarations.function_declarations.push_back(std::move(function_declaration));
-
-            // TODO add function definition
         }
         /*else if (declaration_type == "Type_constructor_declaration")
         {
@@ -538,6 +577,35 @@ namespace h::parser
         return output;
     }
 
+    h::Function_definition node_to_function_definition(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::string_view const function_name,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Function_definition output;
+        output.name = create_string(function_name, output_allocator);
+
+        std::optional<Parse_node> const block_node = get_child_node(tree, node, 0);
+        if (block_node.has_value())
+        {
+            h::Block_expression block = node_to_expression_block(
+                module_info,
+                tree,
+                block_node.value(),
+                output_allocator,
+                temporaries_allocator
+            );
+
+            output.statements = std::move(block.statements);
+        }
+
+        return output;
+    }
+
     /*static h::Struct_declaration node_to_struct_declaration(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -616,207 +684,470 @@ namespace h::parser
         }
 
         return output;
-    }
+    }*/
 
-    static h::Expression node_to_expression(
+    h::Statement node_to_statement(
+        Module_info const& module_info,
         Parse_tree const& tree,
-        Parse_node const& root,
         Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        h::Expression output{};
+        h::Statement output;
+        output.expressions = std::pmr::vector<h::Expression>{temporaries_allocator};
         
-        auto expression_node = get_child_node(tree, node, "Expression");
-        if (!expression_node.has_value())
-            return output;
+        std::optional<Parse_node> const expression_node = get_child_node(tree, node, 0);
+        if (expression_node.has_value())
+        {
+            node_to_expression(output, module_info, tree, expression_node.value(), output_allocator, temporaries_allocator);
+        }
 
-        auto expr_type = get_child_node(tree, expression_node.value(), 0);
-        if (!expr_type.has_value())
-            return output;
-            
-        auto const expr_type_value = get_node_value(expr_type.value());
-        
-        if (expr_type_value == "Access_expression")
-        {
-            output.data.emplace<h::Access_expression>(
-                node_to_expression_access(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Assignment_expression")
-        {
-            output.data.emplace<h::Assignment_expression>(
-                node_to_expression_assignment(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Binary_expression")
-        {
-            output.data.emplace<h::Binary_expression>(
-                node_to_expression_binary(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Block_expression")
-        {
-            output.data.emplace<h::Block_expression>(
-                node_to_expression_block(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "If_expression")
-        {
-            output.data.emplace<h::If_expression>(
-                node_to_expression_if(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "While_loop_expression")
-        {
-            output.data.emplace<h::While_loop_expression>(
-                node_to_expression_while_loop(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "For_loop_expression")
-        {
-            output.data.emplace<h::For_loop_expression>(
-                node_to_expression_for_loop(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Switch_expression")
-        {
-            output.data.emplace<h::Switch_expression>(
-                node_to_expression_switch(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Variable_declaration_expression")
-        {
-            output.data.emplace<h::Variable_declaration_expression>(
-                node_to_expression_variable_declaration(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Variable_declaration_with_type_expression")
-        {
-            output.data.emplace<h::Variable_declaration_with_type_expression>(
-                node_to_expression_variable_declaration_with_type(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Variable_expression")
-        {
-            output.data.emplace<h::Variable_expression>(
-                node_to_expression_variable(tree, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Constant_expression")
-        {
-            output.data.emplace<h::Constant_expression>(
-                node_to_expression_constant(tree, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Unary_expression")
-        {
-            output.data.emplace<h::Unary_expression>(
-                node_to_expression_unary(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Return_expression")
-        {
-            output.data.emplace<h::Return_expression>(
-                node_to_expression_return(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Break_expression")
-        {
-            output.data.emplace<h::Break_expression>(
-                node_to_expression_break(tree, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Continue_expression")
-        {
-            output.data.emplace<h::Continue_expression>(
-                node_to_expression_continue()
-            );
-        }
-        else if (expr_type_value == "Call_expression")
-        {
-            output.data.emplace<h::Call_expression>(
-                node_to_expression_call(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Cast_expression")
-        {
-            output.data.emplace<h::Cast_expression>(
-                node_to_expression_cast(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Access_array_expression")
-        {
-            output.data.emplace<h::Access_array_expression>(
-                node_to_expression_access_array(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Constant_array_expression")
-        {
-            output.data.emplace<h::Constant_array_expression>(
-                node_to_expression_constant_array(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Instance_call_expression")
-        {
-            output.data.emplace<h::Instance_call_expression>(
-                node_to_expression_instance_call(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Type_expression")
-        {
-            output.data.emplace<h::Type_expression>(
-                node_to_expression_type(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Reflection_expression")
-        {
-            output.data.emplace<h::Reflection_expression>(
-                node_to_expression_reflection(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Defer_expression")
-        {
-            output.data.emplace<h::Defer_expression>(
-                node_to_expression_defer(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Comment_expression")
-        {
-            output.data.emplace<h::Comment_expression>(
-                node_to_expression_comment(tree, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Null_pointer_expression")
-        {
-            output.data.emplace<h::Null_pointer_expression>(
-                node_to_expression_null_pointer()
-            );
-        }
-        else if (expr_type_value == "Parenthesis_expression")
-        {
-            output.data.emplace<h::Parenthesis_expression>(
-                node_to_expression_parenthesis(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Instantiate_expression")
-        {
-            output.data.emplace<h::Instantiate_expression>(
-                node_to_expression_instantiate(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        else if (expr_type_value == "Ternary_condition_expression")
-        {
-            output.data.emplace<h::Ternary_condition_expression>(
-                node_to_expression_ternary_condition(tree, root, expr_type.value(), output_allocator)
-            );
-        }
-        // Add other expression types as needed
+        std::pmr::vector<h::Expression> final_expressions{output_allocator};
+        final_expressions.assign(output.expressions.begin(), output.expressions.end());
+        output.expressions = std::move(final_expressions);
         
         return output;
     }
 
-    static h::Instance_call_expression node_to_expression_instance_call(
+    h::Expression_index node_to_expression(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Expression expression;
+            
+        std::string_view const expression_type = get_node_symbol(node);
+        
+        if (expression_type == "Expression_access")
+        {
+            expression.data = node_to_expression_access(statement, module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        /*else if (expression_type == "Expression_access_array")
+        {
+            expression.data = node_to_expression_access_array(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_assignment")
+        {
+            expression.data = node_to_expression_assignment(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_binary")
+        {
+            expression.data = node_to_expression_binary(module_info, tree, node, output_allocator, temporaries_allocator);
+        }*/
+        else if (expression_type == "Expression_block")
+        {
+            expression.data = node_to_expression_block(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        /*else if (expression_type == "Expression_break")
+        {
+            expression.data = node_to_expression_break(module_info, tree, expr_type.value(), output_allocator);
+        }*/
+        else if (expression_type == "Expression_call")
+        {
+            expression.data = node_to_expression_call(statement, module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        /*else if (expression_type == "Expression_cast")
+        {
+            expression.data = node_to_expression_cast(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_comment")
+        {
+            expression.data = node_to_expression_comment(module_info, tree, expr_type.value(), output_allocator);
+        }*/
+        else if (expression_type == "Expression_constant")
+        {
+            expression.data = node_to_expression_constant(tree, node, output_allocator);
+        }
+        /*else if (expression_type == "Expression_constant_array")
+        {
+            expression.data = node_to_expression_constant_array(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_continue")
+        {
+            expression.data = node_to_expression_continue(module_info, );
+        }
+        else if (expression_type == "Expression_defer")
+        {
+            expression.data = node_to_expression_defer(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_for_loop")
+        {
+            expression.data = node_to_expression_for_loop(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_if")
+        {
+            expression.data = node_to_expression_if(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_instance_call")
+        {
+            expression.data = node_to_expression_instance_call(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_instantiate")
+        {
+            expression.data = node_to_expression_instantiate(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_null_pointer")
+        {
+            expression.data = node_to_expression_null_pointer(module_info, );
+        }
+        else if (expression_type == "Expression_parenthesis")
+        {
+            expression.data = node_to_expression_parenthesis(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_reflection")
+        {
+            expression.data = node_to_expression_reflection(module_info, tree, node, output_allocator, temporaries_allocator);
+        }*/
+        else if (expression_type == "Expression_return")
+        {
+            expression.data = node_to_expression_return(statement, module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        /*else if (expression_type == "Expression_switch")
+        {
+            expression.data = node_to_expression_switch(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_ternary_condition")
+        {
+            expression.data = node_to_expression_ternary_condition(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_type")
+        {
+            expression.data = node_to_expression_type(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_unary")
+        {
+            expression.data = node_to_expression_unary(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_variable_declaration")
+        {
+            expression.data = node_to_expression_variable_declaration(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_variable_declaration_with_type")
+        {
+            expression.data = node_to_expression_variable_declaration_with_type(module_info, tree, node, output_allocator, temporaries_allocator);
+        }
+        else if (expression_type == "Expression_variable")
+        {
+            expression.data = node_to_expression_variable(module_info, tree, expr_type.value(), output_allocator);
+        }
+        else if (expression_type == "Expression_while_loop")
+        {
+            expression.data = node_to_expression_while_loop(module_info, tree, node, output_allocator, temporaries_allocator);
+        }*/
+
+        Expression_index const expression_index = { statement.expressions.size() };
+        statement.expressions.push_back(std::move(expression));
+        
+        return expression_index;
+    }
+
+    h::Access_expression node_to_expression_access(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Access_expression output = {};
+
+        std::optional<Parse_node> const left_hand_side = get_child_node(tree, node, "Expression");
+        if (left_hand_side.has_value())
+        {
+            output.expression = node_to_expression(
+                statement,
+                module_info,
+                tree,
+                left_hand_side.value(),
+                output_allocator,
+                temporaries_allocator
+            );
+        }
+        
+        std::optional<Parse_node> const member_name = get_child_node(tree, node, "Expression_access_member_name");
+        if (member_name.has_value())
+            output.member_name = create_string(get_node_value(tree, member_name.value()), output_allocator);
+        
+        return output;
+    }
+
+    h::Block_expression node_to_expression_block(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Block_expression output;
+
+        std::pmr::vector<Parse_node> const child_nodes = get_named_child_nodes(tree, node, temporaries_allocator);
+        
+        std::size_t const child_count = child_nodes.size();
+        output.statements = std::pmr::vector<h::Statement>{output_allocator};
+        output.statements.resize(child_count);
+
+        for (std::size_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            Parse_node const& statement_node = child_nodes[child_index];
+
+            Statement statement = node_to_statement(module_info, tree, statement_node, output_allocator, temporaries_allocator);
+            output.statements[child_index] = std::move(statement);
+        }
+        
+        return output;
+    }
+
+    h::Call_expression node_to_expression_call(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Call_expression output = {};
+        
+        std::optional<Parse_node> const function = get_child_node(tree, node, 0);
+        if (function.has_value())
+            output.expression = node_to_expression(statement, module_info, tree, function.value(), output_allocator, temporaries_allocator);
+        
+        std::pmr::vector<Parse_node> const argument_nodes = get_child_nodes_of_parent(tree, node, "Expression_call_arguments", "Generic_expression_or_instantiate", temporaries_allocator);
+
+        output.arguments.resize(1);
+
+        for (std::size_t argument_index = 0; argument_index < argument_nodes.size(); ++argument_index)
+        {
+            Parse_node const& argument_node = argument_nodes[argument_index];
+
+            Expression_index const argument = node_to_expression(statement, module_info, tree, argument_node, output_allocator, temporaries_allocator);
+            output.arguments[argument_index] = argument;
+        }
+        
+        return output;
+    }
+
+    h::Constant_expression node_to_expression_constant(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {        
+        std::optional<Parse_node> choice_node = get_child_node(tree, node, 0);
+        if (!choice_node.has_value())
+            return {};
+
+        std::string_view const choice = get_node_symbol(node);
+        std::string_view const value = get_node_value(tree, node);
+
+        if (choice == "Boolean")
+        {
+            return 
+            {
+                .type = create_fundamental_type_type_reference(h::Fundamental_type::Bool),
+                .data = create_string(value, output_allocator),
+            };
+        }
+        else if (choice == "Number")
+        {
+            std::string_view const suffix = get_number_suffix(value);
+            if (suffix.empty())
+            {
+                return 
+                {
+                    .type = create_integer_type_type_reference(32, true),
+                    .data = create_string(value, output_allocator),
+                };
+            }
+            
+            std::string_view const value_without_suffix = value.substr(0, value.size() - suffix.size());
+            
+            char const first_character = suffix[0];
+
+            if (first_character == 'i' || first_character == 'u')
+            {
+                bool const is_signed = first_character == 'i';
+                std::uint32_t const number_of_bits = parse_number_of_bits(suffix.substr(1));
+                return 
+                {
+                    .type = create_integer_type_type_reference(number_of_bits, is_signed),
+                    .data = create_string(value_without_suffix, output_allocator),
+                };
+            }
+
+            if (first_character == 'f')
+            {
+                std::uint32_t const number_of_bits = parse_number_of_bits(suffix.substr(1));
+
+                if (number_of_bits == 16)
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::Float16),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (number_of_bits == 64)
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::Float64),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::Float32),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+            }
+
+            if (first_character == 'c')
+            {
+                if (suffix == "cc")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_char),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cs")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_short),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "ci")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_int),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cl")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_long),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cll")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_longlong),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cuc")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_uchar),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cus")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_ushort),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cui")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_uint),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cul")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_ulong),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cull")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_ulonglong),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+                else if (suffix == "cb")
+                {
+                    return 
+                    {
+                        .type = create_fundamental_type_type_reference(h::Fundamental_type::C_bool),
+                        .data = create_string(value_without_suffix, output_allocator),
+                    };
+                }
+            }
+        }
+        else if (choice == "String")
+        {
+            std::string_view const suffix = get_string_suffix(value);
+
+            if (suffix == "c")
+            {
+                return 
+                {
+                    .type = create_c_string_type_reference(false),
+                    .data = create_string(value.substr(1, value.size() - 2), output_allocator),
+                };
+            }
+            else
+            {
+                return 
+                {
+                    .type = create_fundamental_type_type_reference(h::Fundamental_type::String),
+                    .data = create_string(value.substr(1, value.size() - 1), output_allocator),
+                };
+            }
+        }
+        
+        return {};
+    }
+
+    h::Return_expression node_to_expression_return(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::optional<Parse_node> const value_node = get_child_node(tree, node, "Generic_expression_or_instantiate");
+        if (!value_node.has_value())
+            return {};
+
+        h::Return_expression output;
+        output.expression = node_to_expression(statement, module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
+        return output;
+    }
+
+    /*static h::Instance_call_expression node_to_expression_instance_call(
         Parse_tree const& tree,
         Parse_node const& root,
         Parse_node const& node,
@@ -1039,30 +1370,6 @@ namespace h::parser
         return output;
     }
 
-    static h::Access_expression node_to_expression_access(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Access_expression output{};
-        
-        auto member_name = get_child_node(tree, node, "Expression_access_member_name");
-        if (member_name.has_value())
-        {
-            output.member_name = create_string(get_node_value(member_name.value()), output_allocator);
-        }
-        
-        auto object = get_child_node(tree, node, "Expression");
-        if (object.has_value())
-        {
-            output.object = node_to_expression(tree, root, object.value(), output_allocator);
-        }
-        
-        return output;
-    }
-
     static h::Assignment_expression node_to_expression_assignment(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -1118,28 +1425,6 @@ namespace h::parser
         if (op.has_value())
         {
             output.operation = get_binary_operation(get_node_value(op.value()));
-        }
-        
-        return output;
-    }
-
-    static h::Block_expression node_to_expression_block(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Block_expression output{output_allocator};
-        
-        auto statements = get_child_node(tree, node, "Expression_block_statements");
-        if (statements.has_value())
-        {
-            auto statement_nodes = get_child_nodes(tree, statements.value(), output_allocator);
-            for (auto const& stmt : statement_nodes)
-            {
-                output.statements.push_back(node_to_statement(tree, root, stmt, output_allocator));
-            }
         }
         
         return output;
@@ -1410,28 +1695,6 @@ namespace h::parser
         return output;
     }
 
-    static h::Constant_expression node_to_expression_constant(
-        Parse_tree const& tree,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Constant_expression output{};
-        
-        auto value = get_child_node(tree, node, "Expression_constant");
-        if (value.has_value())
-        {
-            // TODO: Parse constant value based on type (integer, float, string, etc.)
-            // This needs type information from the context
-            auto const value_str = get_node_value(value.value());
-            
-            // For now just store the raw string value
-            output.value = create_string(value_str, output_allocator);
-        }
-        
-        return output;
-    }
-
     static h::Unary_expression node_to_expression_unary(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -1451,24 +1714,6 @@ namespace h::parser
         if (op.has_value())
         {
             output.operation = get_unary_operation(get_node_value(op.value()));
-        }
-        
-        return output;
-    }
-
-    static h::Return_expression node_to_expression_return(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Return_expression output{};
-        
-        auto value = get_child_node(tree, node, "Expression_return_value");
-        if (value.has_value())
-        {
-            output.value = node_to_expression(tree, root, value.value(), output_allocator);
         }
         
         return output;
@@ -1495,34 +1740,6 @@ namespace h::parser
     static h::Continue_expression node_to_expression_continue()
     {
         return h::Continue_expression{};
-    }
-
-    static h::Call_expression node_to_expression_call(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Call_expression output{output_allocator};
-        
-        auto function = get_child_node(tree, node, "Expression_function");
-        if (function.has_value())
-        {
-            output.function = node_to_expression(tree, root, function.value(), output_allocator);
-        }
-        
-        auto args = get_child_node(tree, node, "Expression_call_arguments");
-        if (args.has_value())
-        {
-            auto arg_nodes = get_child_nodes(tree, args.value(), output_allocator);
-            for (auto const& arg : arg_nodes)
-            {
-                output.arguments.push_back(node_to_expression(tree, root, arg, output_allocator));
-            }
-        }
-        
-        return output;
     }
 
     static h::Cast_expression node_to_expression_cast(
@@ -1556,11 +1773,12 @@ namespace h::parser
         return output;
     }
 
-    static h::Access_array_expression node_to_expression_access_array(
+    h::Access_array_expression node_to_expression_access_array(
+        Module_info const& module_info,
         Parse_tree const& tree,
-        Parse_node const& root,
         Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         h::Access_array_expression output{};
@@ -1600,27 +1818,9 @@ namespace h::parser
         }
         
         return output;
-    }
+    }*/
 
-    static h::Statement node_to_statement(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Statement output{};
-        
-        auto expr = get_child_node(tree, node, "Expression");
-        if (expr.has_value())
-        {
-            output.expression = node_to_expression(tree, root, expr.value(), output_allocator);
-        }
-        
-        return output;
-    }
-
-    static h::Binary_operation get_binary_operation(std::string_view op)
+    /*static h::Binary_operation get_binary_operation(std::string_view op)
     {
         if (op == "+") return h::Binary_operation::Add;
         if (op == "-") return h::Binary_operation::Subtract;

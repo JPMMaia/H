@@ -198,69 +198,146 @@ namespace h::parser
         Format_options const& options
     )
     {
-        auto const visitor = [&](auto const& value) -> void
+        if (std::holds_alternative<Access_expression>(expression.data))
         {
-            using Expression_type = std::decay_t<decltype(value)>;
-
-            if constexpr (std::is_same_v<Expression_type, Access_expression>)
-                add_format_expression_access(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Access_array_expression>)
-                add_format_expression_access_array(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Assignment_expression>)
-                add_format_expression_assignment(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Binary_expression>)
-                add_format_expression_binary(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Block_expression>)
-                add_format_expression_block(buffer, statement, value, indentation, options);
-            else if constexpr (std::is_same_v<Expression_type, Break_expression>)
-                add_format_expression_break(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Call_expression>)
-                add_format_expression_call(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Cast_expression>)
-                add_format_expression_cast(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Compile_time_expression>)
-                add_format_expression_compile_time(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Continue_expression>)
-                add_format_expression_continue(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Constant_array_expression>)
-                add_format_expression_constant_array(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Constant_expression>)
-                add_format_expression_constant(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Defer_expression>)
-                add_format_expression_defer(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Dereference_and_access_expression>)
-                add_format_expression_dereference_and_access(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, For_loop_expression>)
-                add_format_expression_for_loop(buffer, statement, value, indentation, options);
-            else if constexpr (std::is_same_v<Expression_type, If_expression>)
-                add_format_expression_if(buffer, statement, value, indentation, options);
-            else if constexpr (std::is_same_v<Expression_type, Instantiate_expression>)
-                add_format_expression_instantiate(buffer, statement, value, indentation, options);
-            else if constexpr (std::is_same_v<Expression_type, Invalid_expression>)
-                add_format_expression_invalid(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Null_pointer_expression>)
-                add_format_expression_null_pointer(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Parenthesis_expression>)
-                add_format_expression_parenthesis(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Reflection_expression>)
-                add_format_expression_reflection(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Return_expression>)
-                add_format_expression_return(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Switch_expression>)
-                add_format_expression_switch(buffer, statement, value, indentation, options);
-            else if constexpr (std::is_same_v<Expression_type, Ternary_condition_expression>)
-                add_format_expression_ternary_condition(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Type_expression>)
-                add_format_expression_type(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Unary_expression>)
-                add_format_expression_unary(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, Variable_expression>)
-                add_format_expression_variable(buffer, statement, value, options);
-            else if constexpr (std::is_same_v<Expression_type, While_loop_expression>)
-                add_format_expression_while_loop(buffer, statement, value, indentation, options);
-        };
-
-        std::visit(visitor, expression.data);
+            Access_expression const& value = std::get<Access_expression>(expression.data);
+            add_format_expression_access(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Access_array_expression>(expression.data))
+        {
+            Access_array_expression const& value = std::get<Access_array_expression>(expression.data);
+            add_format_expression_access_array(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Assignment_expression>(expression.data))
+        {
+            Assignment_expression const& value = std::get<Assignment_expression>(expression.data);
+            add_format_expression_assignment(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Binary_expression>(expression.data))
+        {
+            Binary_expression const& value = std::get<Binary_expression>(expression.data);
+            add_format_expression_binary(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Block_expression>(expression.data))
+        {
+            Block_expression const& value = std::get<Block_expression>(expression.data);
+            add_format_expression_block(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Break_expression>(expression.data))
+        {
+            Break_expression const& value = std::get<Break_expression>(expression.data);
+            add_format_expression_break(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Call_expression>(expression.data))
+        {
+            Call_expression const& value = std::get<Call_expression>(expression.data);
+            add_format_expression_call(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Cast_expression>(expression.data))
+        {
+            Cast_expression const& value = std::get<Cast_expression>(expression.data);
+            add_format_expression_cast(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Compile_time_expression>(expression.data))
+        {
+            Compile_time_expression const& value = std::get<Compile_time_expression>(expression.data);
+            add_format_expression_compile_time(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Continue_expression>(expression.data))
+        {
+            Continue_expression const& value = std::get<Continue_expression>(expression.data);
+            add_format_expression_continue(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Constant_array_expression>(expression.data))
+        {
+            Constant_array_expression const& value = std::get<Constant_array_expression>(expression.data);
+            add_format_expression_constant_array(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Constant_expression>(expression.data))
+        {
+            Constant_expression const& value = std::get<Constant_expression>(expression.data);
+            add_format_expression_constant(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Defer_expression>(expression.data))
+        {
+            Defer_expression const& value = std::get<Defer_expression>(expression.data);
+            add_format_expression_defer(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Dereference_and_access_expression>(expression.data))
+        {
+            Dereference_and_access_expression const& value = std::get<Dereference_and_access_expression>(expression.data);
+            add_format_expression_dereference_and_access(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<For_loop_expression>(expression.data))
+        {
+            For_loop_expression const& value = std::get<For_loop_expression>(expression.data);
+            add_format_expression_for_loop(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<If_expression>(expression.data))
+        {
+            If_expression const& value = std::get<If_expression>(expression.data);
+            add_format_expression_if(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Instantiate_expression>(expression.data))
+        {
+            Instantiate_expression const& value = std::get<Instantiate_expression>(expression.data);
+            add_format_expression_instantiate(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Invalid_expression>(expression.data))
+        {
+            Invalid_expression const& value = std::get<Invalid_expression>(expression.data);
+            add_format_expression_invalid(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Null_pointer_expression>(expression.data))
+        {
+            Null_pointer_expression const& value = std::get<Null_pointer_expression>(expression.data);
+            add_format_expression_null_pointer(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Parenthesis_expression>(expression.data))
+        {
+            Parenthesis_expression const& value = std::get<Parenthesis_expression>(expression.data);
+            add_format_expression_parenthesis(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Reflection_expression>(expression.data))
+        {
+            Reflection_expression const& value = std::get<Reflection_expression>(expression.data);
+            add_format_expression_reflection(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Return_expression>(expression.data))
+        {
+            Return_expression const& value = std::get<Return_expression>(expression.data);
+            add_format_expression_return(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Switch_expression>(expression.data))
+        {
+            Switch_expression const& value = std::get<Switch_expression>(expression.data);
+            add_format_expression_switch(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Ternary_condition_expression>(expression.data))
+        {
+            Ternary_condition_expression const& value = std::get<Ternary_condition_expression>(expression.data);
+            add_format_expression_ternary_condition(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Type_expression>(expression.data))
+        {
+            Type_expression const& value = std::get<Type_expression>(expression.data);
+            add_format_expression_type(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Unary_expression>(expression.data))
+        {
+            Unary_expression const& value = std::get<Unary_expression>(expression.data);
+            add_format_expression_unary(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Variable_expression>(expression.data))
+        {
+            Variable_expression const& value = std::get<Variable_expression>(expression.data);
+            add_format_expression_variable(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<While_loop_expression>(expression.data))
+        {
+            While_loop_expression const& value = std::get<While_loop_expression>(expression.data);
+            add_format_expression_while_loop(buffer, statement, value, indentation, options);
+        }
     }
 
     void add_format_expression_access(

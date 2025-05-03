@@ -20,20 +20,14 @@ namespace h::parser
         if (type_name.starts_with("Int"))
         {
             std::string_view const number_of_bits_string = type_name.substr(3);
-            int const number_of_bits = std::atoi(number_of_bits_string.data());
-            return create_integer_type_type_reference(
-                static_cast<std::uint32_t>(number_of_bits),
-                true
-            );
+            std::uint32_t const number_of_bits = parse_number_of_bits(number_of_bits_string);
+            return create_integer_type_type_reference(number_of_bits, true);
         }
         else if (type_name.starts_with("Uint"))
         {
             std::string_view const number_of_bits_string = type_name.substr(4);
-            int const number_of_bits = std::atoi(number_of_bits_string.data());
-            return create_integer_type_type_reference(
-                static_cast<std::uint32_t>(number_of_bits),
-                false
-            );
+            std::uint32_t const number_of_bits = parse_number_of_bits(number_of_bits_string);
+            return create_integer_type_type_reference(number_of_bits, false);
         }
         else
         {
@@ -107,5 +101,26 @@ namespace h::parser
             return std::nullopt;
         
         return create_custom_type_reference(module_name, type_name);
+    }
+
+    std::uint32_t parse_number_of_bits(
+        std::string_view const value
+    )
+    {
+        if (value.empty())
+            return 32u;
+
+        if (value.size() > 2)
+            return 64u;
+
+        char buffer[3] = { '\0', '\0', '\0' };
+        for (std::size_t index = 0; index < value.size(); ++index)
+            buffer[index] = value[index];
+
+        int const number_of_bits = std::atoi(buffer);
+        if (number_of_bits == 0)
+            return 32u;
+
+        return static_cast<std::uint32_t>(number_of_bits);
     }
 }
