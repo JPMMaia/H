@@ -25,6 +25,18 @@ namespace h::parser
         return std::pmr::string{value, output_allocator};
     }
 
+    Source_location source_position_to_source_location(
+        Source_position const& source_position
+    )
+    {
+        return
+        {
+            .file_path = {},
+            .line = source_position.line,
+            .column = source_position.column,
+        };
+    }
+
     std::string_view get_number_suffix(
         std::string_view const value
     )
@@ -479,6 +491,7 @@ namespace h::parser
     static void add_function_parameters(
         std::pmr::vector<std::pmr::string>& parameter_names,
         std::pmr::vector<Type_reference>& parameter_types,
+        std::pmr::vector<Source_position>& parameter_source_positions,
         Module_info const& module_info,
         Parse_tree const& tree,
         std::span<Parse_node const> const parameter_nodes,
@@ -507,6 +520,9 @@ namespace h::parser
                 parameter_types.push_back(std::move(parameter_type.value()));
             else
                 parameter_types.push_back({});
+
+            Source_position const source_position = get_node_start_source_position(parameter_node);
+            parameter_source_positions.push_back(source_position);
         }
     }
 
@@ -523,14 +539,23 @@ namespace h::parser
         
         std::optional<Parse_node> const name_node = get_child_node(tree, node, "Function_name");
         if (name_node.has_value())
+        {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
+            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+        }
+        else
+        {
+            output.source_location = source_position_to_source_location(get_node_start_source_position(node));
+        }
 
         output.linkage = linkage;
 
         std::pmr::vector<Parse_node> const input_parameter_nodes = get_child_nodes_of_parent(tree, node, "Function_input_parameters", "Function_parameter", temporaries_allocator);
+        output.input_parameter_source_positions = std::pmr::vector<Source_position>{};
         add_function_parameters(
             output.input_parameter_names,
             output.type.input_parameter_types,
+            output.input_parameter_source_positions.value(),
             module_info,
             tree,
             input_parameter_nodes,
@@ -539,9 +564,11 @@ namespace h::parser
         );
 
         std::pmr::vector<Parse_node> const output_parameter_nodes = get_child_nodes_of_parent(tree, node, "Function_output_parameters", "Function_parameter", temporaries_allocator);
+        output.output_parameter_source_positions = std::pmr::vector<Source_position>{};
         add_function_parameters(
             output.output_parameter_names,
             output.type.output_parameter_types,
+            output.output_parameter_source_positions.value(),
             module_info,
             tree,
             output_parameter_nodes,
@@ -741,6 +768,8 @@ namespace h::parser
     )
     {
         h::Expression expression;
+
+        expression.source_position = get_node_start_source_position(node);
             
         std::optional<Parse_node> const expression_node_optional = get_non_generic_expression_node(tree, node);
         if (!expression_node_optional.has_value())
@@ -763,11 +792,11 @@ namespace h::parser
         else if (expression_type == "Expression_assignment")
         {
             expression.data = node_to_expression_assignment(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_binary")
         {
-            expression.data = node_to_expression_binary(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }*/
+            expression.data = node_to_expression_binary(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else if (expression_type == "Expression_block")
         {
             expression.data = node_to_expression_block(module_info, tree, expression_node, output_allocator, temporaries_allocator);
@@ -823,12 +852,12 @@ namespace h::parser
         else if (expression_type == "Expression_null_pointer")
         {
             expression.data = node_to_expression_null_pointer(module_info, );
-        }
+        }*/
         else if (expression_type == "Expression_parenthesis")
         {
-            expression.data = node_to_expression_parenthesis(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_parenthesis(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
-        else if (expression_type == "Expression_reflection")
+        /*else if (expression_type == "Expression_reflection")
         {
             expression.data = node_to_expression_reflection(module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }*/
@@ -847,19 +876,19 @@ namespace h::parser
         else if (expression_type == "Expression_type")
         {
             expression.data = node_to_expression_type(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_unary")
         {
-            expression.data = node_to_expression_unary(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_unary(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
         else if (expression_type == "Expression_variable_declaration")
         {
-            expression.data = node_to_expression_variable_declaration(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_variable_declaration(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
         else if (expression_type == "Expression_variable_declaration_with_type")
         {
-            expression.data = node_to_expression_variable_declaration_with_type(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }*/
+            expression.data = node_to_expression_variable_declaration_with_type(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else if (expression_type == "Expression_variable")
         {
             expression.data = node_to_expression_variable(tree, expression_node, output_allocator);
@@ -876,6 +905,44 @@ namespace h::parser
         statement.expressions[expression_index] = std::move(expression);
         
         return {.expression_index = expression_index };
+    }
+
+    h::Binary_operation get_binary_operation(std::string_view const operation)
+    {
+        if (operation == "+") return h::Binary_operation::Add;
+        if (operation == "-") return h::Binary_operation::Subtract;
+        if (operation == "*") return h::Binary_operation::Multiply;
+        if (operation == "/") return h::Binary_operation::Divide;
+        if (operation == "%") return h::Binary_operation::Modulus;
+        if (operation == "==") return h::Binary_operation::Equal;
+        if (operation == "!=") return h::Binary_operation::Not_equal;
+        if (operation == "<") return h::Binary_operation::Less_than;
+        if (operation == "<=") return h::Binary_operation::Less_than_or_equal_to;
+        if (operation == ">") return h::Binary_operation::Greater_than;
+        if (operation == ">=") return h::Binary_operation::Greater_than_or_equal_to;
+        if (operation == "&&") return h::Binary_operation::Logical_and;
+        if (operation == "||") return h::Binary_operation::Logical_or;
+        if (operation == "&") return h::Binary_operation::Bitwise_and;
+        if (operation == "|") return h::Binary_operation::Bitwise_or;
+        if (operation == "^") return h::Binary_operation::Bitwise_xor;
+        if (operation == "<<") return h::Binary_operation::Bit_shift_left;
+        if (operation == ">>") return h::Binary_operation::Bit_shift_right;
+        if (operation == "has") return h::Binary_operation::Has;
+
+        return h::Binary_operation::Add;
+    }
+
+    h::Unary_operation get_unary_operation(std::string_view const operation)
+    {
+        if (operation == "!") return h::Unary_operation::Not;
+        if (operation == "~") return h::Unary_operation::Bitwise_not;
+        if (operation == "-") return h::Unary_operation::Minus;
+        if (operation == "++") return h::Unary_operation::Pre_increment;
+        if (operation == "--") return h::Unary_operation::Pre_decrement;
+        if (operation == "*") return h::Unary_operation::Indirection;
+        if (operation == "&") return h::Unary_operation::Address_of;
+
+        return h::Unary_operation::Not;
     }
 
     h::Access_expression node_to_expression_access(
@@ -905,6 +972,38 @@ namespace h::parser
         std::optional<Parse_node> const member_name = get_child_node(tree, node, "Expression_access_member_name");
         if (member_name.has_value())
             output.member_name = create_string(get_node_value(tree, member_name.value()), output_allocator);
+        
+        return output;
+    }
+
+    h::Binary_expression node_to_expression_binary(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Binary_expression output;
+        
+        std::optional<Parse_node> const left_node = get_child_node(tree, node, 0);
+        if (left_node.has_value())
+        {
+            output.left_hand_side = node_to_expression(statement, module_info, tree, left_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        std::optional<Parse_node> const right_node = get_child_node(tree, node, 2);
+        if (right_node.has_value())
+        {
+            output.right_hand_side = node_to_expression(statement, module_info, tree, right_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        std::optional<Parse_node> const operation_node = get_child_node(tree, node, 1);
+        if (operation_node.has_value())
+        {
+            output.operation = get_binary_operation(get_node_value(tree, operation_node.value()));
+        }
         
         return output;
     }
@@ -1164,6 +1263,26 @@ namespace h::parser
         return {};
     }
 
+    h::Parenthesis_expression node_to_expression_parenthesis(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Parenthesis_expression output;
+        
+        std::optional<Parse_node> const expression_node = get_child_node(tree, node, "Generic_expression");
+        if (expression_node.has_value())
+        {
+            output.expression = node_to_expression(statement, module_info, tree, expression_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        return output;
+    }
+
     h::Return_expression node_to_expression_return(
         h::Statement& statement,
         Module_info const& module_info,
@@ -1182,6 +1301,32 @@ namespace h::parser
         return output;
     }
 
+    h::Unary_expression node_to_expression_unary(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Unary_expression output;
+        
+        std::optional<Parse_node> const operand_node = get_child_node(tree, node, "Generic_expression");
+        if (operand_node.has_value())
+        {
+            output.expression = node_to_expression(statement, module_info, tree, operand_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        std::optional<Parse_node> const operation_node = get_child_node(tree, node, "Expression_unary_symbol");
+        if (operation_node.has_value())
+        {
+            output.operation = get_unary_operation(get_node_value(tree, operation_node.value()));
+        }
+        
+        return output;
+    }
+
     h::Variable_expression node_to_expression_variable(
         Parse_tree const& tree,
         Parse_node const& node,
@@ -1195,6 +1340,78 @@ namespace h::parser
         {
             std::string_view const name = get_node_value(tree, name_node.value());
             output.name = create_string(name, output_allocator);
+        }
+        
+        return output;
+    }
+
+    h::Variable_declaration_expression node_to_expression_variable_declaration(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Variable_declaration_expression output;
+        
+        std::optional<Parse_node> const name = get_child_node(tree, node, "Variable_name");
+        if (name.has_value())
+        {
+            output.name = create_string(get_node_value(tree, name.value()), output_allocator);
+        }
+        
+        std::optional<Parse_node> const mutability = get_child_node(tree, node, "Expression_variable_mutability");
+        if (mutability.has_value())
+        {
+            output.is_mutable = get_node_value(tree, mutability.value()) == "mutable";
+        }
+        
+        std::optional<Parse_node> const right_hand_side_node = get_child_node(tree, node, "Generic_expression");
+        if (right_hand_side_node.has_value())
+        {
+            output.right_hand_side = node_to_expression(statement, module_info, tree, right_hand_side_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        return output;
+    }
+
+    h::Variable_declaration_with_type_expression node_to_expression_variable_declaration_with_type(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Variable_declaration_with_type_expression output{};
+        
+        std::optional<Parse_node> const name = get_child_node(tree, node, "Variable_name");
+        if (name.has_value())
+        {
+            output.name = create_string(get_node_value(tree, name.value()), output_allocator);
+        }
+        
+        std::optional<Parse_node> const mutability = get_child_node(tree, node, "Expression_variable_mutability");
+        if (mutability.has_value())
+        {
+            output.is_mutable = get_node_value(tree, mutability.value()) == "mut";
+        }
+        
+        std::optional<Parse_node> const type_node = get_child_node(tree, node, "Expression_variable_declaration_type");
+        if (type_node.has_value())
+        {
+            std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
+            if (type.has_value())
+                output.type = std::move(type.value());
+        }
+        
+        std::optional<Parse_node> const right_hand_side_node = get_child_node(tree, node, "Generic_expression_or_instantiate");
+        if (right_hand_side_node.has_value())
+        {
+            output.right_hand_side = node_to_statement(module_info, tree, right_hand_side_node.value(), output_allocator, temporaries_allocator);
         }
         
         return output;
@@ -1324,24 +1541,6 @@ namespace h::parser
         return h::Null_pointer_expression{};
     }
 
-    static h::Parenthesis_expression node_to_expression_parenthesis(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Parenthesis_expression output{};
-        
-        auto expr = get_child_node(tree, node, "Expression");
-        if (expr.has_value())
-        {
-            output.expression = node_to_expression(tree, root, expr.value(), output_allocator);
-        }
-        
-        return output;
-    }
-
     static h::Instantiate_expression node_to_expression_instantiate(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -1448,36 +1647,6 @@ namespace h::parser
         if (op.has_value())
         {
             output.additional_operation = get_assignment_operation(get_node_value(op.value()));
-        }
-        
-        return output;
-    }
-
-    static h::Binary_expression node_to_expression_binary(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Binary_expression output{};
-        
-        auto left = get_child_node(tree, node, "Expression_left");
-        if (left.has_value())
-        {
-            output.left = node_to_expression(tree, root, left.value(), output_allocator);
-        }
-        
-        auto right = get_child_node(tree, node, "Expression_right");
-        if (right.has_value())
-        {
-            output.right = node_to_expression(tree, root, right.value(), output_allocator);
-        }
-        
-        auto op = get_child_node(tree, node, "Expression_binary_symbol");
-        if (op.has_value())
-        {
-            output.operation = get_binary_operation(get_node_value(op.value()));
         }
         
         return output;
@@ -1665,96 +1834,6 @@ namespace h::parser
         return output;
     }
 
-    static h::Variable_declaration_expression node_to_expression_variable_declaration(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Variable_declaration_expression output{};
-        
-        auto name = get_child_node(tree, node, "Variable_name");
-        if (name.has_value())
-        {
-            output.name = create_string(get_node_value(name.value()), output_allocator);
-        }
-        
-        auto mutability = get_child_node(tree, node, "Expression_variable_mutability");
-        if (mutability.has_value())
-        {
-            output.is_mutable = get_node_value(mutability.value()) == "mut";
-        }
-        
-        auto value = get_child_node(tree, node, "Expression");
-        if (value.has_value())
-        {
-            output.value = node_to_expression(tree, root, value.value(), output_allocator);
-        }
-        
-        return output;
-    }
-
-    static h::Variable_declaration_with_type_expression node_to_expression_variable_declaration_with_type(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Variable_declaration_with_type_expression output{};
-        
-        auto name = get_child_node(tree, node, "Variable_name");
-        if (name.has_value())
-        {
-            output.name = create_string(get_node_value(name.value()), output_allocator);
-        }
-        
-        auto mutability = get_child_node(tree, node, "Expression_variable_mutability");
-        if (mutability.has_value())
-        {
-            output.is_mutable = get_node_value(mutability.value()) == "mut";
-        }
-        
-        auto type = get_child_node(tree, node, "Type");
-        if (type.has_value())
-        {
-            output.type = node_to_type_reference(tree, root, type.value(), output_allocator);
-        }
-        
-        auto value = get_child_node(tree, node, "Expression");
-        if (value.has_value())
-        {
-            output.value = node_to_expression(tree, root, value.value(), output_allocator);
-        }
-        
-        return output;
-    }
-
-    static h::Unary_expression node_to_expression_unary(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Unary_expression output{};
-        
-        auto operand = get_child_node(tree, node, "Expression_operand");
-        if (operand.has_value())
-        {
-            output.operand = node_to_expression(tree, root, operand.value(), output_allocator);
-        }
-        
-        auto op = get_child_node(tree, node, "Expression_unary_symbol");
-        if (op.has_value())
-        {
-            output.operation = get_unary_operation(get_node_value(op.value()));
-        }
-        
-        return output;
-    }
-
     static h::Break_expression node_to_expression_break(
         Parse_tree const& tree,
         Parse_node const& node,
@@ -1856,31 +1935,7 @@ namespace h::parser
         return output;
     }*/
 
-    /*static h::Binary_operation get_binary_operation(std::string_view op)
-    {
-        if (op == "+") return h::Binary_operation::Add;
-        if (op == "-") return h::Binary_operation::Subtract;
-        if (op == "*") return h::Binary_operation::Multiply;
-        if (op == "/") return h::Binary_operation::Divide;
-        if (op == "%") return h::Binary_operation::Modulus;
-        if (op == "==") return h::Binary_operation::Equal;
-        if (op == "!=") return h::Binary_operation::Not_equal;
-        if (op == "<") return h::Binary_operation::Less_than;
-        if (op == "<=") return h::Binary_operation::Less_than_or_equal_to;
-        if (op == ">") return h::Binary_operation::Greater_than;
-        if (op == ">=") return h::Binary_operation::Greater_than_or_equal_to;
-        if (op == "&&") return h::Binary_operation::Logical_and;
-        if (op == "||") return h::Binary_operation::Logical_or;
-        if (op == "&") return h::Binary_operation::Bitwise_and;
-        if (op == "|") return h::Binary_operation::Bitwise_or;
-        if (op == "^") return h::Binary_operation::Bitwise_xor;
-        if (op == "<<") return h::Binary_operation::Bit_shift_left;
-        if (op == ">>") return h::Binary_operation::Bit_shift_right;
-        if (op == "has") return h::Binary_operation::Has;
-        
-        // Default case or error handling
-        return h::Binary_operation::Add;
-    }
+    /*
 
     static std::optional<h::Binary_operation> get_assignment_operation(std::string_view op)
     {
@@ -1897,20 +1952,6 @@ namespace h::parser
         if (op == ">>=") return h::Binary_operation::Bit_shift_right;
         
         return std::nullopt;
-    }
-
-    static h::Unary_operation get_unary_operation(std::string_view op)
-    {
-        if (op == "!") return h::Unary_operation::Not;
-        if (op == "~") return h::Unary_operation::Bitwise_not;
-        if (op == "-") return h::Unary_operation::Minus;
-        if (op == "++") return h::Unary_operation::Pre_increment;
-        if (op == "--") return h::Unary_operation::Pre_decrement;
-        if (op == "*") return h::Unary_operation::Indirection;
-        if (op == "&") return h::Unary_operation::Address_of;
-
-        // Default case or error handling
-        return h::Unary_operation::Not;
     }
 
     static std::optional<std::string_view> extract_comments_from_node(Parse_node const& node)

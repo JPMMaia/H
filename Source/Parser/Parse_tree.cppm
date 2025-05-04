@@ -87,4 +87,8 @@ namespace h::parser
         std::string_view const child_key,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
+
+    export Source_position get_node_start_source_position(
+        Parse_node const& node
+    );
 }

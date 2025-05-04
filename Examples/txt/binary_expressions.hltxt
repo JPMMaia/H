@@ -17,7 +17,7 @@ export function integer_operations(
 
     var equal = first_signed_integer == second_signed_integer;
     var not_equal = first_signed_integer != second_signed_integer;
-    
+
     var signed_less_than = first_signed_integer < second_signed_integer;
     var unsigned_less_than = first_unsigned_integer < second_unsigned_integer;
     var signed_less_than_or_equal_to = first_signed_integer <= second_signed_integer;
@@ -26,7 +26,7 @@ export function integer_operations(
     var unsigned_greater_than = first_unsigned_integer > second_unsigned_integer;
     var signed_greater_than_or_equal_to = first_signed_integer >= second_signed_integer;
     var unsigned_greater_than_or_equal_to = first_unsigned_integer >= second_unsigned_integer;
-    
+
     var bitwise_and = first_signed_integer & second_signed_integer;
     var bitwise_or = first_signed_integer | second_signed_integer;
     var bitwise_xor = first_signed_integer ^ second_signed_integer;
@@ -59,7 +59,7 @@ export function float32_operations(
 
     var equal = first_float == second_float;
     var not_equal = first_float != second_float;
-    
+
     var less_than = first_float < second_float;
     var less_than_or_equal_to = first_float <= second_float;
     var greater_than = first_float > second_float;

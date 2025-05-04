@@ -171,4 +171,16 @@ namespace h::parser
 
         return get_child_nodes(tree, parent_node.value(), child_key, output_allocator);
     }
+
+    Source_position get_node_start_source_position(
+        Parse_node const& node
+    )
+    {
+        TSPoint const point = ts_node_start_point(node.ts_node);
+        return Source_position
+        {
+            .line = point.row + 1,
+            .column = point.column + 1,
+        };
+    }
 }

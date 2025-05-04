@@ -278,6 +278,22 @@ namespace h::parser
         Format_options const& options
     );
 
+    void add_format_expression_variable_declaration(
+        String_buffer& buffer,
+        Statement const& statement,
+        Variable_declaration_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_variable_declaration_with_type(
+        String_buffer& buffer,
+        Statement const& statement,
+        Variable_declaration_with_type_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
     void add_format_expression_while_loop(
         String_buffer& buffer,
         Statement const& statement,
@@ -294,6 +310,12 @@ namespace h::parser
     Expression const& get_expression(
         Statement const& statement,
         Expression_index const expression_index
+    );
+
+    void add_format_type_name(
+        String_buffer& buffer,
+        Type_reference const& type,
+        Format_options const& options
     );
 
     void add_format_type_name(
