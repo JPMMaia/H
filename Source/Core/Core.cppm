@@ -344,7 +344,7 @@ namespace h
 
     export struct Expression_index
     {
-        std::uint64_t expression_index;
+        std::uint64_t expression_index = static_cast<std::uint64_t>(-1);
 
         friend std::strong_ordering operator<=>(Expression_index const&, Expression_index const&) = default;
     };

@@ -13,6 +13,7 @@ module h.parser.formatter;
 
 import h.core;
 import h.core.declarations;
+import h.core.types;
 
 namespace h::parser
 {
@@ -177,6 +178,20 @@ namespace h::parser
         Format_options const& options
     );
 
+    static bool statement_ends_with_semicolon(
+        h::Expression const& expression
+    )
+    {
+        bool const does_not_end_with_semicolon =
+            std::holds_alternative<h::Block_expression>(expression.data) ||
+            std::holds_alternative<h::Comment_expression>(expression.data) ||
+            std::holds_alternative<h::For_loop_expression>(expression.data) ||
+            std::holds_alternative<h::If_expression>(expression.data) ||
+            std::holds_alternative<h::Switch_expression>(expression.data) ||
+            std::holds_alternative<h::While_loop_expression>(expression.data);
+        return !does_not_end_with_semicolon;
+    }
+
     static void add_format_statement(
         String_buffer& buffer,
         Statement const& statement,
@@ -186,7 +201,11 @@ namespace h::parser
     {
         if (statement.expressions.size() > 0)
         {
-            add_format_expression(buffer, statement, statement.expressions[0], indentation, options);
+            h::Expression const& first_expression = statement.expressions[0];
+            add_format_expression(buffer, statement, first_expression, indentation, options);
+
+            if (statement_ends_with_semicolon(first_expression))
+                add_text(buffer, ";");
         }
     }
 
@@ -559,7 +578,137 @@ namespace h::parser
         Format_options const& options
     )
     {
-        add_text(buffer, expression.data);
+        h::Type_reference const& type = expression.type;
+
+        if (std::holds_alternative<h::Fundamental_type>(type.data))
+        {
+            h::Fundamental_type const fundamental_type = std::get<h::Fundamental_type>(type.data);
+
+            switch (fundamental_type)
+            {
+            case h::Fundamental_type::Byte:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "b");
+            }
+            case h::Fundamental_type::Float16:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "f16");
+            }
+            case h::Fundamental_type::Float32:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "f32");
+            }
+            case h::Fundamental_type::Float64:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "f64");
+            }
+            case h::Fundamental_type::String:
+            {
+                add_text(buffer, "\"");
+                add_text(buffer, expression.data);
+                add_text(buffer, "\"");
+            }
+            case h::Fundamental_type::C_bool:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cb");
+            }
+            case h::Fundamental_type::C_char:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cc");
+            }
+            case h::Fundamental_type::C_schar:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "csc");
+            }
+            case h::Fundamental_type::C_uchar:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cuc");
+            }
+            case h::Fundamental_type::C_short:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cs");
+            }
+            case h::Fundamental_type::C_ushort:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cus");
+            }
+            case h::Fundamental_type::C_int:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "ci");
+            }
+            case h::Fundamental_type::C_uint:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cui");
+            }
+            case h::Fundamental_type::C_long:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cl");
+            }
+            case h::Fundamental_type::C_ulong:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cul");
+            }
+            case h::Fundamental_type::C_longlong:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cll");
+            }
+            case h::Fundamental_type::C_ulonglong:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cull");
+            }
+            case h::Fundamental_type::C_longdouble:
+            {
+                add_text(buffer, expression.data);
+                add_text(buffer, "cld");
+            }
+            default:
+            {
+                add_text(buffer, expression.data);
+                return;
+            }
+            }
+        }
+        else if (std::holds_alternative<h::Integer_type>(type.data))
+        {
+            h::Integer_type const integer_type = std::get<h::Integer_type>(type.data);
+            if (integer_type.number_of_bits == 32 && integer_type.is_signed == true)
+            {
+                add_text(buffer, expression.data);
+                return;
+            }
+
+            add_text(buffer, expression.data);
+
+            std::string_view const signed_suffix = integer_type.is_signed ? "i" : "u";
+            add_text(buffer, signed_suffix);
+            add_integer_text(buffer, static_cast<std::uint64_t>(integer_type.number_of_bits));
+        }
+        else if (h::is_c_string(type))
+        {
+            add_text(buffer, "\"");
+            add_text(buffer, expression.data);
+            add_text(buffer, "\"c");
+        }
+        else
+        {
+            add_text(buffer, expression.data);
+        }
     }
 
     void add_format_expression_constant_array(

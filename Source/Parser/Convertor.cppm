@@ -122,4 +122,10 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
+
+    h::Variable_expression node_to_expression_variable(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
 }
