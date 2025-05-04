@@ -1427,6 +1427,14 @@ namespace h::parser
         Expression_index const expression_index
     )
     {
+        if (expression_index.expression_index == static_cast<std::uint64_t>(-1))
+        {
+            static h::Expression invalid_expression = {
+                .data = h::Invalid_expression{ .value = "" }
+            };
+            return invalid_expression;
+        }
+
         return statement.expressions[expression_index.expression_index];
     }
 }
