@@ -789,6 +789,10 @@ namespace h::parser
         {
             expression.data = node_to_expression_access_array(module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }*/
+        else if (expression_type == "Expression_assert")
+        {
+            expression.data = node_to_expression_assert(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else if (expression_type == "Expression_assignment")
         {
             expression.data = node_to_expression_assignment(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
@@ -989,6 +993,33 @@ namespace h::parser
         std::optional<Parse_node> const member_name = get_child_node(tree, node, "Expression_access_member_name");
         if (member_name.has_value())
             output.member_name = create_string(get_node_value(tree, member_name.value()), output_allocator);
+        
+        return output;
+    }
+
+    h::Assert_expression node_to_expression_assert(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Assert_expression output;
+        
+        std::optional<Parse_node> const message_node = get_child_node(tree, node, "String");
+        if (message_node.has_value())
+        {
+            std::string_view const message = get_node_value(tree, message_node.value());
+            output.message = create_string(message.substr(1, message.size() - 2), output_allocator);
+        }
+        
+        std::optional<Parse_node> const statement_node = get_child_node(tree, node, "Generic_expression");
+        if (statement_node.has_value())
+        {
+            output.statement = node_to_statement(module_info, tree, statement_node.value(), output_allocator, temporaries_allocator);
+        }
         
         return output;
     }

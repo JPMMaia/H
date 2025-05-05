@@ -91,6 +91,13 @@ namespace h::parser
         Format_options const& options
     );
 
+    void add_format_expression_assert(
+        String_buffer& buffer,
+        Statement const& statement,
+        Assert_expression const& expression,
+        Format_options const& options
+    );
+
     void add_format_expression_assignment(
         String_buffer& buffer,
         Statement const& statement,

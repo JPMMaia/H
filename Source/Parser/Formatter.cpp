@@ -227,6 +227,11 @@ namespace h::parser
             Access_array_expression const& value = std::get<Access_array_expression>(expression.data);
             add_format_expression_access_array(buffer, statement, value, options);
         }
+        else if (std::holds_alternative<Assert_expression>(expression.data))
+        {
+            Assert_expression const& value = std::get<Assert_expression>(expression.data);
+            add_format_expression_assert(buffer, statement, value, options);
+        }
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& value = std::get<Assignment_expression>(expression.data);
@@ -394,6 +399,32 @@ namespace h::parser
         add_text(buffer, "]");
     }
 
+    void add_format_expression_assert(
+        String_buffer& buffer,
+        Statement const& statement,
+        Assert_expression const& expression,
+        Format_options const& options
+    )
+    {
+        add_text(buffer, "assert ");
+
+        if (expression.message.has_value())
+        {
+            add_text(buffer, "\"");
+            add_text(buffer, expression.message.value());
+            add_text(buffer, "\" ");
+        }
+
+        add_text(buffer, "{ ");
+
+        if (!expression.statement.expressions.empty())
+        {
+            add_format_expression(buffer, expression.statement, expression.statement.expressions[0], 0, options);
+        }
+
+        add_text(buffer, " }");
+    }
+
     void add_format_expression_assignment(
         String_buffer& buffer,
         Statement const& statement,
@@ -409,7 +440,7 @@ namespace h::parser
             add_format_binary_operation_symbol(buffer, *expression.additional_operation);
         }
         add_text(buffer, "= ");
-        
+
         add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), 0, options);
     }
 
