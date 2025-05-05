@@ -402,12 +402,14 @@ namespace h::parser
     )
     {
         add_format_expression(buffer, statement, get_expression(statement, expression.left_hand_side), 0, options);
+
+        add_text(buffer, " ");
         if (expression.additional_operation)
         {
-            add_text(buffer, " ");
             add_format_binary_operation_symbol(buffer, *expression.additional_operation);
         }
         add_text(buffer, "= ");
+        
         add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), 0, options);
     }
 

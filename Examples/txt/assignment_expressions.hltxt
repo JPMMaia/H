@@ -10,7 +10,7 @@ export function integer_operations(
 
     my_signed_integer = 2i32;
     my_unsigned_integer = 2u32;
-    
+
     my_signed_integer += other_signed_integer;
     my_signed_integer -= other_signed_integer;
     my_signed_integer *= other_signed_integer;
@@ -18,7 +18,7 @@ export function integer_operations(
     my_unsigned_integer /= other_unsigned_integer;
     my_signed_integer %= other_signed_integer;
     my_unsigned_integer %= other_unsigned_integer;
-    
+
     my_signed_integer &= other_signed_integer;
     my_signed_integer |= other_signed_integer;
     my_signed_integer ^= other_signed_integer;
@@ -34,7 +34,7 @@ export function float32_operations(
     mutable my_float = 1f32;
 
     my_float = 2i32;
-    
+
     my_float += other_float;
     my_float -= other_float;
     my_float *= other_float;

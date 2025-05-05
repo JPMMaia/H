@@ -91,6 +91,15 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    h::Assignment_expression node_to_expression_assignment(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Binary_expression node_to_expression_binary(
         h::Statement& statement,
         Module_info const& module_info,
