@@ -31,7 +31,7 @@ export function run_while_loops(size: Int32) -> ()
             {
                 break;
             }
-            
+
             print_integer(index);
             index += 1;
         }

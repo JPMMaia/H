@@ -51,6 +51,7 @@ namespace h::parser
     )
     {
         add_text(buffer, "\n");
+        buffer.current_line += 1;
     }
 
     static void add_indentation(
@@ -88,6 +89,13 @@ namespace h::parser
 
         add_new_line(buffer);
         add_indentation(buffer, indentation);
+    }
+
+    std::uint32_t get_current_line_position(
+        String_buffer const& buffer
+    )
+    {
+        return buffer.current_line;
     }
 
     static std::optional<std::string_view> get_declaration_comment(
@@ -196,7 +204,8 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         std::uint32_t indentation,
-        Format_options const& options
+        Format_options const& options,
+        bool const add_semicolon = true
     )
     {
         if (statement.expressions.size() > 0)
@@ -204,7 +213,7 @@ namespace h::parser
             h::Expression const& first_expression = statement.expressions[0];
             add_format_expression(buffer, statement, first_expression, indentation, options);
 
-            if (statement_ends_with_semicolon(first_expression))
+            if (add_semicolon && statement_ends_with_semicolon(first_expression))
                 add_text(buffer, ";");
         }
     }
@@ -534,29 +543,41 @@ namespace h::parser
     {
         add_text(buffer, "{");
 
-        std::uint32_t previous_line = 0;
+        std::uint32_t current_line = get_current_line_position(
+            buffer
+        );
         
         for (std::size_t statement_index = 0; statement_index < statements.size(); ++statement_index)
         {
             Statement const& current_statement = statements[statement_index];
-            add_new_line(buffer);
-
+            
             if (statement_index > 0)
             {
-                if (!current_statement.expressions.empty() && current_statement.expressions[0].source_position.has_value())
+                Statement const& previous_statement = statements[statement_index - 1];
+                
+                if (!previous_statement.expressions.empty() && previous_statement.expressions[0].source_position.has_value())
                 {
-                    std::uint32_t const current_line = current_statement.expressions[0].source_position->line;
-                    std::uint32_t const lines_to_add = current_line - (1 + previous_line);
-                    for (std::size_t index = 0; index < lines_to_add; ++index)
-                        add_new_line(buffer);
-                }    
+                    if (!current_statement.expressions.empty() && current_statement.expressions[0].source_position.has_value())
+                    {
+                        std::uint32_t const previous_statement_line = previous_statement.expressions[0].source_position->line;
+                        std::uint32_t const current_statement_line = current_statement.expressions[0].source_position->line;
+                        
+                        std::uint32_t const difference = current_statement_line - previous_statement_line;
+                        std::uint32_t const new_lines_in_previous_statement = get_current_line_position(buffer) - current_line;
+                        std::uint32_t const new_lines_to_add = difference - new_lines_in_previous_statement;
+
+                        for (std::uint32_t index = 1; index < new_lines_to_add; ++index)
+                            add_new_line(buffer);
+                    }
+                } 
             }
+            add_new_line(buffer);
 
             add_indentation(buffer, outside_indentation + 4);
-            add_format_statement(buffer, current_statement, outside_indentation + 4, options);
 
-            if (!current_statement.expressions.empty() && current_statement.expressions[0].source_position.has_value())
-                previous_line = current_statement.expressions[0].source_position->line;
+            current_line = get_current_line_position(buffer);
+
+            add_format_statement(buffer, current_statement, outside_indentation + 4, options);
         }
 
         add_new_line(buffer);
@@ -650,92 +671,110 @@ namespace h::parser
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "b");
+                break;
             }
             case h::Fundamental_type::Float16:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "f16");
+                break;
             }
             case h::Fundamental_type::Float32:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "f32");
+                break;
             }
             case h::Fundamental_type::Float64:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "f64");
+                break;
             }
             case h::Fundamental_type::String:
             {
                 add_text(buffer, "\"");
                 add_text(buffer, expression.data);
                 add_text(buffer, "\"");
+                break;
             }
             case h::Fundamental_type::C_bool:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cb");
+                break;
             }
             case h::Fundamental_type::C_char:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cc");
+                break;
             }
             case h::Fundamental_type::C_schar:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "csc");
+                break;
             }
             case h::Fundamental_type::C_uchar:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cuc");
+                break;
             }
             case h::Fundamental_type::C_short:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cs");
+                break;
             }
             case h::Fundamental_type::C_ushort:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cus");
+                break;
             }
             case h::Fundamental_type::C_int:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "ci");
+                break;
             }
             case h::Fundamental_type::C_uint:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cui");
+                break;
             }
             case h::Fundamental_type::C_long:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cl");
+                break;
             }
             case h::Fundamental_type::C_ulong:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cul");
+                break;
             }
             case h::Fundamental_type::C_longlong:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cll");
+                break;
             }
             case h::Fundamental_type::C_ulonglong:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cull");
+                break;
             }
             case h::Fundamental_type::C_longdouble:
             {
                 add_text(buffer, expression.data);
                 add_text(buffer, "cld");
+                break;
             }
             default:
             {
@@ -836,16 +875,23 @@ namespace h::parser
 
             if (index > 0)
             {
+                add_new_line(buffer);
                 add_indentation(buffer, outside_indentation);
-                add_text(buffer, "else ");
+                add_text(buffer, "else");
             }
 
-            if (pair.condition)
+            if (pair.condition.has_value())
             {
+                if (index > 0)
+                    add_text(buffer, " ");
+                
                 add_text(buffer, "if ");
-                add_format_statement(buffer, *pair.condition, 0, options);
-                add_new_line(buffer);
+
+                add_format_statement(buffer, pair.condition.value(), 0, options, false);
             }
+
+            add_new_line(buffer);
+            add_indentation(buffer, outside_indentation);
 
             add_format_expression_block(buffer, pair.then_statements, outside_indentation, options);
         }
@@ -1116,8 +1162,9 @@ namespace h::parser
     )
     {
         add_text(buffer, "while ");
-        add_format_statement(buffer, expression.condition, outside_indentation, options);
-        add_text(buffer, " ");
+        add_format_statement(buffer, expression.condition, outside_indentation, options, false);
+        add_new_line(buffer);
+        add_indentation(buffer, outside_indentation);
         add_format_expression_block(buffer, expression.then_statements, outside_indentation, options);
     }
 

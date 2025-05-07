@@ -73,6 +73,14 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    std::pmr::vector<h::Statement> node_to_block(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Expression_index node_to_expression(
         h::Statement& statement,
         Module_info const& module_info,
@@ -126,6 +134,11 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    h::Break_expression node_to_expression_break(
+        Parse_tree const& tree,
+        Parse_node const& node
+    );
+
     h::Call_expression node_to_expression_call(
         h::Statement& statement,
         Module_info const& module_info,
@@ -139,6 +152,20 @@ namespace h::parser
         Parse_tree const& tree,
         Parse_node const& node,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    h::Continue_expression node_to_expression_continue(
+        Parse_tree const& tree,
+        Parse_node const& node
+    );
+
+    h::If_expression node_to_expression_if(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     h::Parenthesis_expression node_to_expression_parenthesis(
@@ -184,6 +211,15 @@ namespace h::parser
     );
 
     h::Variable_declaration_with_type_expression node_to_expression_variable_declaration_with_type(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    h::While_loop_expression node_to_expression_while_loop(
         h::Statement& statement,
         Module_info const& module_info,
         Parse_tree const& tree,

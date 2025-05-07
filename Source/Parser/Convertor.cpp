@@ -41,7 +41,7 @@ namespace h::parser
         std::string_view const value
     )
     {
-        std::size_t const start = value.starts_with("0x") ? 0 : 2;
+        std::size_t const start = value.starts_with("0x") ? 2 : 0;
 
         for (std::size_t index = start; index < value.size(); ++index)
         {
@@ -60,6 +60,25 @@ namespace h::parser
     {
         auto const location = value.rfind("\"");
         return value.substr(location + 1);
+    }
+
+    std::uint64_t parse_uint64(
+        std::string_view const value
+    )
+    {
+        constexpr std::size_t maximum_size = 21;
+        char buffer[maximum_size];
+
+        std::size_t size = std::min(maximum_size - 1, value.size());
+
+        for (std::size_t index = 0; index < size; ++index)
+            buffer[index] = value[index];
+        
+        buffer[size] = '\0';
+
+        char* end = nullptr;
+        unsigned long long number = std::strtoull(buffer, &end, 10);
+        return static_cast<std::uint64_t>(number);
     }
 
     static std::optional<std::string_view> get_module_name(
@@ -619,15 +638,13 @@ namespace h::parser
         std::optional<Parse_node> const block_node = get_child_node(tree, node, 0);
         if (block_node.has_value())
         {
-            h::Block_expression block = node_to_expression_block(
+            output.statements = node_to_block(
                 module_info,
                 tree,
                 block_node.value(),
                 output_allocator,
                 temporaries_allocator
             );
-
-            output.statements = std::move(block.statements);
         }
 
         return output;
@@ -730,8 +747,7 @@ namespace h::parser
             node_to_expression(output, module_info, tree, expression_node.value(), output_allocator, temporaries_allocator);
         }
 
-        std::pmr::vector<h::Expression> final_expressions{output_allocator};
-        final_expressions.assign(output.expressions.begin(), output.expressions.end());
+        std::pmr::vector<h::Expression> final_expressions{std::move(output.expressions), output_allocator};
         output.expressions = std::move(final_expressions);
         
         return output;
@@ -805,10 +821,10 @@ namespace h::parser
         {
             expression.data = node_to_expression_block(module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
-        /*else if (expression_type == "Expression_break")
+        else if (expression_type == "Expression_break")
         {
-            expression.data = node_to_expression_break(module_info, tree, expr_type.value(), output_allocator);
-        }*/
+            expression.data = node_to_expression_break(tree, expression_node);
+        }
         else if (expression_type == "Expression_call")
         {
             expression.data = node_to_expression_call(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
@@ -828,24 +844,24 @@ namespace h::parser
         /*else if (expression_type == "Expression_constant_array")
         {
             expression.data = node_to_expression_constant_array(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_continue")
         {
-            expression.data = node_to_expression_continue(module_info, );
+            expression.data = node_to_expression_continue(tree, expression_node);
         }
-        else if (expression_type == "Expression_defer")
+        /*else if (expression_type == "Expression_defer")
         {
             expression.data = node_to_expression_defer(module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
         else if (expression_type == "Expression_for_loop")
         {
             expression.data = node_to_expression_for_loop(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_if")
         {
-            expression.data = node_to_expression_if(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_if(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
-        else if (expression_type == "Expression_instance_call")
+        /*else if (expression_type == "Expression_instance_call")
         {
             expression.data = node_to_expression_instance_call(module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
@@ -897,10 +913,10 @@ namespace h::parser
         {
             expression.data = node_to_expression_variable(tree, expression_node, output_allocator);
         }
-        /*else if (expression_type == "Expression_while_loop")
+        else if (expression_type == "Expression_while_loop")
         {
-            expression.data = node_to_expression_while_loop(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }*/
+            expression.data = node_to_expression_while_loop(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else
         {
             return {.expression_index = static_cast<std::uint64_t>(-1)};
@@ -964,6 +980,33 @@ namespace h::parser
         if (operation == "&") return h::Unary_operation::Address_of;
 
         return h::Unary_operation::Not;
+    }
+
+    std::pmr::vector<h::Statement> node_to_block(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Statement> output;
+
+        std::pmr::vector<Parse_node> const child_nodes = get_named_child_nodes(tree, node, temporaries_allocator);
+        
+        std::size_t const child_count = child_nodes.size();
+        output = std::pmr::vector<h::Statement>{output_allocator};
+        output.resize(child_count);
+
+        for (std::size_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            Parse_node const& statement_node = child_nodes[child_index];
+
+            Statement statement = node_to_statement(module_info, tree, statement_node, output_allocator, temporaries_allocator);
+            output[child_index] = std::move(statement);
+        }
+        
+        return output;
     }
 
     h::Access_expression node_to_expression_access(
@@ -1098,18 +1141,30 @@ namespace h::parser
     {
         h::Block_expression output;
 
-        std::pmr::vector<Parse_node> const child_nodes = get_named_child_nodes(tree, node, temporaries_allocator);
+        output.statements = node_to_block(
+            module_info,
+            tree,
+            node,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        return output;
+    }
+
+    h::Break_expression node_to_expression_break(
+        Parse_tree const& tree,
+        Parse_node const& node
+    )
+    {
+        h::Break_expression output = {};
         
-        std::size_t const child_count = child_nodes.size();
-        output.statements = std::pmr::vector<h::Statement>{output_allocator};
-        output.statements.resize(child_count);
-
-        for (std::size_t child_index = 0; child_index < child_count; ++child_index)
+        std::optional<Parse_node> const count_node = get_child_node(tree, node, "Expression_break_loop_count");
+        if (count_node.has_value())
         {
-            Parse_node const& statement_node = child_nodes[child_index];
-
-            Statement statement = node_to_statement(module_info, tree, statement_node, output_allocator, temporaries_allocator);
-            output.statements[child_index] = std::move(statement);
+            std::string_view const count_string = get_node_value(tree, count_node.value());
+            std::uint64_t const count = parse_uint64(count_string);
+            output.loop_count = count;
         }
         
         return output;
@@ -1132,7 +1187,7 @@ namespace h::parser
         
         std::pmr::vector<Parse_node> const argument_nodes = get_child_nodes_of_parent(tree, node, "Expression_call_arguments", "Generic_expression_or_instantiate", temporaries_allocator);
 
-        output.arguments.resize(1);
+        output.arguments.resize(argument_nodes.size());
 
         for (std::size_t argument_index = 0; argument_index < argument_nodes.size(); ++argument_index)
         {
@@ -1343,6 +1398,69 @@ namespace h::parser
         return {};
     }
 
+    h::Continue_expression node_to_expression_continue(
+        Parse_tree const& tree,
+        Parse_node const& node
+    )
+    {
+        return h::Continue_expression{};
+    }
+
+    h::If_expression node_to_expression_if(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {        
+        std::pmr::vector<Condition_statement_pair> series{temporaries_allocator};
+        
+        std::optional<Parse_node> current_node = node;
+        while (current_node.has_value())
+        {
+            h::Condition_statement_pair serie;
+
+            std::string_view const current_node_value = get_node_symbol(current_node.value());
+
+            std::optional<Parse_node> const condition_node =
+                current_node_value == "Expression_if" ?
+                get_child_node(tree, current_node.value(), "Generic_expression") :
+                std::nullopt;
+            if (condition_node.has_value())
+            {
+                serie.condition = node_to_statement(module_info, tree, condition_node.value(), output_allocator, temporaries_allocator);
+            }
+
+            std::optional<Parse_node> const statements_node =
+                current_node_value == "Expression_if_statements" ?
+                current_node :
+                get_child_node(tree, current_node.value(), "Expression_if_statements");
+            if (statements_node.has_value())
+            {
+                serie.then_statements = node_to_block(module_info, tree, statements_node.value(), output_allocator, temporaries_allocator);
+            }
+
+            series.push_back(std::move(serie));
+
+            current_node = get_child_node(tree, current_node.value(), "Expression_if_else");
+            if (!current_node.has_value())
+                break;
+
+            current_node = get_last_child_node(
+                tree,
+                current_node.value()
+            );
+        }
+
+        h::If_expression output
+        {
+            .series = std::pmr::vector<Condition_statement_pair>{std::move(series), output_allocator},
+        };
+        return output;
+    }
+
     h::Parenthesis_expression node_to_expression_parenthesis(
         h::Statement& statement,
         Module_info const& module_info,
@@ -1494,6 +1612,32 @@ namespace h::parser
             output.right_hand_side = node_to_statement(module_info, tree, right_hand_side_node.value(), output_allocator, temporaries_allocator);
         }
         
+        return output;
+    }
+
+    h::While_loop_expression node_to_expression_while_loop(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::While_loop_expression output;
+
+        std::optional<Parse_node> const condition = get_child_node(tree, node, 1);
+        if (condition.has_value())
+        {
+            output.condition = node_to_statement(module_info, tree, condition.value(), output_allocator, temporaries_allocator);
+        }
+
+        std::optional<Parse_node> const statements = get_child_node(tree, node, 2);
+        if (statements.has_value())
+        {
+            output.then_statements = node_to_block(module_info, tree, statements.value(), output_allocator, temporaries_allocator);
+        }
+
         return output;
     }
 
@@ -1702,74 +1846,6 @@ namespace h::parser
         return output;
     }
 
-    static h::If_expression node_to_expression_if(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::If_expression output{output_allocator};
-
-        auto if_series = get_child_node(tree, node, "Expression_if_series");
-        if (if_series.has_value())
-        {
-            auto series_nodes = get_child_nodes(tree, if_series.value(), output_allocator);
-            for (auto const& serie : series_nodes)
-            {
-                h::Condition_statement_pair pair{output_allocator};
-
-                auto condition = get_child_node(tree, serie, "Expression_condition");
-                if (condition.has_value())
-                {
-                    pair.condition = node_to_expression(tree, root, condition.value(), output_allocator);
-                }
-
-                auto statements = get_child_node(tree, serie, "Expression_if_statements");
-                if (statements.has_value())
-                {
-                    auto statement_nodes = get_child_nodes(tree, statements.value(), output_allocator);
-                    for (auto const& stmt : statement_nodes)
-                    {
-                        pair.then_statements.push_back(node_to_statement(tree, root, stmt, output_allocator));
-                    }
-                }
-
-                output.series.push_back(std::move(pair));
-            }
-        }
-
-        return output;
-    }
-
-    static h::While_loop_expression node_to_expression_while_loop(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::While_loop_expression output{output_allocator};
-
-        auto condition = get_child_node(tree, node, "Expression_condition");
-        if (condition.has_value())
-        {
-            output.condition = node_to_expression(tree, root, condition.value(), output_allocator);
-        }
-
-        auto statements = get_child_node(tree, node, "Expression_while_loop_statements");
-        if (statements.has_value())
-        {
-            auto statement_nodes = get_child_nodes(tree, statements.value(), output_allocator);
-            for (auto const& stmt : statement_nodes)
-            {
-                output.then_statements.push_back(node_to_statement(tree, root, stmt, output_allocator));
-            }
-        }
-
-        return output;
-    }
-
     static h::For_loop_expression node_to_expression_for_loop(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -1882,29 +1958,6 @@ namespace h::parser
         }
 
         return output;
-    }
-
-    static h::Break_expression node_to_expression_break(
-        Parse_tree const& tree,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Break_expression output{};
-        
-        auto count = get_child_node(tree, node, "Expression_break_loop_count");
-        if (count.has_value())
-        {
-            auto count_str = get_node_value(count.value());
-            output.loop_count = std::stoi(std::string(count_str));
-        }
-        
-        return output;
-    }
-
-    static h::Continue_expression node_to_expression_continue()
-    {
-        return h::Continue_expression{};
     }
 
     static h::Cast_expression node_to_expression_cast(

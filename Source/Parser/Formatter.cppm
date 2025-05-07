@@ -25,6 +25,7 @@ namespace h::parser
     struct String_buffer
     {
         std::stringstream string_stream;
+        std::uint32_t current_line = 0;
     };
 
     void add_format_alias_type_declaration(
