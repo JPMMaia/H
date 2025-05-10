@@ -47,6 +47,14 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    h::Alias_type_declaration node_to_alias_type_declaration(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Function_declaration node_to_function_declaration(
         Module_info const& module_info,
         Parse_tree const& tree,
@@ -61,6 +69,14 @@ namespace h::parser
         Parse_tree const& tree,
         Parse_node const& node,
         std::string_view const function_name,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    h::Struct_declaration node_to_struct_declaration(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -148,15 +164,40 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    h::Cast_expression node_to_expression_cast(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Constant_expression node_to_expression_constant(
         Parse_tree const& tree,
         Parse_node const& node,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
+    h::Comment_expression node_to_expression_comment(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Continue_expression node_to_expression_continue(
         Parse_tree const& tree,
         Parse_node const& node
+    );
+
+    h::For_loop_expression node_to_expression_for_loop(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     h::If_expression node_to_expression_if(
@@ -167,6 +208,17 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
+
+    h::Instantiate_expression node_to_expression_instantiate(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    h::Null_pointer_expression node_to_expression_null_pointer();
 
     h::Parenthesis_expression node_to_expression_parenthesis(
         h::Statement& statement,

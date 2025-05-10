@@ -2,7 +2,7 @@ module Binary_expressions_operator_precedence;
 
 function other_function() -> (result: Int32)
 {
-    return 1i32;
+    return 1;
 }
 
 export function foo(

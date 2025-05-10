@@ -2,6 +2,7 @@ module;
 
 #include <cstdint>
 #include <memory_resource>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -17,6 +18,32 @@ import h.core.types;
 
 namespace h::parser
 {
+    static std::pmr::vector<std::string_view> decode_comment(
+        std::string_view const value,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::string_view> temporary{temporaries_allocator};
+
+        std::size_t index = 0;
+        while (index < value.size())
+        {
+            std::size_t const end_index = value.find("\n", index);
+            std::size_t const content_index = 
+                end_index == std::string_view::npos ?
+                value.size() :
+                end_index;
+
+            std::string_view const content = value.substr(index, end_index - index);
+            temporary.push_back(content);
+
+            index = content_index + 1;
+        }
+
+        return std::pmr::vector<std::string_view>{std::move(temporary), output_allocator};
+    }
+
     static std::pmr::string to_string(String_buffer const& buffer)
     {
         return std::pmr::string{buffer.string_stream.str()};
@@ -244,7 +271,7 @@ namespace h::parser
         else if (std::holds_alternative<Assignment_expression>(expression.data))
         {
             Assignment_expression const& value = std::get<Assignment_expression>(expression.data);
-            add_format_expression_assignment(buffer, statement, value, options);
+            add_format_expression_assignment(buffer, statement, value, indentation, options);
         }
         else if (std::holds_alternative<Binary_expression>(expression.data))
         {
@@ -270,6 +297,11 @@ namespace h::parser
         {
             Cast_expression const& value = std::get<Cast_expression>(expression.data);
             add_format_expression_cast(buffer, statement, value, options);
+        }
+        else if (std::holds_alternative<Comment_expression>(expression.data))
+        {
+            Comment_expression const& value = std::get<Comment_expression>(expression.data);
+            add_format_expression_comment(buffer, statement, value, indentation, options);
         }
         else if (std::holds_alternative<Compile_time_expression>(expression.data))
         {
@@ -314,7 +346,7 @@ namespace h::parser
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
             Instantiate_expression const& value = std::get<Instantiate_expression>(expression.data);
-            add_format_expression_instantiate(buffer, statement, value, indentation, options);
+            add_format_expression_instantiate(buffer, statement, value, expression.source_position, indentation, options);
         }
         else if (std::holds_alternative<Invalid_expression>(expression.data))
         {
@@ -438,6 +470,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Assignment_expression const& expression,
+        std::uint32_t const indentation,
         Format_options const& options
     )
     {
@@ -450,7 +483,7 @@ namespace h::parser
         }
         add_text(buffer, "= ");
 
-        add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), 0, options);
+        add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), indentation, options);
     }
 
     void add_format_expression_binary(
@@ -561,13 +594,20 @@ namespace h::parser
                     {
                         std::uint32_t const previous_statement_line = previous_statement.expressions[0].source_position->line;
                         std::uint32_t const current_statement_line = current_statement.expressions[0].source_position->line;
-                        
-                        std::uint32_t const difference = current_statement_line - previous_statement_line;
-                        std::uint32_t const new_lines_in_previous_statement = get_current_line_position(buffer) - current_line;
-                        std::uint32_t const new_lines_to_add = difference - new_lines_in_previous_statement;
 
-                        for (std::uint32_t index = 1; index < new_lines_to_add; ++index)
-                            add_new_line(buffer);
+                        if (current_statement_line > previous_statement_line)
+                        {
+                            std::uint32_t const difference = current_statement_line - previous_statement_line;
+                            std::uint32_t const new_lines_in_previous_statement = get_current_line_position(buffer) - current_line;
+
+                            if (difference > new_lines_in_previous_statement)
+                            {
+                                std::uint32_t const new_lines_to_add = difference - new_lines_in_previous_statement;
+
+                                for (std::uint32_t index = 1; index < new_lines_to_add; ++index)
+                                    add_new_line(buffer);
+                            }
+                        }
                     }
                 } 
             }
@@ -638,7 +678,36 @@ namespace h::parser
     {
         add_format_expression(buffer, statement, get_expression(statement, expression.source), 0, options);
         add_text(buffer, " as ");
-        add_format_type_name(buffer, {&expression.destination_type, 1}, options);
+        add_format_type_name(buffer, expression.destination_type, options);
+    }
+
+    void add_format_expression_comment(
+        String_buffer& buffer,
+        Statement const& statement,
+        Comment_expression const& expression,
+        std::uint32_t const indentation,
+        Format_options const& options
+    )
+    {
+        std::pmr::vector<std::string_view> const comments = decode_comment(
+            expression.comment,
+            options.temporaries_allocator,
+            options.temporaries_allocator
+        );
+
+        for (std::size_t index = 0; index < comments.size(); ++index)
+        {
+            std::string_view const comment = comments[index];
+
+            if (index > 0)
+            {
+                add_new_line(buffer);
+                add_indentation(buffer, indentation);
+            }
+
+            add_text(buffer, "//");
+            add_text(buffer, comment);
+        }
     }
 
     void add_format_expression_compile_time(
@@ -897,29 +966,88 @@ namespace h::parser
         }
     }
 
+    bool place_instantiate_members_on_the_same_line(
+        Instantiate_expression const& expression,
+        std::optional<h::Source_position> const source_position
+    )
+    {
+        if (!source_position.has_value())
+            return true;
+
+        if (expression.members.empty())
+            return true;
+
+        Instantiate_member_value_pair const& pair = expression.members[0];
+        if (pair.value.expressions.empty())
+            return true;
+
+        Expression const& first_expression = pair.value.expressions[0];
+        if (!first_expression.source_position.has_value())
+            return true;
+
+        Source_position const first_member_source_position = first_expression.source_position.value();
+
+        return first_member_source_position.line == source_position->line;
+    }
+
     void add_format_expression_instantiate(
         String_buffer& buffer,
         Statement const& statement,
         Instantiate_expression const& expression,
+        std::optional<h::Source_position> const source_position,
         std::uint32_t outside_indentation,
         Format_options const& options
     )
     {
+        bool const same_line = place_instantiate_members_on_the_same_line(expression, source_position);
+
         if (expression.type == Instantiate_expression_type::Explicit)
             add_text(buffer, "explicit ");
             
         add_text(buffer, "{");
         if (!expression.members.empty())
         {
-            for (std::size_t i = 0; i < expression.members.size(); ++i)
+            if (!same_line)
             {
-                if (i > 0)
-                    add_text(buffer, ", ");
+                add_new_line(buffer);
+                add_indentation(buffer, outside_indentation + 4);
+            }
+            else
+            {
+                add_text(buffer, " ");
+            }
+
+            for (std::size_t index = 0; index < expression.members.size(); ++index)
+            {
+                if (index > 0)
+                {
+                    add_text(buffer, ",");
+
+                    if (!same_line)
+                    {
+                        add_new_line(buffer);
+                        add_indentation(buffer, outside_indentation + 4);
+                    }
+                    else
+                    {
+                        add_text(buffer, " ");
+                    }
+                }
                     
-                auto const& member = expression.members[i];
+                Instantiate_member_value_pair const& member = expression.members[index];
                 add_text(buffer, member.member_name);
                 add_text(buffer, ": ");
-                add_format_statement(buffer, member.value, outside_indentation, options);
+                add_format_statement(buffer, member.value, outside_indentation + 4, options, false);
+            }
+
+            if (!same_line)
+            {
+                add_new_line(buffer);
+                add_indentation(buffer, outside_indentation);
+            }
+            else
+            {
+                add_text(buffer, " ");
             }
         }
         add_text(buffer, "}");
@@ -946,18 +1074,25 @@ namespace h::parser
         add_text(buffer, "for ");
         add_text(buffer, expression.variable_name);
         add_text(buffer, " in ");
-        add_format_expression(buffer, statement, get_expression(statement, expression.range_begin), outside_indentation, options);
+        add_format_expression(buffer, statement, get_expression(statement, expression.range_begin), 0, options);
         add_text(buffer, " to ");
-        add_format_statement(buffer, expression.range_end, outside_indentation, options);
+        add_format_statement(buffer, expression.range_end, outside_indentation, options, false);
         
-        if (expression.step_by)
+        if (expression.step_by.has_value())
         {
             add_text(buffer, " step_by ");
-            add_format_expression(buffer, statement, get_expression(statement, *expression.step_by), outside_indentation, options);
+            add_format_expression(buffer, statement, get_expression(statement, expression.step_by.value()), outside_indentation, options);
         }
 
-        add_text(buffer, " ");
-        add_format_expression_block(buffer, {expression.then_statements}, outside_indentation, options);
+        if (expression.range_comparison_operation == h::Binary_operation::Greater_than)
+        {
+            add_text(buffer, " reverse");
+        }
+
+        add_new_line(buffer);
+        add_indentation(buffer, outside_indentation);
+
+        add_format_expression_block(buffer, expression.then_statements, outside_indentation, options);
     }
 
     void add_format_expression_null_pointer(
@@ -1025,7 +1160,7 @@ namespace h::parser
     {
         add_text(buffer, "switch ");
         add_format_expression(buffer, statement, get_expression(statement, expression.value), 0, options);
-        add_text(buffer, "\n");
+        add_new_line(buffer);
         add_indentation(buffer, outside_indentation);
         
         add_text(buffer, "{");
@@ -1150,7 +1285,7 @@ namespace h::parser
         add_text(buffer, ": ");
         add_format_type_name(buffer, expression.type, options);
         add_text(buffer, " = ");
-        add_format_statement(buffer, expression.right_hand_side, outside_indentation, options);
+        add_format_statement(buffer, expression.right_hand_side, outside_indentation, options, false);
     }
 
     void add_format_expression_while_loop(
@@ -1231,8 +1366,25 @@ namespace h::parser
         else if (std::holds_alternative<Custom_type_reference>(type.data))
         {
             Custom_type_reference const& value = std::get<Custom_type_reference>(type.data);
-            add_text(buffer, value.module_reference.name);
-            add_text(buffer, ".");
+
+            auto const is_import = [&](Import_module_with_alias const& import_module) -> bool
+            {
+                return import_module.module_name == value.module_reference.name;
+            };
+            
+            auto const location = std::find_if(
+                options.alias_imports.begin(),
+                options.alias_imports.end(),
+                is_import
+            );
+
+            if (location != options.alias_imports.end())
+            {
+                Import_module_with_alias const& alias_import = *location;
+                add_text(buffer, alias_import.alias);
+                add_text(buffer, ".");
+            }
+
             add_text(buffer, value.name);
         }
         else if (std::holds_alternative<Fundamental_type>(type.data))
@@ -1246,6 +1398,16 @@ namespace h::parser
             Integer_type const& value = std::get<Integer_type>(type.data);
             add_text(buffer, value.is_signed ? "Int" : "Uint");
             add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
+        }
+        else if (std::holds_alternative<Pointer_type>(type.data))
+        {
+            Pointer_type const& value = std::get<Pointer_type>(type.data);
+            add_text(buffer, "*");
+
+            if (value.is_mutable)
+                add_text(buffer, "mutable ");
+
+            add_format_type_name(buffer, value.element_type, options);
         }
     }
 
@@ -1400,7 +1562,7 @@ namespace h::parser
         Format_options const& options
     )
     {
-        add_text(buffer, "\n");
+        add_new_line(buffer);
         add_format_expression_block(buffer, function_definition.statements, 0, options);
     }
 
@@ -1430,7 +1592,8 @@ namespace h::parser
     {
         add_text(buffer, "enum ");
         add_text(buffer, enum_declaration.name);
-        add_text(buffer, "\n{");
+        add_new_line(buffer);
+        add_text(buffer, "{");
         
         for (Enum_value const& value : enum_declaration.values)
         {
@@ -1468,7 +1631,8 @@ namespace h::parser
             
         add_text(buffer, "struct ");
         add_text(buffer, struct_declaration.name);
-        add_text(buffer, "\n{");
+        add_new_line(buffer);
+        add_text(buffer, "{");
 
         for (std::size_t i = 0; i < struct_declaration.member_names.size(); ++i)
         {
@@ -1497,14 +1661,13 @@ namespace h::parser
             if (i < struct_declaration.member_default_values.size())
             {
                 add_text(buffer, " = ");
-                add_format_statement(buffer, struct_declaration.member_default_values[i], 4, options);
+                add_format_statement(buffer, struct_declaration.member_default_values[i], 4, options, false);
             }
 
-            add_text(buffer, ",");
+            add_text(buffer, ";");
         }
 
-        if (!struct_declaration.member_names.empty())
-            add_new_line(buffer);
+        add_new_line(buffer);
         add_text(buffer, "}");
     }
 
@@ -1516,7 +1679,8 @@ namespace h::parser
     {
         add_text(buffer, "union ");
         add_text(buffer, union_declaration.name);
-        add_text(buffer, "\n{");
+        add_new_line(buffer);
+        add_text(buffer, "{");
 
         for (std::size_t i = 0; i < union_declaration.member_names.size(); ++i)
         {
@@ -1554,10 +1718,10 @@ namespace h::parser
         Format_options const& options
     )
     {
-        add_text(buffer, "type ");
+        add_text(buffer, "using ");
         add_text(buffer, alias_declaration.name);
         add_text(buffer, " = ");
-        add_format_type_name(buffer, {alias_declaration.type.data(), alias_declaration.type.size()}, options);
+        add_format_type_name(buffer, alias_declaration.type, options);
         add_text(buffer, ";");
     }
 
@@ -1690,6 +1854,13 @@ namespace h::parser
             add_new_line(buffer);
         }
 
+        Format_options const new_options
+        {
+            .alias_imports = core_module.dependencies.alias_imports,
+            .output_allocator = options.output_allocator,
+            .temporaries_allocator = options.temporaries_allocator,
+        };
+
         std::pmr::vector<Declaration_info> const declaration_infos = get_declaration_infos(core_module, options.temporaries_allocator);
         if (declaration_infos.size() > 0)
             add_new_line(buffer);
@@ -1698,7 +1869,7 @@ namespace h::parser
         {
             Declaration_info const& declaration_info = declaration_infos[declaration_index];
 
-            add_format_declaration(buffer, core_module, declaration_info.declaration, declaration_info.is_export, options);
+            add_format_declaration(buffer, core_module, declaration_info.declaration, declaration_info.is_export, new_options);
             add_new_line(buffer);
 
             if (declaration_index + 1 < declaration_infos.size())

@@ -2,6 +2,7 @@ module;
 
 #include <cstdint>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <string>
 
@@ -13,6 +14,7 @@ namespace h::parser
 {
     export struct Format_options
     {
+        std::span<h::Import_module_with_alias const> const alias_imports;
         std::pmr::polymorphic_allocator<> const& output_allocator;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
     };
@@ -103,6 +105,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Assignment_expression const& expression,
+        std::uint32_t const indentation,
         Format_options const& options
     );
 
@@ -146,6 +149,14 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Cast_expression const& expression,
+        Format_options const& options
+    );
+
+    void add_format_expression_comment(
+        String_buffer& buffer,
+        Statement const& statement,
+        Comment_expression const& expression,
+        std::uint32_t const indentation,
         Format_options const& options
     );
 
@@ -211,6 +222,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Instantiate_expression const& expression,
+        std::optional<h::Source_position> source_position,
         std::uint32_t outside_indentation,
         Format_options const& options
     );

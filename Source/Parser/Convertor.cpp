@@ -81,6 +81,54 @@ namespace h::parser
         return static_cast<std::uint64_t>(number);
     }
 
+    std::pmr::string encode_comment(
+        std::string_view const value,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::string buffer{temporaries_allocator};
+
+        std::size_t index = 0;
+        while (index < value.size())
+        {
+            std::size_t const start_index = value.find("//", index);
+            std::size_t const end_index = value.find("\n", index + 2);
+
+            std::size_t content_end_index = end_index;
+            if (content_end_index == std::string_view::npos)
+                content_end_index = value.size();
+            if (value[content_end_index - 1] == '\r')
+                content_end_index -= 1;
+            
+            std::string_view const content = value.substr(start_index + 2, content_end_index - start_index);
+            buffer += content;
+
+            if (end_index == std::string_view::npos)
+                break;
+
+            index = end_index + 1;
+        }
+
+        return std::pmr::string{std::move(buffer), output_allocator};
+    }
+
+    static std::optional<std::pmr::string> extract_comments_from_node(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::string_view const comment = get_node_value(tree, node);
+        if (comment.empty())
+            return std::nullopt;
+        
+        std::pmr::string const encoded_comment = encode_comment(comment, output_allocator, temporaries_allocator);
+        
+        return encoded_comment;
+    }
+
     static std::optional<std::string_view> get_module_name(
         Parse_tree const& tree,
         Parse_node const& node
@@ -236,16 +284,16 @@ namespace h::parser
 
         std::string_view const declaration_type = get_node_symbol(declaration_value_node.value());
 
-        /*if (declaration_type == "Alias_type_declaration")
+        if (declaration_type == "Alias")
         {
-            Alias_type_declaration declaration = node_to_alias_type_declaration(tree, node, declaration_value_node.value(), output_allocator);
+            Alias_type_declaration declaration = node_to_alias_type_declaration(module_info, tree, declaration_value_node.value(), output_allocator, temporaries_allocator);
             
             if (is_export)
                 core_module.export_declarations.alias_type_declarations.push_back(std::move(declaration));
             else
                 core_module.internal_declarations.alias_type_declarations.push_back(std::move(declaration));
         }
-        else if (declaration_type == "Enum_declaration")
+        /*else if (declaration_type == "Enum_declaration")
         {
             Enum_declaration const declaration = node_to_enum_declaration(tree, node, declaration_value_node.value(), output_allocator);
 
@@ -262,17 +310,17 @@ namespace h::parser
                 core_module.export_declarations.global_variable_declarations.push_back(std::move(declaration));
             else
                 core_module.internal_declarations.global_variable_declarations.push_back(std::move(declaration));
-        }
-        else if (declaration_type == "Struct_declaration")
+        }*/
+        else if (declaration_type == "Struct")
         {
-            Struct_declaration const declaration = node_to_struct_declaration(tree, node, declaration_value_node.value(), output_allocator);
+            Struct_declaration const declaration = node_to_struct_declaration(module_info, tree, declaration_value_node.value(), output_allocator, temporaries_allocator);
 
             if (is_export)
                 core_module.export_declarations.struct_declarations.push_back(std::move(declaration));
             else
                 core_module.internal_declarations.struct_declarations.push_back(std::move(declaration));
         }
-        else if (declaration_type == "Union_declaration")
+        /*else if (declaration_type == "Union_declaration")
         {
             Union_declaration const declaration = node_to_union_declaration(tree, node, declaration_value_node.value(), output_allocator);
 
@@ -280,8 +328,8 @@ namespace h::parser
                 core_module.export_declarations.union_declarations.push_back(std::move(declaration));
             else
                 core_module.internal_declarations.union_declarations.push_back(std::move(declaration));
-        }
-        else*/ if (declaration_type == "Function")
+        }*/
+        else if (declaration_type == "Function")
         {
             std::optional<Parse_node> const function_declaration_node = get_child_node(tree, declaration_value_node.value(), 0);
             if (!function_declaration_node.has_value())
@@ -343,9 +391,7 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
-    {
-        h::Type_reference output{};
-        
+    {   
         std::optional<Parse_node> const child = get_child_node(tree, node, 0);
         if (!child.has_value())
             return {};
@@ -371,11 +417,68 @@ namespace h::parser
         }
         else if (type_choice == "Module_type")
         {
-            // TODO
+            h::Custom_type_reference type;
+
+            std::optional<Parse_node> const alias_name_node = get_child_node(tree, child.value(), "Module_type_module_name");
+            if (alias_name_node.has_value())
+            {
+                std::string_view const alias_name = get_node_value(tree, alias_name_node.value());
+
+                auto const is_alias = [&](Import_module_with_alias const& import_module) -> bool
+                {
+                    return import_module.alias == alias_name;
+                };
+
+                auto const location = std::find_if(
+                    module_info.alias_imports.begin(),
+                    module_info.alias_imports.end(),
+                    is_alias
+                );
+
+                if (location != module_info.alias_imports.end())
+                {
+                    Import_module_with_alias const& import_module = *location;
+                    type.module_reference.name = create_string(import_module.module_name, output_allocator);
+                }
+            }
+
+            std::optional<Parse_node> const type_name_node = get_child_node(tree, child.value(), "Module_type_type_name");
+            if (type_name_node.has_value())
+            {
+                type.name = create_string(get_node_value(tree, type_name_node.value()), output_allocator);
+            }
+
+            return h::Type_reference{ .data = std::move(type) };
         }
         else if (type_choice == "Pointer_type")
         {
-            // TODO
+            std::optional<Parse_node> const mutable_node = get_child_node(tree, child.value(), "mutable");
+            bool const is_mutable = mutable_node.has_value();
+            
+            h::Pointer_type output =
+            {
+                .element_type = std::pmr::vector<h::Type_reference>{output_allocator},
+                .is_mutable = is_mutable,
+            };
+
+            std::optional<Parse_node> const type_node = get_child_node(tree, child.value(), "Type");
+            if (type_node.has_value())
+            {
+                std::optional<h::Type_reference> type = node_to_type_reference(
+                    module_info,
+                    tree,
+                    type_node.value(),
+                    output_allocator,
+                    temporaries_allocator
+                );
+
+                if (type.has_value())
+                {
+                    output.element_type.emplace_back(std::move(type.value()));
+                }
+            }
+
+            return h::Type_reference{ .data = std::move(output) };
         }
         else if (type_choice == "Constant_array_type")
         {
@@ -393,31 +496,41 @@ namespace h::parser
         return std::nullopt;
     }
 
-    /*static h::Alias_type_declaration node_to_alias_type_declaration(
+    h::Alias_type_declaration node_to_alias_type_declaration(
+        Module_info const& module_info,
         Parse_tree const& tree,
-        Parse_node const& root,
         Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        h::Alias_type_declaration output{output_allocator};
+        h::Alias_type_declaration output;
         
-        auto name_node = get_child_node(tree, node, "Alias_name");
+        std::optional<Parse_node> const name_node = get_child_node(tree, node, 1);
         if (name_node.has_value())
         {
-            output.name = create_string(get_node_value(name_node.value()), output_allocator);
+            output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
+            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
         }
 
-        auto type_node = get_child_node(tree, node, "Type");
-        if (type_node.has_value())
+        std::optional<Parse_node> const alias_type_node = get_child_node(tree, node, 3);
+        if (alias_type_node.has_value())
         {
-            output.type = node_to_type_reference(tree, root, type_node.value(), output_allocator);
+            std::optional<Parse_node> const type_node = get_child_node(tree, alias_type_node.value(), 0);
+            if (type_node.has_value())
+            {
+                std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
+                if (type.has_value())
+                {
+                    output.type = std::pmr::vector<h::Type_reference>{{std::move(type.value())}, output_allocator};
+                }
+            }
         }
 
         return output;
     }
 
-    static h::Enum_declaration node_to_enum_declaration(
+    /*static h::Enum_declaration node_to_enum_declaration(
         Parse_tree const& tree,
         Parse_node const& root,
         Parse_node const& node,
@@ -426,20 +539,20 @@ namespace h::parser
     {
         h::Enum_declaration output{output_allocator};
         
-        auto name_node = get_child_node(tree, node, "Enum_name");
+        std::optional<Parse_node> const name_node = get_child_node(tree, node, "Enum_name");
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(name_node.value()), output_allocator);
         }
 
-        auto values_node = get_child_node(tree, node, "Enum_values");
+        std::optional<Parse_node> const values_node = get_child_node(tree, node, "Enum_values");
         if (values_node.has_value())
         {
             auto value_nodes = get_child_nodes(tree, values_node.value(), output_allocator);
             for (auto const& value_node : value_nodes)
             {
                 h::Enum_value enum_value{};
-                auto name_node = get_child_node(tree, value_node, "Enum_value_name");
+                std::optional<Parse_node> const name_node = get_child_node(tree, value_node, "Enum_value_name");
                 if (name_node.has_value())
                 {
                     enum_value.name = create_string(get_node_value(name_node.value()), output_allocator);
@@ -461,19 +574,19 @@ namespace h::parser
     {
         h::Global_variable_declaration output{};
         
-        auto name_node = get_child_node(tree, node, "Global_variable_name");
+        std::optional<Parse_node> const name_node = get_child_node(tree, node, "Global_variable_name");
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(name_node.value()), output_allocator);
         }
 
-        auto mutability_node = get_child_node(tree, node, "Global_variable_mutability");
+        std::optional<Parse_node> const mutability_node = get_child_node(tree, node, "Global_variable_mutability");
         if (mutability_node.has_value())
         {
             output.is_mutable = get_node_value(mutability_node.value()) == "mut";
         }
 
-        auto type_node = get_child_node(tree, node, "Type");
+        std::optional<Parse_node> const type_node = get_child_node(tree, node, "Type");
         if (type_node.has_value())
         {
             output.type = node_to_type_reference(tree, root, type_node.value(), output_allocator);
@@ -492,13 +605,13 @@ namespace h::parser
     {
         h::Function_condition output{};
         
-        auto name_node = get_child_node(tree, node, is_precondition ? "Function_precondition_name" : "Function_postcondition_name");
+        std::optional<Parse_node> const name_node = get_child_node(tree, node, is_precondition ? "Function_precondition_name" : "Function_postcondition_name");
         if (name_node.has_value())
         {
             output.description = create_string(get_node_value(name_node.value()), output_allocator);
         }
 
-        auto expr_node = get_child_node(tree, node, "Expression");
+        std::optional<Parse_node> const expr_node = get_child_node(tree, node, "Expression");
         if (expr_node.has_value())
         {
             output.expression = node_to_expression(tree, root, expr_node.value(), output_allocator);
@@ -650,39 +763,76 @@ namespace h::parser
         return output;
     }
 
-    /*static h::Struct_declaration node_to_struct_declaration(
+    h::Struct_declaration node_to_struct_declaration(
+        Module_info const& module_info,
         Parse_tree const& tree,
-        Parse_node const& root,
         Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        h::Struct_declaration output{output_allocator};
+        h::Struct_declaration output;
+        output.is_packed = false;
+        output.is_literal = false;
         
-        auto name_node = get_child_node(tree, node, "Struct_name");
+        std::optional<Parse_node> const name_node = get_child_node(tree, node, 1);
         if (name_node.has_value())
         {
-            output.name = create_string(get_node_value(name_node.value()), output_allocator);
+            output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
         }
 
-        auto members_node = get_child_node(tree, node, "Struct_members");
+        output.source_location = 
+            name_node.has_value() ?
+            source_position_to_source_location(get_node_start_source_position(name_node.value())) :
+            source_position_to_source_location(get_node_start_source_position(node));
+
+        std::optional<Parse_node> const members_node = get_child_node(tree, node, 2);
         if (members_node.has_value())
         {
-            auto member_nodes = get_child_nodes(tree, members_node.value(), output_allocator);
-            for (auto const& member_node : member_nodes)
+            std::pmr::vector<Parse_node> const member_nodes = get_child_nodes(tree, members_node.value(), temporaries_allocator);
+            if (member_nodes.size() > 2)
             {
-                auto name = get_child_node(tree, member_node, "Struct_member_name");
-                if (name.has_value())
-                {
-                    output.member_names.push_back(create_string(get_node_value(name.value()), output_allocator));
-                }
+                std::size_t const member_count = member_nodes.size() - 2;
 
-                auto type = get_child_node(tree, member_node, "Type");
-                if (type.has_value())
+                output.member_names = std::pmr::vector<std::pmr::string>{output_allocator};
+                output.member_names.resize(member_count, std::pmr::string{});
+
+                output.member_types = std::pmr::vector<h::Type_reference>{output_allocator};
+                output.member_types.resize(member_count, h::Type_reference{});
+
+                output.member_default_values = std::pmr::vector<h::Statement>{output_allocator};
+                output.member_default_values.resize(member_count, h::Statement{});
+
+                for (std::size_t index = 2; index < member_nodes.size(); ++index)
                 {
-                    output.member_types.push_back(
-                        node_to_type_reference(tree, root, type.value(), output_allocator)
-                    );
+                    Parse_node const& member_node = member_nodes[index - 1];
+                    std::size_t const member_index = index - 2;
+                    
+                    std::optional<Parse_node> const member_name_node = get_child_node(tree, member_node, "Struct_member_name");
+                    if (member_name_node.has_value())
+                    {
+                        output.member_names[member_index] = create_string(get_node_value(tree, member_name_node.value()), output_allocator);
+                    }
+
+                    std::optional<Parse_node> const member_type_node = get_child_node(tree, member_node, "Struct_member_type");
+                    if (member_type_node.has_value())
+                    {
+                        std::optional<Parse_node> const type_node = get_child_node(tree, member_type_node.value(), 0);
+                        if (type_node.has_value())
+                        {
+                            std::optional<Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
+                            if (type.has_value())
+                            {
+                                output.member_types[member_index] = std::move(type.value());
+                            }
+                        }
+                    }
+
+                    std::optional<Parse_node> const default_value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");
+                    if (default_value_node.has_value())
+                    {
+                        output.member_default_values[member_index] = node_to_statement(module_info, tree, default_value_node.value(), output_allocator, temporaries_allocator);
+                    }
                 }
             }
         }
@@ -690,7 +840,7 @@ namespace h::parser
         return output;
     }
 
-    static h::Union_declaration node_to_union_declaration(
+    /*static h::Union_declaration node_to_union_declaration(
         Parse_tree const& tree,
         Parse_node const& root,
         Parse_node const& node,
@@ -829,14 +979,14 @@ namespace h::parser
         {
             expression.data = node_to_expression_call(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
-        /*else if (expression_type == "Expression_cast")
+        else if (expression_type == "Expression_cast")
         {
-            expression.data = node_to_expression_cast(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_cast(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
         else if (expression_type == "Expression_comment")
         {
-            expression.data = node_to_expression_comment(module_info, tree, expr_type.value(), output_allocator);
-        }*/
+            expression.data = node_to_expression_comment(tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else if (expression_type == "Expression_constant")
         {
             expression.data = node_to_expression_constant(tree, expression_node, output_allocator);
@@ -852,11 +1002,11 @@ namespace h::parser
         /*else if (expression_type == "Expression_defer")
         {
             expression.data = node_to_expression_defer(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_for_loop")
         {
-            expression.data = node_to_expression_for_loop(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }*/
+            expression.data = node_to_expression_for_loop(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
+        }
         else if (expression_type == "Expression_if")
         {
             expression.data = node_to_expression_if(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
@@ -864,15 +1014,15 @@ namespace h::parser
         /*else if (expression_type == "Expression_instance_call")
         {
             expression.data = node_to_expression_instance_call(module_info, tree, expression_node, output_allocator, temporaries_allocator);
-        }
+        }*/
         else if (expression_type == "Expression_instantiate")
         {
-            expression.data = node_to_expression_instantiate(module_info, tree, expression_node, output_allocator, temporaries_allocator);
+            expression.data = node_to_expression_instantiate(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
         }
         else if (expression_type == "Expression_null_pointer")
         {
-            expression.data = node_to_expression_null_pointer(module_info, );
-        }*/
+            expression.data = node_to_expression_null_pointer();
+        }
         else if (expression_type == "Expression_parenthesis")
         {
             expression.data = node_to_expression_parenthesis(statement, module_info, tree, expression_node, output_allocator, temporaries_allocator);
@@ -1200,6 +1350,70 @@ namespace h::parser
         return output;
     }
 
+    h::Cast_expression node_to_expression_cast(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Cast_expression output;
+        
+        std::optional<Parse_node> const source_node = get_child_node(tree, node, 0);
+        if (source_node.has_value())
+        {
+            output.source = node_to_expression(statement, module_info, tree, source_node.value(), output_allocator, temporaries_allocator);
+        }
+        
+        std::optional<Parse_node> const destination_type_node = get_child_node(tree, node, 2);
+        if (destination_type_node.has_value())
+        {
+            std::optional<Parse_node> const type_node = get_child_node(tree, destination_type_node.value(), 0);
+            if (type_node.has_value())
+            {
+                std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
+                if (type.has_value())
+                {
+                    output.destination_type = std::move(type.value());
+                }
+            }
+        }
+
+        output.cast_type = h::Cast_type::Numeric;
+        
+        return output;
+    }
+
+    h::Comment_expression node_to_expression_comment(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Comment_expression output;
+        
+        std::optional<Parse_node> const comment_node = get_child_node(tree, node, 0);
+        if (comment_node.has_value())
+        {
+            std::optional<std::pmr::string> comment = extract_comments_from_node(
+                tree,
+                comment_node.value(),
+                output_allocator,
+                temporaries_allocator
+            );
+
+            if (comment.has_value())
+            {
+                output.comment = comment.value();
+            }
+        }
+        
+        return output;
+    }
+
     h::Constant_expression node_to_expression_constant(
         Parse_tree const& tree,
         Parse_node const& node,
@@ -1406,6 +1620,78 @@ namespace h::parser
         return h::Continue_expression{};
     }
 
+    h::For_loop_expression node_to_expression_for_loop(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::For_loop_expression output;
+
+        std::optional<Parse_node> const head_node = get_child_node(tree, node, 0);
+        if (head_node.has_value())
+        {
+            std::optional<Parse_node> const variable_node = get_child_node(tree, head_node.value(), 1);
+            if (variable_node.has_value())
+            {
+                output.variable_name = create_string(get_node_value(tree, variable_node.value()), output_allocator);
+            }
+
+            std::optional<Parse_node> const range_begin_node = get_child_node(tree, head_node.value(), 3);
+            if (range_begin_node.has_value())
+            {
+                std::optional<Parse_node> const number_expression_node = get_child_node(tree, range_begin_node.value(), 0);
+                if (number_expression_node.has_value())
+                {
+                    std::optional<Parse_node> const number_node = get_child_node(tree, number_expression_node.value(), 0);
+                    if (number_node.has_value())
+                    {
+                        output.range_begin = node_to_expression(statement, module_info, tree, number_node.value(), output_allocator, temporaries_allocator);
+                    }
+                }
+            }
+
+            std::optional<Parse_node> const range_end_node = get_child_node(tree, head_node.value(), 5);
+            if (range_end_node.has_value())
+            {
+                std::optional<Parse_node> const number_node = get_child_node(tree, range_end_node.value(), 0);
+                if (number_node.has_value())
+                {
+                    output.range_end = node_to_statement(module_info, tree, number_node.value(), output_allocator, temporaries_allocator);
+                }
+            }
+
+            std::optional<Parse_node> const step_node = get_child_node(tree, head_node.value(), "Expression_for_loop_step");
+            if (step_node.has_value())
+            {
+                std::optional<Parse_node> const step_number_node = get_child_node(tree, step_node.value(), 1);
+                if (step_number_node.has_value())
+                {
+                    std::optional<Parse_node> const number_node = get_child_node(tree, step_number_node.value(), 0);
+                    if (number_node.has_value())
+                    {
+                        output.step_by = node_to_expression(statement, module_info, tree, number_node.value(), output_allocator, temporaries_allocator);
+                    }
+                }
+            }
+
+            std::optional<Parse_node> const reverse_node = get_child_node(tree, head_node.value(), "Expression_for_loop_reverse");
+            bool const is_reverse = reverse_node.has_value();
+            output.range_comparison_operation = is_reverse ? h::Binary_operation::Greater_than : h::Binary_operation::Less_than;
+        }
+
+        std::optional<Parse_node> const block_node = get_child_node(tree, node, 1);
+        if (block_node.has_value())
+        {
+            output.then_statements = node_to_block(module_info, tree, block_node.value(), output_allocator, temporaries_allocator);
+        }
+
+        return output;
+    }
+
     h::If_expression node_to_expression_if(
         h::Statement& statement,
         Module_info const& module_info,
@@ -1459,6 +1745,51 @@ namespace h::parser
             .series = std::pmr::vector<Condition_statement_pair>{std::move(series), output_allocator},
         };
         return output;
+    }
+
+    h::Instantiate_expression node_to_expression_instantiate(
+        h::Statement& statement,
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Instantiate_expression output;
+
+        std::optional<Parse_node> const explicit_node = get_child_node(tree, node, "explicit");
+        bool const is_explicit = explicit_node.has_value();
+        output.type = is_explicit ? 
+            h::Instantiate_expression_type::Explicit : 
+            h::Instantiate_expression_type::Default;
+        
+        std::pmr::vector<Parse_node> const member_nodes = get_child_nodes_of_parent(tree, node, "Expression_instantiate_members", "Expression_instantiate_member", temporaries_allocator);
+        for (Parse_node const& member_node : member_nodes)
+        {
+            h::Instantiate_member_value_pair pair{};
+            
+            std::optional<Parse_node> const name_node = get_child_node(tree, member_node, "Expression_instantiate_member_name");
+            if (name_node.has_value())
+            {
+                pair.member_name = create_string(get_node_value(tree, name_node.value()), output_allocator);
+            }
+            
+            std::optional<Parse_node> const value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");
+            if (value_node.has_value())
+            {
+                pair.value = node_to_statement(module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
+            }
+            
+            output.members.push_back(std::move(pair));
+        }
+        
+        return output;
+    }
+
+    h::Null_pointer_expression node_to_expression_null_pointer()
+    {
+        return h::Null_pointer_expression{};
     }
 
     h::Parenthesis_expression node_to_expression_parenthesis(
@@ -1598,12 +1929,16 @@ namespace h::parser
             output.is_mutable = get_node_value(tree, mutability.value()) == "mut";
         }
         
-        std::optional<Parse_node> const type_node = get_child_node(tree, node, "Expression_variable_declaration_type");
-        if (type_node.has_value())
+        std::optional<Parse_node> const declaration_type_node = get_child_node(tree, node, "Expression_variable_declaration_type");
+        if (declaration_type_node.has_value())
         {
-            std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
-            if (type.has_value())
-                output.type = std::move(type.value());
+            std::optional<Parse_node> const type_node = get_child_node(tree, declaration_type_node.value(), 0);
+            if (type_node.has_value())
+            {
+                std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, type_node.value(), output_allocator, temporaries_allocator);
+                if (type.has_value())
+                    output.type = std::move(type.value());
+            }
         }
         
         std::optional<Parse_node> const right_hand_side_node = get_child_node(tree, node, "Generic_expression_or_instantiate");
@@ -1743,79 +2078,6 @@ namespace h::parser
         return output;
     }
 
-    static h::Comment_expression node_to_expression_comment(
-        Parse_tree const& tree,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Comment_expression output{};
-        
-        auto comment = get_child_node(tree, node, "Expression_comment");
-        if (comment.has_value())
-        {
-            output.comment = create_string(get_node_value(comment.value()), output_allocator);
-        }
-        
-        return output;
-    }
-
-    static h::Null_pointer_expression node_to_expression_null_pointer()
-    {
-        return h::Null_pointer_expression{};
-    }
-
-    static h::Instantiate_expression node_to_expression_instantiate(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Instantiate_expression output{output_allocator};
-        
-        auto type = get_child_node(tree, node, "Type");
-        if (type.has_value())
-        {
-            output.type = node_to_type_reference(tree, root, type.value(), output_allocator);
-        }
-        
-        auto type_expr = get_child_node(tree, node, "Expression_instantiate_expression_type");
-        if (type_expr.has_value())
-        {
-            auto type_value = get_node_value(type_expr.value());
-            output.type = type_value == "explicit" ? 
-                h::Instantiate_expression_type::Explicit : 
-                h::Instantiate_expression_type::Default;
-        }
-        
-        auto members = get_child_node(tree, node, "Expression_instantiate_members");
-        if (members.has_value())
-        {
-            auto member_nodes = get_child_nodes(tree, members.value(), output_allocator);
-            for (auto const& member_node : member_nodes)
-            {
-                h::Instantiate_member_value_pair pair{};
-                
-                auto name = get_child_node(tree, member_node, "Expression_instantiate_member_name");
-                if (name.has_value())
-                {
-                    pair.member_name = create_string(get_node_value(name.value()), output_allocator);
-                }
-                
-                auto value = get_child_node(tree, member_node, "Expression");
-                if (value.has_value())
-                {
-                    pair.value = node_to_expression(tree, root, value.value(), output_allocator);
-                }
-                
-                output.members.push_back(std::move(pair));
-            }
-        }
-        
-        return output;
-    }
-
     static h::Ternary_condition_expression node_to_expression_ternary_condition(
         Parse_tree const& tree,
         Parse_node const& root,
@@ -1843,63 +2105,6 @@ namespace h::parser
             output.else_expression = node_to_expression(tree, root, else_expr.value(), output_allocator);
         }
         
-        return output;
-    }
-
-    static h::For_loop_expression node_to_expression_for_loop(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::For_loop_expression output{output_allocator};
-
-        auto var_name = get_child_node(tree, node, "Expression_for_loop_variable");
-        if (var_name.has_value())
-        {
-            output.variable_name = create_string(get_node_value(var_name.value()), output_allocator);
-        }
-
-        auto start = get_child_node(tree, node, "Expression_for_loop_start");
-        if (start.has_value())
-        {
-            output.start = node_to_expression(tree, root, start.value(), output_allocator);
-        }
-
-        auto end = get_child_node(tree, node, "Expression_for_loop_end");
-        if (end.has_value())
-        {
-            output.end = node_to_expression(tree, root, end.value(), output_allocator);
-        }
-
-        auto step = get_child_node(tree, node, "Expression_for_loop_step");
-        if (step.has_value())
-        {
-            output.step_by = node_to_expression(tree, root, step.value(), output_allocator);
-        }
-
-        auto statements = get_child_node(tree, node, "Expression_for_loop_statements");
-        if (statements.has_value())
-        {
-            auto statement_nodes = get_child_nodes(tree, statements.value(), output_allocator);
-            for (auto const& stmt : statement_nodes)
-            {
-                output.then_statements.push_back(node_to_statement(tree, root, stmt, output_allocator));
-            }
-        }
-
-        // Handle reverse direction
-        auto reverse_node = get_child_node(tree, node, "Expression_for_loop_reverse");
-        if (reverse_node.has_value())
-        {
-            output.range_comparison_operation = h::Binary_operation::Greater_than;
-        }
-        else
-        {
-            output.range_comparison_operation = h::Binary_operation::Less_than;
-        }
-
         return output;
     }
 
@@ -1960,37 +2165,6 @@ namespace h::parser
         return output;
     }
 
-    static h::Cast_expression node_to_expression_cast(
-        Parse_tree const& tree,
-        Parse_node const& root,
-        Parse_node const& node,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        h::Cast_expression output{};
-        
-        auto value = get_child_node(tree, node, "Expression");
-        if (value.has_value())
-        {
-            output.value = node_to_expression(tree, root, value.value(), output_allocator);
-        }
-        
-        auto type = get_child_node(tree, node, "Type");
-        if (type.has_value())
-        {
-            output.type = node_to_type_reference(tree, root, type.value(), output_allocator);
-        }
-        
-        auto cast_type = get_child_node(tree, node, "Expression_cast_type");
-        if (cast_type.has_value())
-        {
-            auto cast_type_value = get_node_value(cast_type.value());
-            output.cast_type = cast_type_value == "bitcast" ? h::Cast_type::BitCast : h::Cast_type::Numeric;
-        }
-        
-        return output;
-    }
-
     h::Access_array_expression node_to_expression_access_array(
         Module_info const& module_info,
         Parse_tree const& tree,
@@ -2039,15 +2213,6 @@ namespace h::parser
     }*/
 
     /*
-
-    static std::optional<std::string_view> extract_comments_from_node(Parse_node const& node)
-    {
-        auto comment_node = get_child_node(tree, node, "Comment_or_empty");
-        if (!comment_node.has_value())
-            return std::nullopt;
-
-        return get_node_value(comment_node.value());
-    }
 
     static h::Type_constructor_declaration node_to_type_constructor_declaration(
         Parse_tree const& tree,

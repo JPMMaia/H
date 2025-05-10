@@ -52,10 +52,10 @@ export function use_structs(my_struct: My_struct) -> ()
 
     var instance_2: My_struct_2 = {};
 
-    var instance_3: My_struct_2 = explicit{
+    var instance_3: My_struct_2 = explicit {
         a: {},
         b: {},
-        c: explicit{
+        c: explicit {
             a: 0,
             b: 1
         }
@@ -64,7 +64,7 @@ export function use_structs(my_struct: My_struct) -> ()
     var nested_b_a = instance_3.b.a;
 
     mutable instance_4: My_struct = {};
-    instance_4 = explicit{
+    instance_4 = explicit {
         a: 10,
         b: 11
     };

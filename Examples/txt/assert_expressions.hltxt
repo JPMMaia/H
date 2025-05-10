@@ -2,6 +2,6 @@ module Assert_expressions;
 
 export function run(value: Int32) -> ()
 {
-    assert "Value is not 0" { value != 0i32 };
-    assert { value != 1i32 };
+    assert "Value is not 0" { value != 0 };
+    assert { value != 1 };
 }
