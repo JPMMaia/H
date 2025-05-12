@@ -51,6 +51,16 @@ namespace h::parser
         Module_info const& module_info,
         Parse_tree const& tree,
         Parse_node const& node,
+        std::optional<std::pmr::string> const& comment,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    h::Enum_declaration node_to_enum_declaration(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::optional<std::pmr::string> const& comment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -60,6 +70,7 @@ namespace h::parser
         Parse_tree const& tree,
         Parse_node const& node,
         h::Linkage const linkage,
+        std::optional<std::pmr::string> const& comment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -73,10 +84,29 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    h::Global_variable_declaration node_to_global_variable_declaration(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::optional<std::pmr::string> const& comment,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     h::Struct_declaration node_to_struct_declaration(
         Module_info const& module_info,
         Parse_tree const& tree,
         Parse_node const& node,
+        std::optional<std::pmr::string> const& comment,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    h::Union_declaration node_to_union_declaration(
+        Module_info const& module_info,
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::optional<std::pmr::string> const& comment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

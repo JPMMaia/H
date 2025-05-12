@@ -96,7 +96,7 @@ namespace h::parser
         std::uint32_t const indentation
     )
     {
-        add_text(buffer, "// ");
+        add_text(buffer, "//");
 
         for (std::size_t index = 0; index < comment.size(); ++index)
         {
@@ -106,16 +106,13 @@ namespace h::parser
             {
                 add_new_line(buffer);
                 add_indentation(buffer, indentation);
-                add_text(buffer, "// ");
+                add_text(buffer, "//");
             }
             else
             {
                 add_text(buffer, std::string_view{&character, 1});
             }
         }
-
-        add_new_line(buffer);
-        add_indentation(buffer, indentation);
     }
 
     std::uint32_t get_current_line_position(
@@ -129,6 +126,47 @@ namespace h::parser
         Declaration const& declaration
     )
     {
+        if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+        {
+            Alias_type_declaration const& value = *std::get<Alias_type_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Enum_declaration const*>(declaration.data))
+        {
+            Enum_declaration const& value = *std::get<Enum_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Function_constructor const*>(declaration.data))
+        {
+            Function_constructor const& value = *std::get<Function_constructor const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Function_declaration const*>(declaration.data))
+        {
+            Function_declaration const& value = *std::get<Function_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Global_variable_declaration const*>(declaration.data))
+        {
+            Global_variable_declaration const& value = *std::get<Global_variable_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+        {
+            Struct_declaration const& value = *std::get<Struct_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Type_constructor const*>(declaration.data))
+        {
+            Type_constructor const& value = *std::get<Type_constructor const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
+        {
+            Union_declaration const& value = *std::get<Union_declaration const*>(declaration.data);
+            return value.comment.has_value() ? std::optional<std::string_view>{value.comment.value()} : std::nullopt;
+        }
+
         return std::nullopt;
     }
 
@@ -142,7 +180,10 @@ namespace h::parser
     {
         std::optional<std::string_view> const comment = get_declaration_comment(declaration);
         if (comment.has_value())
+        {
             add_comment(buffer, comment.value(), 0);
+            add_new_line(buffer);
+        }
 
         if (is_export)
             add_text(buffer, "export ");
@@ -179,11 +220,11 @@ namespace h::parser
             }
             else if constexpr (std::is_same_v<Declaration_type, Struct_declaration const*>)
             {
-                add_format_struct_declaration(buffer, *value, options);
+                add_format_struct_declaration(buffer, *value, 0, options);
             }
             else if constexpr (std::is_same_v<Declaration_type, Union_declaration const*>)
             {
-                add_format_union_declaration(buffer, *value, options);   
+                add_format_union_declaration(buffer, *value, 0, options);   
             }
             
             // TODO add function constructor and type constructor
@@ -1573,14 +1614,14 @@ namespace h::parser
         Format_options const& options
     )
     {
-        std::string indentation_str(indentation, ' ');
-        add_text(buffer, indentation_str);
         add_text(buffer, enum_value.name);
+
         if (enum_value.value)
         {
             add_text(buffer, " = ");
-            add_format_statement(buffer, *enum_value.value, indentation, options);
+            add_format_statement(buffer, *enum_value.value, indentation, options, false);
         }
+
         add_text(buffer, ",");
     }
 
@@ -1597,7 +1638,15 @@ namespace h::parser
         
         for (Enum_value const& value : enum_declaration.values)
         {
+            if (value.comment.has_value())
+            {
+                add_new_line(buffer);
+                add_indentation(buffer, 4);
+                add_comment(buffer, value.comment.value(), 4);
+            }
+
             add_new_line(buffer);
+            add_indentation(buffer, 4);
             add_format_enum_value(buffer, value, 4, options);
         }
         
@@ -1614,21 +1663,17 @@ namespace h::parser
         add_text(buffer, declaration.is_mutable ? "mutable " : "var ");
         add_text(buffer, declaration.name);
         add_text(buffer, " = ");
-        add_format_statement(buffer, declaration.initial_value, 0, options);
+        add_format_statement(buffer, declaration.initial_value, 0, options, false);
         add_text(buffer, ";");
     }
 
     void add_format_struct_declaration(
         String_buffer& buffer,
         Struct_declaration const& struct_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     )
-    {
-        if (struct_declaration.is_packed)
-            add_text(buffer, "packed ");
-        if (struct_declaration.is_literal)
-            add_text(buffer, "literal ");
-            
+    {       
         add_text(buffer, "struct ");
         add_text(buffer, struct_declaration.name);
         add_new_line(buffer);
@@ -1637,7 +1682,7 @@ namespace h::parser
         for (std::size_t i = 0; i < struct_declaration.member_names.size(); ++i)
         {
             add_new_line(buffer);
-            add_text(buffer, "    ");
+            add_indentation(buffer, outside_indentation + 4);
 
             // Add member comment if exists
             auto member_comment_it = std::find_if(
@@ -1649,7 +1694,7 @@ namespace h::parser
             {
                 add_comment(buffer, member_comment_it->comment, 4);
                 add_new_line(buffer);
-                add_text(buffer, "    ");
+                add_indentation(buffer, outside_indentation + 4);
             }
 
             // Member name and type
@@ -1674,6 +1719,7 @@ namespace h::parser
     void add_format_union_declaration(
         String_buffer& buffer,
         Union_declaration const& union_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     )
     {
@@ -1685,9 +1731,8 @@ namespace h::parser
         for (std::size_t i = 0; i < union_declaration.member_names.size(); ++i)
         {
             add_new_line(buffer);
-            add_text(buffer, "    ");
+            add_indentation(buffer, outside_indentation + 4);
 
-            // Add member comment if exists
             auto member_comment_it = std::find_if(
                 union_declaration.member_comments.begin(),
                 union_declaration.member_comments.end(),
@@ -1697,14 +1742,13 @@ namespace h::parser
             {
                 add_comment(buffer, member_comment_it->comment, 4);
                 add_new_line(buffer);
-                add_text(buffer, "    ");
+                add_indentation(buffer, outside_indentation + 4);
             }
 
-            // Member name and type
             add_text(buffer, union_declaration.member_names[i]);
             add_text(buffer, ": ");
             add_format_type_name(buffer, {&union_declaration.member_types[i], 1}, options);
-            add_text(buffer, ",");
+            add_text(buffer, ";");
         }
 
         if (!union_declaration.member_names.empty())

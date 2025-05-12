@@ -9,11 +9,9 @@ export struct My_struct
 export struct My_struct_2
 {
     a: My_struct = {};
-    
     b: My_struct = {
         a: 2
     };
-
     c: My_struct = {
         a: 3,
         b: 4
@@ -43,9 +41,9 @@ export struct My_struct_3
 export function use_structs(my_struct: My_struct) -> ()
 {
     var a = my_struct.a;
-    
+
     var instance_0: My_struct = {};
-    
+
     var instance_1: My_struct = {
         b: 3
     };

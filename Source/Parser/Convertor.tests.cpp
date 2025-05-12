@@ -188,9 +188,51 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts comment_alias.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_alias.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_enums.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_enums.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts comment_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "comment_expressions.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_functions.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_functions.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_global_variables.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_global_variables.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_module_declaration.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_module_declaration.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_structs.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_structs.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts comment_unions.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "comment_unions.hltxt";
         test_convertor(input_file);
     }
 

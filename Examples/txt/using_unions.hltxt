@@ -48,14 +48,14 @@ export function use_unions(my_union: My_union, my_union_tag: My_union_tag) -> ()
 
     var instance_4: My_union_3 = { a: 3i64 };
     var instance_5: My_union_3 = { b: {} };
-    var instance_6: My_union_3 = { b: explicit{a:2} };
+    var instance_6: My_union_3 = { b: explicit { a: 2 } };
 
     var nested_b_a = instance_6.b.a;
 
     mutable instance_7: My_union = { a: 1 };
     instance_7 = { a: 2 };
 
-    pass_union({ a: 4});
+    pass_union({ a: 4 });
     var instance_8 = return_union();
 
     var instance_9: My_union = {};

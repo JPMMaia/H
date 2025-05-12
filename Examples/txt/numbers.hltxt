@@ -4,7 +4,7 @@ export function main() -> (result: Int32)
 {
     var my_int8 = 1i8;
     var my_int16 = 1i16;
-    var my_int32 = 1i32;
+    var my_int32 = 1;
     var my_int64 = 1i64;
 
     var my_uint8 = 1u8;

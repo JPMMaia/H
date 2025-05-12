@@ -51,12 +51,14 @@ namespace h::parser
     void add_format_struct_declaration(
         String_buffer& buffer,
         Struct_declaration const& struct_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     );
 
     void add_format_union_declaration(
         String_buffer& buffer,
         Union_declaration const& union_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     );
 

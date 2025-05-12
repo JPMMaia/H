@@ -8,8 +8,9 @@ export function do_casts(
     float16_argument: Float16,
     float32_argument: Float32,
     float64_argument: Float64
-) ->
-(result: Int32)
+) -> (
+    result: Int32
+)
 {
     var u64_to_u32 = uint64_argument as Uint32;
     var u64_to_i32 = uint64_argument as Int32;
