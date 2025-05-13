@@ -608,15 +608,13 @@ namespace h::parser
         }
     }
 
-    void add_format_expression_block(
+    void add_format_expression_statements(
         String_buffer& buffer,
         std::span<Statement const> const statements,
         std::uint32_t outside_indentation,
         Format_options const& options
     )
     {
-        add_text(buffer, "{");
-
         std::uint32_t current_line = get_current_line_position(
             buffer
         );
@@ -654,12 +652,29 @@ namespace h::parser
             }
             add_new_line(buffer);
 
-            add_indentation(buffer, outside_indentation + 4);
+            add_indentation(buffer, outside_indentation);
 
             current_line = get_current_line_position(buffer);
 
-            add_format_statement(buffer, current_statement, outside_indentation + 4, options);
+            add_format_statement(buffer, current_statement, outside_indentation, options);
         }
+    }
+
+    void add_format_expression_block(
+        String_buffer& buffer,
+        std::span<Statement const> const statements,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    )
+    {
+        add_text(buffer, "{");
+
+        add_format_expression_statements(
+            buffer,
+            statements,
+            outside_indentation + 4,
+            options
+        );
 
         add_new_line(buffer);
         add_indentation(buffer, outside_indentation);
@@ -933,7 +948,7 @@ namespace h::parser
             if (i > 0)
                 add_text(buffer, ", ");
 
-            add_format_statement(buffer, expression.array_data[i], 0, options);
+            add_format_statement(buffer, expression.array_data[i], 0, options, false);
         }
         add_text(buffer, "]");
     }
@@ -1209,12 +1224,12 @@ namespace h::parser
         for (Switch_case_expression_pair const& case_pair : expression.cases)
         {
             add_new_line(buffer);
-            add_indentation(buffer, outside_indentation + 4);
+            add_indentation(buffer, outside_indentation);
 
             if (case_pair.case_value.has_value())
             {
                 add_text(buffer, "case ");
-                add_format_expression(buffer, statement, get_expression(statement, *case_pair.case_value), outside_indentation + 4, options);
+                add_format_expression(buffer, statement, get_expression(statement, *case_pair.case_value), 0, options);
             }
             else
             {
@@ -1222,9 +1237,9 @@ namespace h::parser
             }
             add_text(buffer, ":");
             add_new_line(buffer);
-            add_indentation(buffer, outside_indentation);
+            add_indentation(buffer, outside_indentation + 4);
 
-            add_format_expression_block(buffer, case_pair.statements, outside_indentation + 4, options);
+            add_format_expression_statements(buffer, case_pair.statements, outside_indentation + 4, options);
         }
 
         add_new_line(buffer);
@@ -1403,6 +1418,15 @@ namespace h::parser
         {
             Builtin_type_reference const& value = std::get<Builtin_type_reference>(type.data);
             add_text(buffer, value.value);
+        }
+        else if (std::holds_alternative<Constant_array_type>(type.data))
+        {
+            Constant_array_type const& value = std::get<Constant_array_type>(type.data);
+            add_text(buffer, "Constant_array<");
+            add_format_type_name(buffer, value.value_type, options);
+            add_text(buffer, ", ");
+            add_integer_text(buffer, value.size);
+            add_text(buffer, ">");
         }
         else if (std::holds_alternative<Custom_type_reference>(type.data))
         {

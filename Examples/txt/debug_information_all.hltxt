@@ -10,7 +10,7 @@ enum My_enum
 
 struct My_struct
 {
-    a: Int32 = 0i32;
+    a: Int32 = 0;
     b: Int64 = 0i64;
 }
 
@@ -27,7 +27,9 @@ export function run(
     parameter_3: My_enum,
     parameter_4: My_struct,
     parameter_5: My_union
-) -> (result: Int32)
+) -> (
+    result: Int32
+)
 {
     return parameter_0 + parameter_1;
 }
