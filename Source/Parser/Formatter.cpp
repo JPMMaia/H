@@ -202,17 +202,21 @@ namespace h::parser
             }
             else if constexpr (std::is_same_v<Declaration_type, Function_declaration const*>)
             {
-                add_format_function_declaration(buffer, *value, options);
+                add_format_function_declaration(buffer, *value, 0, options);
 
                 std::optional<Function_definition const*> function_definition = find_function_definition(core_module, value->name);
                 if (function_definition.has_value())
                 {
-                    add_format_function_definition(buffer, *function_definition.value(), options);
+                    add_format_function_definition(buffer, *function_definition.value(), 0, options);
                 }
                 else
                 {
                     add_text(buffer, ";");
                 }
+            }
+            else if constexpr (std::is_same_v<Declaration_type, Function_constructor const*>)
+            {
+                add_format_function_constructor(buffer, *value, options);
             }
             else if constexpr (std::is_same_v<Declaration_type, Global_variable_declaration const*>)
             {
@@ -222,12 +226,14 @@ namespace h::parser
             {
                 add_format_struct_declaration(buffer, *value, 0, options);
             }
+            else if constexpr (std::is_same_v<Declaration_type, Type_constructor const*>)
+            {
+                add_format_type_constructor(buffer, *value, options);
+            }
             else if constexpr (std::is_same_v<Declaration_type, Union_declaration const*>)
             {
                 add_format_union_declaration(buffer, *value, 0, options);   
             }
-            
-            // TODO add function constructor and type constructor
         };
 
         std::visit(visitor, declaration.data);
@@ -379,10 +385,20 @@ namespace h::parser
             For_loop_expression const& value = std::get<For_loop_expression>(expression.data);
             add_format_expression_for_loop(buffer, statement, value, indentation, options);
         }
+        else if (std::holds_alternative<Function_expression>(expression.data))
+        {
+            Function_expression const& value = std::get<Function_expression>(expression.data);
+            add_format_expression_function(buffer, value, indentation, options);
+        }
         else if (std::holds_alternative<If_expression>(expression.data))
         {
             If_expression const& value = std::get<If_expression>(expression.data);
             add_format_expression_if(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Instance_call_expression>(expression.data))
+        {
+            Instance_call_expression const& value = std::get<Instance_call_expression>(expression.data);
+            add_format_expression_instance_call(buffer, statement, value, expression.source_position, indentation, options);
         }
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
@@ -412,7 +428,12 @@ namespace h::parser
         else if (std::holds_alternative<Return_expression>(expression.data))
         {
             Return_expression const& value = std::get<Return_expression>(expression.data);
-            add_format_expression_return(buffer, statement, value, options);
+            add_format_expression_return(buffer, statement, value, indentation, options);
+        }
+        else if (std::holds_alternative<Struct_expression>(expression.data))
+        {
+            Struct_expression const& value = std::get<Struct_expression>(expression.data);
+            add_format_expression_struct(buffer, value, indentation, options);
         }
         else if (std::holds_alternative<Switch_expression>(expression.data))
         {
@@ -1046,6 +1067,33 @@ namespace h::parser
         return first_member_source_position.line == source_position->line;
     }
 
+    void add_format_expression_instance_call(
+        String_buffer& buffer,
+        Statement const& statement,
+        Instance_call_expression const& expression,
+        std::optional<h::Source_position> const source_position,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    )
+    {
+        add_format_expression(buffer, statement, get_expression(statement, expression.left_hand_side), outside_indentation, options);
+
+        add_text(buffer, "<");
+
+        for (std::size_t index = 0; index < expression.arguments.size(); ++index)
+        {
+            if (index > 0)
+            {
+                add_text(buffer, ", ");
+            }
+
+            h::Statement const& statement = expression.arguments[index];
+            add_format_statement(buffer, statement, outside_indentation + 4, options, false);
+        }
+
+        add_text(buffer, ">");
+    }
+
     void add_format_expression_instantiate(
         String_buffer& buffer,
         Statement const& statement,
@@ -1151,6 +1199,17 @@ namespace h::parser
         add_format_expression_block(buffer, expression.then_statements, outside_indentation, options);
     }
 
+    void add_format_expression_function(
+        String_buffer& buffer,
+        Function_expression const& expression,
+        std::uint32_t const outside_indentation,
+        Format_options const& options
+    )
+    {
+        add_format_function_declaration(buffer, expression.declaration, outside_indentation, options);
+        add_format_function_definition(buffer, expression.definition, outside_indentation, options);
+    }
+
     void add_format_expression_null_pointer(
         String_buffer& buffer,
         Statement const& statement,
@@ -1195,6 +1254,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Return_expression const& expression,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     )
     {
@@ -1202,8 +1262,18 @@ namespace h::parser
         if (expression.expression.has_value())
         {
             add_text(buffer, " ");
-            add_format_expression(buffer, statement, get_expression(statement, *expression.expression), 0, options);
+            add_format_expression(buffer, statement, get_expression(statement, *expression.expression), outside_indentation, options);
         }
+    }
+
+    void add_format_expression_struct(
+        String_buffer& buffer,
+        Struct_expression const& expression,
+        std::uint32_t const outside_indentation,
+        Format_options const& options
+    )
+    {
+        add_format_struct_declaration(buffer, expression.declaration, outside_indentation, options);
     }
 
     void add_format_expression_switch(
@@ -1236,8 +1306,6 @@ namespace h::parser
                 add_text(buffer, "default");
             }
             add_text(buffer, ":");
-            add_new_line(buffer);
-            add_indentation(buffer, outside_indentation + 4);
 
             add_format_expression_statements(buffer, case_pair.statements, outside_indentation + 4, options);
         }
@@ -1256,9 +1324,9 @@ namespace h::parser
     {
         add_format_expression(buffer, statement, get_expression(statement, expression.condition), 0, options);
         add_text(buffer, " ? ");
-        add_format_statement(buffer, expression.then_statement, 0, options);
+        add_format_statement(buffer, expression.then_statement, 0, options, false);
         add_text(buffer, " : ");
-        add_format_statement(buffer, expression.else_statement, 0, options);
+        add_format_statement(buffer, expression.else_statement, 0, options, false);
     }
 
     void add_format_expression_type(
@@ -1408,6 +1476,33 @@ namespace h::parser
         }
     }
 
+    void add_format_custom_type_reference(
+        String_buffer& buffer,
+        Custom_type_reference const& value,
+        Format_options const& options
+    )
+    {
+        auto const is_import = [&](Import_module_with_alias const& import_module) -> bool
+        {
+            return import_module.module_name == value.module_reference.name;
+        };
+        
+        auto const location = std::find_if(
+            options.alias_imports.begin(),
+            options.alias_imports.end(),
+            is_import
+        );
+
+        if (location != options.alias_imports.end())
+        {
+            Import_module_with_alias const& alias_import = *location;
+            add_text(buffer, alias_import.alias);
+            add_text(buffer, ".");
+        }
+
+        add_text(buffer, value.name);
+    }
+
     void add_format_type_name(
         String_buffer& buffer,
         Type_reference const& type,
@@ -1432,31 +1527,46 @@ namespace h::parser
         {
             Custom_type_reference const& value = std::get<Custom_type_reference>(type.data);
 
-            auto const is_import = [&](Import_module_with_alias const& import_module) -> bool
-            {
-                return import_module.module_name == value.module_reference.name;
-            };
-            
-            auto const location = std::find_if(
-                options.alias_imports.begin(),
-                options.alias_imports.end(),
-                is_import
+            add_format_custom_type_reference(
+                buffer, value, options
             );
-
-            if (location != options.alias_imports.end())
-            {
-                Import_module_with_alias const& alias_import = *location;
-                add_text(buffer, alias_import.alias);
-                add_text(buffer, ".");
-            }
-
-            add_text(buffer, value.name);
         }
         else if (std::holds_alternative<Fundamental_type>(type.data))
         {
             Fundamental_type const& value = std::get<Fundamental_type>(type.data);
             std::string_view const name = get_fundamental_type_name(value);
             add_text(buffer, name);
+        }
+        else if (std::holds_alternative<Function_pointer_type>(type.data))
+        {
+            Function_pointer_type const& value = std::get<Function_pointer_type>(type.data);
+            add_text(buffer, "function<");
+
+            add_format_function_parameters(
+                buffer,
+                value.input_parameter_names,
+                value.type.input_parameter_types,
+                std::nullopt,
+                value.type.is_variadic,
+                true,
+                0,
+                options
+            );
+
+            add_text(buffer, " -> ");
+
+            add_format_function_parameters(
+                buffer,
+                value.output_parameter_names,
+                value.type.output_parameter_types,
+                std::nullopt,
+                false,
+                true,
+                0,
+                options
+            );
+
+            add_text(buffer, ">");
         }
         else if (std::holds_alternative<Integer_type>(type.data))
         {
@@ -1473,6 +1583,29 @@ namespace h::parser
                 add_text(buffer, "mutable ");
 
             add_format_type_name(buffer, value.element_type, options);
+        }
+        else if (std::holds_alternative<Type_instance>(type.data))
+        {
+            Type_instance const& value = std::get<Type_instance>(type.data);
+
+            add_format_custom_type_reference(
+                buffer, value.type_constructor, options
+            );
+
+            add_text(buffer, "<");
+
+            for (std::size_t index = 0; index < value.arguments.size(); ++index)
+            {
+                if (index > 0)
+                {
+                    add_text(buffer, ", ");
+                }
+
+                h::Statement const& statement = value.arguments[index];
+                add_format_statement(buffer, statement, 0, options, false);
+            }
+
+            add_text(buffer, ">");
         }
     }
 
@@ -1494,11 +1627,11 @@ namespace h::parser
     }
 
     bool place_parameters_on_the_same_line(
-        Function_declaration const& function_declaration,
+        std::optional<Source_location> const& declaration_source_location,
         std::optional<std::pmr::vector<Source_position>> const parameter_source_positions
     )
     {
-        if (!function_declaration.source_location.has_value())
+        if (!declaration_source_location.has_value())
             return true;
 
         if (!parameter_source_positions.has_value())
@@ -1509,25 +1642,20 @@ namespace h::parser
 
         Source_position const first_parameter_source_position = parameter_source_positions->front();
 
-        return first_parameter_source_position.line == function_declaration.source_location->line;
+        return first_parameter_source_position.line == declaration_source_location->line;
     }
 
     void add_format_function_parameters(
         String_buffer& buffer,
-        Function_declaration const& function_declaration,
         std::span<std::pmr::string const> const parameter_names,
         std::span<h::Type_reference const> const parameter_types,
         std::optional<std::pmr::vector<Source_position>> const parameter_source_positions,
         bool const is_variadic,
+        bool const same_line,
         std::uint32_t const indentation,
         Format_options const& options
     )
     {
-        bool const same_line = place_parameters_on_the_same_line(
-            function_declaration,
-            parameter_source_positions
-        );
-
         add_text(buffer, "(");
 
         if (!same_line)
@@ -1587,9 +1715,53 @@ namespace h::parser
         add_text(buffer, ")");
     }
 
+    void add_format_function_parameters(
+        String_buffer& buffer,
+        Function_declaration const& function_declaration,
+        std::span<std::pmr::string const> const parameter_names,
+        std::span<h::Type_reference const> const parameter_types,
+        std::optional<std::pmr::vector<Source_position>> const parameter_source_positions,
+        bool const is_variadic,
+        std::uint32_t const indentation,
+        Format_options const& options
+    )
+    {
+        bool const same_line = place_parameters_on_the_same_line(
+            function_declaration.source_location,
+            parameter_source_positions
+        );
+
+        add_format_function_parameters(
+            buffer,
+            parameter_names,
+            parameter_types,
+            parameter_source_positions,
+            is_variadic,
+            same_line,
+            indentation,
+            options
+        );
+    }
+
+    void add_format_function_condition(
+        String_buffer& buffer,
+        Function_condition const& condition,
+        bool const is_precondition,
+        Format_options const& options
+    )
+    {
+        add_text(buffer, is_precondition ? "precondition" : "postcondition");
+        add_text(buffer, " \"");
+        add_text(buffer, condition.description);
+        add_text(buffer, "\" { ");
+        add_format_statement(buffer, condition.condition, 0, options, false);
+        add_text(buffer, " }");
+    }
+
     void add_format_function_declaration(
         String_buffer& buffer,
         Function_declaration const& function_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     )
     {
@@ -1603,7 +1775,7 @@ namespace h::parser
             function_declaration.type.input_parameter_types,
             function_declaration.input_parameter_source_positions,
             function_declaration.type.is_variadic,
-            0,
+            outside_indentation,
             options
         );
         
@@ -1616,19 +1788,77 @@ namespace h::parser
             function_declaration.type.output_parameter_types,
             function_declaration.output_parameter_source_positions,
             false,
-            0,
+            outside_indentation,
             options
         );
+
+        for (Function_condition const& condition : function_declaration.preconditions)
+        {
+            add_new_line(buffer);
+            add_indentation(buffer, outside_indentation + 4);
+            add_format_function_condition(buffer, condition, true, options);
+        }
+
+        for (Function_condition const& condition : function_declaration.postconditions)
+        {
+            add_new_line(buffer);
+            add_indentation(buffer, outside_indentation + 4);
+            add_format_function_condition(buffer, condition, false, options);
+        }
     }
 
     void add_format_function_definition(
         String_buffer& buffer,
         Function_definition const& function_definition,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     )
     {
         add_new_line(buffer);
-        add_format_expression_block(buffer, function_definition.statements, 0, options);
+        add_indentation(buffer, outside_indentation);
+        add_format_expression_block(buffer, function_definition.statements, outside_indentation, options);
+    }
+
+    void add_format_function_constructor(
+        String_buffer& buffer,
+        Function_constructor const& function_constructor,
+        Format_options const& options
+    )
+    {
+        add_text(buffer, "function_constructor ");
+        add_text(buffer, function_constructor.name);
+
+        bool const same_line = true;
+
+        add_text(buffer, "(");
+        for (std::size_t i = 0; i < function_constructor.parameters.size(); ++i)
+        {
+            if (i > 0)
+            {
+                add_text(buffer, ",");
+
+                if (!same_line)
+                {
+                    add_new_line(buffer);
+                    add_indentation(buffer, 4);
+                }
+                else
+                {
+                    add_text(buffer, " ");
+                }
+            }
+
+            Function_constructor_parameter const& parameter = function_constructor.parameters[i];
+            
+            add_text(buffer, parameter.name);
+            add_text(buffer, ": ");
+            add_format_type_name(buffer, parameter.type, options);
+        }
+        add_text(buffer, ")");
+
+        add_new_line(buffer);
+
+        add_format_expression_block(buffer, function_constructor.statements, 0, options);
     }
 
     static void add_format_enum_value(
@@ -1686,6 +1916,13 @@ namespace h::parser
     {
         add_text(buffer, declaration.is_mutable ? "mutable " : "var ");
         add_text(buffer, declaration.name);
+
+        if (declaration.type.has_value())
+        {
+            add_text(buffer, ": ");
+            add_format_type_name(buffer, declaration.type.value(), options);
+        }
+
         add_text(buffer, " = ");
         add_format_statement(buffer, declaration.initial_value, 0, options, false);
         add_text(buffer, ";");
@@ -1698,9 +1935,14 @@ namespace h::parser
         Format_options const& options
     )
     {       
-        add_text(buffer, "struct ");
-        add_text(buffer, struct_declaration.name);
+        add_text(buffer, "struct");
+        if (!struct_declaration.name.empty())
+        {
+            add_text(buffer, " ");
+            add_text(buffer, struct_declaration.name);
+        }
         add_new_line(buffer);
+        add_indentation(buffer, outside_indentation);
         add_text(buffer, "{");
 
         for (std::size_t i = 0; i < struct_declaration.member_names.size(); ++i)
@@ -1737,7 +1979,50 @@ namespace h::parser
         }
 
         add_new_line(buffer);
+        add_indentation(buffer, outside_indentation);
         add_text(buffer, "}");
+    }
+
+    void add_format_type_constructor(
+        String_buffer& buffer,
+        Type_constructor const& type_constructor,
+        Format_options const& options
+    )
+    {
+        add_text(buffer, "type_constructor ");
+        add_text(buffer, type_constructor.name);
+
+        bool const same_line = true;
+
+        add_text(buffer, "(");
+        for (std::size_t i = 0; i < type_constructor.parameters.size(); ++i)
+        {
+            if (i > 0)
+            {
+                add_text(buffer, ",");
+
+                if (!same_line)
+                {
+                    add_new_line(buffer);
+                    add_indentation(buffer, 4);
+                }
+                else
+                {
+                    add_text(buffer, " ");
+                }
+            }
+
+            Type_constructor_parameter const& parameter = type_constructor.parameters[i];
+            
+            add_text(buffer, parameter.name);
+            add_text(buffer, ": ");
+            add_format_type_name(buffer, parameter.type, options);
+        }
+        add_text(buffer, ")");
+
+        add_new_line(buffer);
+
+        add_format_expression_block(buffer, type_constructor.statements, 0, options);
     }
 
     void add_format_union_declaration(
@@ -1775,8 +2060,7 @@ namespace h::parser
             add_text(buffer, ";");
         }
 
-        if (!union_declaration.member_names.empty())
-            add_new_line(buffer);
+        add_new_line(buffer);
         add_text(buffer, "}");
     }
 

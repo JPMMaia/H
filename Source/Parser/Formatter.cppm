@@ -65,12 +65,37 @@ namespace h::parser
     void add_format_function_declaration(
         String_buffer& buffer,
         Function_declaration const& function_declaration,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     );
 
     void add_format_function_definition(
         String_buffer& buffer,
         Function_definition const& function_definition,
+        std::uint32_t const outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_function_parameters(
+        String_buffer& buffer,
+        std::span<std::pmr::string const> const parameter_names,
+        std::span<h::Type_reference const> const parameter_types,
+        std::optional<std::pmr::vector<Source_position>> const parameter_source_positions,
+        bool const is_variadic,
+        bool const same_line,
+        std::uint32_t const indentation,
+        Format_options const& options
+    );
+
+    void add_format_function_constructor(
+        String_buffer& buffer,
+        Function_constructor const& function_constructor,
+        Format_options const& options
+    );
+
+    void add_format_type_constructor(
+        String_buffer& buffer,
+        Type_constructor const& type_constructor,
         Format_options const& options
     );
 
@@ -212,10 +237,26 @@ namespace h::parser
         Format_options const& options
     );
 
+    void add_format_expression_function(
+        String_buffer& buffer,
+        Function_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
     void add_format_expression_if(
         String_buffer& buffer,
         Statement const& statement,
         If_expression const& expression,
+        std::uint32_t outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_instance_call(
+        String_buffer& buffer,
+        Statement const& statement,
+        Instance_call_expression const& expression,
+        std::optional<h::Source_position> const source_position,
         std::uint32_t outside_indentation,
         Format_options const& options
     );
@@ -261,6 +302,14 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Return_expression const& expression,
+        std::uint32_t const outside_indentation,
+        Format_options const& options
+    );
+
+    void add_format_expression_struct(
+        String_buffer& buffer,
+        Struct_expression const& expression,
+        std::uint32_t const outside_indentation,
         Format_options const& options
     );
 

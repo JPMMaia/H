@@ -3,6 +3,7 @@ module MB;
 import MC as mc;
 
 export using Alias_b = mc.Alias_to_struct_c;
+
 export using Alias_to_private_b = mc.Alias_to_private_struct_c;
 
 export struct Struct_b
