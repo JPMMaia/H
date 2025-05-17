@@ -1239,6 +1239,7 @@ namespace h::parser
         Format_options const& options
     )
     {
+        add_text(buffer, "@");
         add_text(buffer, expression.name);
         add_text(buffer, "(");
         for (std::size_t i = 0; i < expression.arguments.size(); ++i)
