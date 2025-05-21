@@ -1,0 +1,9 @@
+module hello_world;
+
+import C.stdio as stdio;
+
+export function main() -> (result: Int32)
+{
+    stdio.puts("Hello world!"c);
+    return 0;
+}

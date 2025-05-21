@@ -117,6 +117,7 @@ target_sources(H_compiler
    PUBLIC FILE_SET modules TYPE CXX_MODULES
       FILES
          "Analysis.cppm"
+         "Builder.cppm"
          "Clang_code_generation.cppm"
          "Clang_data.cppm"
          "Common.cppm"
@@ -137,6 +138,7 @@ target_sources(H_compiler
          "Project/Target.cppm"
    PRIVATE
       "Analysis.cpp"
+      "Builder.cpp"
       "Clang_code_generation.cpp"
       "Common.cpp"
       "Compiler.cpp"
@@ -183,7 +185,7 @@ if(BUILD_TESTING)
    target_compile_definitions(
       H_compiler_tests
       PRIVATE
-         TEST_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/hl"
+         EXAMPLES_DIRECTORY="${CMAKE_SOURCE_DIR}/Examples"
          TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
          STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
@@ -191,6 +193,7 @@ if(BUILD_TESTING)
    )
 
    target_sources(H_compiler_tests PRIVATE
+      "Builder.tests.cpp"
       "Compiler.tests.cpp"
       "Recompilation.tests.cpp"
       "JIT/JIT_runner.tests.cpp"
