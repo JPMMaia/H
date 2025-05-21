@@ -12,7 +12,7 @@ import h.core.hash;
 import h.compiler.recompilation;
 import h.core;
 import h.json_serializer;
-import h.parser;
+import h.parser.parser;
 
 namespace h
 {

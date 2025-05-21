@@ -49,7 +49,6 @@ if (WIN32)
    target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 endif()
 
-
 find_library(lldCommon lldCommon REQUIRED)
 target_link_libraries(H_compiler PUBLIC ${lldCommon})
 
@@ -84,6 +83,13 @@ else()
       PRIVATE
       libclang
    )
+
+   find_library(clang_cpp_library clang-cpp REQUIRED)
+   target_link_libraries(H_compiler PRIVATE ${clang_cpp_library})
+
+   find_library(llvm_library LLVM REQUIRED)
+   target_link_libraries(H_compiler PUBLIC ${llvm_library})
+
 endif()
 
 if (WIN32)
@@ -137,7 +143,6 @@ target_sources(H_compiler
       "Debug_info.cpp"
       "Expressions.cpp"
       "Instructions.cpp"
-      "Linker.cpp"
       "Recompilation.cpp"
       "Types.cpp"
       "JIT/Core_module_layer.cpp"
@@ -151,13 +156,19 @@ target_sources(H_compiler
 
 if(WIN32)
    target_sources(H_compiler PRIVATE
+      "Linker_coff.cpp"
       "Project/Target_windows.cpp"
+   )
+else()
+   target_sources(H_compiler PRIVATE
+      "Linker_elf.cpp"
+      "Project/Target_linux.cpp"
    )
 endif()
 
 if(BUILD_TESTING)
    add_executable(H_compiler_tests)
-   target_link_libraries(H_compiler_tests PRIVATE H::C_header_importer H::Compiler H::JSON_serializer)
+   target_link_libraries(H_compiler_tests PRIVATE H::C_header_importer H::Compiler H::JSON_serializer H::Parser)
 
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)

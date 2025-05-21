@@ -370,6 +370,11 @@ namespace h::c
             
             return create_type_reference(declarations, initializer_cursor, result_type);
         }
+        case CXType_Complex:
+        {
+            std::cerr << "Warning: ignoring _Complex type\n";
+            return std::nullopt;
+        }
         case CXType_IncompleteArray:
         case CXType_Pointer:
         {
@@ -521,6 +526,11 @@ namespace h::c
             {
                 .data = std::move(reference)
             };
+        }
+        case CXType_Float128:
+        {
+            std::cerr << "Warning: ignoring Float128 type\n";
+            return std::nullopt;
         }
         default:
         {

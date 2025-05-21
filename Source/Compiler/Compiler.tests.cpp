@@ -19,6 +19,7 @@ import h.core.declarations;
 import h.core.struct_layout;
 import h.common;
 import h.compiler;
+import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.expressions;
@@ -26,6 +27,9 @@ import h.compiler.types;
 import h.json_serializer;
 import h.json_serializer.operators;
 import h.c_header_converter;
+import h.parser.convertor;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 using h::json::operators::operator<<;
 
@@ -33,7 +37,6 @@ using h::json::operators::operator<<;
 
 namespace h
 {
-  static std::filesystem::path const g_test_files_path = std::filesystem::path{ TEST_FILES_PATH };
   static std::filesystem::path const g_test_source_files_path = std::filesystem::path{ TEST_SOURCE_FILES_PATH };
   static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
 
@@ -63,7 +66,22 @@ namespace h
     Test_options const test_options = {}
   )
   {
-    std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
+    std::filesystem::path const input_file_path = g_test_source_files_path / input_file;
+    std::optional<std::pmr::string> input_content = h::common::get_file_contents(input_file_path);
+    REQUIRE(input_content.has_value());
+
+    h::parser::Parser parser = h::parser::create_parser(true);
+    h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, input_content.value());
+
+    h::parser::Parse_node const root = get_root_node(parse_tree);
+
+    std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+      parse_tree,
+      root,
+      input_file_path,
+      {},
+      {}
+    );
     REQUIRE(core_module.has_value());
 
     h::compiler::Compilation_options const compilation_options
@@ -82,11 +100,14 @@ namespace h
     std::string_view const llvm_ir_body = exclude_header(llvm_ir);
 
     CHECK(llvm_ir_body == expected_llvm_ir);
+
+    h::parser::destroy_tree(std::move(parse_tree));
+    h::parser::destroy_parser(std::move(parser));
   }
 
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
   {
-    char const* const input_file = "assert_expressions.hl";
+    char const* const input_file = "assert_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -136,7 +157,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Assignments", "[LLVM_IR]")
   {
-    char const* const input_file = "assignment_expressions.hl";
+    char const* const input_file = "assignment_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -250,7 +271,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Binary Expressions Precedence", "[LLVM_IR]")
   {
-    char const* const input_file = "binary_expressions_precedence.hl";
+    char const* const input_file = "binary_expressions_precedence.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -384,7 +405,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Binary Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "binary_expressions.hl";
+    char const* const input_file = "binary_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -626,7 +647,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Block Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "block_expressions.hl";
+    char const* const input_file = "block_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -655,7 +676,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Booleans", "[LLVM_IR]")
   {
-    char const* const input_file = "booleans.hl";
+    char const* const input_file = "booleans.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -680,11 +701,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Break Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "break_expressions.hl";
+    char const* const input_file = "break_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -846,7 +867,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Cast Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "cast_expressions.hl";
+    char const* const input_file = "cast_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -876,7 +897,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Comment Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "comment_expressions.hl";
+    char const* const input_file = "comment_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -931,7 +952,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Constant Arrays", "[LLVM_IR]")
   {
-    char const* const input_file = "constant_array_expressions.hl";
+    char const* const input_file = "constant_array_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -994,7 +1015,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Debug Information C Headers", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_c_headers.hl";
+    char const* const input_file = "debug_information_c_headers.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "debug_information_c_headers";
     std::filesystem::create_directories(root_directory_path);
@@ -1012,7 +1033,7 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hltxt";
     h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -1094,7 +1115,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information For Loop", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_for_loop.hl";
+    char const* const input_file = "debug_information_for_loop.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1167,7 +1188,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Function Call", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_function_call.hl";
+    char const* const input_file = "debug_information_function_call.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1239,7 +1260,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information If", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_if.hl";
+    char const* const input_file = "debug_information_if.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1305,7 +1326,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Struct", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_structs.hl";
+    char const* const input_file = "debug_information_structs.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1356,7 +1377,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Switch", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_switch.hl";
+    char const* const input_file = "debug_information_switch.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1420,7 +1441,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Union", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_unions.hl";
+    char const* const input_file = "debug_information_unions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1476,7 +1497,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_variables.hl";
+    char const* const input_file = "debug_information_variables.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1522,7 +1543,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information While Loop", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_while_loop.hl";
+    char const* const input_file = "debug_information_while_loop.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1594,7 +1615,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Defer Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "defer_expressions.hl";
+    char const* const input_file = "defer_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1816,7 +1837,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Dereference and Access Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "dereference_and_access_expressions.hl";
+    char const* const input_file = "dereference_and_access_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1847,7 +1868,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Defer Expressions with Debug Information", "[LLVM_IR]")
   {
-    char const* const input_file = "defer_expressions_with_debug_information.hl";
+    char const* const input_file = "defer_expressions_with_debug_information.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1922,7 +1943,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Dynamic Array", "[LLVM_IR]")
   {
-    char const* const input_file = "dynamic_array.hl";
+    char const* const input_file = "dynamic_array.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1935,11 +1956,11 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Dynamic Array Usage", "[LLVM_IR]")
   {
-    char const* const input_file = "dynamic_array_usage.hl";
+    char const* const input_file = "dynamic_array_usage.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "dynamic_array", g_test_files_path / "dynamic_array.hl" }
+      { "dynamic_array", g_test_source_files_path / "dynamic_array.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2129,7 +2150,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Empty Return Expression", "[LLVM_IR]")
   {
-    char const* const input_file = "empty_return_expression.hl";
+    char const* const input_file = "empty_return_expression.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2150,11 +2171,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile For Loop Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "for_loop_expressions.hl";
+    char const* const input_file = "for_loop_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+      { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2270,7 +2291,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Function Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "function_pointers.hl";
+    char const* const input_file = "function_pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2317,11 +2338,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile hello world!", "[LLVM_IR]")
   {
-    char const* const input_file = "hello_world.hl";
+    char const* const input_file = "hello_world.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2345,11 +2366,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile If Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "if_expressions.hl";
+    char const* const input_file = "if_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2465,7 +2486,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile If Return Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "if_return_expressions.hl";
+    char const* const input_file = "if_return_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2496,7 +2517,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
-    char const* const input_file = "module_with_dots.hl";
+    char const* const input_file = "module_with_dots.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2529,12 +2550,12 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Multiple Modules", "[LLVM_IR]")
   {
-    char const* const input_file = "multiple_modules_a.hl";
+    char const* const input_file = "multiple_modules_a.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "MB", g_test_files_path / "multiple_modules_b.hl" },
-      { "MC", g_test_files_path / "multiple_modules_c.hl" },
+      { "MB", g_test_source_files_path / "multiple_modules_b.hltxt" },
+      { "MC", g_test_source_files_path / "multiple_modules_c.hltxt" },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2571,7 +2592,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Null Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "null_pointers.hl";
+    char const* const input_file = "null_pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2608,7 +2629,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Numbers", "[LLVM_IR]")
   {
-    char const* const input_file = "numbers.hl";
+    char const* const input_file = "numbers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2651,7 +2672,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Numeric_casts", "[LLVM_IR]")
   {
-    char const* const input_file = "numeric_casts.hl";
+    char const* const input_file = "numeric_casts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2750,7 +2771,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "pointers.hl";
+    char const* const input_file = "pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2779,7 +2800,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Switch Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "switch_expressions.hl";
+    char const* const input_file = "switch_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2854,7 +2875,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Ternary Condition Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "ternary_condition_expressions.hl";
+    char const* const input_file = "ternary_condition_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3005,7 +3026,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Unary Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "unary_expressions.hl";
+    char const* const input_file = "unary_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3051,11 +3072,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Alias From Modules", "[LLVM_IR]")
   {
-    char const* const input_file = "using_alias_from_modules.hl";
+    char const* const input_file = "using_alias_from_modules.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Alias", g_test_files_path / "using_alias.hl" }
+        { "Alias", g_test_source_files_path / "using_alias.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3077,7 +3098,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Alias", "[LLVM_IR]")
   {
-    char const* const input_file = "using_alias.hl";
+    char const* const input_file = "using_alias.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3104,7 +3125,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enum Flags", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enum_flags.hl";
+    char const* const input_file = "using_enum_flags.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3182,11 +3203,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enums From Modules", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enums_from_modules.hl";
+    char const* const input_file = "using_enums_from_modules.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Enums", g_test_files_path / "using_enums.hl" }
+        { "Enums", g_test_source_files_path / "using_enums.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3206,7 +3227,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enums", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enums.hl";
+    char const* const input_file = "using_enums.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3260,7 +3281,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Function Constructors", "[LLVM_IR]")
   {
-    char const* const input_file = "using_function_constructors.hl";
+    char const* const input_file = "using_function_constructors.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3329,7 +3350,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Global Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "using_global_variables.hl";
+    char const* const input_file = "using_global_variables.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "using_global_variables";
     std::filesystem::create_directories(root_directory_path);
@@ -3342,7 +3363,7 @@ float my_global = 0.0f;
     std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -3383,7 +3404,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Structs", "[LLVM_IR]")
   {
-    char const* const input_file = "using_structs.hl";
+    char const* const input_file = "using_structs.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3471,7 +3492,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Type Constructors", "[LLVM_IR]")
   {
-    char const* const input_file = "using_type_constructors.hl";
+    char const* const input_file = "using_type_constructors.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3509,7 +3530,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Unions", "[LLVM_IR]")
   {
-    char const* const input_file = "using_unions.hl";
+    char const* const input_file = "using_unions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3653,7 +3674,7 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
 
   TEST_CASE("Compile Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "variables.hl";
+    char const* const input_file = "variables.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3679,11 +3700,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile While Loop Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "while_loop_expressions.hl";
+    char const* const input_file = "while_loop_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3786,7 +3807,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Function Contracts", "[LLVM_IR]")
   {
-    char const* const input_file = "function_contracts.hl";
+    char const* const input_file = "function_contracts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3885,7 +3906,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     TEST_CASE("Compile Function Contracts with disable contracts", "[LLVM_IR]")
   {
-    char const* const input_file = "function_contracts.hl";
+    char const* const input_file = "function_contracts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3941,7 +3962,7 @@ struct My_struct
 
     h::Struct_layout const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
@@ -3973,7 +3994,7 @@ struct My_struct
     std::string_view const expected_llvm_ir
   )
   {
-    char const* const input_file = "c_interoperability_call_function_with_struct.hl";
+    char const* const input_file = "c_interoperability_call_function_with_struct.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_call_function_with_struct";
     std::filesystem::create_directories(root_directory_path);
@@ -3993,7 +4014,7 @@ void foo(My_struct argument);
     std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -4070,7 +4091,7 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     std::string_view const expected_llvm_ir
   )
   {
-    char const* const input_file = "c_interoperability_define_function_with_struct.hl";
+    char const* const input_file = "c_interoperability_define_function_with_struct.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_define_function_with_struct";
     std::filesystem::create_directories(root_directory_path);
@@ -4233,7 +4254,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4273,7 +4294,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4302,7 +4323,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4331,7 +4352,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4353,7 +4374,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4387,7 +4408,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4411,7 +4432,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_int.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4435,7 +4456,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_int.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4459,7 +4480,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4483,7 +4504,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4520,7 +4541,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4549,7 +4570,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4583,7 +4604,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4617,7 +4638,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4643,7 +4664,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4674,7 +4695,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4700,7 +4721,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4726,7 +4747,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4750,7 +4771,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4774,7 +4795,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4809,7 +4830,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4843,6 +4864,6 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
 }

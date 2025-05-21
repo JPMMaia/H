@@ -13,6 +13,9 @@ target_link_libraries(H_C_header_importer PRIVATE libclang)
 
 if(WIN32)
    target_link_libraries(H_C_header_importer PRIVATE clangTooling)
+else()
+   find_library(clang_cpp clang-cpp REQUIRED)
+   target_link_libraries(H_C_header_importer PRIVATE ${clang_cpp})
 endif()
 
 ## End LLVM ##
@@ -76,12 +79,32 @@ add_executable(C_header_importer_tool)
 target_link_libraries(C_header_importer_tool PRIVATE H::Core H::C_header_importer H::JSON_serializer)
 target_sources(C_header_importer_tool PRIVATE "main.cpp")
 
+find_package(argparse CONFIG REQUIRED)
+target_link_libraries(C_header_importer_tool PRIVATE argparse::argparse)
+
 macro(Import_c_header)
 
    set(options)
    set(oneValueArgs TARGET OUTPUT_DIRECTORY)
    set(multiValueArgs HEADERS)
    cmake_parse_arguments(ARGUMENT "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+   set(additional_include_directories "")
+   if(UNIX)
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "/usr/include")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "/usr/include/linux")
+
+      file(GLOB_RECURSE IOSTREAM_PATH "/usr/include/c++/*/iostream")
+      get_filename_component(CPP_LIBRARY_INCLUDE_DIRECTORY "${IOSTREAM_PATH}" DIRECTORY)
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}/tr1")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}/x86_64-pc-linux-gnu")
+   endif()
 
    foreach(header IN LISTS ARGUMENT_HEADERS)
       cmake_path(GET header STEM header_without_extension)
@@ -92,7 +115,7 @@ macro(Import_c_header)
       add_custom_command(
          OUTPUT "${output_path}"
          COMMAND C_header_importer_tool
-            ARGS "C.${header_without_extension}" "${header}" "${output_path}"
+            ARGS "C.${header_without_extension}" "${header}" "${output_path}" ${additional_include_directories}
          DEPENDS "${header}"
          COMMENT "Generating ${output_path}"
       )

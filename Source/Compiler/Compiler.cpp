@@ -569,7 +569,7 @@ namespace h::compiler
 
         if (llvm::verifyFunction(llvm_function, &llvm::errs())) {
             llvm::errs() << "\n Function body:\n";
-            llvm_function.dump();
+            llvm_function.print(llvm::errs(), nullptr);
             throw std::runtime_error{ std::format("Function '{}' from module '{}' is not valid!", function_declaration.name, core_module.name) };
         }
     }
@@ -1148,7 +1148,7 @@ namespace h::compiler
 
         if (llvm::verifyModule(*llvm_module, &llvm::errs()))
         {
-            llvm_module->dump();
+            llvm_module->print(llvm::errs(), nullptr);
             throw std::runtime_error{ std::format("Module '{}' is not valid!", core_module.name) };
         }
 

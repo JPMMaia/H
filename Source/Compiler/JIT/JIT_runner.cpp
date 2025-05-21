@@ -49,7 +49,7 @@ import h.compiler.target;
 import h.core;
 import h.c_header_converter;
 import h.json_serializer;
-import h.parser;
+import h.parser.parser;
 
 namespace h::compiler
 {
