@@ -83,4 +83,42 @@ namespace h::parser
     {
         ts_tree_delete(tree.ts_tree);
     }
+
+    std::optional<std::pmr::string> read_module_name(std::filesystem::path const& unparsed_file_path)
+    {
+        std::string const path_string = unparsed_file_path.generic_string();
+        std::FILE* file_stream = std::fopen(path_string.c_str(), "r");
+        if (file_stream == nullptr)
+            return std::nullopt;
+
+        std::optional<std::pmr::string> module_name = std::nullopt;
+
+        constexpr int line_size = 1000;
+        char line[line_size];
+        while (true)
+        {
+            if (std::fgets(line, line_size, file_stream) == nullptr)
+                break;
+
+            char const* const end = std::find(line, line + line_size, '\0');
+
+            std::string_view const line_view{ line, end };
+
+            std::string_view::size_type const line_without_spaces_begin = line_view.find_first_not_of(' ');
+            if (line_without_spaces_begin == std::string_view::npos)
+                continue;
+
+            std::string_view const line_without_spaces{ line + line_without_spaces_begin, end - 1 };
+
+            if (line_without_spaces.starts_with("module ") && line_without_spaces.ends_with(';'))
+            {
+                module_name = line_without_spaces.substr(7, line_without_spaces.size() - 8);
+                break;
+            }
+        }
+
+        std::fclose(file_stream);
+
+        return module_name;
+    }
 }
