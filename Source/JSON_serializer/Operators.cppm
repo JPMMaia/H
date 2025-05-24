@@ -51,23 +51,6 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Access_type& value)
-    {
-        std::pmr::string string;
-        input_stream >> string;
-
-        value = h::json::read_enum<Access_type>(string);
-
-        return input_stream;
-    }
-
-    export std::ostream& operator<<(std::ostream& output_stream, Access_type const value)
-    {
-        output_stream << h::json::write_enum(value);
-
-        return output_stream;
-    }
-
     export std::istream& operator>>(std::istream& input_stream, Binary_operation& value)
     {
         std::pmr::string string;

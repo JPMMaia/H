@@ -327,17 +327,9 @@ namespace h
         friend std::strong_ordering operator<=>(Function_definition const&, Function_definition const&) = default;
     };
 
-    export enum Access_type
-    {
-        Read = 1,
-        Write = 2,
-        Read_write = 3
-    };
-
     export struct Variable_expression
     {
         std::pmr::string name;
-        Access_type access_type = Access_type::Read;
 
         friend std::strong_ordering operator<=>(Variable_expression const&, Variable_expression const&) = default;
     };
@@ -381,7 +373,6 @@ namespace h
     {
         Expression_index expression;
         std::pmr::string member_name;
-        Access_type access_type;
 
         friend std::strong_ordering operator<=>(Access_expression const&, Access_expression const&) = default;
     };

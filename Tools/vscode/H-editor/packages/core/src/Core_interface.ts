@@ -36,12 +36,6 @@ export enum Linkage {
     Private = "Private",
 }
 
-export enum Access_type {
-    Read = "Read",
-    Write = "Write",
-    Read_write = "Read_write",
-}
-
 export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
@@ -300,7 +294,6 @@ export interface Function_definition {
 
 export interface Variable_expression {
     name: string;
-    access_type: Access_type;
 }
 
 export interface Expression_index {
@@ -310,7 +303,6 @@ export interface Expression_index {
 export interface Access_expression {
     expression: Expression_index;
     member_name: string;
-    access_type: Access_type;
 }
 
 export interface Access_array_expression {

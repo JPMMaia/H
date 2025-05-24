@@ -453,7 +453,6 @@ namespace h
                             .data = Variable_expression
                             {
                                 .name = "some_boolean",
-                                .access_type = Access_type::Read
                             }
                         }
                     }
@@ -476,7 +475,6 @@ namespace h
                                 .data = Variable_expression
                                 {
                                     .name = "value",
-                                    .access_type = Access_type::Read
                                 }
                             }
                         }
@@ -504,7 +502,6 @@ namespace h
                                 .data = Variable_expression
                                 {
                                     .name = "value",
-                                    .access_type = Access_type::Read
                                 }
                             }
                         }
@@ -518,7 +515,7 @@ namespace h
             .series = std::move(input_series)
         };
 
-        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\",\"access_type\":\"Read\"}}}]}},\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}},{\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\",\"access_type\":\"Read\"}}}]}}]}}]}}";
+        std::string const expected = "{\"series\":{\"size\":2,\"elements\":[{\"condition\":{\"expressions\":{\"size\":1,\"elements\":[{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"some_boolean\"}}}]}},\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":1}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}]}},{\"then_statements\":{\"size\":1,\"elements\":[{\"expressions\":{\"size\":2,\"elements\":[{\"data\":{\"type\":\"Return_expression\",\"value\":{\"expression\":{\"expression_index\":3}}}},{\"data\":{\"type\":\"Variable_expression\",\"value\":{\"name\":\"value\"}}}]}}]}}]}}";
 
         rapidjson::StringBuffer output_stream;
         rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };

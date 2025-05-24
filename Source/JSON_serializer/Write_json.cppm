@@ -114,24 +114,6 @@ namespace h::json
         throw std::runtime_error{ "Failed to write enum 'Linkage'!\n" };
     }
 
-    export std::string_view write_enum(Access_type const value)
-    {
-        if (value == Access_type::Read)
-        {
-            return "Read";
-        }
-        else if (value == Access_type::Write)
-        {
-            return "Write";
-        }
-        else if (value == Access_type::Read_write)
-        {
-            return "Read_write";
-        }
-
-        throw std::runtime_error{ "Failed to write enum 'Access_type'!\n" };
-    }
-
     export std::string_view write_enum(Binary_operation const value)
     {
         if (value == Binary_operation::Add)
@@ -1355,11 +1337,6 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
-        writer.Key("access_type");
-        {
-            std::string_view const enum_value_string = write_enum(output.access_type);
-            writer.String(enum_value_string.data(), enum_value_string.size());
-        }
         writer.EndObject();
     }
 
@@ -1386,11 +1363,6 @@ namespace h::json
         write_object(writer, output.expression);
         writer.Key("member_name");
         writer.String(output.member_name.data(), output.member_name.size());
-        writer.Key("access_type");
-        {
-            std::string_view const enum_value_string = write_enum(output.access_type);
-            writer.String(enum_value_string.data(), enum_value_string.size());
-        }
         writer.EndObject();
     }
 
