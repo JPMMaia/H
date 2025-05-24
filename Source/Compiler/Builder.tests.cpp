@@ -1,3 +1,4 @@
+import h.common.filesystem;
 import h.compiler;
 import h.compiler.builder;
 import h.compiler.target;
@@ -10,6 +11,7 @@ import h.compiler.target;
 namespace h::compiler
 {
     static std::filesystem::path const g_examples_directory = std::filesystem::path{ EXAMPLES_DIRECTORY };
+    static std::filesystem::path const g_standard_repository_file_path = std::filesystem::path{ STANDARD_REPOSITORY_FILE_PATH };
 
     void test_builder(
         std::string_view const project_name
@@ -18,6 +20,10 @@ namespace h::compiler
         std::filesystem::path const temporary_directory_path = std::filesystem::temp_directory_path();
         std::filesystem::path const build_directory_path = temporary_directory_path / project_name;
         std::filesystem::path const artifact_file_path = g_examples_directory / project_name / "hlang_artifact.json";
+
+        std::pmr::vector<std::filesystem::path> header_search_directories = h::common::get_default_header_search_directories();
+        
+        std::pmr::vector<std::filesystem::path> repository_paths{ g_standard_repository_file_path };
     
         h::compiler::Target const target = h::compiler::get_default_target();
 
@@ -31,9 +37,10 @@ namespace h::compiler
         Builder builder = create_builder(
             target,
             build_directory_path,
-            {},
-            {},
-            compilation_options
+            header_search_directories,
+            repository_paths,
+            compilation_options,
+            {}
         );
     
         build_artifact(builder, artifact_file_path);

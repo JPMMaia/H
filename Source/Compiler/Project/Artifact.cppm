@@ -78,6 +78,8 @@ namespace h::compiler
 
     export std::span<C_header const> get_c_headers(Artifact const& artifact);
 
+    export C_header_options const* get_c_header_options(Library_info const& library_info, C_header const& c_header);
+
     export C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name);
     export C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name);
 
@@ -95,6 +97,11 @@ namespace h::compiler
     export bool visit_included_files(
         Artifact const& artifact,
         std::function<bool(std::filesystem::path)> const& predicate
+    );
+
+    export std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
     export std::pmr::vector<std::filesystem::path> find_included_files(

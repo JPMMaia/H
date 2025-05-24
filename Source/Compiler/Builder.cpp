@@ -1,29 +1,61 @@
 module;
 
+#include <format>
 #include <filesystem>
 #include <memory_resource>
 #include <span>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 module h.compiler.builder;
 
 import h.core;
+import h.common;
 import h.compiler;
+import h.compiler.artifact;
 import h.compiler.repository;
 import h.compiler.target;
+import h.c_header_converter;
+import h.json_serializer;
+import h.parser.convertor;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 namespace h::compiler
 {
+    static std::filesystem::path get_hl_build_directory(
+        std::filesystem::path const& build_directory_path
+    )
+    {
+        return build_directory_path / "hl";
+    }
+
+    static void create_directory_if_it_does_not_exist(std::filesystem::path const& path)
+    {
+        if (!std::filesystem::exists(path))
+        {
+            std::filesystem::create_directories(path);
+        }
+    }
+
     Builder create_builder(
         h::compiler::Target const& target,
         std::filesystem::path const& build_directory_path,
         std::span<std::filesystem::path const> header_search_paths,
-        std::span<h::compiler::Repository const> repositories,
-        h::compiler::Compilation_options const& compilation_options
+        std::span<std::filesystem::path const> repository_paths,
+        h::compiler::Compilation_options const& compilation_options,
+        std::pmr::polymorphic_allocator<> output_allocator
     )
     {
-        return {};
+        return
+        {
+            .target = target,
+            .build_directory_path = build_directory_path,
+            .header_search_paths = std::pmr::vector<std::filesystem::path>{header_search_paths.begin(), header_search_paths.end(), output_allocator},
+            .repositories = get_repositories(repository_paths),
+            .compilation_options = compilation_options
+        };
     }
 
     void build_artifact(
@@ -31,5 +63,336 @@ namespace h::compiler
         std::filesystem::path const& artifact_file_path
     )
     {
+        std::pmr::polymorphic_allocator<> output_allocator;
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
+        std::filesystem::path const hl_build_directory = get_hl_build_directory(
+            builder.build_directory_path
+        );
+
+        create_directory_if_it_does_not_exist(hl_build_directory);
+
+        // Build dependency graph of artifacts
+        // Get all source files of all artifacts (in parallel)
+        // Parse all source files (if needed) and cache them (in parallel)
+
+        // Build source dependency graph
+        // Build compilation database
+
+        // Detect sources that changed (or whoose dependency has changed)
+        // Compile sources (in parallel)
+        // 
+        // Link all artifacts that changed (in order)
+
+        std::pmr::vector<Artifact> const artifacts = get_sorted_artifacts(
+            artifact_file_path,
+            builder.repositories,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        std::pmr::vector<C_header_and_options> const c_headers_and_options = get_artifacts_c_headers(
+            artifacts,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        parse_c_headers_and_cache(
+            builder,
+            c_headers_and_options,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        std::pmr::vector<std::filesystem::path> const source_file_paths = get_artifacts_source_files(
+            artifacts,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        parse_source_files_and_cache(
+            builder,
+            source_file_paths,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        /*std::pmr::vector<h::Module> const core_modules = parse_source_files_and_dependencies_and_cache(
+            builder,
+            start_source_files,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        Dependency_graph dependency_graph = build_dependency_graph(
+            builder,
+            core_modules,
+            output_allocator,
+            temporaries_allocator
+        );
+    
+        std::pmr::vector<h::Module*> core_modules_to_compile = calculate_modules_for_recompilation(
+            builder,
+            dependency_graph,
+            output_allocator,
+            temporaries_allocator
+        );
+        
+        Compilation_database compilation_database = create_compilation_database(
+            builder
+        );
+    
+        compile_modules(
+            builder,
+            compilation_database,
+            core_modules_to_compile
+        );
+
+        // TODO link*/
+    }
+
+    void add_artifact_dependencies(
+        std::pmr::vector<Artifact>& dependencies,
+        Artifact const& artifact,
+        std::span<Repository const> repositories,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        for (h::compiler::Dependency const& dependency : artifact.dependencies)
+        {
+            auto const location = std::find_if(
+                dependencies.begin(),
+                dependencies.end(),
+                [&](Artifact const& artifact) -> bool { return artifact.name == dependency.artifact_name; }
+            );
+            if (location != dependencies.end())
+                continue;
+
+            std::optional<std::filesystem::path> const dependency_location = h::compiler::get_artifact_location(repositories, dependency.artifact_name);
+            if (!dependency_location.has_value())
+                h::common::print_message_and_exit(std::format("Could not find dependency {}.", dependency.artifact_name));
+
+            std::filesystem::path const dependency_configuration_file_path = dependency_location.value();
+
+            Artifact dependency_artifact = h::compiler::get_artifact(dependency_configuration_file_path);
+            
+            add_artifact_dependencies(
+                dependencies,
+                dependency_artifact,
+                repositories,
+                output_allocator,
+                temporaries_allocator
+            );
+
+            dependencies.push_back(std::move(dependency_artifact));
+        }
+    }
+
+    std::pmr::vector<Artifact> get_sorted_artifacts(
+        std::filesystem::path const& artifact_file_path,
+        std::span<Repository const> repositories,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<Artifact> artifacts{temporaries_allocator};
+
+        Artifact const artifact = get_artifact(artifact_file_path);
+        
+        add_artifact_dependencies(
+            artifacts,
+            artifact,
+            repositories,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        artifacts.push_back(artifact);
+
+        return std::pmr::vector<Artifact>{std::move(artifacts), output_allocator};
+    }
+
+    std::pmr::vector<C_header_and_options> get_artifacts_c_headers(
+        std::span<Artifact const> const artifacts,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<C_header_and_options> output{temporaries_allocator};
+
+        for (Artifact const& artifact : artifacts)
+        {
+            if (artifact.info.has_value())
+            {
+                if (std::holds_alternative<Library_info>(*artifact.info))
+                {
+                    Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+                    for (C_header const& c_header : library_info.c_headers)
+                    {
+                        C_header_and_options c_header_and_options
+                        {
+                            .c_header = c_header,
+                            .options = get_c_header_options(library_info, c_header)
+                        };
+
+                        output.push_back(std::move(c_header_and_options));
+                    }
+                }
+            }
+        }
+
+        return std::pmr::vector<C_header_and_options>{std::move(output), output_allocator};
+    }
+
+    std::pmr::vector<std::filesystem::path> get_artifacts_source_files(
+        std::span<Artifact const> const artifacts,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::filesystem::path> source_files{temporaries_allocator};
+
+        for (Artifact const& artifact : artifacts)
+        {
+            std::pmr::vector<std::filesystem::path> artifact_source_files = get_artifact_source_files(
+                artifact,
+                temporaries_allocator
+            );
+
+            source_files.insert(source_files.end(), artifact_source_files.begin(), artifact_source_files.end());
+        }
+
+        return std::pmr::vector<std::filesystem::path>{std::move(source_files), output_allocator};
+    }
+
+    void parse_c_headers_and_cache(
+        Builder const& builder,
+        std::span<C_header_and_options const> const c_headers,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        for (C_header_and_options const& c_header_and_options : c_headers)
+        {
+            C_header const& c_header = c_header_and_options.c_header;
+
+            std::string_view const header_module_name = c_header.module_name;
+            std::string_view const header_filename = c_header.header;
+
+            std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, builder.header_search_paths);
+            if (!header_path.has_value())
+                h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
+
+            std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
+            std::filesystem::path const output_header_module_path = get_hl_build_directory(builder.build_directory_path) / header_module_filename;
+
+            if (std::filesystem::exists(output_header_module_path))
+            {
+                if (is_file_newer_than(output_header_module_path, header_module_filename))
+                {
+                    continue;
+                }
+            }
+
+            h::compiler::C_header_options const* const c_header_options = c_header_and_options.options;
+
+            h::c::Options const options
+            {
+                .target_triple = std::nullopt,
+                .include_directories = c_header_options != nullptr ? c_header_options->search_paths : std::span<std::filesystem::path const>{},
+                .public_prefixes = c_header_options != nullptr ? c_header_options->public_prefixes : std::span<std::pmr::string const>{},
+                .remove_prefixes = c_header_options != nullptr ? c_header_options->remove_prefixes : std::span<std::pmr::string const>{},
+            };
+
+            h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+        }
+    }
+
+    void parse_source_files_and_cache(
+        Builder const& builder,
+        std::span<std::filesystem::path const> const source_files_paths,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::parser::Parser parser = h::parser::create_parser(true);
+
+        for (std::filesystem::path const& source_file_path : source_files_paths)
+        {
+            std::optional<std::pmr::string> const module_name = h::parser::read_module_name(source_file_path);
+            if (!module_name.has_value())
+                h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
+
+            std::filesystem::path const output_module_filename = std::format("{}.hl", module_name.value());
+            std::filesystem::path const output_module_path = get_hl_build_directory(builder.build_directory_path) / output_module_filename;
+
+            if (std::filesystem::exists(output_module_path))
+            {
+                if (is_file_newer_than(output_module_path, source_file_path))
+                {
+                    continue;
+                }
+            }
+
+            std::optional<std::pmr::string> source_content = h::common::get_file_contents(source_file_path);
+            if (!source_content.has_value())
+                h::common::print_message_and_exit(std::format("Could not read source file {}.", source_file_path.generic_string()));
+
+            h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, source_content.value());
+
+            h::parser::Parse_node const root = get_root_node(parse_tree);
+    
+            std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+                parse_tree,
+                root,
+                source_file_path,
+                output_allocator,
+                temporaries_allocator
+            );
+            if (!core_module.has_value())
+                h::common::print_message_and_exit(std::format("Could not parse source file {}.", source_file_path.generic_string()));
+
+            h::json::write<h::Module>(output_module_path, core_module.value());
+
+            h::parser::destroy_tree(std::move(parse_tree));
+        }
+
+        h::parser::destroy_parser(std::move(parser));
+    }
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(
+        Builder const& builder,
+        std::span<C_header_and_options const> const c_headers,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> map{temporaries_allocator};
+
+        for (C_header_and_options const& c_header_and_options : c_headers)
+        {
+            C_header const& c_header = c_header_and_options.c_header;
+
+            std::string_view const header_module_name = c_header.module_name;
+
+            std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
+            std::filesystem::path const output_header_module_path = builder.build_directory_path / header_module_filename;
+
+            map.insert(std::make_pair(std::pmr::string{ header_module_name }, output_header_module_path));
+        }
+
+        return std::pmr::unordered_map<std::pmr::string, std::filesystem::path>{std::move(map), output_allocator};
+    }
+
+    bool is_file_newer_than(
+        std::filesystem::path const& first,
+        std::filesystem::path const& second
+    )
+    {
+        std::filesystem::file_time_type first_time = std::filesystem::last_write_time(first);
+        std::filesystem::file_time_type second_time = std::filesystem::last_write_time(second);
+        return first_time > second_time;
     }
 }

@@ -130,6 +130,7 @@ namespace h::compiler
             {
                 .module_name = element.at("name").get<std::pmr::string>(),
                 .header = element.at("header").get<std::pmr::string>(),
+                .options_key = {}
             };
 
             if (element.contains("options"))
@@ -401,6 +402,23 @@ namespace h::compiler
         return {};
     }
 
+    h::compiler::C_header_options const* get_c_header_options(
+        h::compiler::Library_info const& library_info,
+        h::compiler::C_header const& c_header
+    )
+    {
+        if (c_header.options_key.has_value())
+        {
+            auto const location = library_info.c_header_options.find(*c_header.options_key);
+            if (location != library_info.c_header_options.end())
+            {
+                return &location->second;
+            }
+        }
+
+        return nullptr;
+    }
+
     C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name)
     {
         if (artifact.info.has_value() && std::holds_alternative<Library_info>(*artifact.info))
@@ -432,14 +450,10 @@ namespace h::compiler
             C_header const* const c_header = find_c_header(artifact, module_name);
             if (c_header != nullptr)
             {
-                if (c_header->options_key.has_value())
-                {
-                    auto const location = library_info.c_header_options.find(c_header->options_key.value());
-                    if (location != library_info.c_header_options.end())
-                    {
-                        return &location->second;
-                    }
-                }
+                return get_c_header_options(
+                    library_info,
+                    *c_header
+                );
             }
         }
 
@@ -593,7 +607,7 @@ namespace h::compiler
             {
                 Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
 
-                for (std::string_view const& regular_expression : executable_info.include)
+                for (std::string_view const regular_expression : executable_info.include)
                 {
                     bool const done = visit_included_files(artifact.file_path.parent_path(), regular_expression, predicate);
                     if (done)
@@ -635,7 +649,7 @@ namespace h::compiler
 
         std::pmr::vector<std::filesystem::path> all_found_files{ temporaries_allocator };
 
-        for (std::string_view const& regular_expression : regular_expressions)
+        for (std::string_view const regular_expression : regular_expressions)
         {
             std::pmr::vector<std::filesystem::path> const found_files = find_included_files(root_path, regular_expression, temporaries_allocator);
 
@@ -667,6 +681,17 @@ namespace h::compiler
         }
 
         return std::pmr::vector<std::filesystem::path>{ output_allocator };
+    }
+
+    std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        return find_included_files(
+            artifact,
+            output_allocator
+        );
     }
 
 
@@ -715,7 +740,7 @@ namespace h::compiler
 
         std::pmr::vector<std::filesystem::path> all_found_roots{ temporaries_allocator };
 
-        for (std::string_view const& regular_expression : regular_expressions)
+        for (std::string_view const regular_expression : regular_expressions)
         {
             std::filesystem::path const found_root = find_root_include_directory(root_path, regular_expression);
             all_found_roots.push_back(found_root);
