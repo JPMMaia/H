@@ -54,6 +54,15 @@ namespace h::common
         return *best_match / "ucrt" / architecture;
     }
 
+    std::pmr::vector<std::filesystem::path> get_default_header_search_directories()
+    {
+        std::pmr::vector<std::filesystem::path> include_directories
+        {
+        };
+
+        return include_directories;
+    }
+
     std::pmr::vector<std::filesystem::path> get_default_library_directories()
     {
         std::pmr::vector<std::filesystem::path> library_directories
