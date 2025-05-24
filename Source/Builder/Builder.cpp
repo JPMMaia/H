@@ -455,11 +455,12 @@ namespace h::builder
         h::Declaration_database declaration_database = h::create_declaration_database();
         h::add_declarations(declaration_database, *core_module);
 
+        std::pmr::vector<h::Module const*> core_modules{ &core_module.value() };
         h::compiler::Clang_module_data clang_module_data = h::compiler::create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
-            *core_module,
-            {},
+            "Hl_clang_module",
+            core_modules,
             declaration_database
         );
 

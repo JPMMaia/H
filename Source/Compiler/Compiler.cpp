@@ -72,8 +72,6 @@ namespace h::compiler
             return llvm::GlobalValue::LinkageTypes::ExternalLinkage;
         case Linkage::Private:
             return llvm::GlobalValue::LinkageTypes::PrivateLinkage;
-        default:
-            throw;
         }
     }
 
@@ -373,11 +371,12 @@ namespace h::compiler
             .local_variables = {},
             .expression_type = std::nullopt,
             .debug_info = nullptr,
+            .contract_options = Contract_options::Disabled,
             .source_position = {},
             .temporaries_allocator = temporaries_allocator,
         };
 
-        for (std::pair<std::pmr::string, Module> const& module : core_module_dependencies)
+        for (std::pair<std::pmr::string const, Module> const& module : core_module_dependencies)
         {
             add_enum_constants(enum_value_constants, module.second.export_declarations.enum_declarations, expression_parameters);
             add_enum_constants(enum_value_constants, module.second.internal_declarations.enum_declarations, expression_parameters);
@@ -637,10 +636,9 @@ namespace h::compiler
             );
         }
 
-        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        for (std::pair<h::Instance_call_key const, clang::FunctionDecl*> const& pair : clang_module_data.declaration_database.call_instances)
         {
             h::Instance_call_key const& key = pair.first;
-            clang::FunctionDecl* const clang_function_declaration = pair.second;
 
             Function_expression const* function_expression = get_instance_call_function_expression(
                 declaration_database,
@@ -907,6 +905,7 @@ namespace h::compiler
                     .local_variables = {},
                     .expression_type = std::nullopt,
                     .debug_info = nullptr,
+                    .contract_options = Contract_options::Disabled,
                     .source_position = {},
                     .temporaries_allocator = temporaries_allocator,
                 };
@@ -930,7 +929,7 @@ namespace h::compiler
                     type_database
                 );
 
-                llvm::GlobalVariable* const global_variable = new llvm::GlobalVariable(
+                new llvm::GlobalVariable(
                     llvm_module,
                     llvm_type,
                     false,
@@ -952,7 +951,7 @@ namespace h::compiler
     {
         auto& llvm_function_list = llvm_module.getFunctionList();
 
-        for (std::pair<h::Instance_call_key, clang::FunctionDecl* const> const& pair : clang_module_data.declaration_database.call_instances)
+        for (std::pair<h::Instance_call_key const, clang::FunctionDecl*> const& pair : clang_module_data.declaration_database.call_instances)
         {
             h::Instance_call_key const& key = pair.first;
             clang::FunctionDecl* const clang_function_declaration = pair.second;
@@ -996,7 +995,7 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        for (std::pair<std::pmr::string, Module> const& pair : core_module_dependencies)
+        for (std::pair<std::pmr::string const, Module> const& pair : core_module_dependencies)
         {
             Module const& core_module_dependency = pair.second;
 
@@ -1079,7 +1078,7 @@ namespace h::compiler
             type_database
         );
 
-        for (std::pair<std::pmr::string, Module> const& pair : core_module_dependencies)
+        for (std::pair<std::pmr::string const, Module> const& pair : core_module_dependencies)
         {
             Module const& module_dependency = pair.second;
 
@@ -1363,11 +1362,15 @@ namespace h::compiler
         Module new_core_module = core_module;
         process_module(new_core_module, declaration_database, {});
 
+        std::pmr::vector<h::Module const*> all_core_modules{
+            sorted_core_module_dependencies.begin(), sorted_core_module_dependencies.end()
+        };
+        all_core_modules.push_back(&new_core_module);
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
-            new_core_module,
-            sorted_core_module_dependencies,
+            "Hl_clang_module",
+            all_core_modules,
             declaration_database
         );
 
@@ -1383,7 +1386,7 @@ namespace h::compiler
         return llvm_module;
     }
 
-    /*std::pmr::vector<h::Module const*> sort_core_modules(
+    std::pmr::vector<h::Module const*> sort_core_modules(
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -1436,6 +1439,7 @@ namespace h::compiler
     };
 
     Compilation_database process_modules_and_create_compilation_database(
+        LLVM_data& llvm_data,
         std::span<h::Module> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -1458,8 +1462,8 @@ namespace h::compiler
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
-            new_core_module,
-            sorted_core_module_dependencies,
+            "Hl_clang_module",
+            sorted_core_modules,
             declaration_database
         );
 
@@ -1498,7 +1502,7 @@ namespace h::compiler
         optimize_llvm_module(llvm_data, *llvm_module);
         
         return llvm_module;
-    }*/
+    }
 
     std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,

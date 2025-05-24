@@ -502,8 +502,8 @@ namespace h::compiler
     Clang_module_data create_clang_module_data(
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
+        std::string_view const module_name,
+        std::span<h::Module const* const> const core_modules,
         Declaration_database const& declaration_database
     )
     {
@@ -513,7 +513,7 @@ namespace h::compiler
         {
             clang::CreateLLVMCodeGen(
                 clang_data.compiler_instance->getDiagnostics(),
-                core_module.name.data(),
+                module_name.data(),
                 &clang_data.compiler_instance->getVirtualFileSystem(),
                 clang_data.compiler_instance->getHeaderSearchOpts(),
                 clang_data.compiler_instance->getPreprocessorOpts(),
@@ -526,7 +526,7 @@ namespace h::compiler
 
         Clang_declaration_database clang_declaration_database;
 
-        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        for (std::pair<Type_instance const, Declaration_instance_storage> const& pair : declaration_database.instances)
         {
             Type_instance const& type_instance = pair.first;
             Declaration_instance_storage const& storage = pair.second;
@@ -544,11 +544,10 @@ namespace h::compiler
             }
         }
 
-        for (Module const* module_dependency : sorted_core_module_dependencies)
-            add_clang_declarations(clang_declaration_database, clang_ast_context, *module_dependency, declaration_database);
-        add_clang_declarations(clang_declaration_database, clang_ast_context, core_module, declaration_database);
+        for (Module const* core_module : core_modules)
+            add_clang_declarations(clang_declaration_database, clang_ast_context, *core_module, declaration_database);
 
-        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        for (std::pair<Type_instance const, Declaration_instance_storage> const& pair : declaration_database.instances)
         {
             Type_instance const& type_instance = pair.first;
             Declaration_instance_storage const& storage = pair.second;
@@ -565,7 +564,7 @@ namespace h::compiler
             }
         }
 
-        for (std::pair<Instance_call_key, Function_expression const> const& pair : declaration_database.call_instances)
+        for (std::pair<Instance_call_key const, Function_expression> const& pair : declaration_database.call_instances)
         {
             Instance_call_key const& key = pair.first;
             Function_expression const& function_expression = pair.second;
@@ -763,7 +762,6 @@ namespace h::compiler
 
                     h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
                     llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
-                    llvm::Align const original_return_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
                     
                     llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_return_llvm_type);
 

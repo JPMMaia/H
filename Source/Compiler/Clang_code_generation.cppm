@@ -202,11 +202,18 @@ namespace h::compiler
         unsigned int const optimization_level
     );
 
+    export Clang_declaration_database create_clang_declaration_database(
+        llvm::LLVMContext& llvm_context,
+        Clang_data const& clang_data,
+        std::span<h::Module const* const> const core_modules,
+        Declaration_database const& declaration_database
+    );
+
     export Clang_module_data create_clang_module_data(
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
+        std::string_view const module_name,
+        std::span<h::Module const* const> const core_modules,
         Declaration_database const& declaration_database
     );
 }
