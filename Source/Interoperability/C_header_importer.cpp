@@ -2559,7 +2559,7 @@ namespace h::c
         return header_module;
     }
 
-    void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
+    h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
         /*std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
 
@@ -2580,6 +2580,8 @@ namespace h::c
         h::Module header_module = import_header(header_name, header_path, options);
         //header_module.content_hash = current_header_hash;
         h::json::write<h::Module>(output_path, header_module);
+
+        return header_module;
     }
 
     h::Struct_layout calculate_struct_layout(
