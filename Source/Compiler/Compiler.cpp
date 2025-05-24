@@ -56,6 +56,9 @@ import h.compiler.expressions;
 import h.compiler.instructions;
 import h.compiler.types;
 import h.json_serializer;
+import h.parser.convertor;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 namespace h::compiler
 {
@@ -775,6 +778,33 @@ namespace h::compiler
         }
     }
 
+    std::optional<h::Module> parse_and_convert(
+        std::filesystem::path const input_file_path
+    )
+    {
+        std::optional<std::pmr::string> input_content = h::common::get_file_contents(input_file_path);
+        if (!input_content.has_value())
+            return std::nullopt;
+
+        h::parser::Parser parser = h::parser::create_parser(true);
+        h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, input_content.value());
+
+        h::parser::Parse_node const root = get_root_node(parse_tree);
+
+        std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+            parse_tree,
+            root,
+            input_file_path,
+            {},
+            {}
+        );
+
+        h::parser::destroy_tree(std::move(parse_tree));
+        h::parser::destroy_parser(std::move(parser));
+
+        return core_module;
+    }
+
     std::pmr::unordered_map<std::pmr::string, h::Module> create_dependency_core_modules(
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map
@@ -783,8 +813,8 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, h::Module> core_module_dependencies;
         core_module_dependencies.reserve(module_name_to_file_path_map.size() + 1);
 
-        std::filesystem::path const builtin_file_path = BUILTIN_HL_FILE_PATH;
-        std::optional<h::Module> builtin_module = h::json::read_module(builtin_file_path);
+        std::filesystem::path const builtin_file_path = BUILTIN_SOURCE_FILE_PATH;
+        std::optional<h::Module> builtin_module = parse_and_convert(builtin_file_path);
         if (!builtin_module.has_value())
             throw std::runtime_error{"Failed to read builtin module!"};
         core_module_dependencies.insert(std::make_pair(builtin_module->name, std::move(builtin_module.value())));
