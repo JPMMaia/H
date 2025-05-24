@@ -97,7 +97,7 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        parse_c_headers_and_cache(
+        std::pmr::vector<h::Module> header_modules = parse_c_headers_and_cache(
             builder,
             c_headers_and_options,
             output_allocator,
@@ -110,12 +110,20 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        parse_source_files_and_cache(
+        std::pmr::vector<h::Module> core_modules = parse_source_files_and_cache(
             builder,
             source_file_paths,
             output_allocator,
             temporaries_allocator
         );
+
+        core_modules.insert(
+            core_modules.begin(),
+            std::make_move_iterator(header_modules.begin()),
+            std::make_move_iterator(header_modules.end())
+        );
+
+        // TODO create compilation database
 
         /*std::pmr::vector<h::Module> const core_modules = parse_source_files_and_dependencies_and_cache(
             builder,
@@ -267,15 +275,19 @@ namespace h::compiler
         return std::pmr::vector<std::filesystem::path>{std::move(source_files), output_allocator};
     }
 
-    void parse_c_headers_and_cache(
+    std::pmr::vector<h::Module> parse_c_headers_and_cache(
         Builder const& builder,
         std::span<C_header_and_options const> const c_headers,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        for (C_header_and_options const& c_header_and_options : c_headers)
+        std::pmr::vector<h::Module> header_modules{output_allocator};
+        header_modules.resize(c_headers.size(), {});
+
+        for (std::size_t header_index = 0; header_index < c_headers.size(); ++header_index)
         {
+            C_header_and_options const& c_header_and_options = c_headers[header_index];
             C_header const& c_header = c_header_and_options.c_header;
 
             std::string_view const header_module_name = c_header.module_name;
@@ -292,6 +304,12 @@ namespace h::compiler
             {
                 if (is_file_newer_than(output_header_module_path, header_module_filename))
                 {
+                    std::optional<Module> header_module = h::json::read_module(output_header_module_path);
+                    if (!header_module.has_value())
+                        h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_header_module_path.generic_string()));
+
+                    header_modules[header_index] = std::move(header_module.value());
+
                     continue;
                 }
             }
@@ -306,21 +324,30 @@ namespace h::compiler
                 .remove_prefixes = c_header_options != nullptr ? c_header_options->remove_prefixes : std::span<std::pmr::string const>{},
             };
 
-            h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+            h::Module header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+
+            header_modules[header_index] = std::move(header_module);
         }
+
+        return header_modules;
     }
 
-    void parse_source_files_and_cache(
+    std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder const& builder,
         std::span<std::filesystem::path const> const source_files_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        std::pmr::vector<h::Module> core_modules{output_allocator};
+        core_modules.resize(source_files_paths.size(), h::Module{});
+
         h::parser::Parser parser = h::parser::create_parser(true);
 
-        for (std::filesystem::path const& source_file_path : source_files_paths)
+        for (std::size_t index = 0; index < source_files_paths.size(); ++index)
         {
+            std::filesystem::path const& source_file_path = source_files_paths[index];
+
             std::optional<std::pmr::string> const module_name = h::parser::read_module_name(source_file_path);
             if (!module_name.has_value())
                 h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
@@ -332,6 +359,12 @@ namespace h::compiler
             {
                 if (is_file_newer_than(output_module_path, source_file_path))
                 {
+                    std::optional<Module> core_module = h::json::read_module(output_module_path);
+                    if (!core_module.has_value())
+                        h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_module_path.generic_string()));
+
+                    core_modules[index] = std::move(core_module.value());
+
                     continue;
                 }
             }
@@ -356,10 +389,14 @@ namespace h::compiler
 
             h::json::write<h::Module>(output_module_path, core_module.value());
 
+            core_modules[index] = std::move(core_module.value());
+
             h::parser::destroy_tree(std::move(parse_tree));
         }
 
         h::parser::destroy_parser(std::move(parser));
+
+        return core_modules;
     }
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(

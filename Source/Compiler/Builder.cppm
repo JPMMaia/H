@@ -65,14 +65,14 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    void parse_c_headers_and_cache(
+    std::pmr::vector<h::Module> parse_c_headers_and_cache(
         Builder const& builder,
-        std::span<C_header_and_options const> const c_headers_and_options,
+        std::span<C_header_and_options const> const c_headers,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    void parse_source_files_and_cache(
+    std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder const& builder,
         std::span<std::filesystem::path const> const source_file_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
