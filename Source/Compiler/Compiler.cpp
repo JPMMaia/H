@@ -1383,6 +1383,123 @@ namespace h::compiler
         return llvm_module;
     }
 
+    /*std::pmr::vector<h::Module const*> sort_core_modules(
+        std::span<h::Module const> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Module const*> remaining{ temporaries_allocator };
+        remaining.reserve(core_modules.size());
+
+        for (h::Module const& core_module : core_modules)
+        {
+            remaining.push_back(&core_module);
+        }
+
+        std::pmr::vector<h::Module const*> sorted{ output_allocator };
+        sorted.reserve(core_modules.size());
+
+        while (!remaining.empty())
+        {
+            for (std::size_t remaining_index = 0; remaining_index < remaining.size(); ++remaining_index)
+            {
+                h::Module const* core_module = remaining[remaining_index];
+
+                bool const all_dependencies_are_in_sorted = std::all_of(
+                    core_module->dependencies.alias_imports.begin(),
+                    core_module->dependencies.alias_imports.end(),
+                    [&](Import_module_with_alias const& alias_import) -> bool
+                {
+                    auto const location = std::find_if(sorted.begin(), sorted.end(), [&](h::Module const* sorted_module) -> bool { return sorted_module->name == alias_import.module_name; });
+                    return location != sorted.end();
+                }
+                );
+
+                if (all_dependencies_are_in_sorted)
+                {
+                    sorted.push_back(core_module);
+                    remaining.erase(remaining.begin() + remaining_index);
+                    break;
+                }
+            }
+        }
+
+        return sorted;
+    }
+
+    struct Compilation_database
+    {
+        Declaration_database declaration_database;
+        Clang_module_data clang_module_data;
+        Type_database type_database;
+    };
+
+    Compilation_database process_modules_and_create_compilation_database(
+        std::span<h::Module> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Module const*> const sorted_core_modules = sort_core_modules(
+            core_modules,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        Declaration_database declaration_database = create_declaration_database();
+        for (Module const* core_module : sorted_core_modules)
+            add_declarations(declaration_database, *core_module);
+
+        // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
+        for (Module& core_module : core_modules)
+            process_module(core_module, declaration_database, temporaries_allocator);
+
+        Clang_module_data clang_module_data = create_clang_module_data(
+            *llvm_data.context,
+            llvm_data.clang_data,
+            new_core_module,
+            sorted_core_module_dependencies,
+            declaration_database
+        );
+
+        Type_database type_database = create_type_database(*llvm_data.context);
+        for (Module const* core_module : sorted_core_modules)
+            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *core_module);
+
+        return Compilation_database
+        {
+            .declaration_database = std::move(declaration_database),
+            .clang_module_data = std::move(clang_module_data),
+            .type_database = std::move(type_database),
+        };
+    }
+
+    std::unique_ptr<llvm::Module> create_llvm_module(
+        LLVM_data& llvm_data,
+        h::Module const& core_module,
+        Compilation_database const& compilation_database,
+        Compilation_options const& compilation_options
+    )
+    {
+        std::unique_ptr<llvm::Module> llvm_module = create_module(
+            *llvm_data.context,
+            llvm_data.target_triple,
+            llvm_data.data_layout,
+            compilation_database.clang_module_data,
+            core_module,
+            core_module_dependencies,
+            std::nullopt,
+            compilation_database.declaration_database,
+            compilation_database.type_database,
+            compilation_options
+        );
+        
+        optimize_llvm_module(llvm_data, *llvm_module);
+        
+        return llvm_module;
+    }*/
+
     std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         Module const& core_module,
