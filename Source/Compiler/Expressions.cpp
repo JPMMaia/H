@@ -791,7 +791,6 @@ namespace h::compiler
         if (additional_operation.has_value())
         {
             llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-            std::string_view const current_module_name = parameters.core_module.name;
 
             Binary_operation const operation = additional_operation.value();
 
@@ -1575,7 +1574,6 @@ namespace h::compiler
         if (parameters.llvm_parent_function == nullptr)
             throw std::runtime_error{"Can only create calls inside functions!"};
 
-        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
         Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
@@ -2286,7 +2284,6 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
-        std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
         auto const calculate_number_of_blocks = [](std::span<Condition_statement_pair const> const series) -> std::uint32_t
         {
@@ -2869,7 +2866,6 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
-        std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
         std::pmr::vector<llvm::BasicBlock*> case_blocks;
         case_blocks.resize(expression.cases.size());
@@ -2974,8 +2970,6 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
-        std::span<Block_info const> block_infos = parameters.blocks;
-        std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
         llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_then", llvm_parent_function);
         llvm::BasicBlock* const else_block = llvm::BasicBlock::Create(llvm_context, "ternary_condition_else", llvm_parent_function);
@@ -3401,8 +3395,6 @@ namespace h::compiler
             std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, parameters.core_module.name, variable_name);
             if (declaration.has_value() && std::holds_alternative<Function_constructor const*>(declaration.value().data))
             {
-                Function_constructor const& function_constructor = *std::get<Function_constructor const*>(declaration.value().data);
-
                 Type_reference custom_type_reference = create_custom_type_reference(parameters.core_module.name, variable_name);
 
                 return Value_and_type
@@ -3427,7 +3419,6 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
-        std::span<Value_and_type const> const local_variables = parameters.local_variables;
 
         llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "while_loop_condition", llvm_parent_function);
         llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "while_loop_then", llvm_parent_function);
@@ -3745,7 +3736,7 @@ namespace h::compiler
 
         Expression_parameters new_parameters = parameters;
 
-        for (Statement const statement : statements)
+        for (Statement const& statement : statements)
         {
             if (!is_comment(statement))
             {
@@ -3840,9 +3831,6 @@ namespace h::compiler
         }
         case Condition_type::Postcondition: {
             return "postcondition";
-        }
-        default: {
-            return "condition";
         }
         }
     }

@@ -76,8 +76,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -85,6 +87,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "main.hltxt",
@@ -95,7 +98,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const main_file_path = root_directory / "main.hltxt";
@@ -162,8 +164,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -171,6 +175,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -181,7 +186,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -236,8 +240,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -261,7 +267,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -316,8 +321,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -325,6 +332,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -335,7 +343,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -425,8 +432,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -434,6 +443,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -444,7 +454,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -502,8 +511,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -511,6 +522,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -521,7 +533,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -597,8 +608,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -606,6 +619,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -616,7 +630,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -684,8 +697,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -693,6 +708,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -703,7 +719,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";
@@ -788,8 +803,10 @@ namespace h
         std::filesystem::path const build_directory_path = root_directory / "build";
         std::filesystem::create_directories(build_directory_path);
 
+        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::Artifact const artifact
         {
+            .file_path = artifact_configuration_file_path,
             .name = "hlang_artifact.json",
             .version = {
                 .major = 0,
@@ -797,6 +814,7 @@ namespace h
                 .patch = 0
             },
             .type = h::compiler::Artifact_type::Executable,
+            .dependencies = {},
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
@@ -807,7 +825,6 @@ namespace h
             }
         };
 
-        std::filesystem::path const artifact_configuration_file_path = root_directory / "hlang_artifact.json";
         h::compiler::write_artifact_to_file(artifact, artifact_configuration_file_path);
 
         std::filesystem::path const m0_file_path = root_directory / "m0.hltxt";

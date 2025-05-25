@@ -8,12 +8,15 @@ module;
 #include <unordered_map>
 #include <vector>
 
+#include <llvm/IR/Module.h>
+
 module h.compiler.builder;
 
 import h.core;
 import h.common;
 import h.compiler;
 import h.compiler.artifact;
+import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
 import h.c_header_converter;
@@ -28,7 +31,14 @@ namespace h::compiler
         std::filesystem::path const& build_directory_path
     )
     {
-        return build_directory_path / "hl";
+        return build_directory_path / "artifacts";
+    }
+
+    static std::filesystem::path get_bitcode_build_directory(
+        std::filesystem::path const& build_directory_path
+    )
+    {
+        return build_directory_path / "artifacts";
     }
 
     static void create_directory_if_it_does_not_exist(std::filesystem::path const& path)
@@ -69,20 +79,7 @@ namespace h::compiler
         std::filesystem::path const hl_build_directory = get_hl_build_directory(
             builder.build_directory_path
         );
-
         create_directory_if_it_does_not_exist(hl_build_directory);
-
-        // Build dependency graph of artifacts
-        // Get all source files of all artifacts (in parallel)
-        // Parse all source files (if needed) and cache them (in parallel)
-
-        // Build source dependency graph
-        // Build compilation database
-
-        // Detect sources that changed (or whoose dependency has changed)
-        // Compile sources (in parallel)
-        // 
-        // Link all artifacts that changed (in order)
 
         std::pmr::vector<Artifact> const artifacts = get_sorted_artifacts(
             artifact_file_path,
@@ -123,40 +120,42 @@ namespace h::compiler
             std::make_move_iterator(header_modules.end())
         );
 
-        // TODO create compilation database
+        Compilation_options const& compilation_options = builder.compilation_options;
 
-        /*std::pmr::vector<h::Module> const core_modules = parse_source_files_and_dependencies_and_cache(
-            builder,
-            start_source_files,
+        LLVM_data llvm_data = initialize_llvm(
+            compilation_options
+        );
+
+        // TODO make const
+        Compilation_database compilation_database = process_modules_and_create_compilation_database(
+            llvm_data,
+            core_modules,
             output_allocator,
             temporaries_allocator
         );
 
-        Dependency_graph dependency_graph = build_dependency_graph(
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map = create_module_name_to_file_path_map(
             builder,
             core_modules,
             output_allocator,
             temporaries_allocator
         );
-    
-        std::pmr::vector<h::Module*> core_modules_to_compile = calculate_modules_for_recompilation(
+
+        compile_and_write_to_bitcode_files(
             builder,
-            dependency_graph,
-            output_allocator,
-            temporaries_allocator
-        );
-        
-        Compilation_database compilation_database = create_compilation_database(
-            builder
-        );
-    
-        compile_modules(
-            builder,
+            core_modules,
+            module_name_to_file_path_map,
+            llvm_data,
             compilation_database,
-            core_modules_to_compile
+            compilation_options
         );
 
-        // TODO link*/
+        link_artifacts(
+            builder,
+            artifacts,
+            compilation_options,
+            temporaries_allocator
+        );
     }
 
     void add_artifact_dependencies(
@@ -401,26 +400,167 @@ namespace h::compiler
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(
         Builder const& builder,
-        std::span<C_header_and_options const> const c_headers,
+        std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> map{temporaries_allocator};
 
-        for (C_header_and_options const& c_header_and_options : c_headers)
+        for (h::Module const& core_module : core_modules)
         {
-            C_header const& c_header = c_header_and_options.c_header;
+            std::string_view const module_name = core_module.name;
 
-            std::string_view const header_module_name = c_header.module_name;
+            std::filesystem::path const module_filename = std::format("{}.hl", module_name);
+            std::filesystem::path const output_module_path = builder.build_directory_path / module_filename;
 
-            std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
-            std::filesystem::path const output_header_module_path = builder.build_directory_path / header_module_filename;
-
-            map.insert(std::make_pair(std::pmr::string{ header_module_name }, output_header_module_path));
+            map.insert(std::make_pair(std::pmr::string{ module_name }, output_module_path));
         }
 
         return std::pmr::unordered_map<std::pmr::string, std::filesystem::path>{std::move(map), output_allocator};
+    }
+
+    void compile_and_write_to_bitcode_files(
+        Builder const& builder,
+        std::span<h::Module const> const core_modules,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        LLVM_data& llvm_data,
+        Compilation_database& compilation_database,
+        Compilation_options const& compilation_options
+    )
+    {
+        // TODO to paralelize, llvm_data and compilation_database should be const
+
+        for (std::size_t index = 0; index < core_modules.size(); ++index)
+        {
+            h::Module const& core_module = core_modules[index];
+
+            std::filesystem::path const output_assembly_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", core_module.name);
+
+            if (std::filesystem::exists(output_assembly_file))
+            {
+                std::filesystem::path const& input_module_file = module_name_to_file_path_map.at(core_module.name);
+
+                if (is_file_newer_than(output_assembly_file, input_module_file))
+                {
+                    continue;
+                }
+            }
+
+            std::unique_ptr<llvm::Module> llvm_module = create_llvm_module(
+                llvm_data,
+                core_module,
+                module_name_to_file_path_map,
+                compilation_database,
+                compilation_options
+            );
+
+            h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
+        }
+    }
+
+    std::pmr::vector<std::filesystem::path> get_artifact_bitcode_files(
+        Builder const& builder,
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::filesystem::path> bitcode_files{temporaries_allocator};
+
+        if (std::holds_alternative<Library_info>(*artifact.info))
+        {
+            Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+            for (C_header const& c_header : library_info.c_headers)
+            {
+                std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", c_header.module_name);
+                bitcode_files.push_back(std::move(bitcode_file));
+            }
+        }
+
+        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(
+            artifact,
+            temporaries_allocator
+        );
+
+        for (std::filesystem::path const& source_file_path : source_files)
+        {
+            std::optional<std::pmr::string> const module_name = h::parser::read_module_name(source_file_path);
+            if (!module_name.has_value())
+                h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
+
+            std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", module_name.value());
+            bitcode_files.push_back(std::move(bitcode_file));
+        }        
+
+        return bitcode_files;
+    }
+
+    void link_artifacts(
+        Builder const& builder,
+        std::span<Artifact const> const artifacts,
+        h::compiler::Compilation_options const& compilation_options,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        for (std::size_t index = 0; index < artifacts.size(); ++index)
+        {
+            Artifact const& artifact = artifacts[index];
+
+            if (!artifact.info.has_value())
+            {
+                continue;
+            }
+
+            std::pmr::vector<std::filesystem::path> const bitcode_files = get_artifact_bitcode_files(
+                builder,
+                artifact,
+                temporaries_allocator
+            );
+
+            std::pmr::vector<std::pmr::string> libraries; // TODO
+
+            if (std::holds_alternative<Library_info>(*artifact.info))
+            {
+                Library_info const& library_info = std::get<Library_info>(*artifact.info);
+
+                h::compiler::Linker_options const linker_options
+                {
+                    .entry_point = std::nullopt,
+                    .debug = compilation_options.debug,
+                    .link_type = h::compiler::Link_type::Static_library
+                };
+
+                std::filesystem::path const output = builder.build_directory_path / "lib" / artifact.name;
+
+                h::compiler::link(
+                    bitcode_files,
+                    libraries,
+                    output,
+                    linker_options
+                );
+            }
+            else if (std::holds_alternative<h::compiler::Executable_info>(*artifact.info))
+            {
+                h::compiler::Executable_info const& executable_info = std::get<h::compiler::Executable_info>(*artifact.info);
+
+                h::compiler::Linker_options const linker_options
+                {
+                    .entry_point = executable_info.entry_point,
+                    .debug = compilation_options.debug,
+                    .link_type = h::compiler::Link_type::Executable
+                };
+
+                std::filesystem::path const output = builder.build_directory_path / "bin" / artifact.name;
+
+                h::compiler::link(
+                    bitcode_files,
+                    libraries,
+                    output,
+                    linker_options
+                );
+            }
+        }
     }
 
     bool is_file_newer_than(

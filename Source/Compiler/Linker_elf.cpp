@@ -54,11 +54,26 @@ namespace h::compiler
         Linker_options const& options
     )
     {
+        if (options.link_type == Link_type::Static_library)
+        {
+            // TODO
+            // run ar rcs libexample.a libexample.o
+            return false;
+        }
+
         std::pmr::vector<std::string> arguments_storage;
         arguments_storage.reserve(5 + libraries.size() + object_file_paths.size());
 
-        arguments_storage.push_back(std::format("-e {}", options.entry_point));
-        arguments_storage.push_back(std::format("-o {}", output.generic_string()));
+        if (options.link_type == Link_type::Executable)
+        {
+            arguments_storage.push_back(std::format("-e {}", options.entry_point.value_or(std::string_view{"main"})));
+            arguments_storage.push_back(std::format("-o {}", output.generic_string()));
+        }
+        else if (options.link_type == Link_type::Shared_library)
+        {
+            arguments_storage.push_back(std::format("-shared"));
+            arguments_storage.push_back(std::format("-o {}.so", output.generic_string()));
+        }
 
         arguments_storage.push_back(std::format("-lc"));
         arguments_storage.push_back(std::format("-lm"));

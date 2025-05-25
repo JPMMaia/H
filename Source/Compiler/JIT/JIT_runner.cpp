@@ -373,7 +373,7 @@ namespace h::compiler
     {
         std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
 
-        for (std::pair<std::pmr::string, h::Module> const& core_module : core_modules)
+        for (std::pair<std::pmr::string const, h::Module> const& core_module : core_modules)
         {
             insert_symbol_to_module_name_entries(core_module.second, mangle, protected_data.symbol_to_module_name_map);
         }
@@ -414,7 +414,7 @@ namespace h::compiler
 
             // TODO remove all entries where pair.second == core_module->name
 
-            for (std::pair<std::pmr::string, h::Module> const& core_module_dependency : *core_module_dependencies)
+            for (std::pair<std::pmr::string const, h::Module> const& core_module_dependency : *core_module_dependencies)
             {
                 protected_data.module_name_to_reverse_dependencies.insert(std::make_pair(core_module_dependency.first, core_module->name));
             }

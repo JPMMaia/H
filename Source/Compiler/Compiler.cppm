@@ -19,6 +19,7 @@ module;
 export module h.compiler;
 
 import h.core;
+import h.core.declarations;
 import h.compiler.clang_data;
 import h.compiler.expressions;
 import h.compiler.types;
@@ -90,6 +91,28 @@ namespace h::compiler
         LLVM_data& llvm_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_options const& compilation_options
+    );
+
+    export struct Compilation_database
+    {
+        Declaration_database declaration_database;
+        Clang_module_data clang_module_data;
+        Type_database type_database;
+    };
+
+    export Compilation_database process_modules_and_create_compilation_database(
+        LLVM_data& llvm_data,
+        std::span<h::Module> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::unique_ptr<llvm::Module> create_llvm_module(
+        LLVM_data& llvm_data,
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     );
 

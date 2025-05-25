@@ -1386,57 +1386,66 @@ namespace h::compiler
         return llvm_module;
     }
 
-    std::pmr::vector<h::Module const*> sort_core_modules(
+    static void add_sorted_core_module(
+        std::pmr::vector<h::Module const*>& sorted,
+        h::Module const& core_module,
+        std::span<h::Module const> const core_modules
+    )
+    {
+        auto const location = std::find_if(
+            sorted.begin(),
+            sorted.end(),
+            [&](h::Module const* current) -> bool { return current->name == core_module.name; }
+        );
+        if (location != sorted.end())
+            return;
+
+        for (std::size_t import_index = 0; import_index < core_module.dependencies.alias_imports.size(); ++import_index)
+        {
+            Import_module_with_alias const& alias_import = core_module.dependencies.alias_imports[import_index];
+            
+            auto const location = std::find_if(
+                core_modules.begin(),
+                core_modules.end(),
+                [&](h::Module const& current) -> bool { return current.name == alias_import.module_name; }
+            );
+            if (location == core_modules.end())
+                h::common::print_message_and_exit(std::format("Cannot find Module '{}'!", alias_import.module_name));
+
+            h::Module const& dependency_module = *location;
+
+            add_sorted_core_module(
+                sorted,
+                dependency_module,
+                core_modules
+            );
+        }
+
+        sorted.push_back(&core_module);
+    }
+
+    static std::pmr::vector<h::Module const*> sort_core_modules(
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<h::Module const*> remaining{ temporaries_allocator };
-        remaining.reserve(core_modules.size());
-
-        for (h::Module const& core_module : core_modules)
-        {
-            remaining.push_back(&core_module);
-        }
-
         std::pmr::vector<h::Module const*> sorted{ output_allocator };
         sorted.reserve(core_modules.size());
 
-        while (!remaining.empty())
+        for (std::size_t core_module_index = 0; core_module_index < core_modules.size(); ++core_module_index)
         {
-            for (std::size_t remaining_index = 0; remaining_index < remaining.size(); ++remaining_index)
-            {
-                h::Module const* core_module = remaining[remaining_index];
+            h::Module const& core_module = core_modules[core_module_index];
 
-                bool const all_dependencies_are_in_sorted = std::all_of(
-                    core_module->dependencies.alias_imports.begin(),
-                    core_module->dependencies.alias_imports.end(),
-                    [&](Import_module_with_alias const& alias_import) -> bool
-                {
-                    auto const location = std::find_if(sorted.begin(), sorted.end(), [&](h::Module const* sorted_module) -> bool { return sorted_module->name == alias_import.module_name; });
-                    return location != sorted.end();
-                }
-                );
-
-                if (all_dependencies_are_in_sorted)
-                {
-                    sorted.push_back(core_module);
-                    remaining.erase(remaining.begin() + remaining_index);
-                    break;
-                }
-            }
+            add_sorted_core_module(
+                sorted,
+                core_module,
+                core_modules
+            );
         }
 
         return sorted;
     }
-
-    struct Compilation_database
-    {
-        Declaration_database declaration_database;
-        Clang_module_data clang_module_data;
-        Type_database type_database;
-    };
 
     Compilation_database process_modules_and_create_compilation_database(
         LLVM_data& llvm_data,
@@ -1482,10 +1491,16 @@ namespace h::compiler
     std::unique_ptr<llvm::Module> create_llvm_module(
         LLVM_data& llvm_data,
         h::Module const& core_module,
-        Compilation_database const& compilation_database,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     )
     {
+        std::pmr::unordered_map<std::pmr::string, h::Module> core_module_dependencies = create_dependency_core_modules(
+            core_module,
+            module_name_to_file_path_map
+        );
+
         std::unique_ptr<llvm::Module> llvm_module = create_module(
             *llvm_data.context,
             llvm_data.target_triple,

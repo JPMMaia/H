@@ -79,37 +79,27 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    struct Dependency_graph
-    {
-
-    };
-
-    Dependency_graph build_dependency_graph(
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(
         Builder const& builder,
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::pmr::vector<h::Module*> calculate_modules_for_recompilation(
+    void compile_and_write_to_bitcode_files(
         Builder const& builder,
-        Dependency_graph const& dependency_graph,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::span<h::Module const> const core_modules,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
+        LLVM_data& llvm_data,
+        Compilation_database& compilation_database,
+        Compilation_options const& compilation_options
+    );
+
+    void link_artifacts(
+        Builder const& builder,
+        std::span<Artifact const> const artifacts,
+        h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
-
-    struct Compilation_database
-    {
-    };
-
-    Compilation_database create_compilation_database(
-        Builder const& builder
-    );
-
-    void compile_modules(
-        Builder const& builder,
-        Compilation_database const& compilation_database,
-        std::span<h::Module* const> const core_modules
     );
 
     bool is_file_newer_than(

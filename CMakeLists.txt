@@ -9,6 +9,8 @@ include(CTest)
 
 if (MSVC)
     add_compile_options("/EHsc")
+else ()
+    add_compile_options("-gdwarf-4")
 endif ()
 
 add_subdirectory("External")
