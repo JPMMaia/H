@@ -1,6 +1,15 @@
 {
     "testMate.cpp.debug.configTemplate": {
-        "type": "lldb-dap",
+        "type": "cppdbg",
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            }
+        ],
+        "miDebuggerPath": "/usr/bin/gdb",
         "program": "${exec}",
         "args": "${argsArray}",
         "cwd": "${cwd}",
