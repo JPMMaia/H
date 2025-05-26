@@ -78,11 +78,9 @@ if(WIN32)
       libclang
    )
 else()
-   target_link_libraries(
-      H_compiler
-      PRIVATE
-      libclang
-   )
+
+   find_library(clang_library clang REQUIRED)
+   target_link_libraries(H_compiler PRIVATE ${clang_library})
 
    find_library(clang_cpp_library clang-cpp REQUIRED)
    target_link_libraries(H_compiler PRIVATE ${clang_cpp_library})
@@ -199,7 +197,7 @@ if(BUILD_TESTING)
       "JIT/JIT_runner.tests.cpp"
    )
 
-   add_dependencies(H_compiler_tests C_standard_library)
+   # add_dependencies(H_compiler_tests C_standard_library)
 
    include(Catch)
    catch_discover_tests(H_compiler_tests)

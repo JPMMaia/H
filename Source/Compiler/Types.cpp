@@ -184,7 +184,7 @@ namespace h::compiler
             return false;
         };
 
-        visit_type_references(type_reference, add_nested_alias);
+        visit_type_references_recursively(type_reference, add_nested_alias);
 
         return nested_alias;
     }
@@ -371,6 +371,12 @@ namespace h::compiler
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
         {
+            if (struct_declaration.member_names.empty())
+            {
+                llvm_type_map.insert(std::make_pair(struct_declaration.name, nullptr));
+                continue;
+            }
+
             llvm::Type* const converted_type = convert_type(
                 clang_module_data,
                 core_module.name,
@@ -624,7 +630,8 @@ namespace h::compiler
         return
         {
             .builtin = create_builtin_types(llvm_context),
-            .name_to_llvm_type = {}
+            .name_to_llvm_type = {},
+            .type_instance_to_llvm_type = {},
         };
     }
 
@@ -663,7 +670,7 @@ namespace h::compiler
         add_alias_types(llvm_context, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
         add_alias_types(llvm_context, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, llvm_type_map);
 
-        for (std::pair<Type_instance, clang::RecordDecl* const> const& pair : clang_module_data.declaration_database.instances)
+        for (std::pair<Type_instance const, clang::RecordDecl*> const& pair : clang_module_data.declaration_database.instances)
         {
             clang::RecordDecl* const record_declaration = pair.second;
             llvm::Type* const clang_type = convert_type(clang_module_data, record_declaration);
@@ -918,7 +925,7 @@ namespace h::compiler
     {
         if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
         {
-            Builtin_type_reference const& data = std::get<Builtin_type_reference>(type_reference.data);
+            // Builtin_type_reference const& data = std::get<Builtin_type_reference>(type_reference.data);
             throw std::runtime_error{ "Not implemented." };
         }
         else if (std::holds_alternative<Constant_array_type>(type_reference.data))
@@ -1030,7 +1037,7 @@ namespace h::compiler
     {
         if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
         {
-            Builtin_type_reference const& data = std::get<Builtin_type_reference>(type_reference.data);
+            // Builtin_type_reference const& data = std::get<Builtin_type_reference>(type_reference.data);
             throw std::runtime_error{ "Not implemented." };
         }
         else if (std::holds_alternative<Constant_array_type>(type_reference.data))

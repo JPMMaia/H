@@ -9,13 +9,15 @@ target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_seria
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(H_C_header_importer PRIVATE libclang)
+
+find_library(clang_library clang-cpp REQUIRED)
+target_link_libraries(H_C_header_importer PRIVATE ${clang_library})
 
 if(WIN32)
    target_link_libraries(H_C_header_importer PRIVATE clangTooling)
 else()
-   find_library(clang_cpp clang-cpp REQUIRED)
-   target_link_libraries(H_C_header_importer PRIVATE ${clang_cpp})
+   find_library(clang_cpp_library clang-cpp REQUIRED)
+   target_link_libraries(H_C_header_importer PRIVATE ${clang_cpp_library})
 endif()
 
 ## End LLVM ##
@@ -136,9 +138,10 @@ find_file(
 )
 get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
 
-Import_c_header(
-   TARGET C_standard_library
-   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/C_standard_library"
-   HEADERS
-      "${c_headers_location}/stdio.h"
-)
+
+# Import_c_header(
+#    TARGET C_standard_library
+#    OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/C_standard_library"
+#    HEADERS
+#       "${c_headers_location}/stdio.h"
+# )

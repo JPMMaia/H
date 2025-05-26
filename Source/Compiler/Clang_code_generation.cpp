@@ -3,6 +3,7 @@ module;
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclBase.h>
+#include <clang/AST/DeclCXX.h>
 #include <clang/AST/Type.h>
 #include <clang/Basic/Builtins.h>
 #include <clang/Basic/CodeGenOptions.h>
@@ -98,7 +99,7 @@ namespace h::compiler
                 return false;
             };
 
-            h::visit_type_references(
+            h::visit_type_references_recursively(
                 alias_type_declaration.type[0],
                 add_underlying_alias
             );
@@ -181,6 +182,7 @@ namespace h::compiler
         std::string const mangled_name = mangle_name(module_name, struct_declaration.name, struct_declaration.unique_name);
         clang::IdentifierInfo* const struct_name = &clang_ast_context.Idents.get(mangled_name);
 
+        // TODO try to create a CXXRecordDecl
         clang::RecordDecl* const record_declaration = clang::RecordDecl::Create(
             clang_ast_context,
             clang::TagTypeKind::Struct,
@@ -440,6 +442,9 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
+            if (struct_declaration.member_names.empty())
+                continue;
+
             clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, core_module.name, struct_declaration);
             iterator->second.struct_declarations.emplace(struct_declaration.name, record_declaration);
         }
@@ -472,6 +477,9 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
+            if (struct_declaration.member_names.empty())
+                continue;
+
             clang::RecordDecl* const record_declaration = iterator->second.struct_declarations.at(struct_declaration.name);
             set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
         }
@@ -1786,8 +1794,11 @@ namespace h::compiler
                 else if (std::holds_alternative<h::Struct_declaration const*>(declaration->data))
                 {
                     Clang_module_declarations const& clang_declarations = clang_declaration_database.map.at(custom_type_reference.module_reference.name);
-                    clang::RecordDecl* const record_declaration = clang_declarations.struct_declarations.at(custom_type_reference.name);
-
+                    auto const location = clang_declarations.struct_declarations.find(custom_type_reference.name);
+                    if (location == clang_declarations.struct_declarations.end())
+                        return std::nullopt;
+                    
+                    clang::RecordDecl* const record_declaration = location->second;
                     return clang_ast_context.getRecordType(record_declaration);
                 }
                 else if (std::holds_alternative<h::Union_declaration const*>(declaration->data))

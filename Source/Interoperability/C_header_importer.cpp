@@ -2215,7 +2215,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2226,7 +2226,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2237,7 +2237,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2248,7 +2248,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2259,7 +2259,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 

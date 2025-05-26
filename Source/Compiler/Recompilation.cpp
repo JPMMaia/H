@@ -85,7 +85,7 @@ namespace h::compiler
                             return true;
                         }
 
-                        h::visit_type_references(core_module, custom_type_reference.name, process_custom_type_reference);
+                        h::visit_type_references_recursively_with_declaration_name(core_module, custom_type_reference.name, process_custom_type_reference);
                     }
                 }
             }
@@ -93,7 +93,7 @@ namespace h::compiler
             return false;
         };
 
-        h::visit_type_references(core_module.export_declarations, process_custom_type_reference);
+        h::visit_type_references_recursively_with_declaration_name(core_module.export_declarations, process_custom_type_reference);
 
         return symbols_that_changed;
     }
@@ -133,7 +133,7 @@ namespace h::compiler
                     if (!visited_symbols.contains(custom_type_reference.name))
                     {
                         visited_symbols.insert(custom_type_reference.name);
-                        h::visit_type_references(core_module, custom_type_reference.name, process_custom_type_reference);
+                        h::visit_type_references_recursively_with_declaration_name(core_module, custom_type_reference.name, process_custom_type_reference);
                     }
                 }
             }
@@ -141,7 +141,7 @@ namespace h::compiler
             return false;
         };
 
-        h::visit_type_references(core_module.export_declarations, process_custom_type_reference);
+        h::visit_type_references_recursively_with_declaration_name(core_module.export_declarations, process_custom_type_reference);
 
         return symbols_that_changed;
     }

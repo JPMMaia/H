@@ -1449,11 +1449,17 @@ namespace h::compiler
 
     Compilation_database process_modules_and_create_compilation_database(
         LLVM_data& llvm_data,
+        std::span<h::Module> const header_modules,
         std::span<h::Module> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        // TODO find external usages
+        // TODO don't add declarations that are not used
+        // TODO don't add declarations from c headers by default
+        // TODO add recursive declarations, but only if not pointers
+
         std::pmr::vector<h::Module const*> const sorted_core_modules = sort_core_modules(
             core_modules,
             output_allocator,

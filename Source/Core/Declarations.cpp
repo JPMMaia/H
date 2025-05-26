@@ -339,7 +339,7 @@ namespace h
             return false;
         };
 
-        h::visit_type_references(
+        h::visit_type_references_recursively_with_declaration_name(
             core_module,
             instantiate_all
         );
@@ -362,12 +362,12 @@ namespace h
             return false;
         };
 
-        h::visit_type_references(
+        h::visit_type_references_recursively(
             function_expression.declaration,
             instantiate_all
         );
 
-        h::visit_type_references(
+        h::visit_type_references_recursively(
             function_expression.definition,
             instantiate_all
         );

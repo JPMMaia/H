@@ -6,6 +6,7 @@ module;
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include <llvm/IR/Module.h>
@@ -114,12 +115,6 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        core_modules.insert(
-            core_modules.begin(),
-            std::make_move_iterator(header_modules.begin()),
-            std::make_move_iterator(header_modules.end())
-        );
-
         Compilation_options const& compilation_options = builder.compilation_options;
 
         LLVM_data llvm_data = initialize_llvm(
@@ -129,9 +124,16 @@ namespace h::compiler
         // TODO make const
         Compilation_database compilation_database = process_modules_and_create_compilation_database(
             llvm_data,
+            header_modules,
             core_modules,
             output_allocator,
             temporaries_allocator
+        );
+
+        core_modules.insert(
+            core_modules.begin(),
+            std::make_move_iterator(header_modules.begin()),
+            std::make_move_iterator(header_modules.end())
         );
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map = create_module_name_to_file_path_map(
