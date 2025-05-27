@@ -1447,6 +1447,92 @@ namespace h::compiler
         return sorted;
     }
 
+    void add_import_usages(
+        h::Module& core_module,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        for (Import_module_with_alias& alias_import : core_module.dependencies.alias_imports)
+            alias_import.usages.clear();
+
+        auto const add_unique_usage = [&](std::string_view const module_name, std::string_view const usage) -> void
+        {
+            if (module_name.empty())
+                return;
+    
+            auto const location = std::find_if(
+                core_module.dependencies.alias_imports.begin(),
+                core_module.dependencies.alias_imports.end(),
+                [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.module_name == module_name; }
+            );
+            if (location != core_module.dependencies.alias_imports.end())
+            {
+                Import_module_with_alias& import_alias = *location;
+
+                auto const usage_location = std::find(
+                    import_alias.usages.begin(),
+                    import_alias.usages.end(),
+                    usage
+                );
+                if (usage_location == import_alias.usages.end())
+                    import_alias.usages.push_back(std::pmr::string{ usage, std::move(output_allocator) });
+            }
+        };
+
+        auto const process_type = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool
+        {
+            if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
+            {
+                h::Custom_type_reference const& custom_type_reference = std::get<h::Custom_type_reference>(type_reference.data);
+                add_unique_usage(custom_type_reference.module_reference.name, custom_type_reference.name);
+            }
+
+            return false;
+        };
+
+        h::visit_type_references(
+            core_module,
+            process_type
+        );
+
+        auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+        {
+            if (std::holds_alternative<h::Access_expression>(expression.data))
+            {
+                h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
+                
+                h::Expression const& left_hand_side = statement.expressions[access_expression.expression.expression_index];
+                if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+                {
+                    h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+
+                    std::string_view const left_hand_side_name = variable_expression.name;
+
+                    auto const location = std::find_if(
+                        core_module.dependencies.alias_imports.begin(),
+                        core_module.dependencies.alias_imports.end(),
+                        [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == left_hand_side_name; }
+                    );
+                    if (location != core_module.dependencies.alias_imports.end())
+                    {
+                        Import_module_with_alias& import_alias = *location;
+                        add_unique_usage(import_alias.module_name, access_expression.member_name);
+                    }
+                }
+            }
+
+            return false;
+        };
+
+        h::visit_expressions(
+            core_module,
+            process_expression
+        );
+
+        for (Import_module_with_alias& alias_import : core_module.dependencies.alias_imports)
+            std::sort(alias_import.usages.begin(), alias_import.usages.end());
+    }
+
     Compilation_database process_modules_and_create_compilation_database(
         LLVM_data& llvm_data,
         std::span<h::Module> const header_modules,
@@ -1455,7 +1541,11 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        // TODO find external usages
+        for (h::Module& core_module : core_modules)
+            add_import_usages(core_module, output_allocator);
+
+        std::pmr::unordered_map<std::string_view, std::pmr::vector<std::pmr::string>> usages_per_module;
+
         // TODO don't add declarations that are not used
         // TODO don't add declarations from c headers by default
         // TODO add recursive declarations, but only if not pointers
@@ -1467,6 +1557,16 @@ namespace h::compiler
         );
 
         Declaration_database declaration_database = create_declaration_database();
+        for (Module const& header_module : header_modules)
+        {
+            auto const location = usages_per_module.find(header_module.name);
+            if (location != usages_per_module.end())
+            {
+                std::pmr::vector<std::pmr::string> const& usages = location->second;
+                // TODO add usages
+                add_declarations(declaration_database, header_module);
+            }
+        }
         for (Module const* core_module : sorted_core_modules)
             add_declarations(declaration_database, *core_module);
 
