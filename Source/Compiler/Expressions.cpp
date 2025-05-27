@@ -578,7 +578,7 @@ namespace h::compiler
                         expression.member_name
                     );
                     if (!llvm_function)
-                        throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced. Mangled name is '{}'.", external_module.name, expression.member_name, llvm_function->getName().str()) };
+                        throw std::runtime_error{ std::format("Unknown function '{}.{}' referenced.", external_module.name, expression.member_name) };
 
                     return Value_and_type
                     {

@@ -11,9 +11,11 @@ module;
 
 module h.parser.convertor;
 
+import h.common;
 import h.core;
 import h.core.types;
 import h.parser.parse_tree;
+import h.parser.parser;
 import h.parser.type_name_parser;
 
 namespace h::parser
@@ -152,6 +154,37 @@ namespace h::parser
             return std::nullopt;
 
         return get_node_value(tree, module_name.value());
+    }
+
+    std::optional<h::Module> parse_and_convert_to_module(
+        std::filesystem::path source_file_path,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::optional<std::pmr::string> const file_contents = h::common::get_file_contents(source_file_path);
+        if (!file_contents.has_value())
+            return std::nullopt;
+        
+        std::pmr::string const& source = file_contents.value();
+
+        Parser parser = create_parser(true);
+        Parse_tree tree = parse(parser, nullptr, source);
+        
+        Parse_node const root = get_root_node(tree);
+
+        std::optional<h::Module> const converted_module = parse_node_to_module(
+            tree,
+            root,
+            source_file_path,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        destroy_tree(std::move(tree));
+        destroy_parser(std::move(parser));
+
+        return converted_module;
     }
 
     std::optional<h::Module> parse_node_to_module(

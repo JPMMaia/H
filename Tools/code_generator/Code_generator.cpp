@@ -983,6 +983,12 @@ namespace h::tools::code_generator
                     continue;
                 }
 
+                if (string.front() == '#')
+                {
+                    std::getline(input_stream, string);
+                    continue;
+                }
+
                 strings.push_back(string);
 
                 if (string == "};")

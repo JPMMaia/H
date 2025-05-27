@@ -3,6 +3,8 @@ module;
 #include <filesystem>
 #include <memory_resource>
 #include <optional>
+#include <span>
+#include <string_view>
 
 export module h.parser.convertor;
 
@@ -16,6 +18,12 @@ namespace h::parser
         std::string_view module_name;
         std::span<Import_module_with_alias const> alias_imports;
     };
+
+    export std::optional<h::Module> parse_and_convert_to_module(
+        std::filesystem::path source_file_path,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
 
     export std::optional<h::Module> parse_node_to_module(
         Parse_tree const& tree,

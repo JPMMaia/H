@@ -1,6 +1,6 @@
 module If_expressions;
 
-import C.stdio as stdio;
+import c.stdio as stdio;
 
 function print_message(message: *C_char) -> ()
 {

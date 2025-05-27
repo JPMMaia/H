@@ -4,6 +4,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <string>
 
 export module h.parser.formatter;

@@ -6,7 +6,12 @@ target_compile_features(H_JSON_serializer PUBLIC cxx_std_23)
 target_link_libraries(H_JSON_serializer PUBLIC H::Core)
 
 find_package(RapidJSON CONFIG REQUIRED)
-target_link_libraries(H_JSON_serializer PRIVATE RapidJSON)
+
+if(WIN32)
+    target_link_libraries(H_JSON_serializer PRIVATE rapidjson)
+else()
+    target_link_libraries(H_JSON_serializer PRIVATE RapidJSON)
+endif()
 
 target_sources(H_JSON_serializer
     PUBLIC FILE_SET modules TYPE CXX_MODULES

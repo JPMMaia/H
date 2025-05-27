@@ -21,6 +21,7 @@ import h.common;
 
 namespace h
 {
+#if HACK_SPACESHIP_OPERATOR
     template<typename... Ts>
     std::strong_ordering operator<=>(std::variant<Ts...> const& lhs, std::variant<Ts...> const& rhs)
     {
@@ -68,6 +69,7 @@ namespace h
     {
         return false; // TODo
     }
+#endif
 
     h::Module const& find_module(
         h::Module const& core_module,

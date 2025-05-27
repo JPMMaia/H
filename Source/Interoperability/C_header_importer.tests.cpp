@@ -21,7 +21,6 @@ using h::json::operators::operator<<;
 
 namespace h::c
 {
-    constexpr char const* g_c_headers_location = C_HEADERS_LOCATION;
     constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
 
     h::Alias_type_declaration const& find_alias_type_declaration(h::Module const& header_module, std::string_view const name)
@@ -82,8 +81,10 @@ namespace h::c
 
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
     {
-        std::filesystem::path const c_headers_path = g_c_headers_location;
-        std::filesystem::path const stdio_header_path = c_headers_path / "stdio.h";
+        std::pmr::vector<std::filesystem::path> const header_search_directories = 
+            h::common::get_default_header_search_directories();
+
+        std::filesystem::path const stdio_header_path = find_c_header_path("stdio.h", header_search_directories);
 
         h::Module const header_module = h::c::import_header("c.stdio", stdio_header_path, {});
 
@@ -116,10 +117,21 @@ namespace h::c
         CHECK(actual.linkage == Linkage::External);
     }
 
+    std::filesystem::path find_c_header_path(
+        std::string_view const header_file_name,
+        std::span<std::filesystem::path const> const header_search_directories
+    )
+    {
+        // TODO
+        return "";
+    }
+
     TEST_CASE("Import time.h C header creates 'time_t' typedef")
     {
-        std::filesystem::path const c_headers_path = g_c_headers_location;
-        std::filesystem::path const time_header_path = c_headers_path / "time.h";
+        std::pmr::vector<std::filesystem::path> const header_search_directories = 
+            h::common::get_default_header_search_directories();
+
+        std::filesystem::path const time_header_path = find_c_header_path("time.h", header_search_directories);
 
         h::Module const header_module = h::c::import_header("c.time", time_header_path, {});
 

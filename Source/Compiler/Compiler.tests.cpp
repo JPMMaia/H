@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <memory_resource>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -18,7 +19,9 @@ import h.core;
 import h.core.declarations;
 import h.core.struct_layout;
 import h.common;
+import h.common.filesystem;
 import h.compiler;
+import h.compiler.artifact;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
@@ -39,6 +42,42 @@ namespace h
 {
   static std::filesystem::path const g_test_source_files_path = std::filesystem::path{ TEST_SOURCE_FILES_PATH };
   static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
+
+  std::filesystem::path find_c_header_path(std::string_view const filename)
+  {
+    std::pmr::vector<std::filesystem::path> header_search_directories = h::common::get_default_header_search_directories();
+    std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(filename, header_search_directories);
+    REQUIRE(header_path.has_value());
+    return header_path.value();
+  }
+
+  std::filesystem::path compile_and_get_c_header(
+    std::string_view const header_name,
+    std::string_view const filename
+  )
+  {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock{mutex};
+
+    std::filesystem::path const input_file_path = find_c_header_path(filename);
+    std::filesystem::path const output_file_path = g_standard_library_path / filename;
+
+    if (std::filesystem::exists(output_file_path))
+      return output_file_path;
+
+    if (!std::filesystem::exists(output_file_path.parent_path()))
+      std::filesystem::create_directories(output_file_path.parent_path());
+
+    h::c::Options const options = {};
+    h::c::import_header_and_write_to_file(
+      header_name,
+      input_file_path,
+      output_file_path,
+      options
+    );
+
+    return output_file_path;
+  }
 
   std::string_view exclude_header(std::string_view const llvm_ir)
   {
@@ -705,7 +744,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
+        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2175,7 +2214,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
+      { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2342,7 +2381,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
+        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2370,7 +2409,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
+        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3704,7 +3743,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hltxt" }
+        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(

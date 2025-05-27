@@ -6,7 +6,7 @@ module;
 #include <string_view>
 #include <vector>
 
-#include <tree_sitter/api.h>
+#include "C:/Users/JPMMa/Desktop/source/vcpkg/packages/tree-sitter_x64-windows/include/tree_sitter/api.h"
 
 module h.parser.parse_tree;
 

@@ -173,13 +173,6 @@ if(BUILD_TESTING)
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
-   find_file(
-      stdio_location
-      "stdio.h"
-      REQUIRED
-   )
-   get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-
    target_compile_definitions(
       H_compiler_tests
       PRIVATE
@@ -187,7 +180,6 @@ if(BUILD_TESTING)
          TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
          STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
-         C_HEADERS_LOCATION="${c_headers_location}"
    )
 
    target_sources(H_compiler_tests PRIVATE

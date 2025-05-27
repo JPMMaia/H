@@ -22,6 +22,7 @@
 #include <iostream>
 
 import h.common;
+import h.common.filesystem;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.jit_runner;
@@ -30,7 +31,6 @@ import h.compiler.target;
 namespace h
 {
     static std::filesystem::path const g_standard_repository_file_path = std::filesystem::path{ STANDARD_REPOSITORY_FILE_PATH };
-    static std::filesystem::path const g_c_headers_location = std::filesystem::path{ C_HEADERS_LOCATION };
 
     void write_to_file_and_wait(
         h::compiler::JIT_runner& jit_runner,
@@ -288,10 +288,8 @@ namespace h
             g_standard_repository_file_path
         };
 
-        std::array<std::filesystem::path, 1> header_search_paths =
-        {
-            g_c_headers_location
-        };
+        std::pmr::vector<std::filesystem::path> header_search_paths =
+            h::common::get_default_header_search_directories();
 
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options =

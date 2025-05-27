@@ -1360,6 +1360,7 @@ namespace h::compiler
 
         // TODO do this a different place so we can modify original
         Module new_core_module = core_module;
+        add_import_usages(new_core_module, {});
         process_module(new_core_module, declaration_database, {});
 
         std::pmr::vector<h::Module const*> all_core_modules{

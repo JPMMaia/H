@@ -144,4 +144,9 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         Compilation_options const& compilation_options
     );
+
+    export void add_import_usages(
+        h::Module& core_module,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
 }

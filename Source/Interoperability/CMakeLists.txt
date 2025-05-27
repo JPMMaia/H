@@ -10,9 +10,6 @@ target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_seria
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
 
-find_library(clang_library clang-cpp REQUIRED)
-target_link_libraries(H_C_header_importer PRIVATE ${clang_library})
-
 if(WIN32)
    target_link_libraries(H_C_header_importer PRIVATE clangTooling)
 else()
@@ -45,15 +42,6 @@ target_sources(H_C_header_importer
 )
 
 if(BUILD_TESTING)
-   find_file(
-      stdio_location
-      "stdio.h"
-      REQUIRED
-   )
-   message(STATUS "stdio_location is ${stdio_location}")
-   get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-   message(STATUS "c_headers_location is ${c_headers_location}")
-
    find_package(Vulkan REQUIRED)
    set(vulkan_headers_location "${Vulkan_INCLUDE_DIRS}")
    message(STATUS "vulkan_headers_location is ${vulkan_headers_location}")
@@ -67,7 +55,6 @@ if(BUILD_TESTING)
    target_compile_definitions(
       H_C_header_importer_tests
       PRIVATE
-         C_HEADERS_LOCATION="${c_headers_location}"
          VULKAN_HEADERS_LOCATION="${vulkan_headers_location}"
    )
 
@@ -130,18 +117,3 @@ macro(Import_c_header)
    )
 
 endmacro()
-
-find_file(
-   stdio_location
-   "stdio.h"
-   REQUIRED
-)
-get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-
-
-# Import_c_header(
-#    TARGET C_standard_library
-#    OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/C_standard_library"
-#    HEADERS
-#       "${c_headers_location}/stdio.h"
-# )
