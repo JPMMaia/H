@@ -371,12 +371,6 @@ namespace h::compiler
     {
         for (Struct_declaration const& struct_declaration : struct_declarations)
         {
-            if (struct_declaration.member_names.empty())
-            {
-                llvm_type_map.insert(std::make_pair(struct_declaration.name, nullptr));
-                continue;
-            }
-
             llvm::Type* const converted_type = convert_type(
                 clang_module_data,
                 core_module.name,
