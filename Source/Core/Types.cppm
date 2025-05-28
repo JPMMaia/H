@@ -152,6 +152,10 @@ namespace h
         {
             return false;
         }
+        else if (std::holds_alternative<Parameter_type>(type_reference.data))
+        {
+            return false;
+        }
         else if (std::holds_alternative<Pointer_type>(type_reference.data))
         {
             Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
@@ -322,10 +326,27 @@ namespace h
                 Constant_expression const& data = std::get<Constant_expression>(expression.data);
                 return visit_type_references(data.type, predicate);
             }
+            else if (std::holds_alternative<Function_expression>(expression.data))
+            {
+                Function_expression const& data = std::get<Function_expression>(expression.data);
+                if (visit_type_references(data.declaration, predicate))
+                    return true;
+                return visit_type_references(data.definition, predicate);
+            }
             else if (std::holds_alternative<Type_expression>(expression.data))
             {
                 Type_expression const& data = std::get<Type_expression>(expression.data);
                 return visit_type_references(data.type, predicate);
+            }
+            else if (std::holds_alternative<Struct_expression>(expression.data))
+            {
+                Struct_expression const& data = std::get<Struct_expression>(expression.data);
+                return visit_type_references(data.declaration, predicate);
+            }
+            else if (std::holds_alternative<Union_expression>(expression.data))
+            {
+                Union_expression const& data = std::get<Union_expression>(expression.data);
+                return visit_type_references(data.declaration, predicate);
             }
             else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
             {

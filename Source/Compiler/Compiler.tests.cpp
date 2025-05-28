@@ -42,6 +42,7 @@ namespace h
 {
   static std::filesystem::path const g_test_source_files_path = std::filesystem::path{ TEST_SOURCE_FILES_PATH };
   static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
+  static std::filesystem::path const g_tests_output_directory_path = std::filesystem::path{ TESTS_OUTPUT_DIRECTORY_PATH };
 
   std::filesystem::path find_c_header_path(std::string_view const filename)
   {
@@ -51,7 +52,7 @@ namespace h
     return header_path.value();
   }
 
-  std::filesystem::path compile_and_get_c_header(
+  std::filesystem::path import_c_header_and_get_file_path(
     std::string_view const header_name,
     std::string_view const filename
   )
@@ -75,6 +76,26 @@ namespace h
       output_file_path,
       options
     );
+
+    return output_file_path;
+  }
+
+  std::filesystem::path parse_and_get_file_path(
+    std::filesystem::path const& source_file_path
+  )
+  {
+    std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+        source_file_path,
+        {},
+        {}
+    );
+    REQUIRE(core_module.has_value());
+
+    std::filesystem::path const output_file_path = g_tests_output_directory_path / std::format("{}.hl", core_module.value().name);
+    if (!std::filesystem::exists(output_file_path.parent_path()))
+      std::filesystem::create_directories(output_file_path.parent_path());
+
+    h::json::write<h::Module>(output_file_path, core_module.value());
 
     return output_file_path;
   }
@@ -278,7 +299,7 @@ entry:
   %my_float = alloca float, align 4
   store float %"arguments[0].other_float", ptr %other_float, align 4
   store float 1.000000e+00, ptr %my_float, align 4
-  store i32 2, ptr %my_float, align 4
+  store float 2.000000e+00, ptr %my_float, align 4
   %0 = load float, ptr %my_float, align 4
   %1 = load float, ptr %other_float, align 4
   %2 = fadd float %0, %1
@@ -744,7 +765,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -1999,7 +2020,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "dynamic_array", g_test_source_files_path / "dynamic_array.hltxt" }
+      { "dynamic_array", parse_and_get_file_path(g_test_source_files_path / "dynamic_array.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2214,7 +2235,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
+      { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2381,7 +2402,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2409,7 +2430,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2593,8 +2614,8 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "MB", g_test_source_files_path / "multiple_modules_b.hltxt" },
-      { "MC", g_test_source_files_path / "multiple_modules_c.hltxt" },
+      { "MB", parse_and_get_file_path(g_test_source_files_path / "multiple_modules_b.hltxt") },
+      { "MC", parse_and_get_file_path(g_test_source_files_path / "multiple_modules_c.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3115,7 +3136,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Alias", g_test_source_files_path / "using_alias.hltxt" }
+        { "Alias", parse_and_get_file_path(g_test_source_files_path / "using_alias.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3246,7 +3267,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Enums", g_test_source_files_path / "using_enums.hltxt" }
+        { "Enums", parse_and_get_file_path(g_test_source_files_path / "using_enums.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3743,7 +3764,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "c.stdio", compile_and_get_c_header("c.stdio", "stdio.h") }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(

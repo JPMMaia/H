@@ -156,6 +156,42 @@ namespace h::parser
         return get_node_value(tree, module_name.value());
     }
 
+    template<typename Parameter_t>
+    void replace_custom_type_reference_by_parameter_type(
+        Module_info const& module_info,
+        std::span<Statement const> const statements,
+        std::span<Parameter_t const> const parameters
+    )
+    {
+        auto const replace_by_parameter_type = [&](h::Type_reference const& type_reference) -> bool
+        {
+            if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
+            {
+                h::Custom_type_reference const& value = std::get<h::Custom_type_reference>(type_reference.data);
+                if (value.module_reference.name == module_info.module_name)
+                {
+                    auto const location = std::find_if(
+                        parameters.begin(),
+                        parameters.end(),
+                        [&value](Parameter_t const& parameter) -> bool
+                        {
+                            return parameter.name == value.name;
+                        }
+                    );
+                    if (location != parameters.end())
+                    {
+                        h::Type_reference* mutable_type_reference = const_cast<h::Type_reference*>(&type_reference);
+                        mutable_type_reference->data = h::Parameter_type{ .name = value.name };
+                    }
+                }
+            }
+
+            return false;
+        };
+
+        h::visit_type_references_recursively(statements, replace_by_parameter_type);
+    }
+
     std::optional<h::Module> parse_and_convert_to_module(
         std::filesystem::path source_file_path,
         std::pmr::polymorphic_allocator<> const& output_allocator,
@@ -1084,6 +1120,8 @@ namespace h::parser
                 output_allocator,
                 temporaries_allocator
             );
+
+            output.source_location = source_position_to_source_location(get_node_start_source_position(block_node.value()));
         }
 
         return output;
@@ -1150,6 +1188,12 @@ namespace h::parser
                 block_node.value(),
                 output_allocator,
                 temporaries_allocator
+            );
+
+            replace_custom_type_reference_by_parameter_type<Function_constructor_parameter>(
+                module_info,
+                output.statements,
+                output.parameters
             );
         }
         
@@ -1326,6 +1370,12 @@ namespace h::parser
                 block_node.value(),
                 output_allocator,
                 temporaries_allocator
+            );
+
+            replace_custom_type_reference_by_parameter_type<Type_constructor_parameter>(
+                module_info,
+                output.statements,
+                output.parameters
             );
         }
         
@@ -2436,6 +2486,7 @@ namespace h::parser
             if (statements_node.has_value())
             {
                 serie.then_statements = node_to_block(module_info, tree, statements_node.value(), output_allocator, temporaries_allocator);
+                serie.block_source_position = get_node_start_source_position(statements_node.value());
             }
 
             series.push_back(std::move(serie));

@@ -442,9 +442,6 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
-            if (struct_declaration.member_names.empty())
-                continue;
-
             clang::RecordDecl* const record_declaration = create_clang_struct_declaration(clang_ast_context, core_module.name, struct_declaration);
             iterator->second.struct_declarations.emplace(struct_declaration.name, record_declaration);
         }
@@ -477,9 +474,6 @@ namespace h::compiler
 
         for (h::Struct_declaration const& struct_declaration : core_module.internal_declarations.struct_declarations)
         {
-            if (struct_declaration.member_names.empty())
-                continue;
-
             clang::RecordDecl* const record_declaration = iterator->second.struct_declarations.at(struct_declaration.name);
             set_clang_struct_definition(clang_ast_context, *record_declaration, struct_declaration, declaration_database, clang_declaration_database);
         }

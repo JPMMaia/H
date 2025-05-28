@@ -178,6 +178,7 @@ if(BUILD_TESTING)
       PRIVATE
          EXAMPLES_DIRECTORY="${CMAKE_SOURCE_DIR}/Examples"
          TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
+         TESTS_OUTPUT_DIRECTORY_PATH="${CMAKE_BINARY_DIR}/Temp/Tests/Compiler"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
          STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
    )

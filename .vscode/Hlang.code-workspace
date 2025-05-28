@@ -54,7 +54,7 @@
 			},
 			{
 				"name": "Replace Compiler Tests",
-				"type": "lldb-dap",
+				"type": "cppvsdbg",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/tests_result_replacer/Debug/H_Tools_Replace_tests_results.exe",
 				"args": [
