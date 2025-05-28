@@ -72,6 +72,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    void add_builtin_module(
+        std::pmr::vector<h::Module>& header_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder const& builder,
         std::span<std::filesystem::path const> const source_file_paths,
@@ -81,6 +87,7 @@ namespace h::compiler
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(
         Builder const& builder,
+        std::span<h::Module const> const header_modules,
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator

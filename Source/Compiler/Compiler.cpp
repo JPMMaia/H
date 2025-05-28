@@ -1371,6 +1371,7 @@ namespace h::compiler
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
+            {},
             all_core_modules,
             declaration_database
         );
@@ -1411,7 +1412,7 @@ namespace h::compiler
                 [&](h::Module const& current) -> bool { return current.name == alias_import.module_name; }
             );
             if (location == core_modules.end())
-                h::common::print_message_and_exit(std::format("Cannot find Module '{}'!", alias_import.module_name));
+                continue;
 
             h::Module const& dependency_module = *location;
 
@@ -1536,7 +1537,7 @@ namespace h::compiler
 
     Compilation_database process_modules_and_create_compilation_database(
         LLVM_data& llvm_data,
-        std::span<h::Module> const header_modules,
+        std::span<h::Module const> const header_modules,
         std::span<h::Module> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -1547,10 +1548,6 @@ namespace h::compiler
 
         std::pmr::unordered_map<std::string_view, std::pmr::vector<std::pmr::string>> usages_per_module;
 
-        // TODO don't add declarations that are not used
-        // TODO don't add declarations from c headers by default
-        // TODO add recursive declarations, but only if not pointers
-
         std::pmr::vector<h::Module const*> const sorted_core_modules = sort_core_modules(
             core_modules,
             output_allocator,
@@ -1560,13 +1557,14 @@ namespace h::compiler
         Declaration_database declaration_database = create_declaration_database();
         for (Module const& header_module : header_modules)
         {
-            auto const location = usages_per_module.find(header_module.name);
+            add_declarations(declaration_database, header_module);
+            /*auto const location = usages_per_module.find(header_module.name);
             if (location != usages_per_module.end())
             {
                 std::pmr::vector<std::pmr::string> const& usages = location->second;
                 // TODO add usages
                 add_declarations(declaration_database, header_module);
-            }
+            }*/
         }
         for (Module const* core_module : sorted_core_modules)
             add_declarations(declaration_database, *core_module);
@@ -1579,11 +1577,14 @@ namespace h::compiler
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
+            header_modules,
             sorted_core_modules,
             declaration_database
         );
 
         Type_database type_database = create_type_database(*llvm_data.context);
+        for (Module const& header_module : header_modules)
+            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, header_module);
         for (Module const* core_module : sorted_core_modules)
             add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *core_module);
 

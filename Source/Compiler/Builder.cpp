@@ -101,6 +101,7 @@ namespace h::compiler
             output_allocator,
             temporaries_allocator
         );
+        add_builtin_module(header_modules, output_allocator, temporaries_allocator);
 
         std::pmr::vector<std::filesystem::path> const source_file_paths = get_artifacts_source_files(
             artifacts,
@@ -114,6 +115,12 @@ namespace h::compiler
             output_allocator,
             temporaries_allocator
         );
+
+        /*core_modules.insert(
+            core_modules.begin(),
+            std::make_move_iterator(header_modules.begin()),
+            std::make_move_iterator(header_modules.end())
+        );*/
 
         Compilation_options const& compilation_options = builder.compilation_options;
 
@@ -130,14 +137,9 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        core_modules.insert(
-            core_modules.begin(),
-            std::make_move_iterator(header_modules.begin()),
-            std::make_move_iterator(header_modules.end())
-        );
-
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map = create_module_name_to_file_path_map(
             builder,
+            header_modules,
             core_modules,
             output_allocator,
             temporaries_allocator
@@ -333,6 +335,21 @@ namespace h::compiler
         return header_modules;
     }
 
+    void add_builtin_module(
+        std::pmr::vector<h::Module>& header_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::filesystem::path const builtin_file_path = BUILTIN_SOURCE_FILE_PATH;
+        
+        std::optional<h::Module> builtin_module = h::parser::parse_and_convert_to_module(builtin_file_path, output_allocator, temporaries_allocator);
+        if (!builtin_module.has_value())
+            throw std::runtime_error{"Failed to read builtin module!"};
+
+        header_modules.push_back(std::move(builtin_module.value()));
+    }
+
     std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder const& builder,
         std::span<std::filesystem::path const> const source_files_paths,
@@ -402,6 +419,7 @@ namespace h::compiler
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_module_name_to_file_path_map(
         Builder const& builder,
+        std::span<h::Module const> const header_modules,
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -409,15 +427,20 @@ namespace h::compiler
     {
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> map{temporaries_allocator};
 
-        for (h::Module const& core_module : core_modules)
-        {
-            std::string_view const module_name = core_module.name;
+        auto const insert_entries = [&](std::span<h::Module const> const elements) -> void {
+            for (h::Module const& core_module : elements)
+            {
+                std::string_view const module_name = core_module.name;
 
-            std::filesystem::path const module_filename = std::format("{}.hl", module_name);
-            std::filesystem::path const output_module_path = builder.build_directory_path / module_filename;
+                std::filesystem::path const module_filename = std::format("{}.hl", module_name);
+                std::filesystem::path const output_module_path = get_hl_build_directory(builder.build_directory_path) / module_filename;
 
-            map.insert(std::make_pair(std::pmr::string{ module_name }, output_module_path));
-        }
+                map.insert(std::make_pair(std::pmr::string{ module_name }, output_module_path));
+            }
+        };
+
+        insert_entries(header_modules);
+        insert_entries(core_modules);
 
         return std::pmr::unordered_map<std::pmr::string, std::filesystem::path>{std::move(map), output_allocator};
     }
@@ -534,13 +557,16 @@ namespace h::compiler
                 };
 
                 std::filesystem::path const output = builder.build_directory_path / "lib" / artifact.name;
+                create_directory_if_it_does_not_exist(output.parent_path());
 
-                h::compiler::link(
+                bool const result = h::compiler::link(
                     bitcode_files,
                     libraries,
                     output,
                     linker_options
                 );
+                if (!result)
+                    h::common::print_message_and_exit(std::format("Failed to link static library '{}'.", artifact.name));
             }
             else if (std::holds_alternative<h::compiler::Executable_info>(*artifact.info))
             {
@@ -554,13 +580,16 @@ namespace h::compiler
                 };
 
                 std::filesystem::path const output = builder.build_directory_path / "bin" / artifact.name;
+                create_directory_if_it_does_not_exist(output.parent_path());
 
-                h::compiler::link(
+                bool const result = h::compiler::link(
                     bitcode_files,
                     libraries,
                     output,
                     linker_options
                 );
+                if (!result)
+                    h::common::print_message_and_exit(std::format("Failed to link executable '{}'.", artifact.name));
             }
         }
     }

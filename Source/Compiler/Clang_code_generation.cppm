@@ -213,6 +213,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
         std::string_view const module_name,
+        std::span<h::Module const> const header_modules,
         std::span<h::Module const* const> const core_modules,
         Declaration_database const& declaration_database
     );

@@ -4038,6 +4038,7 @@ struct My_struct
         *llvm_data.context,
         llvm_data.clang_data,
         "Hl_clang_module",
+        {},
         core_modules,
         declaration_database
     );
