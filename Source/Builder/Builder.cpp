@@ -35,7 +35,7 @@ import h.compiler.target;
 import h.compiler.types;
 import h.c_header_converter;
 import h.json_serializer;
-import h.parser;
+import h.parser.parser;
 
 namespace h::builder
 {
@@ -111,8 +111,6 @@ namespace h::builder
             std::optional<h::Module> const core_module = h::compiler::read_core_module(parsed_file_path);
             if (!core_module.has_value())
                 h::common::print_message_and_exit(std::format("Failed to read module contents of {}", parsed_file_path.generic_string()));
-
-            std::string_view const entry_point = linker_options.entry_point;
 
             h::compiler::LLVM_module_data llvm_module_data = h::compiler::create_llvm_module(llvm_data, core_module.value(), module_name_to_file_path_map, compilation_options);
 
@@ -350,7 +348,7 @@ namespace h::builder
 
                 std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
                 std::filesystem::path const output_header_module_path = output_directory_path / header_module_filename;
-                h::compiler::C_header_options const* const c_header_options = get_c_header_options(library_info, c_header);
+                h::compiler::C_header_options const* const c_header_options = h::compiler::get_c_header_options(library_info, c_header);
 
                 h::c::Options const options
                 {
@@ -460,6 +458,7 @@ namespace h::builder
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
+            {},
             core_modules,
             declaration_database
         );

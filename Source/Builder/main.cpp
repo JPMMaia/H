@@ -12,12 +12,13 @@ import h.builder;
 
 import h.c_header_converter;
 import h.compiler;
+import h.compiler.builder;
 import h.compiler.expressions;
 import h.compiler.jit_runner;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
-import h.parser;
+import h.parser.parser;
 
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
 {
@@ -274,12 +275,10 @@ int main(int const argc, char const* const* argv)
         std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
         std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
         std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
-        std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);
         bool const no_debug = subprogram.get<bool>("--no-debug");
         h::compiler::Contract_options const contract_options = get_function_contract_options_argument(subprogram);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-        h::parser::Parser const parser = h::parser::create_parser();
 
         h::compiler::Compilation_options const compilation_options =
         {
@@ -289,7 +288,16 @@ int main(int const argc, char const* const* argv)
             .contract_options = contract_options,
         };
 
-        h::builder::build_artifact(target, parser, artifact_file_path, build_directory_path, header_search_paths, repositories, compilation_options);
+        h::compiler::Builder builder = h::compiler::create_builder(
+            target,
+            build_directory_path,
+            header_search_paths,
+            repository_paths,
+            compilation_options,
+            {}
+        );
+    
+        h::compiler::build_artifact(builder, artifact_file_path);
     }
     else if (program.is_subcommand_used("run-with-jit"))
     {

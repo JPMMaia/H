@@ -11,7 +11,7 @@ import h.compiler;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
-import h.parser;
+import h.parser.parser;
 
 namespace h::builder
 {
