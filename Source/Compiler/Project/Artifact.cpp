@@ -115,7 +115,6 @@ namespace h::compiler
         {
             .source = json.at("source").get<std::pmr::string>(),
             .entry_point = json.at("entry_point").get<std::pmr::string>(),
-            .include = parse_string_array(json.at("include")),
         };
     }
 
@@ -236,6 +235,8 @@ namespace h::compiler
 
         std::pmr::vector<Dependency> dependencies = parse_dependencies(json);
 
+        std::pmr::vector<std::pmr::string> include = json.contains("include") ? parse_string_array(json.at("include")) : std::pmr::vector<std::pmr::string>{};
+
         std::optional<std::variant<Executable_info, Library_info>> info = parse_info(json);
 
         return Artifact
@@ -245,6 +246,7 @@ namespace h::compiler
             .version = version,
             .type = type,
             .dependencies = std::move(dependencies),
+            .include = std::move(include),
             .info = std::move(info),
         };
     }
@@ -279,6 +281,18 @@ namespace h::compiler
             json["dependencies"] = std::move(dependencies_json);
         }
 
+        if (!artifact.include.empty())
+        {
+            nlohmann::json include_json;
+
+            for (std::pmr::string const& include : artifact.include)
+            {
+                include_json.push_back(std::move(include));
+            }
+
+            json["include"] = std::move(include_json);
+        }
+
         if (artifact.info.has_value())
         {
             if (std::holds_alternative<Executable_info>(*artifact.info))
@@ -290,18 +304,6 @@ namespace h::compiler
                     { "source", executable_info.source },
                     { "entry_point", executable_info.entry_point },
                 };
-
-                if (!executable_info.include.empty())
-                {
-                    nlohmann::json include_json;
-
-                    for (std::pmr::string const& include : executable_info.include)
-                    {
-                        include_json.push_back(std::move(include));
-                    }
-
-                    executable_json["include"] = std::move(include_json);
-                }
 
                 json["executable"] = std::move(executable_json);
             }
@@ -601,19 +603,11 @@ namespace h::compiler
         std::function<bool(std::filesystem::path)> const& predicate
     )
     {
-        if (artifact.info.has_value())
+        for (std::string_view const regular_expression : artifact.include)
         {
-            if (std::holds_alternative<Executable_info>(*artifact.info))
-            {
-                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
-
-                for (std::string_view const regular_expression : executable_info.include)
-                {
-                    bool const done = visit_included_files(artifact.file_path.parent_path(), regular_expression, predicate);
-                    if (done)
-                        return true;
-                }
-            }
+            bool const done = visit_included_files(artifact.file_path.parent_path(), regular_expression, predicate);
+            if (done)
+                return true;
         }
 
         return false;
@@ -670,17 +664,7 @@ namespace h::compiler
         std::pmr::monotonic_buffer_resource temporaries_buffer_resource;
         std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
 
-        if (artifact.info.has_value())
-        {
-            if (std::holds_alternative<Executable_info>(*artifact.info))
-            {
-                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
-
-                return find_included_files(artifact.file_path.parent_path(), executable_info.include, output_allocator);
-            }
-        }
-
-        return std::pmr::vector<std::filesystem::path>{ output_allocator };
+        return find_included_files(artifact.file_path.parent_path(), artifact.include, output_allocator);
     }
 
     std::pmr::vector<std::filesystem::path> get_artifact_source_files(
@@ -759,17 +743,7 @@ namespace h::compiler
         std::pmr::monotonic_buffer_resource temporaries_buffer_resource;
         std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
 
-        if (artifact.info.has_value())
-        {
-            if (std::holds_alternative<Executable_info>(*artifact.info))
-            {
-                Executable_info const& executable_info = std::get<Executable_info>(*artifact.info);
-
-                return find_root_include_directories(artifact.file_path.parent_path(), executable_info.include, output_allocator);
-            }
-        }
-
-        return std::pmr::vector<std::filesystem::path>{ output_allocator };
+        return find_root_include_directories(artifact.file_path.parent_path(), artifact.include, output_allocator);
     }
 
     std::optional<External_library_info> get_external_library(

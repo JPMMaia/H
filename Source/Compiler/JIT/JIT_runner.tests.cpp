@@ -88,13 +88,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "main.hltxt",
-                .entry_point = "main",
-                .include = {
-                    "./**/*.hltxt"
-                }
+                .entry_point = "main",    
             }
         };
 
@@ -176,13 +176,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -257,13 +257,13 @@ namespace h
                     .artifact_name = "C_standard_library"
                 }
             },
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -331,13 +331,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -442,13 +442,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -521,13 +521,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -618,13 +618,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -707,13 +707,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 
@@ -813,13 +813,13 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
+            .include = {
+                "./**/*.hltxt"
+            },
             .info = h::compiler::Executable_info
             {
                 .source = "m0.hltxt",
                 .entry_point = "m0_main",
-                .include = {
-                    "./**/*.hltxt"
-                }
             }
         };
 

@@ -52,7 +52,6 @@ namespace h::compiler
     {
         std::filesystem::path source;
         std::pmr::string entry_point;
-        std::pmr::vector<std::pmr::string> include;
     };
 
     export struct Library_info
@@ -69,6 +68,7 @@ namespace h::compiler
         Version version;
         Artifact_type type;
         std::pmr::vector<Dependency> dependencies;
+        std::pmr::vector<std::pmr::string> include;
         std::optional<std::variant<Executable_info, Library_info>> info;
     };
 

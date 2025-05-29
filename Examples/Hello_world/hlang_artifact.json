@@ -7,11 +7,11 @@
             "name": "C_standard_library"
         }
     ],
+    "include": [
+        "./**/*.hltxt"
+    ],
     "executable": {
         "source": "hello_world.hltxt",
-        "entry_point": "hello_world_main",
-        "include": [
-            "./**/*.hltxt"
-        ]
+        "entry_point": "hello_world_main"
     }
 }

@@ -492,17 +492,6 @@ namespace h::compiler
     {
         std::pmr::vector<std::filesystem::path> bitcode_files{temporaries_allocator};
 
-        if (std::holds_alternative<Library_info>(*artifact.info))
-        {
-            Library_info const& library_info = std::get<Library_info>(*artifact.info);
-
-            for (C_header const& c_header : library_info.c_headers)
-            {
-                std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", c_header.module_name);
-                bitcode_files.push_back(std::move(bitcode_file));
-            }
-        }
-
         std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(
             artifact,
             temporaries_allocator
@@ -533,15 +522,15 @@ namespace h::compiler
             Artifact const& artifact = artifacts[index];
 
             if (!artifact.info.has_value())
-            {
                 continue;
-            }
 
             std::pmr::vector<std::filesystem::path> const bitcode_files = get_artifact_bitcode_files(
                 builder,
                 artifact,
                 temporaries_allocator
             );
+            if (bitcode_files.empty())
+                continue;
 
             std::pmr::vector<std::pmr::string> libraries; // TODO
 
