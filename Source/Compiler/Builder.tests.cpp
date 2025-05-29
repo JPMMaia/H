@@ -13,6 +13,19 @@ namespace h::compiler
     static std::filesystem::path const g_examples_directory = std::filesystem::path{ EXAMPLES_DIRECTORY };
     static std::filesystem::path const g_standard_repository_file_path = std::filesystem::path{ STANDARD_REPOSITORY_FILE_PATH };
 
+    static std::pmr::string get_binary_name(
+        std::string_view const name,
+        h::compiler::Target const& target
+    )
+    {
+        if (target.operating_system == "windows")
+        {
+            return std::pmr::string{name} + ".exe";
+        }
+
+        return std::pmr::string{name};
+    }
+
     void test_builder(
         std::string_view const project_name
     )
@@ -45,7 +58,7 @@ namespace h::compiler
     
         build_artifact(builder, artifact_file_path);
 
-        // TODO check that artifact output file was created
+        CHECK(std::filesystem::exists(build_directory_path / "bin" / get_binary_name("Hello_world", target) ));
     }
 
     TEST_CASE("Build Hello_world", "[Builder]")

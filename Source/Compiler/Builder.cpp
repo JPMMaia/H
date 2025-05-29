@@ -510,6 +510,90 @@ namespace h::compiler
         return bitcode_files;
     }
 
+    struct Artifact_libraries
+    {
+        std::pmr::vector<std::pmr::string> libraries;
+        std::pmr::vector<std::pmr::string> dll_names;
+    };
+
+    void add_dependency_libraries(
+        Artifact_libraries& artifact_libraries,
+        Artifact const& artifact,
+        std::span<Artifact const> const artifacts,
+        h::compiler::Target const& target,
+        h::compiler::Compilation_options const& compilation_options
+    )
+    {
+        if (artifact.info.has_value())
+        {
+            if (std::holds_alternative<Library_info>(*artifact.info))
+            {
+                Library_info const& library_info = std::get<Library_info>(*artifact.info);
+        
+                std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, compilation_options.debug, true);
+                if (external_library.has_value())
+                {
+                    artifact_libraries.libraries.push_back(external_library.value().name);
+
+                    std::optional<std::string_view> const dll_name = h::compiler::get_external_library_dll(library_info.external_libraries, external_library.value().key);
+                    if (dll_name.has_value())
+                    {
+                        artifact_libraries.dll_names.push_back(std::pmr::string{dll_name.value()});
+                    }
+                }
+            }
+        }
+
+        for (Dependency const& dependency : artifact.dependencies)
+        {
+            auto const location = std::find_if(
+                artifacts.begin(),
+                artifacts.end(),
+                [&](Artifact const& artifact) -> bool { return artifact.name == dependency.artifact_name; }
+            );
+            if (location == artifacts.end())
+                continue;
+
+            add_dependency_libraries(
+                artifact_libraries,
+                *location,
+                artifacts,
+                target,
+                compilation_options
+            );
+        }
+    }
+
+    Artifact_libraries get_artifact_libraries_for_linking(
+        Artifact const& artifact,
+        std::span<Artifact const> const artifacts,
+        h::compiler::Target const& target,
+        h::compiler::Compilation_options const& compilation_options,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Artifact_libraries artifact_libraries
+        {
+            .libraries = std::pmr::vector<std::pmr::string>{temporaries_allocator},
+            .dll_names = std::pmr::vector<std::pmr::string>{temporaries_allocator}
+        };
+        
+        add_dependency_libraries(
+            artifact_libraries,
+            artifact,
+            artifacts,
+            target,
+            compilation_options
+        );
+
+        return
+        {
+            .libraries = std::pmr::vector<std::pmr::string>{std::move(artifact_libraries.libraries), output_allocator},
+            .dll_names = std::pmr::vector<std::pmr::string>{std::move(artifact_libraries.dll_names), output_allocator}
+        };
+    }
+
     void link_artifacts(
         Builder const& builder,
         std::span<Artifact const> const artifacts,
@@ -532,7 +616,14 @@ namespace h::compiler
             if (bitcode_files.empty())
                 continue;
 
-            std::pmr::vector<std::pmr::string> libraries; // TODO
+            Artifact_libraries const artifact_libraries = get_artifact_libraries_for_linking(
+                artifact,
+                artifacts,
+                builder.target,
+                compilation_options,
+                temporaries_allocator,
+                temporaries_allocator
+            );
 
             if (std::holds_alternative<Library_info>(*artifact.info))
             {
@@ -550,7 +641,7 @@ namespace h::compiler
 
                 bool const result = h::compiler::link(
                     bitcode_files,
-                    libraries,
+                    artifact_libraries.libraries,
                     output,
                     linker_options
                 );
@@ -573,7 +664,7 @@ namespace h::compiler
 
                 bool const result = h::compiler::link(
                     bitcode_files,
-                    libraries,
+                    artifact_libraries.libraries,
                     output,
                     linker_options
                 );
