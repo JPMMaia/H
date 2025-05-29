@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <exception>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 

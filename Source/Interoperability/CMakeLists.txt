@@ -11,7 +11,7 @@ find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
 
 if(WIN32)
-   target_link_libraries(H_C_header_importer PRIVATE clangTooling)
+   target_link_libraries(H_C_header_importer PRIVATE clangBasic clangTooling libclang)
 else()
    find_library(clang_cpp_library clang-cpp REQUIRED)
    target_link_libraries(H_C_header_importer PRIVATE ${clang_cpp_library})
@@ -51,6 +51,8 @@ if(BUILD_TESTING)
 
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_C_header_importer_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
+
+   target_link_libraries(H_C_header_importer_tests PRIVATE clangTooling)
 
    target_compile_definitions(
       H_C_header_importer_tests

@@ -9,6 +9,7 @@
 #include <vector>
 
 import h.common;
+import h.common.filesystem;
 import h.core;
 import h.core.expressions;
 import h.core.types;
@@ -22,6 +23,32 @@ using h::json::operators::operator<<;
 namespace h::c
 {
     constexpr char const* g_vulkan_headers_location = VULKAN_HEADERS_LOCATION;
+
+    std::filesystem::path find_c_header_path(
+        std::string_view const filename,
+        std::span<std::filesystem::path const> const header_search_directories
+    )
+    {
+        {
+            std::filesystem::path const file_path = filename;
+            if (file_path.is_absolute())
+                return file_path;
+        }
+
+        for (std::filesystem::path const& search_path : header_search_directories)
+        {
+            for (const std::filesystem::directory_entry& entry : std::filesystem::recursive_directory_iterator{ search_path })
+            {
+                if (entry.path().filename() == filename)
+                {
+                    return entry.path();
+                }
+            }
+        }
+
+        REQUIRE(false);
+        return "";
+    }
 
     h::Alias_type_declaration const& find_alias_type_declaration(h::Module const& header_module, std::string_view const name)
     {
@@ -115,15 +142,6 @@ namespace h::c
         REQUIRE(actual.output_parameter_names.size() == 1);
         CHECK(!actual.output_parameter_names[0].empty());
         CHECK(actual.linkage == Linkage::External);
-    }
-
-    std::filesystem::path find_c_header_path(
-        std::string_view const header_file_name,
-        std::span<std::filesystem::path const> const header_search_directories
-    )
-    {
-        // TODO
-        return "";
     }
 
     TEST_CASE("Import time.h C header creates 'time_t' typedef")

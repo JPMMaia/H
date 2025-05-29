@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-import h.parser;
+import h.parser.parser;
 
 int main(int const argc, char const* const* argv)
 {
