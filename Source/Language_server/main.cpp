@@ -45,38 +45,6 @@ using namespace h::language_server;
 
 int main(int const argc, char const* const* argv)
 {
-    /*argparse::ArgumentParser program("hlang_language_server");
-
-    program.add_argument("project_directory")
-        .help("Project directory")
-        .required();
-
-    program.add_argument("--repository")
-        .help("Specify a repository")
-        .default_value<std::vector<std::string>>({})
-        .append();    
-
-    try
-    {
-        program.parse_args(argc, argv);
-    }
-    catch (std::exception const& error)
-    {
-        std::cerr << error.what() << std::endl;
-        std::cerr << program;
-        std::exit(1);
-    }
-
-    std::filesystem::path const project_directory_path = program.get<std::string>("project_directory");
-    
-    std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(program.get<std::vector<std::string>>("--repository"));
-    std::pmr::vector<h::compiler::Repository> const repositories = h::compiler::get_repositories(repository_paths);*/
-
-    // TODO if debug
-    //trigger_breakpoint();
-
-    //std::printf("Hlang Language Server started");
-
     Server server = create_server();
     Message_handler message_handler = create_message_handler(server, *stdin, *stdout);
     process_messages(message_handler);

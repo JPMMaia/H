@@ -15,9 +15,7 @@ module;
 module h.language_server.message_handler;
 
 import h.language_server.core;
-import h.language_server.message;
 import h.language_server.server;
-import h.language_server.stream;
 
 namespace h::language_server
 {

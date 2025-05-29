@@ -3,7 +3,6 @@ module;
 export module h.language_server.server;
 
 import h.language_server.core;
-import h.language_server.message;
 
 namespace h::language_server
 {

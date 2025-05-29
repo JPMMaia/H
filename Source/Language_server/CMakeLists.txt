@@ -19,15 +19,11 @@ target_sources(H_language_server
             "Breakpoint.cppm"
             "Core.cppm"
             "Message_handler.cppm"
-            "Message.cppm"
             "Server.cppm"
-            "Stream.cppm"
    PRIVATE
       "Core.cpp"
       "Message_handler.cpp"
-      "Message.cpp"
       "Server.cpp"
-      "Stream.cpp"
 )
 
 
@@ -54,9 +50,7 @@ if(BUILD_TESTING)
    target_link_libraries(H_language_server_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
    target_sources(H_language_server_tests PRIVATE
-      "Message_handler.tests.cpp"
       "Server.tests.cpp"
-      "Stream.tests.cpp"
    )
 
    include(Catch)
