@@ -296,8 +296,17 @@ int main(int const argc, char const* const* argv)
             compilation_options,
             {}
         );
-    
-        h::compiler::build_artifact(builder, artifact_file_path);
+
+        try
+        {
+            h::compiler::build_artifact(builder, artifact_file_path);
+        }
+        catch (std::exception const& error)
+        {
+            std::cerr << error.what() << std::endl;
+            std::cerr << program;
+            std::exit(1);
+        }
     }
     else if (program.is_subcommand_used("run-with-jit"))
     {
