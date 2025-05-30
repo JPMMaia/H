@@ -35,6 +35,7 @@ import h.compiler.target;
 import h.compiler.types;
 import h.c_header_converter;
 import h.json_serializer;
+import h.parser.convertor;
 import h.parser.parser;
 
 namespace h::builder
@@ -58,7 +59,13 @@ namespace h::builder
 
         std::filesystem::path const& output_path = build_directory_path / file_path.filename().replace_extension("hl");
 
-        h::parser::parse(parser, file_path, output_path);
+        std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+            file_path,
+            {},
+            {}
+        );
+        if (core_module.has_value())
+            h::json::write<h::Module>(output_path, core_module.value());
 
         return output_path;
     }

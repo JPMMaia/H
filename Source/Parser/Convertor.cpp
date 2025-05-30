@@ -204,7 +204,7 @@ namespace h::parser
         
         std::pmr::string const& source = file_contents.value();
 
-        Parser parser = create_parser(true);
+        Parser parser = create_parser();
         Parse_tree tree = parse(parser, nullptr, source);
         
         Parse_node const root = get_root_node(tree);

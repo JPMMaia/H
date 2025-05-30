@@ -784,7 +784,7 @@ namespace h::compiler
         if (!input_content.has_value())
             return std::nullopt;
 
-        h::parser::Parser parser = h::parser::create_parser(true);
+        h::parser::Parser parser = h::parser::create_parser();
         h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, input_content.value());
 
         h::parser::Parse_node const root = get_root_node(parse_tree);

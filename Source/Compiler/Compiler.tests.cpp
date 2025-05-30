@@ -130,7 +130,7 @@ namespace h
     std::optional<std::pmr::string> input_content = h::common::get_file_contents(input_file_path);
     REQUIRE(input_content.has_value());
 
-    h::parser::Parser parser = h::parser::create_parser(true);
+    h::parser::Parser parser = h::parser::create_parser();
     h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, input_content.value());
 
     h::parser::Parse_node const root = get_root_node(parse_tree);

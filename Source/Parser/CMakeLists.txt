@@ -55,7 +55,7 @@ set_target_properties(H_parser_executable PROPERTIES OUTPUT_NAME "hlang_parser")
 
 target_compile_features(H_parser_executable PRIVATE cxx_std_23)
 
-target_link_libraries(H_parser_executable PRIVATE H::Common H::Parser)
+target_link_libraries(H_parser_executable PRIVATE H::Common H::Parser H::JSON_serializer)
 
 find_package(argparse CONFIG REQUIRED)
 target_link_libraries(H_parser_executable PRIVATE argparse::argparse)

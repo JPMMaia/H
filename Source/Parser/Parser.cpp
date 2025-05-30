@@ -24,16 +24,8 @@ extern "C"
 
 namespace h::parser
 {
-    Parser create_parser(bool const use_tree_sitter)
+    Parser create_parser()
     {
-        if (!use_tree_sitter)
-        {
-            return Parser
-            {
-                .parser_javascript_path = h::common::get_executable_directory() / "parser.js",
-            };
-        }
-
         TSLanguage const* language = tree_sitter_hlang();
 
         TSParser* parser = ts_parser_new();
@@ -61,12 +53,6 @@ namespace h::parser
             ts_language_delete(parser.language);
             parser.language = nullptr;
         }
-    }
-
-    void parse(Parser const& parser, std::filesystem::path const& source_file_path, std::filesystem::path const& output_file_path)
-    {
-        std::string const command = std::format("node {} write {} --input {}", parser.parser_javascript_path.generic_string(), output_file_path.generic_string(), source_file_path.generic_string());
-        std::system(command.c_str());
     }
 
     Parse_tree parse(Parser const& parser, Parse_tree* previous_parse_tree, std::string_view const source)

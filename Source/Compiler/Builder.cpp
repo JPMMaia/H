@@ -360,7 +360,7 @@ namespace h::compiler
         std::pmr::vector<h::Module> core_modules{output_allocator};
         core_modules.resize(source_files_paths.size(), h::Module{});
 
-        h::parser::Parser parser = h::parser::create_parser(true);
+        h::parser::Parser parser = h::parser::create_parser();
 
         for (std::size_t index = 0; index < source_files_paths.size(); ++index)
         {

@@ -20,10 +20,8 @@ namespace h::parser
 
     export using Parser = Parser_data;
 
-    export Parser create_parser(bool const use_tree_sitter = true);
+    export Parser create_parser();
     export void destroy_parser(Parser&& parser);
-
-    export void parse(Parser const& parser, std::filesystem::path const& source_file_path, std::filesystem::path const& output_file_path);
 
     export Parse_tree parse(Parser const& parser, Parse_tree* previous_parse_tree, std::string_view const source);
     export void destroy_tree(Parse_tree&& tree);
