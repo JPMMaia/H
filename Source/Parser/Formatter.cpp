@@ -1575,6 +1575,11 @@ namespace h::parser
             add_text(buffer, value.is_signed ? "Int" : "Uint");
             add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
         }
+        else if (std::holds_alternative<Parameter_type>(type.data))
+        {
+            Parameter_type const& value = std::get<Parameter_type>(type.data);
+            add_text(buffer, value.name);
+        }
         else if (std::holds_alternative<Pointer_type>(type.data))
         {
             Pointer_type const& value = std::get<Pointer_type>(type.data);
