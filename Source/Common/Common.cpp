@@ -25,7 +25,7 @@ namespace h::common
 
     std::optional<std::pmr::string> get_file_contents(char const* const path)
     {
-        std::FILE* file = std::fopen(path, "rb");
+        std::FILE* file = std::fopen(path, "r");
         if (file == nullptr)
             return {};
 
@@ -33,8 +33,11 @@ namespace h::common
         std::fseek(file, 0, SEEK_END);
         contents.resize(std::ftell(file));
         std::rewind(file);
-        std::fread(&contents[0], 1, contents.size(), file);
+        std::size_t const read_bytes = std::fread(&contents[0], 1, contents.size(), file);
         std::fclose(file);
+
+        if (read_bytes < contents.size())
+            contents.erase(contents.begin() + read_bytes, contents.end());
 
         return contents;
     }
