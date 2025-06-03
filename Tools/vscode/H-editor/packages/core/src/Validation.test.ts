@@ -351,7 +351,7 @@ describe("Validation of global variables", () => {
     // - Cannot take a pointer to a constant global variable
 
     it("Validates that type and type of value match", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 var my_global_0: Float32 = 2.0f32;
 var my_global_1: Int32 = 2.0f32;
@@ -371,7 +371,7 @@ var my_global_1: Int32 = 2.0f32;
     });
 
     it("Validates that expression only uses compile time expressions", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function get_value() -> (result: Int32)
 {
@@ -396,7 +396,7 @@ var my_global_1 = get_value();
     });
 
     it("Validates that pointers to global constants do not exist", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 mutable my_global_0 = 0;
 var my_global_1 = 0;
@@ -430,7 +430,7 @@ describe("Validation of structs", () => {
     // - Member default values are values, not types
 
     it("Validates that member names are different from each other", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -461,7 +461,7 @@ struct My_struct
     });
 
     it("Validates that member default values types must match member types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -484,7 +484,7 @@ struct My_struct
     });
 
     it("Validates that member default values only use compile time expressions", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function get_value() -> (result: Int32)
 {
@@ -512,7 +512,7 @@ struct My_struct
     });
 
     it("Validates that member default values are values, not types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -541,7 +541,7 @@ struct My_struct
     });
 
     it("Validates that instantiate expressions can only be assigned to struct or union types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct_0
 {
@@ -586,7 +586,7 @@ describe("Validation of unions", () => {
     // - Member names must different
 
     it("Validates that member names are different from each other", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 union My_union
 {
@@ -626,7 +626,7 @@ describe("Validation of enums", () => {
     // - TODO Detect recursion of enum values computation using enum values
 
     it("Validates that enum member names are different from each other", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -657,7 +657,7 @@ enum My_enum
     });
 
     it("Validates that enum values are signed 32-bit integers", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -688,7 +688,7 @@ enum My_enum
     });
 
     it("Validates that enum values can be computed at compile-time", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function get_value() -> (result: Int32)
 {
@@ -723,7 +723,7 @@ enum My_enum
     });
 
     it("Allows enum values to be computed using enum values", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -741,7 +741,7 @@ enum My_enum
 
 
     it("Validate that enum value can only be calculated using previous enum values", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -781,7 +781,7 @@ describe("Validation of function contracts", () => {
     // - Expressions can also reference global constants, enum values and call functions (with no side effects, can be required in the future)
 
     it("Validates that precondition and postcondition must evaluate to a boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function add(first: Int32, second: Int32) -> (result: Int32)
     precondition "first > 0 && second > 0" { first > 0 && second > 0 }
@@ -814,7 +814,7 @@ function add(first: Int32, second: Int32) -> (result: Int32)
     });
 
     it("Validates that precondition can only reference function inputs, global constants, enum values and call functions", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 var g_my_constant = 0;
 mutable g_my_mutable = 0;
@@ -869,7 +869,7 @@ function add(first: Int32, second: Int32) -> (result: Int32)
     });
 
     it("Validates that postcondition can only reference function inputs, function outputs, global constants, enum values and call functions", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 var g_my_constant = 0;
 mutable g_my_mutable = 0;
@@ -922,7 +922,7 @@ describe("Validation of integer types", () => {
     // - Number of bits cannot be larger than 64
 
     it("Validates that number of bits cannot be larger than 64", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 using My_int = Int65;
 using My_uint = Uint65;
@@ -955,7 +955,7 @@ describe("Validation of custom type references", () => {
     // - Must refer to an existing type from an imported module
 
     it("Validates that a type exists", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 using My_int = Int32;
 using My_type = My_struct;
@@ -975,7 +975,7 @@ using My_type = My_struct;
     });
 
     it("Validates that a type from an import module exists", async () => {
-        const input = `module Test_a;
+        std::string_view const input = R"(module Test_a;
 
 import Test_b as B;
 
@@ -1006,7 +1006,7 @@ struct My_struct
     });
 
     it("Validates that the module alias accessed by the custom type reference exists", async () => {
-        const input = `module Test_a;
+        std::string_view const input = R"(module Test_a;
 
 using My_type = B.My_struct;
 `;
@@ -1031,7 +1031,7 @@ describe("Validation of imports", () => {
     // - Duplicate alias
 
     it("Validates that a import alias is a not a duplicate", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 import module_a as module_a;
 import module_b as module_a;
@@ -1061,7 +1061,7 @@ import module_b as module_a;
     });
 
     it("Validates that a import module exists", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 import my.module_a as my_module;
 `;
@@ -1087,7 +1087,7 @@ describe("Validation of declarations", () => {
     // - Name must not be empty
 
     it("Validates that a declaration name is not a duplicate", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_type
 {
@@ -1119,7 +1119,7 @@ union My_type
     });
 
     it("Validates that a declaration name is not a builtin type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct Int32
 {
@@ -1166,7 +1166,7 @@ describe("Validation of expression variable declaration", () => {
     // - Right hand side type must not be void
 
     it("Validates that a variable declaration name is not a duplicate", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(c: Int32) -> ()
 {
@@ -1212,7 +1212,7 @@ function run(c: Int32) -> ()
     });
 
     it("Validates that a variable declaration right side expression type is not void", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function get_non_void_value() -> (result: Int32)
 {
@@ -1251,7 +1251,7 @@ describe("Validation of expression variable declaration with type", () => {
     // - Right hand side type must not be equal to the type
 
     it("Validates that a variable declaration with type name is not a duplicate", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(c: Int32) -> ()
 {
@@ -1297,7 +1297,7 @@ function run(c: Int32) -> ()
     });
 
     it("Validates the right hand side type of a variable declaration with type is equal to the type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function get_value() -> (result: Float32)
 {
@@ -1332,7 +1332,7 @@ function run() -> ()
     });
 
     it("Validates the right hand side type of a variable declaration with type is a value, not a type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run() -> ()
 {
@@ -1354,7 +1354,7 @@ function run() -> ()
     });
 
     it("Validates the right hand side expression is an instantiate expression when variable type is a struct or union", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -1407,7 +1407,7 @@ describe("Validation of expression variable", () => {
     // - Variable name must exist
 
     it("Validates that a variable name must exist", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(a: Int32) -> ()
 {
@@ -1457,7 +1457,7 @@ describe("Validation of expression access", () => {
     //   - otherwise it's a member name of a enum/struct/union
 
     it("Validates that left hand side is either a module alias, a variable of type struct/union or an enum type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 import Test_2 as My_module;
 
@@ -1560,7 +1560,7 @@ union My_union
     });
 
     it("Validates that a member name of local type exists", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -1623,7 +1623,7 @@ function run() -> ()
     });
 
     it("Validates that a member name of an imported type exists", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 import Test_2 as My_module;
 
@@ -1696,7 +1696,7 @@ describe("Validation of expression assert", () => {
     // - Expressions must evaluate to a boolean
 
     it("Validates that assert must evaluate to a boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -1724,7 +1724,7 @@ describe("Validation of expression assignment", () => {
     // - Left hand side and right hand side types match
 
     it("Validates that left hand side type matches right hand side type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run() -> ()
 {
@@ -1755,7 +1755,7 @@ describe("Validation of expression unary", () => {
     // - Address of
 
     it("Validates that numeric unary operations can only be applied to numbers", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -1806,7 +1806,7 @@ function run() -> ()
     });
 
     it("Validates that logical unary operations can only be applied to booleans", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run() -> ()
 {
@@ -1832,7 +1832,7 @@ function run() -> ()
     });
 
     it("Validates unary operations related to pointers", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run() -> ()
 {
@@ -1882,7 +1882,7 @@ describe("Validation of expression call", () => {
     // - Function call expects values, not types
 
     it("Validates that can only call functions or expressions whose type is a function type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo() -> ()
 {
@@ -1911,7 +1911,7 @@ function run() -> ()
     });
 
     it("Validates that function call has the correct number of arguments", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo_0() -> ()
 {
@@ -1982,7 +1982,7 @@ function run() -> ()
     });
 
     it("Validates that variadic function call has the correct number of arguments", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo_0(first: Int32, second: Int32, ...) -> ()
 {
@@ -2010,7 +2010,7 @@ function run() -> ()
     });
 
     it("Validates that function call has the correct argument types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo_1(v0: Int32) -> ()
 {
@@ -2074,7 +2074,7 @@ function run() -> ()
     });
 
     it("Validates that function call arguments are values, not types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo_1(v0: Int32) -> ()
 {
@@ -2105,7 +2105,7 @@ describe("Validation of expression return", () => {
     // - Return expression type must match function output type
 
     it("Validates that the expression type of a return expression matches the function output type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2132,7 +2132,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that the expression type of a return expression is defined", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2166,7 +2166,7 @@ describe("Validation of expression if", () => {
     // - Condition expression type must be boolean
 
     it("Validates that the expression type of a condition expression is a boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> (result: Int32)
 {
@@ -2215,7 +2215,7 @@ describe("Validation of expression ternary condition", () => {
     // - Then and else statement type must match
 
     it("Validates that the expression type of the condition expression is a boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> (result: Int32)
 {
@@ -2238,7 +2238,7 @@ function run(value: Int32) -> (result: Int32)
     });
 
     it("Validates that the expression type of the then and else expressions matches", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(condition: Bool) -> (result: Int32)
 {
@@ -2269,7 +2269,7 @@ describe("Validation of expression switch", () => {
     // - Switch case can only have constant values
 
     it("Validates that the expression type of the switch input is an integer or an enum value", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -2347,7 +2347,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
     });
 
     it("Validates that the expression type of the switch case is an integer or an enum value", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -2394,7 +2394,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
     });
 
     it("Validates that the expression type of the switch case must match the type of the input", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -2459,7 +2459,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
     });
 
     it("Validates that the expression type of the switch case is a single constant expression", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -2501,7 +2501,7 @@ describe("Validation of expression for loop", () => {
     // - Range begin, end and step_by types must be numbers
 
     it("Validates that the expression types of a for loop range begin, end and step_by match", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2547,7 +2547,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that the expression types of a for loop range begin, end and step_by are numbers", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -2594,7 +2594,7 @@ describe("Validation of expression while loop", () => {
     // - Condition expression type must be boolean
 
     it("Validates that the expression type of a condition expression is a boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2630,7 +2630,7 @@ describe("Validation of expression binary", () => {
     // - If using has operation, then types must be enums
 
     it("Validates that left and right hand side expression types match", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2674,7 +2674,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that in numeric operations both types must be numbers", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2698,7 +2698,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that in comparison operations both types must be comparable 0", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -2729,7 +2729,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that in comparison operations both types must be comparable 1", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 using My_uint = Uint32;
 
@@ -2746,7 +2746,7 @@ function run(first: My_uint, second: My_uint) -> ()
     });
 
     it("Validates that in logical operations both types must be boolean", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2769,7 +2769,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that in bitwise operations both types must be integers or bytes", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2792,7 +2792,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that in bit shift operations the left type must be an integer or byte and the right side must be an integer", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(value: Int32) -> ()
 {
@@ -2824,7 +2824,7 @@ function run(value: Int32) -> ()
 
 
     it("Validates that in has operations both expressions must evaluate to enum values", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -2862,7 +2862,7 @@ describe("Validation of expression instantiate", () => {
     // - Validate that assigned values match member types
 
     it("Validates that members are not duplicate", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -2901,7 +2901,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that members are sorted", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -2938,7 +2938,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that all members exist if explicit is used", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -2975,7 +2975,7 @@ function run(value: Int32) -> ()
     });
 
     it("Validates that all members set by the instantiate expression are actual members", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -3012,7 +3012,7 @@ function run(value: Int32) -> ()
 
 
     it("Validates that assigned value types match the member types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 struct My_struct
 {
@@ -3046,7 +3046,7 @@ describe("Validation of expression null", () => {
     // - Null can only be assigned to pointer types
 
     it("Validates that null can only be assigned to pointer types", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function foo(pointer: *Int32, non_pointer: Int32) -> (result: *Int32)
 {
@@ -3122,7 +3122,7 @@ describe("Validation of expression break", () => {
     // - Loop count must be valid
 
     it("Validates that break can only be placed inside for loops, while loops and switch cases", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(input: Int32) -> ()
 {
@@ -3214,7 +3214,7 @@ function run(input: Int32) -> ()
     });
 
     it("Validates that break loop count is valid", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(input: Int32) -> ()
 {
@@ -3270,7 +3270,7 @@ describe("Validation of expression continue", () => {
     // - TODO Loop count must be valid
 
     it("Validates that continue can only be placed inside for loops and while loops", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 function run(input: Int32) -> ()
 {
@@ -3393,7 +3393,7 @@ describe("Validation of expression cast", () => {
     // - Warn if cast source and destination types are the same (except when using alias)
 
     it("Validates that the numeric cast source type is a numeric type or an enum type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -3429,7 +3429,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
     });
 
     it("Validates that the numeric cast destination type is a numeric type or an enum type", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 enum My_enum
 {
@@ -3463,7 +3463,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
     });
 
     it("Warn if cast source and destination types are the same (except when using alias)", async () => {
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 using My_int = Int32;
 
@@ -3518,7 +3518,7 @@ export struct My_struct
 }
 `;
 
-        const input = `module Test;
+        std::string_view const input = R"(module Test;
 
 import Dependency as dependency;
 
