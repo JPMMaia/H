@@ -47,6 +47,18 @@ namespace h
 #endif
     };
 
+    export struct Source_range
+    {
+        Source_position start = {};
+        Source_position end = {};
+
+#if HACK_SPACESHIP_OPERATOR
+        friend std::strong_ordering operator<=>(Source_range const& lhs, Source_range const& rhs) = default;
+#else
+        friend auto operator<=>(Source_range const& lhs, Source_range const& rhs) = default;
+#endif
+    };
+
     export struct Function_declaration;
     export struct Statement;
     export struct Type_reference;

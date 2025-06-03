@@ -281,6 +281,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Source_range const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Integer_type const& input
         );
 
@@ -873,6 +879,20 @@ namespace h::json
         writer.Uint(output.line);
         writer.Key("column");
         writer.Uint(output.column);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Source_range const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("start");
+        write_object(writer, output.start);
+        writer.Key("end");
+        write_object(writer, output.end);
         writer.EndObject();
     }
 

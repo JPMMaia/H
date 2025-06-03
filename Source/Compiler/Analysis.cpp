@@ -12,20 +12,23 @@ module;
 
 module h.compiler.analysis;
 
+import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
 import h.core.types;
 
 namespace h::compiler
 {
-    void process_module(
+    Analysis_result process_module(
         h::Module& core_module,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         process_declarations(core_module, core_module.export_declarations, core_module.definitions, declaration_database, temporaries_allocator);
         process_declarations(core_module, core_module.internal_declarations, core_module.definitions, declaration_database, temporaries_allocator);
+        return {};
     }
 
     void process_declarations(

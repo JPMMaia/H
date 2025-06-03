@@ -1361,7 +1361,7 @@ namespace h::compiler
         // TODO do this a different place so we can modify original
         Module new_core_module = core_module;
         add_import_usages(new_core_module, {});
-        process_module(new_core_module, declaration_database, {});
+        process_module(new_core_module, declaration_database, {}, {});
 
         std::pmr::vector<h::Module const*> all_core_modules{
             sorted_core_module_dependencies.begin(), sorted_core_module_dependencies.end()
@@ -1571,7 +1571,7 @@ namespace h::compiler
 
         // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
         for (Module& core_module : core_modules)
-            process_module(core_module, declaration_database, temporaries_allocator);
+            process_module(core_module, declaration_database, {}, temporaries_allocator);
 
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,

@@ -10,23 +10,35 @@ export module h.compiler.analysis;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.diagnostic;
 
 namespace h::compiler
 {
-    struct Variable
+    export struct Variable
     {
         std::pmr::string name;
         h::Type_reference type;
     };
 
-    struct Scope
+    export struct Scope
     {
         std::pmr::vector<Variable> variables;
     };
 
-    export void process_module(
+    export struct Analysis_result
+    {
+        std::pmr::vector<Diagnostic> diagnostics;
+    };
+
+    export struct Analysis_options
+    {
+        bool validate = true;
+    };
+
+    export Analysis_result process_module(
         h::Module& core_module,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 

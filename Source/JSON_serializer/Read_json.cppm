@@ -426,6 +426,7 @@ namespace h::json
 
     export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_source_position(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
@@ -564,6 +565,35 @@ namespace h::json
                 .pointer = &parent->column,
                 .type = "std::uint32_t",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key)
+    {
+        h::Source_range* parent = static_cast<h::Source_range*>(state->pointer);
+
+        if (key == "start")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->start,
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position,
+            };
+        }
+
+        if (key == "end")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->end,
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position,
             };
         }
 
@@ -4620,6 +4650,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Source_position",
                 .get_next_state = get_next_state_source_position
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Source_range>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 

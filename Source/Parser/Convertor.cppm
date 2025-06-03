@@ -20,7 +20,7 @@ namespace h::parser
     };
 
     export std::optional<h::Module> parse_and_convert_to_module(
-        std::filesystem::path source_file_path,
+        std::filesystem::path const& source_file_path,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -28,7 +28,7 @@ namespace h::parser
     export std::optional<h::Module> parse_node_to_module(
         Parse_tree const& tree,
         Parse_node const& node,
-        std::filesystem::path source_file_path,
+        std::filesystem::path const& source_file_path,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
