@@ -1,17 +1,16 @@
 #include <memory_resource>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include <catch2/catch_all.hpp>
 
-import h.common;
 import h.compiler;
-import h.core.hash;
-import h.compiler.recompilation;
+import h.compiler.diagnostic;
 import h.core;
-import h.json_serializer;
 import h.parser.convertor;
 import h.parser.parser;
 
@@ -23,54 +22,54 @@ namespace h
         std::span<Diagnostic const> const expected_diagnostics
     )
     {
-        const parser = await Tree_sitter_parser.create_parser();
+        Declaration_database declaration_database = create_declaration_database();
 
-        const uri = create_dummy_uri();
-
-        const parse_result = Text_change.full_parse_with_source_locations(parser, uri, input_text, true);
-
-    assert.notEqual(parse_result.module, undefined);
-    if (parse_result.module === undefined) {
-        return;
-    }
-
-    assert.notEqual(parse_result.parse_tree, undefined);
-    if (parse_result.parse_tree === undefined) {
-        return;
-    }
-
-    const dependencies_parse_result: { module: Core.Module, parse_tree: Parser_node.Node }[] = input_dependencies_text.map(text => {
-        const parse_result = Text_change.full_parse_with_source_locations(parser, uri, text, true);
-        assert.notEqual(parse_result.module, undefined);
-        assert.notEqual(parse_result.parse_tree, undefined);
-        return {
-            module: parse_result.module as Core.Module,
-            parse_tree: parse_result.parse_tree as Parser_node.Node,
+        Analysis_options const options
+        {
+            .validate = true,
         };
-    }
 
-    const get_parse_tree = async (module_name: string): Promise<Parser_node.Node | undefined> => {
-        if (module_name === parse_result.module?.name) {
-            return parse_result.parse_tree;
+        for (std::size_t index = 0; index < input_dependencies_text.size(); ++index)
+        {
+            std::string_view const dependency_text = input_dependencies_text[index];
+
+            std::optional<h::Module> dependency_module = h::parser::parse_and_convert_to_module(
+                input_text,
+                {},
+                {}
+            );
+            REQUIRE(dependency_module.has_value());
+
+            add_declarations(declaration_database, dependency_module.value());
+            
+            Analysis_result const result = process_module(
+                dependency_module.value(),
+                declaration_database,
+                options,
+                {}
+            );
+            REQUIRE(result.diagnostics.empty());
         }
 
-        const dependency = dependencies_parse_result.find(dependency => dependency.module.name === module_name);
-        if (dependency === undefined) {
-            return undefined;
-        }
-        return dependency.parse_tree;
-    };
-
-        const actual_diagnostics = await Validation.validate_module(
-            uri,
+        std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
             input_text,
-            parse_result.module,
-            parse_result.parse_tree,
-            [],
-            parse_result.parse_tree,
-            get_parse_tree
+            {},
+            {}
         );
-        assert.deepEqual(actual_diagnostics, expected_diagnostics);
+        REQUIRE(core_module.has_value());
+
+        add_declarations(declaration_database, core_module.value());
+
+        Analysis_result const result = process_module(
+            core_module.value(),
+            declaration_database,
+            options,
+            {}
+        );
+
+        std::span<Diagnostic const> const actual_diagnostics = result.diagnostics;
+
+        CHECK(actual_diagnostics == expected_diagnostics);
     }
 
     TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]") {

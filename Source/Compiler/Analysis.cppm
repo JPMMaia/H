@@ -10,6 +10,7 @@ export module h.compiler.analysis;
 
 import h.core;
 import h.core.declarations;
+import h.compiler.diagnostic;
 
 namespace h::compiler
 {
@@ -22,19 +23,6 @@ namespace h::compiler
     export struct Scope
     {
         std::pmr::vector<Variable> variables;
-    };
-
-    export struct Diagnostic_severity
-    {
-        Warning,
-        Error
-    };
-
-    export struct Diagnostic
-    {
-        Source_range range = {};
-        Diagnostic_severity severity = {};
-        std::pmr::string message = {};
     };
 
     export struct Analysis_result
