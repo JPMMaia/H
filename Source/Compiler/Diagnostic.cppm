@@ -37,20 +37,14 @@ namespace h::compiler
         friend auto operator<=>(Diagnostic const& lhs, Diagnostic const& rhs) = default;
     };
 
-    export std::ostream& operator<<(std::ostream& output_stream, Diagnostic const& diagnostic)
-    {
-        if (diagnostic.file_path.has_value())
-            output_stream << std::format("{}({},{}): ", diagnostic.file_path.value().generic_string(), diagnostic.range.start.line, diagnostic.range.start.column);
-        else
-            output_stream << std::format("({},{},{},{}): ", diagnostic.range.start.line, diagnostic.range.start.column, diagnostic.range.end.line, diagnostic.range.end.column);
+    export std::pmr::string diagnostic_to_string(
+        Diagnostic const& diagnostic,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
 
-        if (diagnostic.severity == Diagnostic_severity::Warning)
-            output_stream << "warning: ";
-        else
-            output_stream << "error: ";
-        
-        output_stream << diagnostic.message;
-
-        return output_stream;
-    }
+    export std::ostream& operator<<(
+        std::ostream& output_stream,
+        Diagnostic const& diagnostic
+    );
 }

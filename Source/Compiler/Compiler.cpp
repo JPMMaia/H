@@ -1571,7 +1571,39 @@ namespace h::compiler
 
         // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
         for (Module& core_module : core_modules)
-            process_module(core_module, declaration_database, {}, temporaries_allocator);
+        {
+            Analysis_result const result = process_module(core_module, declaration_database, {}, temporaries_allocator);
+
+            if (!result.diagnostics.empty())
+            {
+                for (std::size_t diagnostic_index = 0; diagnostic_index < result.diagnostics.size(); ++diagnostic_index)
+                {
+                    Diagnostic const& diagnostic = result.diagnostics[diagnostic_index];
+
+                    std::pmr::string const diagnostic_string = diagnostic_to_string(
+                        diagnostic,
+                        temporaries_allocator,
+                        temporaries_allocator
+                    );
+
+                    ::fprintf(stderr, "%s\n", diagnostic_string.c_str());
+                }
+
+                auto const is_error_diagnostic = [](Diagnostic const& diagnostic) -> bool
+                {
+                    return diagnostic.severity == Diagnostic_severity::Error;
+                };
+
+                bool const contains_errors = std::any_of(
+                    result.diagnostics.begin(),
+                    result.diagnostics.end(),
+                    is_error_diagnostic
+                );
+
+                if (contains_errors)
+                    h::common::print_message_and_exit("Validation failed.");
+            }
+        }
 
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,

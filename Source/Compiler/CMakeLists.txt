@@ -143,6 +143,7 @@ target_sources(H_compiler
       "Common.cpp"
       "Compiler.cpp"
       "Debug_info.cpp"
+      "Diagnostic.cpp"
       "Expressions.cpp"
       "Instructions.cpp"
       "Recompilation.cpp"
