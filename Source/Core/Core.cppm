@@ -59,6 +59,13 @@ namespace h
 #endif
     };
 
+    export Source_range create_source_range(
+        std::uint32_t const start_line,
+        std::uint32_t const start_column,
+        std::uint32_t const end_line,
+        std::uint32_t const end_column
+    );
+
     export struct Function_declaration;
     export struct Statement;
     export struct Type_reference;
@@ -1032,7 +1039,7 @@ namespace h
         > ;
 
         Data_type data;
-        std::optional<Source_position> source_position;
+        std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Expression const&, Expression const&);

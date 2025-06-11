@@ -91,4 +91,8 @@ namespace h::parser
     export Source_position get_node_start_source_position(
         Parse_node const& node
     );
+
+    export Source_range get_node_source_range(
+        Parse_node const& node
+    );
 }

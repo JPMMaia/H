@@ -183,4 +183,26 @@ namespace h::parser
             .column = point.column + 1,
         };
     }
+
+    Source_range get_node_source_range(
+        Parse_node const& node
+    )
+    {
+        TSPoint const start_point = ts_node_start_point(node.ts_node);
+        TSPoint const end_point = ts_node_end_point(node.ts_node);
+
+        return Source_range
+        {
+            .start = Source_position
+            {
+                .line = start_point.row + 1,
+                .column = start_point.column + 1,
+            },
+            .end = Source_position
+            {
+                .line = end_point.row + 1,
+                .column = end_point.column + 1,
+            }
+        };
+    }
 }

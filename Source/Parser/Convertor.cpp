@@ -194,7 +194,7 @@ namespace h::parser
 
     std::optional<h::Module> parse_and_convert_to_module(
         std::string_view const source,
-        std::filesystem::path const& source_file_path,
+        std::optional<std::filesystem::path> const& source_file_path,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -236,7 +236,7 @@ namespace h::parser
     std::optional<h::Module> parse_node_to_module(
         Parse_tree const& tree,
         Parse_node const& node,
-        std::filesystem::path const& source_file_path,
+        std::optional<std::filesystem::path> const& source_file_path,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -1545,7 +1545,7 @@ namespace h::parser
     {
         h::Expression expression;
 
-        expression.source_position = get_node_start_source_position(node);
+        expression.source_range = get_node_source_range(node);
             
         std::optional<Parse_node> const expression_node_optional = get_non_generic_expression_node(tree, node);
         if (!expression_node_optional.has_value())

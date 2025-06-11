@@ -3483,9 +3483,9 @@ namespace h::compiler
     {
         Expression_parameters new_parameters = parameters;
 
-        if (parameters.debug_info != nullptr && expression.source_position.has_value())
+        if (parameters.debug_info != nullptr && expression.source_range.has_value())
         {
-            Source_position const source_position = *expression.source_position;
+            Source_position const source_position = expression.source_range->start;
             new_parameters.source_position = source_position;
         }
 
@@ -3683,7 +3683,7 @@ namespace h::compiler
             h::Expression const& expression = statement.expressions[expression_index];
 
             if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_position->line, expression.source_position->column);
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);
 
             llvm::Value* const loaded_value = parameters.llvm_builder.CreateLoad(llvm_type, value.value);
             return Value_and_type

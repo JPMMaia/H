@@ -3907,14 +3907,14 @@ namespace h::json
             };
         }
 
-        if (key == "source_position")
+        if (key == "source_range")
         {
-            parent->source_position = Source_position{};
+            parent->source_range = Source_range{};
             return Stack_state
             {
-                .pointer = &parent->source_position.value(),
-                .type = "Source_position",
-                .get_next_state = get_next_state_source_position
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 

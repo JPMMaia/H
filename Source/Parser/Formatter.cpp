@@ -398,12 +398,12 @@ namespace h::parser
         else if (std::holds_alternative<Instance_call_expression>(expression.data))
         {
             Instance_call_expression const& value = std::get<Instance_call_expression>(expression.data);
-            add_format_expression_instance_call(buffer, statement, value, expression.source_position, indentation, options);
+            add_format_expression_instance_call(buffer, statement, value, expression.source_range, indentation, options);
         }
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
             Instantiate_expression const& value = std::get<Instantiate_expression>(expression.data);
-            add_format_expression_instantiate(buffer, statement, value, expression.source_position, indentation, options);
+            add_format_expression_instantiate(buffer, statement, value, expression.source_range, indentation, options);
         }
         else if (std::holds_alternative<Invalid_expression>(expression.data))
         {
@@ -648,12 +648,12 @@ namespace h::parser
             {
                 Statement const& previous_statement = statements[statement_index - 1];
                 
-                if (!previous_statement.expressions.empty() && previous_statement.expressions[0].source_position.has_value())
+                if (!previous_statement.expressions.empty() && previous_statement.expressions[0].source_range.has_value())
                 {
-                    if (!current_statement.expressions.empty() && current_statement.expressions[0].source_position.has_value())
+                    if (!current_statement.expressions.empty() && current_statement.expressions[0].source_range.has_value())
                     {
-                        std::uint32_t const previous_statement_line = previous_statement.expressions[0].source_position->line;
-                        std::uint32_t const current_statement_line = current_statement.expressions[0].source_position->line;
+                        std::uint32_t const previous_statement_line = previous_statement.expressions[0].source_range->start.line;
+                        std::uint32_t const current_statement_line = current_statement.expressions[0].source_range->start.line;
 
                         if (current_statement_line > previous_statement_line)
                         {
@@ -1059,10 +1059,10 @@ namespace h::parser
             return true;
 
         Expression const& first_expression = pair.value.expressions[0];
-        if (!first_expression.source_position.has_value())
+        if (!first_expression.source_range.has_value())
             return true;
 
-        Source_position const first_member_source_position = first_expression.source_position.value();
+        Source_position const first_member_source_position = first_expression.source_range.value().start;
 
         return first_member_source_position.line == source_position->line;
     }
@@ -1071,7 +1071,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Instance_call_expression const& expression,
-        std::optional<h::Source_position> const source_position,
+        std::optional<h::Source_range> const source_range,
         std::uint32_t outside_indentation,
         Format_options const& options
     )
@@ -1098,12 +1098,15 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Instantiate_expression const& expression,
-        std::optional<h::Source_position> const source_position,
+        std::optional<h::Source_range> const source_range,
         std::uint32_t outside_indentation,
         Format_options const& options
     )
     {
-        bool const same_line = place_instantiate_members_on_the_same_line(expression, source_position);
+        bool const same_line = 
+            source_range.has_value() ? 
+            place_instantiate_members_on_the_same_line(expression, source_range->start) :
+            false;
 
         if (expression.type == Instantiate_expression_type::Explicit)
             add_text(buffer, "explicit ");
@@ -2234,6 +2237,34 @@ namespace h::parser
                 add_new_line(buffer);
         }
 
+        return to_string(buffer);
+    }
+
+    std::pmr::string format_type_reference(
+        h::Module const& core_module,
+        std::optional<h::Type_reference> const& type_reference,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        String_buffer buffer;
+
+        Format_options const options
+        {
+            .alias_imports = core_module.dependencies.alias_imports,
+            .output_allocator = output_allocator,
+            .temporaries_allocator = temporaries_allocator,
+        };
+
+        if (type_reference.has_value())
+        {
+            add_format_type_name(buffer, type_reference.value(), options);
+        }
+        else
+        {
+            add_text(buffer, "void");
+        }
+        
         return to_string(buffer);
     }
 

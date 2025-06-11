@@ -71,6 +71,20 @@ namespace h
     }
 #endif
 
+    Source_range create_source_range(
+        std::uint32_t const start_line,
+        std::uint32_t const start_column,
+        std::uint32_t const end_line,
+        std::uint32_t const end_column
+    )
+    {
+        return Source_range
+        {
+            .start = { start_line, start_column },
+            .end = { end_line, end_column }
+        };
+    }
+
     h::Module const& find_module(
         h::Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies,

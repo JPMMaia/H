@@ -13,6 +13,7 @@ module;
 module h.compiler.analysis;
 
 import h.compiler.diagnostic;
+import h.compiler.validation;
 import h.core;
 import h.core.declarations;
 import h.core.types;
@@ -26,16 +27,19 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        process_declarations(core_module, core_module.export_declarations, core_module.definitions, declaration_database, temporaries_allocator);
-        process_declarations(core_module, core_module.internal_declarations, core_module.definitions, declaration_database, temporaries_allocator);
-        return {};
+        Analysis_result result;
+        process_declarations(result, core_module, core_module.export_declarations, core_module.definitions, declaration_database, options, temporaries_allocator);
+        process_declarations(result, core_module, core_module.internal_declarations, core_module.definitions, declaration_database, options, temporaries_allocator);
+        return result;
     }
 
     void process_declarations(
+        Analysis_result& result,
         h::Module& core_module,
         Module_declarations& declarations,
         Module_definitions& definitions,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -49,7 +53,7 @@ namespace h::compiler
                 });
 
             if (location != definitions.function_definitions.end())
-                process_function(core_module, declaration, *location, declaration_database, temporaries_allocator);
+                process_function(result, core_module, declaration, *location, declaration_database, options, temporaries_allocator);
         }
     }
 
@@ -71,10 +75,12 @@ namespace h::compiler
     }
 
     void process_function(
+        Analysis_result& result,
         h::Module& core_module,
         h::Function_declaration& function_declaration,
         h::Function_definition& function_definition,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -86,10 +92,12 @@ namespace h::compiler
         for (h::Function_condition& condition : function_declaration.preconditions)
         {
             process_statement(
+                result,
                 core_module,
                 scope,
                 condition.condition,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -100,10 +108,12 @@ namespace h::compiler
             for (h::Function_condition& condition : function_declaration.postconditions)
             {
                 process_statement(
+                    result,
                     core_module,
                     scope,
                     condition.condition,
                     declaration_database,
+                    options,
                     temporaries_allocator
                 );
             }
@@ -115,19 +125,23 @@ namespace h::compiler
         }
 
         process_block(
+            result,
             core_module,
             scope,
             function_definition.statements,
             declaration_database,
+            options,
             temporaries_allocator
         );
     }
 
     void process_block(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -136,10 +150,12 @@ namespace h::compiler
         for (Statement& statement : statements)
         {
             process_statement(
+                result,
                 core_module,
                 scope,
                 statement,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -151,33 +167,59 @@ namespace h::compiler
     }
 
     void process_statements(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         for (Statement& statement : statements)
         {
             process_statement(
+                result,
                 core_module,
                 scope,
                 statement,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
     }
 
     void process_statement(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        if (options.validate)
+        {
+            std::pmr::vector<h::compiler::Diagnostic> diagnostics = validate_statement(
+                core_module,
+                scope,
+                statement,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!diagnostics.empty())
+            {
+                result.diagnostics.insert(
+                    result.diagnostics.end(),
+                    std::make_move_iterator(diagnostics.begin()),
+                    std::make_move_iterator(diagnostics.end())
+                );
+                return;
+            }
+        }
+
         std::size_t count = statement.expressions.size();
         for (std::size_t index = 0; index < count; ++index)
         {
@@ -185,22 +227,26 @@ namespace h::compiler
             h::Expression& expression = statement.expressions[reverse_index];
 
             process_expression(
+                result,
                 core_module,
                 scope,
                 statement,
                 expression,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
     }
 
     void process_expression(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -208,10 +254,12 @@ namespace h::compiler
         {
             h::Block_expression& data = std::get<h::Block_expression>(expression.data);
             process_block(
+                result,
                 core_module,
                 scope,
                 data.statements,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -237,17 +285,19 @@ namespace h::compiler
                 };
 
                 data.expression.expression_index = statement.expressions.size();
-                statement.expressions.push_back(h::Expression{.data = instance_call_expression, .source_position = expression.source_position});
+                statement.expressions.push_back(h::Expression{.data = instance_call_expression, .source_range = expression.source_range});
             }
         }
         else if (std::holds_alternative<h::Constant_array_expression>(expression.data))
         {
             h::Constant_array_expression& data = std::get<h::Constant_array_expression>(expression.data);
             process_statements(
+                result,
                 core_module,
                 scope,
                 data.array_data,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -255,17 +305,21 @@ namespace h::compiler
         {
             h::For_loop_expression& data = std::get<h::For_loop_expression>(expression.data);
             process_statement(
+                result,
                 core_module,
                 scope,
                 data.range_end,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
             process_block(
+                result,
                 core_module,
                 scope,
                 data.then_statements,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -273,10 +327,12 @@ namespace h::compiler
         {
             h::Function_expression& data = std::get<h::Function_expression>(expression.data);
             process_function(
+                result,
                 core_module,
                 data.declaration,
                 data.definition, // TODO pass scope?
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -284,10 +340,12 @@ namespace h::compiler
         {
             h::Instance_call_expression& data = std::get<h::Instance_call_expression>(expression.data);
             process_statements(
+                result,
                 core_module,
                 scope,
                 data.arguments,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -299,19 +357,23 @@ namespace h::compiler
                 if (serie.condition.has_value())
                 {
                     process_statement(
+                        result,
                         core_module,
                         scope,
                         serie.condition.value(),
                         declaration_database,
+                        options,
                         temporaries_allocator
                     );
                 }
 
                 process_block(
+                    result,
                     core_module,
                     scope,
                     serie.then_statements,
                     declaration_database,
+                    options,
                     temporaries_allocator
                 );
             }
@@ -322,10 +384,12 @@ namespace h::compiler
             for (h::Instantiate_member_value_pair& member : data.members)
             {
                 process_statement(
+                    result,
                     core_module,
                     scope,
                     member.value,
                     declaration_database,
+                    options,
                     temporaries_allocator
                 );
             }
@@ -336,10 +400,12 @@ namespace h::compiler
             for (h::Switch_case_expression_pair& serie : data.cases)
             {
                 process_block(
+                    result,
                     core_module,
                     scope,
                     serie.statements,
                     declaration_database,
+                    options,
                     temporaries_allocator
                 );
             }
@@ -348,17 +414,21 @@ namespace h::compiler
         {
             h::Ternary_condition_expression& data = std::get<h::Ternary_condition_expression>(expression.data);
             process_statement(
+                result,
                 core_module,
                 scope,
                 data.then_statement,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
             process_statement(
+                result,
                 core_module,
                 scope,
                 data.else_statement,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
@@ -374,27 +444,50 @@ namespace h::compiler
         else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
         {
             h::Variable_declaration_with_type_expression& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-            process_statement(core_module, scope, data.right_hand_side, declaration_database, temporaries_allocator);
+            process_statement(result, core_module, scope, data.right_hand_side, declaration_database, options, temporaries_allocator);
             scope.variables.push_back({.name = data.name, .type = data.type});
         }
         else if (std::holds_alternative<h::While_loop_expression>(expression.data))
         {
             h::While_loop_expression& data = std::get<h::While_loop_expression>(expression.data);
             process_statement(
+                result,
                 core_module,
                 scope,
                 data.condition,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
             process_block(
+                result,
                 core_module,
                 scope,
                 data.then_statements,
                 declaration_database,
+                options,
                 temporaries_allocator
             );
         }
+    }
+
+    std::optional<h::Type_reference> get_expression_type(
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Statement const& statement,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        if (statement.expressions.empty())
+            return std::nullopt;
+
+        return get_expression_type(
+            core_module,
+            scope,
+            statement,
+            statement.expressions[0],
+            declaration_database
+        );
     }
 
     std::optional<h::Type_reference> get_expression_type(
@@ -539,12 +632,57 @@ namespace h::compiler
         else if (std::holds_alternative<h::Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<h::Ternary_condition_expression>(expression.data);
-            return std::nullopt; // TODO
+            return get_expression_type(core_module, scope, data.then_statement, declaration_database);
         }
         else if (std::holds_alternative<h::Unary_expression>(expression.data))
         {
             Unary_expression const& data = std::get<h::Unary_expression>(expression.data);
-            return std::nullopt; // TODO
+
+            switch (data.operation)
+            {
+                case h::Unary_operation::Not:
+                {
+                    return create_bool_type_reference();
+                }
+                case h::Unary_operation::Bitwise_not:
+                case h::Unary_operation::Minus:
+                case h::Unary_operation::Pre_increment:
+                case h::Unary_operation::Post_increment:
+                case h::Unary_operation::Pre_decrement:
+                case h::Unary_operation::Post_decrement:
+                {
+                    return get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                }
+                case h::Unary_operation::Indirection:
+                {
+                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                    if (!expression_type.has_value())
+                        return std::nullopt;
+
+                    if (is_pointer(expression_type.value()))
+                    {
+                        Pointer_type const& pointer_type = std::get<Pointer_type>(expression_type.value().data);
+                        if (pointer_type.element_type.empty())
+                            return std::nullopt;
+
+                        return pointer_type.element_type[0];
+                    }
+                    else
+                    {
+                        return std::nullopt;
+                    }
+                }
+                case h::Unary_operation::Address_of:
+                {
+                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                    if (!expression_type.has_value())
+                        return create_pointer_type_type_reference({}, true);
+
+                    return create_pointer_type_type_reference({expression_type.value()}, true);
+                }
+            }
+
+            return std::nullopt;
         }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))
         {
@@ -864,7 +1002,7 @@ namespace h::compiler
                     Expression
                     {
                         .data = Type_expression{ .type = type_reference.value() },
-                        .source_position = std::nullopt
+                        .source_range = std::nullopt
                     }
                 );
 

@@ -43,55 +43,74 @@ namespace h::compiler
     );
 
     void process_declarations(
+        Analysis_result& result,
         h::Module& core_module,
         Module_declarations& declarations,
         Module_definitions& definitions,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     void process_function(
+        Analysis_result& result,
         h::Module& core_module,
         h::Function_declaration& function_declaration,
         h::Function_definition& function_definition,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     void process_block(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     void process_statements(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     void process_statement(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     void process_expression(
+        Analysis_result& result,
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,
         h::Declaration_database& declaration_database,
+        Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::optional<h::Type_reference> get_expression_type(
+    export std::optional<h::Type_reference> get_expression_type(
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Statement const& statement,
+        h::Declaration_database const& declaration_database
+    );
+
+    export std::optional<h::Type_reference> get_expression_type(
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,

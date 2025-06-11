@@ -25,6 +25,13 @@ namespace h::parser
         Format_options const& options
     );
 
+    export std::pmr::string format_type_reference(
+        h::Module const& core_module,
+        std::optional<h::Type_reference> const& type_reference,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     struct String_buffer
     {
         std::stringstream string_stream;
@@ -257,7 +264,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Instance_call_expression const& expression,
-        std::optional<h::Source_position> const source_position,
+        std::optional<h::Source_range> const source_range,
         std::uint32_t outside_indentation,
         Format_options const& options
     );
@@ -266,7 +273,7 @@ namespace h::parser
         String_buffer& buffer,
         Statement const& statement,
         Instantiate_expression const& expression,
-        std::optional<h::Source_position> source_position,
+        std::optional<h::Source_range> const source_range,
         std::uint32_t outside_indentation,
         Format_options const& options
     );
