@@ -1885,7 +1885,7 @@ namespace h::c
                     if (alias_type_declaration->type.empty())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
-                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, alias_type_declaration->type[0], core_module, {});
+                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, alias_type_declaration->type[0]);
                     if (!underlying_type_optional.has_value())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 

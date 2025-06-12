@@ -618,10 +618,7 @@ namespace h::compiler
                     {
                         Alias_type_declaration const* data = std::get<Alias_type_declaration const*>(declaration_value.data);
 
-                        h::Module const& declaration_module = find_module(core_module, parameters.core_module_dependencies, module_name);
-
-                        // TODO parameters.core_module_dependencies needs to be changed
-                        std::optional<Declaration> const underlying_declaration = get_underlying_declaration(declaration_database, *data, declaration_module, parameters.core_module_dependencies);
+                        std::optional<Declaration> const underlying_declaration = get_underlying_declaration(declaration_database, *data);
                         if (underlying_declaration.has_value())
                         {
                             if (std::holds_alternative<Enum_declaration const*>(underlying_declaration.value().data))
@@ -3331,7 +3328,7 @@ namespace h::compiler
             std::optional<Alias_type_declaration const*> const declaration = find_alias_type_declaration(parameters.core_module, variable_name);
             if (declaration.has_value())
             {
-                std::optional<Type_reference> type = get_underlying_type(parameters.declaration_database, *declaration.value(), parameters.core_module, parameters.core_module_dependencies);
+                std::optional<Type_reference> type = get_underlying_type(parameters.declaration_database, *declaration.value());
 
                 return Value_and_type
                 {

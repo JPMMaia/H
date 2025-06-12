@@ -195,15 +195,13 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Type_reference const& type_reference,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Type_reference const& type_reference
     )
     {
         if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
-            std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+            std::string_view const module_name = data.module_reference.name;
 
             std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, data.name);
 
@@ -211,8 +209,7 @@ namespace h
             {
                 Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration->data);
 
-                Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
-                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, core_module_dependencies);
+                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration);
                 return alias_type;
             }
             else
@@ -228,31 +225,27 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     )
     {
         if (declaration.type.empty())
             return std::nullopt;
 
-        return get_underlying_type(declaration_database, declaration.type[0], current_core_module, core_module_dependencies);
+        return get_underlying_type(declaration_database, declaration.type[0]);
     }
 
     std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     )
     {
-        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration, current_core_module, core_module_dependencies);
+        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration);
         if (type_reference.has_value())
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.value().data))
             {
                 Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.value().data);
-                std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+                std::string_view const module_name = data.module_reference.name;
 
                 std::optional<Declaration> const underlying_declaration = find_declaration(declaration_database, module_name, data.name);
                 if (underlying_declaration.has_value())
@@ -261,9 +254,7 @@ namespace h
                     if (std::holds_alternative<Alias_type_declaration const*>(underlying_declaration_value.data))
                     {
                         Alias_type_declaration const* underlying_alias = std::get<Alias_type_declaration const*>(underlying_declaration_value.data);
-
-                        Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
-                        return get_underlying_declaration(declaration_database, *underlying_alias, found_module, core_module_dependencies);
+                        return get_underlying_declaration(declaration_database, *underlying_alias);
                     }
                     else
                     {

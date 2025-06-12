@@ -93,30 +93,22 @@ namespace h
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Type_reference const& type_reference,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Type_reference const& type_reference
     );
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Declaration const& declaration
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     );
 
     Declaration_instance_storage instantiate_type_instance(
