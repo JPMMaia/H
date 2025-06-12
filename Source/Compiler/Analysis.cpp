@@ -506,7 +506,68 @@ namespace h::compiler
             if (!type_reference.has_value())
                 return std::nullopt;
 
-            if (std::holds_alternative<h::Type_instance>(type_reference.value().data))
+            if (std::holds_alternative<h::Custom_type_reference>(type_reference.value().data))
+            {
+                std::optional<Type_reference> const underlying_type = get_underlying_type(
+                    declaration_database,
+                    type_reference.value()
+                );
+                if (!underlying_type.has_value())
+                    return std::nullopt;
+
+                std::optional<Declaration> const declaration = find_declaration(
+                    declaration_database,
+                    type_reference.value()
+                );
+                if (!declaration.has_value())
+                    return std::nullopt;
+
+                if (std::holds_alternative<h::Enum_declaration const*>(declaration.value().data))
+                {
+                    return h::create_integer_type_type_reference(32, true);
+                }
+                else if (std::holds_alternative<h::Struct_declaration const*>(declaration.value().data))
+                {
+                    h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.value().data);
+
+                    auto const location = std::find_if(
+                        struct_declaration.member_names.begin(),
+                        struct_declaration.member_names.end(),
+                        [&](std::pmr::string const& member_name) -> bool
+                        {
+                            return member_name == data.member_name;
+                        }
+                    );
+                    if (location == struct_declaration.member_names.end())
+                        return std::nullopt;
+
+                    std::size_t const member_index = std::distance(struct_declaration.member_names.begin(), location);
+                    return struct_declaration.member_types[member_index];
+                }
+                else if (std::holds_alternative<h::Union_declaration const*>(declaration.value().data))
+                {
+                    h::Union_declaration const& union_declaration = *std::get<h::Union_declaration const*>(declaration.value().data);
+                    
+                    auto const location = std::find_if(
+                        union_declaration.member_names.begin(),
+                        union_declaration.member_names.end(),
+                        [&](std::pmr::string const& member_name) -> bool
+                        {
+                            return member_name == data.member_name;
+                        }
+                    );
+                    if (location == union_declaration.member_names.end())
+                        return std::nullopt;
+
+                    std::size_t const member_index = std::distance(union_declaration.member_names.begin(), location);
+                    return union_declaration.member_types[member_index];
+                }
+                else
+                {
+                    return std::nullopt;
+                }
+            }
+            else if (std::holds_alternative<h::Type_instance>(type_reference.value().data))
             {
                 Type_instance const& type_instance = std::get<h::Type_instance>(type_reference.value().data);
                 Declaration_instance_storage const& storage = declaration_database.instances.at(type_instance);
