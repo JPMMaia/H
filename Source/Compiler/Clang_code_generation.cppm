@@ -42,7 +42,7 @@ namespace h::compiler
 {
     export llvm::FunctionType* create_llvm_function_type(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
+        std::string_view const module_name,
         std::string_view const function_name
     );
 

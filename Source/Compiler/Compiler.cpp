@@ -88,8 +88,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, core_module, input_parameter_types, debug_type_database, temporaries_allocator);
-        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, core_module, output_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, input_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, output_parameter_types, debug_type_database, temporaries_allocator);
 
         llvm::DIType* llvm_return_debug_type = [&]() -> llvm::DIType*
         {
@@ -204,7 +204,7 @@ namespace h::compiler
     {
         llvm::FunctionType* const llvm_function_type = create_llvm_function_type(
             clang_module_data,
-            core_module,
+            core_module.name,
             function_declaration.name
         );
 
@@ -924,7 +924,6 @@ namespace h::compiler
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(
                     llvm_context,
                     llvm_data_layout,
-                    core_module,
                     *type,
                     type_database
                 );

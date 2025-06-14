@@ -87,7 +87,6 @@ namespace h::compiler
     export llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         Type_reference const& type_reference,
         Type_database const& type_database
     );
@@ -95,7 +94,6 @@ namespace h::compiler
     export llvm::Type* type_reference_to_llvm_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         std::span<Type_reference const> type_reference,
         Type_database const& type_database
     );
@@ -103,7 +101,6 @@ namespace h::compiler
     export std::pmr::vector<llvm::Type*> type_references_to_llvm_types(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         std::span<Type_reference const> const type_references,
         Type_database const& type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator
@@ -112,7 +109,6 @@ namespace h::compiler
     export llvm::DIType* type_reference_to_llvm_debug_type(
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         Type_reference const& type_reference,
         Debug_type_database const& debug_type_database
     );
@@ -120,7 +116,6 @@ namespace h::compiler
     export llvm::DIType* type_reference_to_llvm_debug_type(
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         std::span<Type_reference const> const type_reference,
         Debug_type_database const& debug_type_database
     );
@@ -128,7 +123,6 @@ namespace h::compiler
     export std::pmr::vector<llvm::DIType*> type_references_to_llvm_debug_types(
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         std::span<Type_reference const> const type_references,
         Debug_type_database const& debug_type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator
@@ -144,7 +138,6 @@ namespace h::compiler
     export llvm::FunctionType* create_llvm_function_type(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
-        Module const& core_module,
         std::span<Type_reference const> const input_parameter_types,
         std::span<Type_reference const> const output_parameter_types,
         bool const is_var_arg,

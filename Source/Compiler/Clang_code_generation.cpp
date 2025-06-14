@@ -607,11 +607,15 @@ namespace h::compiler
 
     llvm::FunctionType* create_llvm_function_type(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
+        std::string_view const module_name,
         std::string_view const function_name
     )
     {
-        Clang_module_declarations const& module_declarations = clang_module_data.declaration_database.map.at(core_module.name);
+        auto const module_declarations_location = clang_module_data.declaration_database.map.find(module_name);
+        if (module_declarations_location == clang_module_data.declaration_database.map.end())
+            throw std::runtime_error{std::format("Module '{}' not found in Clang module data!", module_name)};
+        Clang_module_declarations const& module_declarations = module_declarations_location->second;
+
         clang::FunctionDecl* const clang_function_declaration = module_declarations.function_declarations.at(function_name.data());
         return clang::CodeGen::convertFreeFunctionType(clang_module_data.code_generator->CGM(), clang_function_declaration);
     }
@@ -766,7 +770,7 @@ namespace h::compiler
                     // Pass return type as argument pointer
 
                     h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                    llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                    llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
                     
                     llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_return_llvm_type);
 
@@ -803,7 +807,7 @@ namespace h::compiler
                         llvm::Value* const original_argument = original_arguments[argument_index];
 
                         h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
                         llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
 
                         for (unsigned new_element_index = 0; new_element_index < new_elements.size(); ++new_element_index)
@@ -827,7 +831,7 @@ namespace h::compiler
                     {
                         llvm::Value* const original_argument = original_arguments[argument_index];
                         h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
 
                         llvm::Value* transformed_argument = read_from_type(
                             llvm_context,
@@ -863,7 +867,7 @@ namespace h::compiler
                 case clang::CodeGen::ABIArgInfo::Indirect: {
 
                     h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                    llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                    llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
                     std::uint64_t const original_argument_size_in_bits = llvm_data_layout.getTypeAllocSize(original_argument_llvm_type);
                     llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
                     
@@ -1045,7 +1049,6 @@ namespace h::compiler
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info->llvm_builder,
             llvm_data_layout,
-            core_module,
             core_type,
             debug_info->type_database
         );
@@ -1108,7 +1111,7 @@ namespace h::compiler
                 case clang::CodeGen::ABIArgInfo::Direct:
                 case clang::CodeGen::ABIArgInfo::Extend: {
 
-                    llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
+                    llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, restored_argument_type, type_database);
                     llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
 
                     llvm::Type* const function_argument_type = argument_info.info.getCoerceToType();
@@ -1258,7 +1261,7 @@ namespace h::compiler
             case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
 
                 llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
 
@@ -1286,7 +1289,7 @@ namespace h::compiler
                 llvm::Argument* const return_argument = llvm_function.getArg(0);
 
                 h::Type_reference const& return_type = function_type.output_parameter_types[0];
-                llvm::Type* const return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, return_type, type_database);
+                llvm::Type* const return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, return_type, type_database);
                 std::uint64_t const return_size_in_bits = llvm_data_layout.getTypeAllocSize(return_llvm_type);
                 llvm::Align const return_alignment = llvm_data_layout.getABITypeAlign(return_llvm_type);
 
@@ -1528,7 +1531,7 @@ namespace h::compiler
             case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
 
                 llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
 

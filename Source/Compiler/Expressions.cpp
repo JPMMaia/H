@@ -153,7 +153,6 @@ namespace h::compiler
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info.llvm_builder,
             parameters.llvm_data_layout,
-            parameters.core_module,
             type_reference,
             debug_info.type_database
         );
@@ -746,7 +745,7 @@ namespace h::compiler
         using_pointer ?
             element_type.value() :
             *left_hand_side_expression_value.type;
-        llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type_reference_to_use, type_database);
+        llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type_reference_to_use, type_database);
         llvm::Value* const array_pointer = left_hand_side_expression_value.value;
 
         Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
@@ -1696,7 +1695,6 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
-        Module const& core_module = parameters.core_module;
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
@@ -1707,7 +1705,7 @@ namespace h::compiler
         Type_reference const& destination_type = expression.destination_type;
 
         llvm::Type* const source_llvm_type = source.value->getType();
-        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, destination_type, type_database);
+        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, destination_type, type_database);
 
         // If types are equal, then ignore the cast:
         if (source_llvm_type == destination_llvm_type)
@@ -1774,7 +1772,7 @@ namespace h::compiler
             switch (fundamental_type)
             {
             case Fundamental_type::Bool: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 std::uint8_t const data = expression.data == "true" ? 1 : 0;
                 llvm::APInt const value{ 1, data, false };
@@ -1789,7 +1787,7 @@ namespace h::compiler
                 };
             }
             case Fundamental_type::Float16: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
@@ -1804,7 +1802,7 @@ namespace h::compiler
                 };
             }
             case Fundamental_type::Float32: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
@@ -1819,7 +1817,7 @@ namespace h::compiler
                 };
             }
             case Fundamental_type::Float64: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 char* end;
                 double const value = std::strtod(expression.data.c_str(), &end);
@@ -1845,7 +1843,7 @@ namespace h::compiler
             case Fundamental_type::C_ulong:
             case Fundamental_type::C_longlong:
             case Fundamental_type::C_ulonglong: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 char* end;
                 std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
@@ -1871,7 +1869,7 @@ namespace h::compiler
         {
             Integer_type const& integer_type = std::get<Integer_type>(expression.type.data);
 
-            llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, expression.type, type_database);
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
             char* end;
             std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
@@ -1990,7 +1988,7 @@ namespace h::compiler
         }
 
         Type_reference const& element_type = *array_data_values[0].type;
-        llvm::Type* const llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, element_type, type_database);
+        llvm::Type* const llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, element_type, type_database);
         std::uint64_t const array_length = expression.array_data.size();
 
         llvm::ArrayType* const array_type = llvm::ArrayType::get(llvm_element_type, array_length);
@@ -2164,7 +2162,7 @@ namespace h::compiler
 
         // Loop variable declaration:
         Type_reference const& variable_type = range_begin_temporary.type.value();
-        llvm::Type* const variable_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, variable_type, type_database);
+        llvm::Type* const variable_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, variable_type, type_database);
         llvm::AllocaInst* const variable_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, variable_llvm_type, expression.variable_name.c_str());
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.variable_name.c_str(), variable_alloca, variable_type);
@@ -2411,10 +2409,9 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-        Module const& core_module = parameters.core_module;
         Type_database const& type_database = parameters.type_database;
 
-        llvm::Type* const llvm_struct_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, struct_type_reference, type_database);
+        llvm::Type* const llvm_struct_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, struct_type_reference, type_database);
 
         llvm::Value* struct_instance_value = llvm::UndefValue::get(llvm_struct_type);
 
@@ -2493,10 +2490,9 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-        Module const& core_module = parameters.core_module;
         Type_database const& type_database = parameters.type_database;
 
-        llvm::Type* const llvm_union_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, union_type_reference, type_database);
+        llvm::Type* const llvm_union_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, union_type_reference, type_database);
         if (!llvm::StructType::classof(llvm_union_type))
             throw std::runtime_error{ "llvm_union_type must be a StructType!" };
 
@@ -2727,7 +2723,7 @@ namespace h::compiler
                 throw std::runtime_error{ "Argument of alignment_of() does not have a type!" };
 
             Type_reference const& type_reference = argument.type.value();
-            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, type_reference, parameters.type_database);
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, type_reference, parameters.type_database);
             llvm::Align const alignment = parameters.llvm_data_layout.getABITypeAlign(llvm_type);
             std::uint64_t const alignment_in_bytes = alignment.value();
 
@@ -2748,7 +2744,7 @@ namespace h::compiler
                 throw std::runtime_error{ "Argument of size_of() does not have a type!" };
 
             Type_reference const& type_reference = argument.type.value();
-            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, type_reference, parameters.type_database);
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, type_reference, parameters.type_database);
             std::uint64_t const size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(llvm_type);
 
             return Value_and_type
@@ -3035,7 +3031,6 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-        Module const& core_module = parameters.core_module;
         std::span<Value_and_type const> const local_variables = parameters.local_variables;
         Type_database const& type_database = parameters.type_database;
 
@@ -3049,7 +3044,7 @@ namespace h::compiler
         case Unary_operation::Not: {
             if (is_bool(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
                 llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
@@ -3063,7 +3058,7 @@ namespace h::compiler
         case Unary_operation::Bitwise_not: {
             if (is_integer(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
                 llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
@@ -3077,7 +3072,7 @@ namespace h::compiler
         case Unary_operation::Minus: {
             if (is_integer(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, value_expression.type.value(), type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
                 llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
                 return Value_and_type
                 {
@@ -3094,7 +3089,7 @@ namespace h::compiler
         case Unary_operation::Post_increment: {
             if (is_integer(type))
             {
-                llvm::Type* llvm_value_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, type, type_database);
+                llvm::Type* llvm_value_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 bool const is_increment = (operation == Unary_operation::Pre_increment) || (operation == Unary_operation::Post_increment);
                 bool const is_post = (operation == Unary_operation::Post_decrement) || (operation == Unary_operation::Post_increment);
@@ -3122,7 +3117,7 @@ namespace h::compiler
             if (is_non_void_pointer(type))
             {
                 Type_reference const core_pointee_type = remove_pointer(type).value();
-                llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, core_pointee_type, type_database);
+                llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_pointee_type, type_database);
 
                 llvm::Value* const load_address = create_load_instruction(llvm_builder, llvm_data_layout, value_expression.value->getType(), value_expression.value);
                 llvm::Value* const load_value = create_load_instruction(llvm_builder, llvm_data_layout, llvm_pointee_type, load_address);
@@ -3240,12 +3235,11 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context = parameters.llvm_context;
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
-        Module const& core_module = parameters.core_module;
         Type_database& type_database = parameters.type_database;
 
         Type_reference const& core_type = expression.type;
 
-        llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, core_type, type_database);
+        llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_type, type_database);
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = core_type;
@@ -3671,7 +3665,7 @@ namespace h::compiler
             if (std::holds_alternative<Null_pointer_type>(value.type->data))
                 return value;
 
-            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, parameters.core_module, value.type.value(), parameters.type_database);
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
             if (llvm_type == value.value->getType() || llvm_type->isFunctionTy())
             {
                 return value;
