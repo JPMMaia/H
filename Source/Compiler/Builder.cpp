@@ -305,7 +305,7 @@ namespace h::compiler
 
             if (std::filesystem::exists(output_header_module_path))
             {
-                if (is_file_newer_than(output_header_module_path, header_module_filename))
+                if (is_file_newer_than(output_header_module_path, header_path.value()))
                 {
                     std::optional<Module> header_module = h::json::read_module(output_header_module_path);
                     if (!header_module.has_value())
