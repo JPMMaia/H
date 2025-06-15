@@ -1574,6 +1574,31 @@ namespace h::json
             };
         }
 
+        if (key == "member_bit_fields")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::optional<std::uint32_t>>* parent = static_cast<std::pmr::vector<std::optional<std::uint32_t>>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::optional<std::uint32_t>>* parent = static_cast<std::pmr::vector<std::optional<std::uint32_t>>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_bit_fields,
+                .type = "std::pmr::vector<std::optional<std::uint32_t>>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr,
+            };
+        }
+
         if (key == "member_default_values")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void

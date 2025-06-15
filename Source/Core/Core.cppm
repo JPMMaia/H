@@ -374,6 +374,7 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> member_types;
         std::pmr::vector<std::pmr::string> member_names;
+        std::pmr::vector<std::optional<std::uint32_t>> member_bit_fields;
         std::pmr::vector<Statement> member_default_values;
         bool is_packed;
         bool is_literal;

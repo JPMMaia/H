@@ -86,6 +86,12 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts bit_fields.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "bit_fields.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts block_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "block_expressions.hltxt";

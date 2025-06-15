@@ -1,0 +1,24 @@
+module bit_fields;
+
+using My_uint = Uint32;
+
+struct My_struct
+{
+    a: Uint32 : 24 = 0;
+    b: My_uint : 8 = 0;
+    c: Uint32 : 12 = 0;
+    d: Uint32 : 8 = 0;
+    e: Uint32 : 12 = 0;
+}
+"VCPKG_OVERLAY_PORTS": "${CMAKE_SOURCE_DIR}/External/vcpkg-overlays",
+function run(parameter: My_struct) -> (result: My_struct)
+{
+    var a = parameter.a;
+    var b = parameter.b;
+    var c = parameter.c;
+    var d = parameter.d;
+    var e = parameter.e;
+
+    var instance: My_struct = {};
+    return instance;
+}

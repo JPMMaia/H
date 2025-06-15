@@ -1997,6 +1997,10 @@
           "named": true
         },
         {
+          "type": "Integer_without_suffix",
+          "named": true
+        },
+        {
           "type": "Struct_member_name",
           "named": true
         },
@@ -2479,6 +2483,10 @@
   },
   {
     "type": "Identifier",
+    "named": true
+  },
+  {
+    "type": "Integer_without_suffix",
     "named": true
   },
   {

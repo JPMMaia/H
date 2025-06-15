@@ -743,6 +743,27 @@
           "name": "Struct_member_type"
         },
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": ":"
+                },
+                {
+                  "type": "SYMBOL",
+                  "name": "Integer_without_suffix"
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "STRING",
           "value": "="
         },
@@ -3120,6 +3141,10 @@
           "value": "false"
         }
       ]
+    },
+    "Integer_without_suffix": {
+      "type": "PATTERN",
+      "value": "\\d+"
     },
     "Number": {
       "type": "PATTERN",

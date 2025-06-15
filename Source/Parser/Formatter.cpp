@@ -1977,6 +1977,13 @@ namespace h::parser
             add_text(buffer, ": ");
             add_format_type_name(buffer, {&struct_declaration.member_types[i], 1}, options);
 
+            if (struct_declaration.member_bit_fields[i].has_value())
+            {
+                std::uint32_t const bits = struct_declaration.member_bit_fields[i].value();
+                add_text(buffer, " : ");
+                add_integer_text(buffer, static_cast<std::uint64_t>(bits));
+            }
+
             // Default value if exists
             if (i < struct_declaration.member_default_values.size())
             {

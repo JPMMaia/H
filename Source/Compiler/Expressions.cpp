@@ -416,36 +416,19 @@ namespace h::compiler
         if (left_hand_side.value == nullptr)
             throw std::runtime_error{ "create_access_struct_member(): left_hand_side.value == nullptr" };
 
-        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+        Value_and_type value = generate_load_struct_member_instructions(
+            parameters.clang_module_data,
             parameters.llvm_context,
+            parameters.llvm_builder,
             parameters.llvm_data_layout,
-            parameters.core_module,
-            create_custom_type_reference(module_name, struct_declaration.name),
+            left_hand_side,
+            access_member_name,
+            module_name,
+            struct_declaration,
             parameters.type_database
         );
 
-        auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), access_member_name);
-        if (member_location == struct_declaration.member_names.end())
-            throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", access_member_name, struct_declaration.name) };
-
-        unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
-
-        Type_reference const& member_type = struct_declaration.member_types[member_index];
-
-        std::array<llvm::Value*, 2> const indices
-        {
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), 0),
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(parameters.llvm_context), member_index),
-        };
-
-        llvm::Value* const get_element_pointer_instruction = parameters.llvm_builder.CreateGEP(struct_llvm_type, left_hand_side.value, indices, "", true);
-
-        return
-        {
-            .name = "",
-            .value = get_element_pointer_instruction,
-            .type = std::move(member_type)
-        };
+        return value;
     }
 
     Value_and_type create_access_union_member(
@@ -462,7 +445,6 @@ namespace h::compiler
         llvm::Type* const union_llvm_type = type_reference_to_llvm_type(
             parameters.llvm_context,
             parameters.llvm_data_layout,
-            parameters.core_module,
             create_custom_type_reference(module_name, union_declaration.name),
             parameters.type_database
         );
@@ -478,7 +460,6 @@ namespace h::compiler
         llvm::Type* const llvm_member_type = type_reference_to_llvm_type(
             parameters.llvm_context,
             parameters.llvm_data_layout,
-            parameters.core_module,
             member_type,
             parameters.type_database
         );

@@ -705,6 +705,67 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
   }
 
 
+  TEST_CASE("Compile Bit Fields", "[LLVM_IR]")
+  {
+    char const* const input_file = "bit_fields.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.bit_fields_My_struct = type { i64 }
+
+; Function Attrs: convergent
+define private i64 @bit_fields_run(i64 noundef %"arguments[0].parameter") #0 {
+entry:
+  %0 = alloca %struct.bit_fields_My_struct, align 8
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
+  %instance = alloca %struct.bit_fields_My_struct, align 8
+  %1 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[0].parameter", ptr %1, align 8
+  %2 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  %4 = lshr i32 %3, 0
+  %5 = and i32 %4, 16777215
+  store i32 %5, ptr %a, align 4
+  %6 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %7 = load i32, ptr %6, align 4
+  %8 = lshr i32 %7, 24
+  %9 = and i32 %8, 255
+  store i32 %9, ptr %b, align 4
+  %10 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %11 = load i32, ptr %10, align 4
+  %12 = lshr i32 %11, 32
+  %13 = and i32 %12, 4095
+  store i32 %13, ptr %c, align 4
+  %14 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %15 = load i32, ptr %14, align 4
+  %16 = lshr i32 %15, 44
+  %17 = and i32 %16, 255
+  store i32 %17, ptr %d, align 4
+  %18 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %19 = load i32, ptr %18, align 4
+  %20 = lshr i32 %19, 52
+  %21 = and i32 %20, 4095
+  store i32 %21, ptr %e, align 4
+  store %struct.bit_fields_My_struct zeroinitializer, ptr %instance, align 8
+  %22 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
+  %23 = load i64, ptr %22, align 8
+  ret i64 %23
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
   TEST_CASE("Compile Block Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "block_expressions.hltxt";

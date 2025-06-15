@@ -1255,6 +1255,9 @@ namespace h::parser
                 output.member_types = std::pmr::vector<h::Type_reference>{output_allocator};
                 output.member_types.resize(member_count, h::Type_reference{});
 
+                output.member_bit_fields = std::pmr::vector<std::optional<std::uint32_t>>{output_allocator};
+                output.member_bit_fields.resize(member_count, std::nullopt);
+
                 output.member_default_values = std::pmr::vector<h::Statement>{output_allocator};
                 output.member_default_values.resize(member_count, h::Statement{});
 
@@ -1285,6 +1288,15 @@ namespace h::parser
                                 output.member_types[member_index] = std::move(type.value());
                             }
                         }
+                    }
+
+                    std::optional<Parse_node> const member_bit_field_node = get_child_node(tree, member_node, "Integer_without_suffix");
+                    if (member_bit_field_node.has_value())
+                    {
+                        std::string_view const bits_string = get_node_value(tree, member_bit_field_node.value());
+                        std::uint64_t const bits = parse_uint64(bits_string);
+
+                        output.member_bit_fields[member_index] = static_cast<std::uint32_t>(bits);
                     }
 
                     std::optional<Parse_node> const default_value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");

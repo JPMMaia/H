@@ -1251,6 +1251,8 @@ namespace h::json
         write_object(writer, output.member_types);
         writer.Key("member_names");
         write_object(writer, output.member_names);
+        writer.Key("member_bit_fields");
+        write_object(writer, output.member_bit_fields);
         writer.Key("member_default_values");
         write_object(writer, output.member_default_values);
         writer.Key("is_packed");

@@ -163,6 +163,18 @@ namespace h::compiler
         Instance_call_key const& key
     );
 
+    export Value_and_type generate_load_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        Value_and_type const& left_hand_side,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        Type_database const& type_database
+    );
+
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,
