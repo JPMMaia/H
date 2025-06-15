@@ -219,25 +219,30 @@ namespace h::c
 
         REQUIRE(actual.member_types.size() == 4);
         REQUIRE(actual.member_names.size() == 4);
+        REQUIRE(actual.member_bit_fields.size() == 4);
 
         {
             CHECK(actual.member_names[0] == "sType");
             CHECK(actual.member_types[0] == h::create_custom_type_reference("vulkan", "VkStructureType"));
+            CHECK(actual.member_bit_fields[0].has_value() == false);
         }
 
         {
             CHECK(actual.member_names[1] == "pNext");
             CHECK(actual.member_types[1] == h::create_pointer_type_type_reference({}, false));
+            CHECK(actual.member_bit_fields[1].has_value() == false);
         }
 
         {
             CHECK(actual.member_names[2] == "flags");
             CHECK(actual.member_types[2] == h::create_custom_type_reference("vulkan", "VkCommandPoolCreateFlags"));
+            CHECK(actual.member_bit_fields[2].has_value() == false);
         }
 
         {
             CHECK(actual.member_names[3] == "queueFamilyIndex");
             CHECK(actual.member_types[3] == h::create_integer_type_type_reference(32, false));
+            CHECK(actual.member_bit_fields[3].has_value() == false);
         }
     }
 
@@ -259,6 +264,7 @@ namespace h::c
 
         REQUIRE(actual.member_types.size() == 2);
         REQUIRE(actual.member_names.size() == 2);
+        REQUIRE(actual.member_bit_fields.size() == 2);
         REQUIRE(actual.member_default_values.size() == 2);
 
         h::Type_reference const uint32_type
@@ -287,12 +293,14 @@ namespace h::c
         {
             CHECK(actual.member_names[0] == "width");
             CHECK(actual.member_types[0] == uint32_type);
+            CHECK(actual.member_bit_fields[0].has_value() == false);
             CHECK(actual.member_default_values[0] == expected_default_value);
         }
 
         {
             CHECK(actual.member_names[1] == "height");
             CHECK(actual.member_types[1] == uint32_type);
+            CHECK(actual.member_bit_fields[0].has_value() == false);
             CHECK(actual.member_default_values[1] == expected_default_value);
         }
     }
@@ -315,6 +323,7 @@ namespace h::c
 
         REQUIRE(actual.member_types.size() == 2);
         REQUIRE(actual.member_names.size() == 2);
+        REQUIRE(actual.member_bit_fields.size() == 2);
         REQUIRE(actual.member_default_values.size() == 2);
 
         {
@@ -329,6 +338,7 @@ namespace h::c
             };
 
             CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+            CHECK(actual.member_bit_fields[0].has_value() == false);
 
             h::Statement const expected_default_value =
             {
@@ -359,6 +369,7 @@ namespace h::c
             };
 
             CHECK(actual.member_types[1] == h::Type_reference{ .data = expected_type });
+            CHECK(actual.member_bit_fields[1].has_value() == false);
 
             h::Statement const expected_default_value =
             {
@@ -396,6 +407,7 @@ namespace h::c
 
         REQUIRE(actual.member_types.size() == 3);
         REQUIRE(actual.member_names.size() == 3);
+        REQUIRE(actual.member_bit_fields.size() == 3);
         REQUIRE(actual.member_default_values.size() == 3);
 
         h::Type_reference const uint32_type
@@ -419,6 +431,7 @@ namespace h::c
             };
 
             CHECK(actual.member_types[0] == h::Type_reference{ .data = expected_type });
+            CHECK(actual.member_bit_fields[0].has_value() == false);
 
             h::Statement const expected_default_value =
             {
@@ -440,6 +453,7 @@ namespace h::c
         {
             CHECK(actual.member_names[1] == "colorAttachment");
             CHECK(actual.member_types[1] == uint32_type);
+            CHECK(actual.member_bit_fields[1].has_value() == false);
 
             h::Statement const expected_default_value =
             {
@@ -470,6 +484,7 @@ namespace h::c
             };
 
             CHECK(actual.member_types[2] == h::Type_reference{ .data = expected_type });
+            CHECK(actual.member_bit_fields[2].has_value() == false);
 
             Type_reference const float32_type = h::create_fundamental_type_type_reference(h::Fundamental_type::Float32);
 
@@ -554,6 +569,7 @@ namespace h::c
 
         REQUIRE(actual.member_types.size() == 8);
         REQUIRE(actual.member_names.size() == 8);
+        REQUIRE(actual.member_bit_fields.size() == 8);
         REQUIRE(actual.member_default_values.size() == 8);
 
         h::Type_reference const uint32_type
@@ -576,34 +592,42 @@ namespace h::c
 
         CHECK(actual.member_names[0] == "sType");
         CHECK(actual.member_types[0] == create_custom_type_reference("vulkan", "VkStructureType"));
+        CHECK(actual.member_bit_fields[0].has_value() == false);
         CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "VK_STRUCTURE_TYPE_APPLICATION_INFO")));
 
         CHECK(actual.member_names[1] == "pNext");
         CHECK(actual.member_types[1] == h::create_pointer_type_type_reference({}, false));
+        CHECK(actual.member_bit_fields[1].has_value() == false);
         CHECK(actual.member_default_values[1] == h::create_statement({ h::create_null_pointer_expression() }));
 
         CHECK(actual.member_names[2] == "flags");
         CHECK(actual.member_types[2] == create_custom_type_reference("vulkan", "VkBufferCreateFlags"));
+        CHECK(actual.member_bit_fields[2].has_value() == false);
         CHECK(actual.member_default_values[2] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
 
         CHECK(actual.member_names[3] == "size");
         CHECK(actual.member_types[3] == create_custom_type_reference("vulkan", "VkDeviceSize"));
+        CHECK(actual.member_bit_fields[3].has_value() == false);
         CHECK(actual.member_default_values[3] == h::create_statement({ h::create_constant_expression(uint64_type, "0") }));
 
         CHECK(actual.member_names[4] == "usage");
         CHECK(actual.member_types[4] == create_custom_type_reference("vulkan", "VkBufferUsageFlags"));
+        CHECK(actual.member_bit_fields[4].has_value() == false);
         CHECK(actual.member_default_values[4] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
 
         CHECK(actual.member_names[5] == "sharingMode");
         CHECK(actual.member_types[5] == create_custom_type_reference("vulkan", "VkSharingMode"));
+        CHECK(actual.member_bit_fields[5].has_value() == false);
         CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "VK_SHARING_MODE_EXCLUSIVE")));
 
         CHECK(actual.member_names[6] == "queueFamilyIndexCount");
         CHECK(actual.member_types[6] == uint32_type);
+        CHECK(actual.member_bit_fields[6].has_value() == false);
         CHECK(actual.member_default_values[6] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
 
         CHECK(actual.member_names[7] == "pQueueFamilyIndices");
         CHECK(actual.member_types[7] == h::create_pointer_type_type_reference({ h::create_integer_type_type_reference(32, false) }, false));
+        CHECK(actual.member_bit_fields[7].has_value() == false);
         CHECK(actual.member_default_values[7] == h::create_statement({ h::create_null_pointer_expression() }));
     }
 
@@ -733,18 +757,23 @@ struct My_data
 
             CHECK(declaration.member_names[0] == "type");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
 
             CHECK(declaration.member_names[1] == "anonymous_0");
             CHECK(declaration.member_types[1] == h::create_custom_type_reference("c.My_data", "_c_My_data_Anonymous_1"));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
 
             CHECK(declaration.member_names[2] == "anonymous_1");
             CHECK(declaration.member_types[2] == h::create_custom_type_reference("c.My_data", "_c_My_data_Anonymous_2"));
+            CHECK(declaration.member_bit_fields[2].has_value() == false);
 
             CHECK(declaration.member_names[3] == "member_1");
             CHECK(declaration.member_types[3] == h::create_custom_type_reference("c.My_data", "_c_My_data_Anonymous_3"));
+            CHECK(declaration.member_bit_fields[3].has_value() == false);
 
             CHECK(declaration.member_names[4] == "member_2");
             CHECK(declaration.member_types[4] == h::create_custom_type_reference("c.My_data", "_c_My_data_Anonymous_4"));
+            CHECK(declaration.member_bit_fields[4].has_value() == false);
         }
 
         {
@@ -767,9 +796,11 @@ struct My_data
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
 
             CHECK(declaration.member_names[1] == "v2");
             CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
         }
 
         {
@@ -792,9 +823,11 @@ struct My_data
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
 
             CHECK(declaration.member_names[1] == "v2");
             CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
         }
     }
 
@@ -879,9 +912,11 @@ union My_data
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
 
             CHECK(declaration.member_names[1] == "v2");
             CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
         }
 
         {
@@ -904,9 +939,11 @@ union My_data
 
             CHECK(declaration.member_names[0] == "v1");
             CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
 
             CHECK(declaration.member_names[1] == "v2");
             CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_int));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
         }
     }
 
@@ -1245,7 +1282,9 @@ struct MyNestedVector
             CHECK(*declaration.unique_name == "MyNestedVector");
 
             CHECK(declaration.member_types[0] == create_custom_type_reference("c.vector2i", "Vector2i"));
+            CHECK(declaration.member_bit_fields[0].has_value() == false);
             CHECK(declaration.member_types[1] == create_custom_type_reference("c.vector2i", "Vector2i"));
+            CHECK(declaration.member_bit_fields[1].has_value() == false);
         }
     }
 
@@ -1285,6 +1324,59 @@ typedef int(function_pointer_type*)(int a, int b);
             );
 
             CHECK(declaration.type[0] == expected_function_pointer_type);
+        }
+    }
+
+    TEST_CASE("Handles bit fields")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "bit_fields";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+struct My_data
+{
+    unsigned int a : 24;
+    unsigned int b : 8;
+    unsigned int c : 1;
+    unsigned int d : 20;
+    unsigned int e : 11;
+};
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        {
+            h::Struct_declaration const& declaration = header_module.export_declarations.struct_declarations[0];
+            CHECK(declaration.name == "My_data");
+
+            REQUIRE(declaration.member_names.size() == 5);
+            REQUIRE(declaration.member_types.size() == 5);
+            REQUIRE(declaration.member_bit_fields.size() == 5);
+
+            CHECK(declaration.member_names[0] == "a");
+            CHECK(declaration.member_types[0] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_uint));
+            CHECK(declaration.member_bit_fields[0] == 24);
+
+            CHECK(declaration.member_names[1] == "b");
+            CHECK(declaration.member_types[1] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_uint));
+            CHECK(declaration.member_bit_fields[1] == 8);
+
+            CHECK(declaration.member_names[2] == "c");
+            CHECK(declaration.member_types[2] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_uint));
+            CHECK(declaration.member_bit_fields[2] == 1);
+
+            CHECK(declaration.member_names[3] == "d");
+            CHECK(declaration.member_types[3] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_uint));
+            CHECK(declaration.member_bit_fields[3] == 20);
+
+            CHECK(declaration.member_names[4] == "e");
+            CHECK(declaration.member_types[4] == h::create_fundamental_type_type_reference(h::Fundamental_type::C_uint));
+            CHECK(declaration.member_bit_fields[4] == 11);
         }
     }
 
