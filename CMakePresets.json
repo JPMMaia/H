@@ -12,6 +12,7 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_OVERLAY_PORTS": "${sourceDir}/External/vcpkg-overlays",
         "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
         "BUILD_SHARED_LIBS": "OFF"
       }
