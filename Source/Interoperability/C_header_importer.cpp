@@ -1370,6 +1370,7 @@ namespace h::c
             .unique_name = struct_name,
             .member_types = {},
             .member_names = {},
+            .member_bit_fields = {},
             .member_default_values = {},
             .is_packed = false,
             .is_literal = false,
@@ -1390,6 +1391,7 @@ namespace h::c
         );
 
         assert(struct_declaration.member_names.size() == struct_declaration.member_types.size());
+        assert(struct_declaration.member_names.size() == struct_declaration.member_bit_fields.size());
 
         return struct_declaration;
     }

@@ -172,6 +172,7 @@ namespace h::compiler
         std::string_view const access_member_name,
         std::string_view const module_name,
         Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
         Type_database const& type_database
     );
 

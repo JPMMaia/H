@@ -410,6 +410,7 @@ namespace h::compiler
         std::string_view const access_member_name,
         std::string_view const module_name,
         Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
         Expression_parameters const& parameters
     )
     {
@@ -425,6 +426,7 @@ namespace h::compiler
             access_member_name,
             module_name,
             struct_declaration,
+            type_instance,
             parameters.type_database
         );
 
@@ -635,6 +637,7 @@ namespace h::compiler
                                 expression.member_name,
                                 module_name,
                                 struct_declaration,
+                                std::nullopt,
                                 parameters
                             );
                         }
@@ -2063,6 +2066,7 @@ namespace h::compiler
                                     dereference_and_access_expression.member_name,
                                     module_name,
                                     struct_declaration,
+                                    std::nullopt,
                                     parameters
                                 );
                             }
@@ -2092,6 +2096,7 @@ namespace h::compiler
                                 dereference_and_access_expression.member_name,
                                 type_instance.type_constructor.module_reference.name,
                                 struct_declaration,
+                                type_instance,
                                 parameters
                             );
                         }

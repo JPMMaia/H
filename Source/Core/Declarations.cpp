@@ -19,6 +19,35 @@ import h.core.types;
 
 namespace h
 {
+    bool are_type_instances_equivalent(Type_instance const& lhs, Type_instance const& rhs)
+    {
+        if (lhs.type_constructor != rhs.type_constructor)
+            return false;
+
+        if (lhs.arguments.size() != rhs.arguments.size())
+            return false;
+
+        for (std::size_t argument_index = 0; argument_index < lhs.arguments.size(); ++argument_index)
+        {
+            Statement const& lhs_statement = lhs.arguments[argument_index];
+            Statement const& rhs_statement = rhs.arguments[argument_index];
+
+            if (lhs_statement.expressions.size() != rhs_statement.expressions.size())
+                return false;
+            
+            for (std::size_t expression_index = 0; expression_index < lhs_statement.expressions.size(); ++expression_index)
+            {
+                Expression const& lhs_expression = lhs_statement.expressions[expression_index];
+                Expression const& rhs_expression = rhs_statement.expressions[expression_index];
+
+                if (lhs_expression.data != rhs_expression.data)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     Declaration_database create_declaration_database()
     {
         return {};
@@ -323,8 +352,11 @@ namespace h
             if (std::holds_alternative<Type_instance>(type_reference.data))
             {
                 Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
-                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
-                declaration_database.instances.emplace(type_instance, std::move(storage));
+                if (!declaration_database.instances.contains(type_instance))
+                {
+                    Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                    declaration_database.instances.emplace(type_instance, std::move(storage));   
+                }
             }
 
             return false;
@@ -346,8 +378,11 @@ namespace h
             if (std::holds_alternative<Type_instance>(type_reference.data))
             {
                 Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
-                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
-                declaration_database.instances.emplace(type_instance, std::move(storage));
+                if (!declaration_database.instances.contains(type_instance))
+                {
+                    Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                    declaration_database.instances.emplace(type_instance, std::move(storage));
+                }
             }
 
             return false;
@@ -549,6 +584,8 @@ namespace h
             if (std::holds_alternative<Instance_call_expression>(expression.data))
             {
                 Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+
+                // TODO can optimize by checking for the existence of the key first
                 std::pair<Instance_call_key, Function_expression> const pair = create_instance_call_expression_value(
                     declaration_database,
                     instance_call_expression,
@@ -556,8 +593,11 @@ namespace h
                     core_module.name
                 );
 
-                add_instantiated_type_instances(declaration_database, pair.second);
-                declaration_database.call_instances.emplace(std::move(pair));
+                if (!declaration_database.call_instances.contains(pair.first))
+                {
+                    add_instantiated_type_instances(declaration_database, pair.second);
+                    declaration_database.call_instances.emplace(std::move(pair));
+                }
             }
 
             return false;

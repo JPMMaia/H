@@ -47,6 +47,16 @@ namespace h
     using Module_name = std::pmr::string;
     using Declaration_map = std::pmr::unordered_map<std::pmr::string, Declaration, String_hash, String_equal>;
 
+    /*bool are_type_instances_equivalent(Type_instance const& lhs, Type_instance const& rhs);
+
+    struct Are_type_instances_equivalent
+    {
+        bool operator()(Type_instance const& lhs, Type_instance const& rhs) const
+        {
+            return are_type_instances_equivalent(lhs, rhs);
+        }
+    };*/
+
     export struct Declaration_database
     {
         std::pmr::unordered_map<Module_name, Declaration_map, String_hash, String_equal> map;

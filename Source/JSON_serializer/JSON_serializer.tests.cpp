@@ -7,6 +7,7 @@
 #include <rapidjson/writer.h>
 
 import h.core;
+import h.core.types;
 import h.json_serializer;
 import h.json_serializer.operators;
 
@@ -1164,6 +1165,221 @@ namespace h
         REQUIRE(output.has_value());
 
         h::Module const actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    h::Struct_declaration create_expected_struct_declaration()
+    {
+        h::Type_reference const uint32_type = create_integer_type_type_reference(32, false);
+
+        h::Struct_declaration declaration = {};
+        declaration.name = "My_struct";
+        declaration.member_names = {
+            "first",
+            "second",
+            "third"
+        };
+        declaration.member_types = {
+            uint32_type,
+            uint32_type,
+            uint32_type
+        };
+        declaration.member_bit_fields = {
+            24,
+            8,
+            std::nullopt
+        };
+        declaration.member_default_values = {
+            {
+                .expressions = {
+                    Expression{
+                        .data = Constant_expression{
+                            .type = uint32_type,
+                            .data = "0"
+                        }
+                    }
+                }
+            },
+            {
+                .expressions = {
+                    Expression{
+                        .data = Constant_expression{
+                            .type = uint32_type,
+                            .data = "0"
+                        }
+                    }
+                }
+            },
+            {
+                .expressions = {
+                    Expression{
+                        .data = Constant_expression{
+                            .type = uint32_type,
+                            .data = "0"
+                        }
+                    }
+                }
+            }
+        };
+        return declaration;
+    }
+
+    TEST_CASE("Read Struct_declaration")
+    {
+        std::pmr::string const json_data = R"JSON(
+            {
+                "name": "My_struct",
+                "member_names": {
+                    "size": 3,
+                    "elements": [
+                        "first",
+                        "second",
+                        "third"
+                    ]
+                },
+                "member_types": {
+                    "size": 3,
+                    "elements": [
+                        {
+                            "data": {
+                                "type": "Integer_type",
+                                "value": {
+                                    "number_of_bits": 32,
+                                    "is_signed": false
+                                }
+                            }
+                        },
+                        {
+                            "data": {
+                                "type": "Integer_type",
+                                "value": {
+                                    "number_of_bits": 32,
+                                    "is_signed": false
+                                }
+                            }
+                        },
+                        {
+                            "data": {
+                                "type": "Integer_type",
+                                "value": {
+                                    "number_of_bits": 32,
+                                    "is_signed": false
+                                }
+                            }
+                        }
+                    ]
+                },
+                "member_bit_fields": {
+                    "size": 3,
+                    "elements": [
+                        24,
+                        8,
+                        null
+                    ]
+                },
+                "member_default_values": {
+                    "size": 3,
+                    "elements": [
+                        {
+                            "expressions": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "data": {
+                                            "type": "Constant_expression",
+                                            "value": {
+                                                "type": {
+                                                    "data": {
+                                                        "type": "Integer_type",
+                                                        "value": {
+                                                            "number_of_bits": 32,
+                                                            "is_signed": false
+                                                        }
+                                                    }
+                                                },
+                                                "data": "0"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "expressions": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "data": {
+                                            "type": "Constant_expression",
+                                            "value": {
+                                                "type": {
+                                                    "data": {
+                                                        "type": "Integer_type",
+                                                        "value": {
+                                                            "number_of_bits": 32,
+                                                            "is_signed": false
+                                                        }
+                                                    }
+                                                },
+                                                "data": "0"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "expressions": {
+                                "size": 1,
+                                "elements": [
+                                    {
+                                        "data": {
+                                            "type": "Constant_expression",
+                                            "value": {
+                                                "type": {
+                                                    "data": {
+                                                        "type": "Integer_type",
+                                                        "value": {
+                                                            "number_of_bits": 32,
+                                                            "is_signed": false
+                                                        }
+                                                    }
+                                                },
+                                                "data": "0"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        )JSON";
+
+        h::Struct_declaration const expected = create_expected_struct_declaration();
+
+        rapidjson::Reader reader;
+        rapidjson::StringStream input_stream{ json_data.c_str() };
+        std::optional<h::Struct_declaration> const output = h::json::read<h::Struct_declaration>(reader, input_stream);
+
+        REQUIRE(output.has_value());
+
+        h::Struct_declaration const& actual = output.value();
+        CHECK(actual == expected);
+    }
+
+    TEST_CASE("Write Struct_declaration")
+    {
+        h::Struct_declaration const input = create_expected_struct_declaration();
+
+        std::string const expected = R"({"name":"My_struct","member_types":{"size":3,"elements":[{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}},{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}},{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}}]},"member_names":{"size":3,"elements":["first","second","third"]},"member_bit_fields":{"size":3,"elements":[24,8,null]},"member_default_values":{"size":3,"elements":[{"expressions":{"size":1,"elements":[{"data":{"type":"Constant_expression","value":{"type":{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}},"data":"0"}}}]}},{"expressions":{"size":1,"elements":[{"data":{"type":"Constant_expression","value":{"type":{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}},"data":"0"}}}]}},{"expressions":{"size":1,"elements":[{"data":{"type":"Constant_expression","value":{"type":{"data":{"type":"Integer_type","value":{"number_of_bits":32,"is_signed":false}}},"data":"0"}}}]}}]},"is_packed":false,"is_literal":false,"member_comments":{"size":0,"elements":[]}})";
+
+        rapidjson::StringBuffer output_stream;
+        rapidjson::Writer<rapidjson::StringBuffer> writer{ output_stream };
+        h::json::write(writer, input);
+
+        std::string const actual = output_stream.GetString();
         CHECK(actual == expected);
     }
 }

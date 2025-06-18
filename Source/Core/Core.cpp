@@ -71,6 +71,11 @@ namespace h
     }
 #endif
 
+    bool operator==(Expression const& lhs, Expression const& rhs)
+    {
+        return lhs.data == rhs.data;
+    }
+
     Source_range create_source_range(
         std::uint32_t const start_line,
         std::uint32_t const start_column,

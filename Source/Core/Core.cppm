@@ -1047,6 +1047,7 @@ namespace h
         friend bool operator==(Expression const& lhs, Expression const& rhs);
 #else
         friend auto operator<=>(Expression const&, Expression const&) = default;
+        friend bool operator==(Expression const& lhs, Expression const& rhs);
 #endif
     };
 

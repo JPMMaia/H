@@ -1671,6 +1671,73 @@ namespace h::compiler
         );
     }
 
+    clang::RecordDecl* get_record_declaration(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        std::optional<h::Type_instance> const& type_instance,
+        Clang_declaration_database const& clang_declaration_database
+    )
+    {
+        if (type_instance.has_value())
+        {
+            auto const location = clang_declaration_database.instances.find(type_instance.value());
+            if (location != clang_declaration_database.instances.end())
+            {
+                clang::RecordDecl* const record_declaration = location->second;
+                return record_declaration;
+            }
+            else
+            {
+                return nullptr;
+            }
+        }
+
+        {
+            auto const clang_declarations_location = clang_declaration_database.map.find(module_name);
+            if (clang_declarations_location != clang_declaration_database.map.end())
+            {
+                Clang_module_declarations const& clang_declarations = clang_declarations_location->second;
+
+                auto const location = clang_declarations.struct_declarations.find(declaration_name);
+                if (location != clang_declarations.struct_declarations.end())
+                {
+                    clang::RecordDecl* const record_declaration = location->second;
+                    return record_declaration;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    static h::Type_reference create_type_reference(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        std::optional<h::Type_instance> const& type_instance
+    )
+    {
+        if (type_instance.has_value())
+        {
+            return h::Type_reference
+            {
+                .data = type_instance.value()
+            };
+        }
+        else
+        {
+            return h::Type_reference
+            {
+                .data = h::Custom_type_reference
+                {
+                    .module_reference = {
+                        .name = std::pmr::string{module_name}
+                    },
+                    .name = std::pmr::string{declaration_name}
+                }
+            };
+        }
+    }
+
     Value_and_type generate_load_struct_member_instructions(
         Clang_module_data const& clang_module_data,
         llvm::LLVMContext& llvm_context,
@@ -1680,6 +1747,7 @@ namespace h::compiler
         std::string_view const access_member_name,
         std::string_view const module_name,
         Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
         Type_database const& type_database
     )
     {
@@ -1695,18 +1763,28 @@ namespace h::compiler
         clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
         clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
         
-        Clang_module_declarations const& clang_declarations = clang_module_data.declaration_database.map.find(module_name)->second;
-        auto const record_location = clang_declarations.struct_declarations.find(struct_declaration.name);
-        if (record_location == clang_declarations.struct_declarations.end())
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
             throw std::runtime_error{ "Cannot find struct record." };
-    
-        clang::RecordDecl* const record_declaration = record_location->second;
+
         auto field_location = record_declaration->field_begin();
         for (std::uint32_t index = 0; index < member_index; ++index)
             ++field_location;    
         clang::FieldDecl* const field_declaration = *field_location;
         
-        llvm::Type* const struct_llvm_type = convert_type(clang_module_data, record_declaration);
+        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+            llvm_context,
+            llvm_data_layout,
+            create_type_reference(module_name, struct_declaration.name, type_instance),
+            type_database
+        );
+        if (struct_llvm_type == nullptr)
+            throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
         
         if (field_declaration->isBitField())
         {
