@@ -1079,17 +1079,30 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     char const* const expected_llvm_ir = R"(
 ; Function Attrs: convergent
-define void @Cast_expressions_run(i32 noundef %"arguments[0].first") #0 {
+define void @Cast_expressions_run(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second", i32 noundef %"arguments[2].third") #0 {
 entry:
   %first = alloca i32, align 4
+  %second = alloca i32, align 4
+  %third = alloca i32, align 4
   %a = alloca i32, align 4
   %b = alloca i1, align 1
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
   store i32 %"arguments[0].first", ptr %first, align 4
+  store i32 %"arguments[1].second", ptr %second, align 4
+  store i32 %"arguments[2].third", ptr %third, align 4
   store i32 1, ptr %a, align 4
   %0 = load i32, ptr %a, align 4
   %1 = load i32, ptr %first, align 4
   %2 = icmp eq i32 %0, %1
   store i1 %2, ptr %b, align 1
+  %3 = load i32, ptr %second, align 4
+  store i32 %3, ptr %c, align 4
+  %4 = load i32, ptr %a, align 4
+  store i32 %4, ptr %d, align 4
+  %5 = load i32, ptr %third, align 4
+  store i32 %5, ptr %e, align 4
   ret void
 }
 

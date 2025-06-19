@@ -1642,7 +1642,7 @@ namespace h::compiler
         );
     }
 
-    llvm::Instruction::CastOps get_cast_type(
+    std::optional<llvm::Instruction::CastOps> get_cast_type(
         Type_reference const& source_core_type,
         llvm::Type const& source_llvm_type,
         Type_reference const& destination_core_type,
@@ -1663,10 +1663,7 @@ namespace h::compiler
                 }
                 else
                 {
-                    Integer_type const& source_integer_type = std::get<Integer_type>(source_core_type.data);
-                    Integer_type const& destination_integer_type = std::get<Integer_type>(destination_core_type.data);
-
-                    if (source_integer_type.is_signed && destination_integer_type.is_signed)
+                    if (is_signed_integer(source_core_type) && is_signed_integer(destination_core_type))
                         return llvm::Instruction::CastOps::SExt;
                     else
                         return llvm::Instruction::CastOps::ZExt;
@@ -1676,9 +1673,7 @@ namespace h::compiler
             {
                 // Source is integer, destination is floating point
 
-                Integer_type const& source_integer_type = std::get<Integer_type>(source_core_type.data);
-
-                if (source_integer_type.is_signed)
+                if (is_signed_integer(source_core_type))
                     return llvm::Instruction::CastOps::SIToFP;
                 else
                     return llvm::Instruction::CastOps::UIToFP;
@@ -1690,9 +1685,7 @@ namespace h::compiler
             {
                 // Source is floating point, destination is integer
 
-                Integer_type const& destination_integer_type = std::get<Integer_type>(destination_core_type.data);
-
-                if (destination_integer_type.is_signed)
+                if (is_signed_integer(destination_core_type))
                     return llvm::Instruction::CastOps::FPToSI;
                 else
                     return llvm::Instruction::CastOps::FPToUI;
@@ -1708,6 +1701,10 @@ namespace h::compiler
                 else
                     return llvm::Instruction::CastOps::FPExt;
             }
+        }
+        else if (is_pointer(source_core_type) && is_pointer(destination_core_type))
+        {
+            return std::nullopt;
         }
 
         throw std::runtime_error{ std::format("Invalid cast!") };
@@ -1725,14 +1722,17 @@ namespace h::compiler
         Type_database const& type_database = parameters.type_database;
 
         Value_and_type const source = create_loaded_expression_value(expression.source.expression_index, statement, parameters);
+        if (!source.type.has_value())
+            throw std::runtime_error{"Source type is void!"};
 
-        Type_reference const& destination_type = expression.destination_type;
+        std::optional<Type_reference> const source_type = get_underlying_type(parameters.declaration_database, source.type.value());
+        std::optional<Type_reference> const destination_type = get_underlying_type(parameters.declaration_database, expression.destination_type);
 
-        llvm::Type* const source_llvm_type = source.value->getType();
-        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, destination_type, type_database);
+        if (!source_type.has_value() || !destination_type.has_value())
+            throw std::runtime_error{"Could not find underlyng source and/or destination types!"};
 
         // If types are equal, then ignore the cast:
-        if (source_llvm_type == destination_llvm_type)
+        if (source_type == destination_type)
         {
             return
             {
@@ -1742,9 +1742,21 @@ namespace h::compiler
             };
         }
 
-        llvm::Instruction::CastOps const cast_type = get_cast_type(source.type.value(), *source_llvm_type, destination_type, *destination_llvm_type);
+        llvm::Type* const source_llvm_type = source.value->getType();
+        llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, destination_type.value(), type_database);
 
-        llvm::Value* const cast_instruction = llvm_builder.CreateCast(cast_type, source.value, destination_llvm_type);
+        std::optional<llvm::Instruction::CastOps> const cast_type = get_cast_type(source_type.value(), *source_llvm_type, destination_type.value(), *destination_llvm_type);
+        if (!cast_type.has_value())
+        {
+            return
+            {
+                .name = "",
+                .value = source.value,
+                .type = destination_type
+            };
+        }
+
+        llvm::Value* const cast_instruction = llvm_builder.CreateCast(cast_type.value(), source.value, destination_llvm_type);
 
         return
         {
