@@ -1335,6 +1335,74 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
+  TEST_CASE("Compile Debug Information Bit Fields", "[LLVM_IR]")
+  {
+    char const* const input_file = "debug_information_bit_fields.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%struct.Debug_information_My_struct = type {{ i32, i32 }}
+
+; Function Attrs: convergent
+define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
+entry:
+  %0 = alloca %struct.Debug_information_My_struct, align 4, !dbg !13
+  %instance = alloca %struct.Debug_information_My_struct, align 4, !dbg !14
+  %1 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 0, !dbg !13
+  store i32 1, ptr %1, align 4, !dbg !13
+  %2 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
+  %3 = load i32, ptr %2, align 4, !dbg !13
+  %4 = and i32 %3, -16777216, !dbg !13
+  %5 = or i32 %4, 1, !dbg !13
+  store i32 %5, ptr %2, align 4, !dbg !13
+  %6 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
+  %7 = load i32, ptr %6, align 4, !dbg !13
+  %8 = and i32 %7, 16777215, !dbg !13
+  %9 = or i32 %8, 33554432, !dbg !13
+  store i32 %9, ptr %6, align 4, !dbg !13
+  %10 = load %struct.Debug_information_My_struct, ptr %0, align 4, !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !16, metadata !DIExpression()), !dbg !14
+  store %struct.Debug_information_My_struct %10, ptr %instance, align 4, !dbg !14
+  %11 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !17
+  %12 = load i64, ptr %11, align 4, !dbg !17
+  ret i64 %12, !dbg !17
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
+
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_bit_fields.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "instantiate", linkageName: "Debug_information_instantiate", scope: null, file: !2, line: 10, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !12)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Debug_information_My_struct", file: !2, line: 3, size: 64, align: 8, elements: !7)
+!7 = !{{!8, !10, !11}}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "a", file: !2, line: 5, baseType: !9, size: 32, align: 32)
+!9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!10 = !DIDerivedType(tag: DW_TAG_member, name: "b", file: !2, line: 6, baseType: !9, size: 24, align: 32, offset: 32, flags: DIFlagBitField)
+!11 = !DIDerivedType(tag: DW_TAG_member, name: "c", file: !2, line: 7, baseType: !9, size: 8, align: 32, offset: 56, flags: DIFlagBitField)
+!12 = !{{}}
+!13 = !DILocation(line: 11, column: 1, scope: !3)
+!14 = !DILocation(line: 12, column: 5, scope: !3)
+!15 = !DILocation(line: 12, column: 31, scope: !3)
+!16 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 12, type: !6)
+!17 = !DILocation(line: 13, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
+  }
+
   TEST_CASE("Compile Debug Information For Loop", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_for_loop.hltxt";

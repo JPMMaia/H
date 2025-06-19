@@ -1738,6 +1738,75 @@ namespace h::compiler
         }
     }
 
+    std::pmr::vector<Clang_struct_member_info> get_clang_struct_member_infos(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<Clang_struct_member_info> output{output_allocator};
+        output.reserve(struct_declaration.member_names.size());
+
+        clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
+        clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
+
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
+            throw std::runtime_error{ "Cannot find struct record." };
+
+        auto field_location = record_declaration->field_begin();
+
+        for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
+        {
+            clang::FieldDecl* const field_declaration = *field_location;
+
+            unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+            if (field_declaration->isBitField())
+            {
+                clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
+                clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
+
+                unsigned const bit_field_offset_in_bits = bit_field_info.Offset;
+                unsigned const bit_field_size_in_bits = bit_field_info.Size;
+
+                Clang_struct_member_info const member_info =
+                {
+                    .llvm_struct_member_index = llvm_struct_member_index,
+                    .bit_field_info = Clang_struct_member_bit_field_info
+                    {
+                        .bit_field_offset_in_bits = static_cast<std::uint32_t>(bit_field_offset_in_bits),
+                        .bit_field_size_in_bits = static_cast<std::uint32_t>(bit_field_size_in_bits),
+                    },
+                };
+                
+                output.push_back(member_info);
+            }
+            else
+            {
+                unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+                Clang_struct_member_info const member_info =
+                {
+                    .llvm_struct_member_index = llvm_struct_member_index,
+                };
+                
+                output.push_back(member_info);
+            }
+
+            ++field_location;
+        }
+
+        return output;
+    }
+
     Value_and_type generate_load_struct_member_instructions(
         Clang_module_data const& clang_module_data,
         llvm::LLVMContext& llvm_context,
@@ -1785,15 +1854,13 @@ namespace h::compiler
         );
         if (struct_llvm_type == nullptr)
             throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
+
+        unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
         
         if (field_declaration->isBitField())
         {
             clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
             clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
-
-            clang::CharUnits::QuantityType const storage_offset = bit_field_info.StorageOffset.getQuantity();
-
-            unsigned const llvm_struct_member_index = static_cast<unsigned>(storage_offset);
 
             std::array<llvm::Value*, 2> const indices
             {
@@ -1848,8 +1915,6 @@ namespace h::compiler
         }
         else
         {
-            unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
-
             std::array<llvm::Value*, 2> const indices
             {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
@@ -1916,14 +1981,12 @@ namespace h::compiler
         if (struct_llvm_type == nullptr)
             throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
 
+        unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
         if (field_declaration->isBitField())
         {
             clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
             clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
-
-            clang::CharUnits::QuantityType const storage_offset = bit_field_info.StorageOffset.getQuantity();
-
-            unsigned const llvm_struct_member_index = static_cast<unsigned>(storage_offset);
 
             std::array<llvm::Value*, 2> const indices
             {
@@ -1966,8 +2029,6 @@ namespace h::compiler
         }
         else
         {
-            unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
-
             std::array<llvm::Value*, 2> const indices
             {
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),

@@ -163,6 +163,26 @@ namespace h::compiler
         Instance_call_key const& key
     );
 
+    export struct Clang_struct_member_bit_field_info
+    {
+        std::uint32_t bit_field_offset_in_bits;
+        std::uint32_t bit_field_size_in_bits;
+    };
+
+    export struct Clang_struct_member_info
+    {
+        std::uint32_t llvm_struct_member_index;
+        std::optional<Clang_struct_member_bit_field_info> bit_field_info;
+    };
+
+    export std::pmr::vector<Clang_struct_member_info> get_clang_struct_member_infos(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
     export Value_and_type generate_load_struct_member_instructions(
         Clang_module_data const& clang_module_data,
         llvm::LLVMContext& llvm_context,

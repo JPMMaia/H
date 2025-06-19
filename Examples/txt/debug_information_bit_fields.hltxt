@@ -1,0 +1,14 @@
+module Debug_information;
+
+struct My_struct
+{
+    a: Int32 = 1;
+    b: Int32 : 24 = 1;
+    c: Int32 : 8 = 2;
+}
+
+function instantiate() -> (result: My_struct)
+{
+    var instance: My_struct = {};
+    return instance;
+}

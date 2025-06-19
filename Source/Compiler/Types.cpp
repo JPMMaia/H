@@ -415,6 +415,7 @@ namespace h::compiler
         llvm::DIFile& llvm_debug_file,
         std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::span<Struct_declaration const> const struct_declarations,
         Debug_type_database const& debug_type_database,
@@ -433,38 +434,70 @@ namespace h::compiler
             );
 
             llvm::StructType* const llvm_struct_type = static_cast<llvm::StructType*>(llvm_type_map.at(struct_declaration.name));
+            llvm::StructLayout const* llvm_struct_layout = llvm_data_layout.getStructLayout(llvm_struct_type);
 
             std::pmr::vector<llvm::Metadata*> elements;
             elements.reserve(llvm_member_debug_types.size());
 
-            std::uint64_t current_offset_in_bits = 0;
-
             std::uint32_t const struct_line_number = struct_declaration.source_location.has_value() ? struct_declaration.source_location->line : 0;
+
+            std::pmr::vector<Clang_struct_member_info> const clang_struct_member_infos = get_clang_struct_member_infos(
+                clang_module_data,
+                core_module.name,
+                struct_declaration,
+                std::nullopt,
+                {}
+            );
 
             for (std::size_t index = 0; index < llvm_member_debug_types.size(); ++index)
             {
                 llvm::DIType* const llvm_debug_type = llvm_member_debug_types[index];
-                llvm::Type* const llvm_type = llvm_struct_type->getElementType(index);
                 std::pmr::string const& member_name = struct_declaration.member_names[index];
-
+                
                 std::optional<std::pmr::vector<Source_position>> const& member_source_positions = struct_declaration.member_source_positions;
                 std::uint32_t const member_line_number = member_source_positions.has_value() ? member_source_positions.value()[index].line : struct_line_number;
+                
+                Clang_struct_member_info const& member_info = clang_struct_member_infos[index];
+                llvm::Type* const llvm_type = llvm_struct_type->getElementType(member_info.llvm_struct_member_index);
 
-                llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
-                    &llvm_debug_scope,
-                    member_name.c_str(),
-                    &llvm_debug_file,
-                    member_line_number,
-                    llvm_data_layout.getTypeSizeInBits(llvm_type),
-                    llvm_data_layout.getABITypeAlign(llvm_type).value() * 8,
-                    current_offset_in_bits,
-                    llvm::DINode::FlagZero,
-                    llvm_debug_type
-                );
+                if (member_info.bit_field_info.has_value())
+                {
+                    Clang_struct_member_bit_field_info const& bit_field_info = member_info.bit_field_info.value();
 
-                elements.push_back(llvm_member_debug_type);
+                    std::uint64_t const member_offset_in_bits = (8 * llvm_struct_layout->getElementOffset(member_info.llvm_struct_member_index)) + bit_field_info.bit_field_offset_in_bits;
 
-                current_offset_in_bits += llvm_data_layout.getTypeSizeInBits(llvm_type);
+                    llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
+                        &llvm_debug_scope,
+                        member_name.c_str(),
+                        &llvm_debug_file,
+                        member_line_number,
+                        bit_field_info.bit_field_size_in_bits,
+                        llvm_data_layout.getTypeSizeInBits(llvm_type),
+                        member_offset_in_bits,
+                        llvm::DINode::FlagBitField,
+                        llvm_debug_type
+                    );
+
+                    elements.push_back(llvm_member_debug_type);
+                }
+                else
+                {    
+                    std::uint64_t const member_offset_in_bits = 8 * llvm_struct_layout->getElementOffset(member_info.llvm_struct_member_index);
+
+                    llvm::DIType* const llvm_member_debug_type = llvm_debug_builder.createMemberType(
+                        &llvm_debug_scope,
+                        member_name.c_str(),
+                        &llvm_debug_file,
+                        member_line_number,
+                        llvm_data_layout.getTypeSizeInBits(llvm_type),
+                        llvm_data_layout.getABITypeAlign(llvm_type).value() * 8,
+                        member_offset_in_bits,
+                        llvm::DINode::FlagZero,
+                        llvm_debug_type
+                    );
+
+                    elements.push_back(llvm_member_debug_type);
+                }
             }
 
             llvm::DIType* const llvm_forward_declaration_debug_type = llvm_debug_type_map.at(struct_declaration.name);
@@ -680,6 +713,7 @@ namespace h::compiler
         llvm::DIFile& llvm_debug_file,
         std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
         llvm::DataLayout const& llvm_data_layout,
+        Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::pmr::vector<llvm::Constant*>> const& enum_value_constants,
         Type_database const& type_database
@@ -700,8 +734,8 @@ namespace h::compiler
         add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module.export_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
         add_alias_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module.internal_declarations.alias_type_declarations, core_module, type_database, debug_type_database, llvm_debug_type_map);
 
-        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.export_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
-        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.internal_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, clang_module_data, core_module, core_module.export_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
+        set_struct_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, clang_module_data, core_module, core_module.internal_declarations.struct_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
 
         set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.export_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);
         set_union_debug_definitions(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, llvm_data_layout, core_module, core_module.internal_declarations.union_declarations, debug_type_database, llvm_type_map, llvm_debug_type_map);

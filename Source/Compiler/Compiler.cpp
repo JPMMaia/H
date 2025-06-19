@@ -1027,6 +1027,7 @@ namespace h::compiler
     std::unique_ptr<Debug_info> create_debug_info(
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
+        Clang_module_data const& clang_module_data,
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
         Type_database& type_database,
@@ -1072,6 +1073,7 @@ namespace h::compiler
             *llvm_debug_file,
             llvm_debug_files,
             llvm_data_layout,
+            clang_module_data,
             core_module,
             enum_value_constants.map,
             type_database
@@ -1097,6 +1099,7 @@ namespace h::compiler
                 *llvm_dependency_debug_file,
                 llvm_debug_files,
                 llvm_data_layout,
+                clang_module_data,
                 module_dependency,
                 enum_value_constants.map,
                 type_database
@@ -1151,6 +1154,7 @@ namespace h::compiler
         std::unique_ptr<Debug_info> debug_info = create_debug_info(
             llvm_data_layout,
             *llvm_module,
+            clang_module_data,
             core_module,
             core_module_dependencies,
             type_database,
