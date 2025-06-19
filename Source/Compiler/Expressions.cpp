@@ -756,7 +756,8 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         Value_and_type const& left_hand_side,
         Value_and_type const& right_hand_side,
-        Binary_operation operation
+        Binary_operation operation,
+        Declaration_database const& declaration_database
     );
 
     Value_and_type create_assignment_additional_operation_instruction(
@@ -783,7 +784,7 @@ namespace h::compiler
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-            Value_and_type const result = create_binary_operation_instruction(llvm_builder, left_hand_side_value, right_hand_side_value, operation);
+            Value_and_type const result = create_binary_operation_instruction(llvm_builder, left_hand_side_value, right_hand_side_value, operation, parameters.declaration_database);
 
             return result;
         }
@@ -901,6 +902,7 @@ namespace h::compiler
     }
 
     bool are_types_compatible(
+        Declaration_database const& declaration_database,
         Type_reference const& first,
         Type_reference const& second
     )
@@ -911,6 +913,11 @@ namespace h::compiler
         if ((is_function_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_function_pointer(second)))
             return true;
 
+        std::optional<Type_reference> const underlying_first_optional = get_underlying_type(declaration_database, first);
+        std::optional<Type_reference> const underlying_second_optional = get_underlying_type(declaration_database, second);
+        if (underlying_first_optional.has_value() && underlying_second_optional.has_value())
+            return underlying_first_optional.value() == underlying_second_optional.value();
+
         return first == second;
     }
 
@@ -918,13 +925,14 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder,
         Value_and_type const& left_hand_side,
         Value_and_type const& right_hand_side,
-        Binary_operation const operation
+        Binary_operation const operation,
+        Declaration_database const& declaration_database
     )
     {
         if (!left_hand_side.type.has_value() || !right_hand_side.type.has_value())
             throw std::runtime_error{ "Left or right side type is null!" };
 
-        if (!are_types_compatible(*left_hand_side.type, *right_hand_side.type))
+        if (!are_types_compatible(declaration_database, *left_hand_side.type, *right_hand_side.type))
             throw std::runtime_error{ "Left and right side types do not match!" };
 
         Type_reference const& type = left_hand_side.type.value();
@@ -1361,7 +1369,7 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
-        Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation);
+        Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation, parameters.declaration_database);
         return value;
     }
 
@@ -2234,7 +2242,7 @@ namespace h::compiler
             };
 
             Binary_operation const compare_operation = expression.range_comparison_operation;
-            Value_and_type const condition_value = create_binary_operation_instruction(llvm_builder, loaded_variable_value, range_end_value, compare_operation);
+            Value_and_type const condition_value = create_binary_operation_instruction(llvm_builder, loaded_variable_value, range_end_value, compare_operation, parameters.declaration_database);
 
             llvm_builder.CreateCondBr(condition_value.value, then_block, after_block);
         }
