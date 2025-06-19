@@ -2976,6 +2976,16 @@ entry:
   %my_float16 = alloca half, align 2
   %my_float32 = alloca float, align 4
   %my_float64 = alloca double, align 8
+  %my_c_char = alloca i8, align 1
+  %my_c_short = alloca i16, align 2
+  %my_c_int = alloca i32, align 4
+  %my_c_long = alloca i32, align 4
+  %my_c_long_long = alloca i64, align 8
+  %my_c_unsigned_char = alloca i8, align 1
+  %my_c_unsigned_short = alloca i16, align 2
+  %my_c_unsigned_int = alloca i32, align 4
+  %my_c_unsigned_long = alloca i32, align 4
+  %my_c_unsigned_long_long = alloca i64, align 8
   store i8 1, ptr %my_int8, align 1
   store i16 1, ptr %my_int16, align 2
   store i32 1, ptr %my_int32, align 4
@@ -2987,6 +2997,16 @@ entry:
   store half 0xH3C00, ptr %my_float16, align 2
   store float 1.000000e+00, ptr %my_float32, align 4
   store double 1.000000e+00, ptr %my_float64, align 8
+  store i8 1, ptr %my_c_char, align 1
+  store i16 1, ptr %my_c_short, align 2
+  store i32 1, ptr %my_c_int, align 4
+  store i32 1, ptr %my_c_long, align 4
+  store i64 1, ptr %my_c_long_long, align 8
+  store i8 1, ptr %my_c_unsigned_char, align 1
+  store i16 1, ptr %my_c_unsigned_short, align 2
+  store i32 1, ptr %my_c_unsigned_int, align 4
+  store i32 1, ptr %my_c_unsigned_long, align 4
+  store i64 1, ptr %my_c_unsigned_long_long, align 8
   ret i32 0
 }
 
