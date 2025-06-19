@@ -109,6 +109,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    void copy_dlls(
+        Builder const& builder,
+        std::span<Artifact const> const artifacts,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     bool is_file_newer_than(
         std::filesystem::path const& first,
         std::filesystem::path const& second

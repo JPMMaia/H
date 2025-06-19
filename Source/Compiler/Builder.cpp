@@ -160,6 +160,15 @@ namespace h::compiler
             compilation_options,
             temporaries_allocator
         );
+
+        if (builder.target.operating_system == "windows")
+        {
+            copy_dlls(
+                builder,
+                artifacts,
+                temporaries_allocator
+            );
+        }
     }
 
     void add_artifact_dependencies(
@@ -627,8 +636,6 @@ namespace h::compiler
 
             if (std::holds_alternative<Library_info>(*artifact.info))
             {
-                Library_info const& library_info = std::get<Library_info>(*artifact.info);
-
                 h::compiler::Linker_options const linker_options
                 {
                     .entry_point = std::nullopt,
@@ -670,6 +677,76 @@ namespace h::compiler
                 );
                 if (!result)
                     h::common::print_message_and_exit(std::format("Failed to link executable '{}'.", artifact.name));
+            }
+        }
+    }
+
+    void copy_dll(
+        std::string_view const dll_name,
+        std::filesystem::path const& output_directory
+    )
+    {
+        std::filesystem::path const dll_path = dll_name;
+        if (!std::filesystem::exists(dll_path))
+        {
+            std::fprintf(stderr, "Copy dll: could not find dll '%s'.", dll_name.data());
+            return;
+        }
+
+        std::filesystem::path const destination_path = output_directory / dll_path.filename();
+
+        if (std::filesystem::exists(destination_path) && is_file_newer_than(destination_path, dll_path))
+            return;
+
+        std::string const source_string = dll_path.generic_string();
+        std::string const destination_string = destination_path.generic_string();
+
+        std::filesystem::copy_options const copy_options = std::filesystem::copy_options::update_existing;
+        bool const success = std::filesystem::copy_file(dll_path, destination_path, copy_options);
+        if (success)
+            std::printf("Copy dll: copied '%s' to '%s'.", source_string.c_str(), destination_string.c_str());
+    }
+
+    void copy_dlls(
+        Builder const& builder,
+        std::span<Artifact const> const artifacts,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::filesystem::path const output_directory = builder.build_directory_path / "bin";
+
+        for (std::size_t artifact_index = 0; artifact_index < artifacts.size(); ++artifact_index)
+        {
+            Artifact const& artifact = artifacts[artifact_index];
+
+            if (artifact.info.has_value() && std::holds_alternative<Library_info>(artifact.info.value()))
+            {
+                Library_info const& library_info = std::get<Library_info>(artifact.info.value());
+
+                bool const prefer_debug = builder.compilation_options.debug;
+                bool const prefer_dynamic = true;
+
+                std::optional<External_library_info> const external_library_info = get_external_library(
+                    library_info.external_libraries,
+                    builder.target,
+                    prefer_debug,
+                    prefer_dynamic
+                );
+
+                if (external_library_info.has_value())
+                {
+                    std::string_view const key = external_library_info.value().key;
+
+                    std::optional<std::string_view> const external_library_dll = get_external_library_dll(
+                        library_info.external_libraries,
+                        key
+                    );
+
+                    if (external_library_dll.has_value())
+                    {
+                        copy_dll(external_library_dll.value(), output_directory);
+                    }
+                }
             }
         }
     }
