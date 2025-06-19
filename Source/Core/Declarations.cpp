@@ -222,6 +222,28 @@ namespace h
         return std::nullopt;
     }
 
+    std::optional<Declaration> find_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [import_alias_name](Import_module_with_alias const& alias_import) -> bool { return alias_import.alias == import_alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return std::nullopt;
+
+        return find_declaration(
+            database,
+            location->module_name,
+            declaration_name
+        );
+    }
+
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
         Type_reference const& type_reference
@@ -261,6 +283,25 @@ namespace h
             return std::nullopt;
 
         return get_underlying_type(declaration_database, declaration.type[0]);
+    }
+
+    std::optional<Declaration> get_underlying_declaration(
+        Declaration_database const& declaration_database,
+        Declaration const& declaration
+    )
+    {
+        if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+        {
+            Alias_type_declaration const& alias_type_declaration = *std::get<Alias_type_declaration const*>(declaration.data);
+            return get_underlying_declaration(
+                declaration_database,
+                alias_type_declaration
+            );
+        }
+        else
+        {
+            return declaration;
+        }
     }
 
     std::optional<Declaration> get_underlying_declaration(
