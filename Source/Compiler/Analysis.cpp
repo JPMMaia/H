@@ -682,7 +682,6 @@ namespace h::compiler
         }
         else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
         {
-            Null_pointer_expression const& data = std::get<h::Null_pointer_expression>(expression.data);
             return create_null_pointer_type_type_reference();
         }
         else if (std::holds_alternative<h::Parenthesis_expression>(expression.data))
