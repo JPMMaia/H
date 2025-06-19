@@ -1933,7 +1933,6 @@ namespace h::compiler
 
             llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
 
-            std::uint64_t const storage_size_in_bits = 8*llvm_data_layout.getTypeAllocSize(member_llvm_type);
             llvm::Type* const member_storage_llvm_type = member_llvm_type;
 
             llvm::Value* const loaded_value = llvm_builder.CreateLoad(member_storage_llvm_type, get_element_pointer_instruction);
