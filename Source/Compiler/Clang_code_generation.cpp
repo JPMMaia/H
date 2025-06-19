@@ -1743,7 +1743,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
-        Value_and_type const& left_hand_side,
+        llvm::Value* const struct_alloca,
         std::string_view const access_member_name,
         std::string_view const module_name,
         Struct_declaration const& struct_declaration,
@@ -1801,7 +1801,7 @@ namespace h::compiler
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
             };
 
-            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, left_hand_side.value, indices, "", true);
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
 
             std::uint64_t const storage_size_in_bits = 8*llvm_data_layout.getTypeAllocSize(member_llvm_type);
             llvm::Type* const member_storage_llvm_type = member_llvm_type;
@@ -1856,13 +1856,133 @@ namespace h::compiler
                 llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
             };
 
-            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, left_hand_side.value, indices, "", true);
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
             
             return
             {
                 .name = "",
                 .value = get_element_pointer_instruction,
                 .type = member_type
+            };
+        }
+    }
+
+    Value_and_type generate_store_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Value_and_type const& value_to_store,
+        Type_database const& type_database
+    )
+    {
+        auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), access_member_name);
+        if (member_location == struct_declaration.member_names.end())
+            throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", access_member_name, struct_declaration.name) };
+
+        unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+
+        Type_reference const& member_type = struct_declaration.member_types[member_index];
+        llvm::Type* const member_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, member_type, type_database);
+
+        clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
+        clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
+        
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
+            throw std::runtime_error{ "Cannot find struct record." };
+
+        auto field_location = record_declaration->field_begin();
+        for (std::uint32_t index = 0; index < member_index; ++index)
+            ++field_location;    
+        clang::FieldDecl* const field_declaration = *field_location;
+        
+        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+            llvm_context,
+            llvm_data_layout,
+            create_type_reference(module_name, struct_declaration.name, type_instance),
+            type_database
+        );
+        if (struct_llvm_type == nullptr)
+            throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
+
+        if (field_declaration->isBitField())
+        {
+            clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
+            clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
+
+            clang::CharUnits::QuantityType const storage_offset = bit_field_info.StorageOffset.getQuantity();
+
+            unsigned const llvm_struct_member_index = static_cast<unsigned>(storage_offset);
+
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+
+            std::uint64_t const storage_size_in_bits = 8*llvm_data_layout.getTypeAllocSize(member_llvm_type);
+            llvm::Type* const member_storage_llvm_type = member_llvm_type;
+
+            llvm::Value* const loaded_value = llvm_builder.CreateLoad(member_storage_llvm_type, get_element_pointer_instruction);
+
+            unsigned const bit_field_offset = bit_field_info.Offset;
+            unsigned const bit_field_size = bit_field_info.Size;
+            bool const is_signed = bit_field_info.IsSigned == 1;
+
+            std::uint64_t const bit_mask = ((1 << bit_field_size) - 1) << bit_field_offset;
+            std::uint64_t const reset_bit_mask = ~bit_mask;
+            llvm::Value* const reset_mask_value = llvm::ConstantInt::get(member_storage_llvm_type, reset_bit_mask, is_signed);
+            llvm::Value* const reset_loaded_value = llvm_builder.CreateAnd(loaded_value, reset_mask_value);
+
+            std::uint64_t const bits_to_shift_left = bit_field_offset;
+            llvm::Value* const shift_left_value = llvm::ConstantInt::get(member_storage_llvm_type, bits_to_shift_left, is_signed);
+            llvm::Value* const left_shifted_value = llvm_builder.CreateShl(value_to_store.value, shift_left_value);
+
+            llvm::Value* const mask_value = llvm::ConstantInt::get(member_storage_llvm_type, bit_mask, is_signed);
+            llvm::Value* const masked_value = llvm_builder.CreateAnd(left_shifted_value, mask_value);
+
+            llvm::Value* const new_value_to_store = llvm_builder.CreateOr(reset_loaded_value, masked_value);
+            
+            llvm::Value* const store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, new_value_to_store, get_element_pointer_instruction);
+
+            return
+            {
+                .name = "",
+                .value = store_instruction,
+                .type = std::nullopt
+            };
+        }
+        else
+        {
+            unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+            llvm::Value* const store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, value_to_store.value, get_element_pointer_instruction);
+            
+            return
+            {
+                .name = "",
+                .value = store_instruction,
+                .type = std::nullopt
             };
         }
     }

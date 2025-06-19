@@ -19,6 +19,21 @@ function run(parameter: My_struct) -> (result: My_struct)
     var d = parameter.d;
     var e = parameter.e;
 
-    var instance: My_struct = {};
+    parameter.a = 1u32;
+    parameter.b = 2u32 as My_uint;
+    parameter.c = 3u32;
+
+    var instance: My_struct = explicit {
+        a: 1u32,
+        b: 2u32,
+        c: 3u32 as My_uint,
+        d: 4u32,
+        e: 5u32
+    };
+
+    var instance_2: My_struct = {
+        a: 1u32
+    };
+
     return instance;
 }

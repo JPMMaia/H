@@ -422,7 +422,7 @@ namespace h::compiler
             parameters.llvm_context,
             parameters.llvm_builder,
             parameters.llvm_data_layout,
-            left_hand_side,
+            left_hand_side.value,
             access_member_name,
             module_name,
             struct_declaration,
@@ -589,7 +589,7 @@ namespace h::compiler
 
             if (custom_type_reference.has_value())
             {
-                std::string_view const module_name = find_module_name(core_module, custom_type_reference.value().module_reference);
+                std::string_view const module_name = custom_type_reference.value().module_reference.name;
                 std::string_view const declaration_name = custom_type_reference.value().name;
 
                 std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, declaration_name);
@@ -837,7 +837,7 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout = parameters.llvm_data_layout;
 
         Value_and_type const left_hand_side = create_expression_value(expression.left_hand_side.expression_index, statement, parameters);
-
+        
         Value_and_type const result = create_assignment_additional_operation_instruction(
             expression.left_hand_side,
             expression.right_hand_side,
@@ -849,6 +849,46 @@ namespace h::compiler
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
+        
+        Expression const left_hand_side_expression = statement.expressions[expression.left_hand_side.expression_index];
+        if (left_hand_side.value != nullptr && std::holds_alternative<Access_expression>(left_hand_side_expression.data))
+        {
+            Access_expression const& access_expression = std::get<Access_expression>(left_hand_side_expression.data);
+
+            Value_and_type const access_left_hand_side = create_expression_value(access_expression.expression.expression_index, statement, parameters);
+            std::optional<Custom_type_reference> custom_type_reference = get_custom_type_reference_from_access_expression(access_expression, access_left_hand_side, statement, parameters.core_module.name);
+
+            if (custom_type_reference.has_value())
+            {
+                std::string_view const module_name = custom_type_reference.value().module_reference.name;
+                std::string_view const declaration_name = custom_type_reference.value().name;
+
+                std::optional<Declaration> const declaration = find_declaration(parameters.declaration_database, module_name, declaration_name);
+                if (declaration.has_value())
+                {
+                    Declaration const& declaration_value = declaration.value();
+
+                    if (std::holds_alternative<Struct_declaration const*>(declaration_value.data))
+                    {
+                        Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
+
+                        return generate_store_struct_member_instructions(
+                            parameters.clang_module_data,
+                            parameters.llvm_context,
+                            parameters.llvm_builder,
+                            parameters.llvm_data_layout,
+                            access_left_hand_side.value,
+                            access_expression.member_name,
+                            module_name,
+                            struct_declaration,
+                            std::nullopt,
+                            result,
+                            parameters.type_database
+                        );
+                    }
+                }
+            }
+        }
 
         llvm::Value* store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, result.value, left_hand_side.value);
 
@@ -2397,9 +2437,11 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         Type_database const& type_database = parameters.type_database;
 
+        std::optional<Type_instance> const type_instance = std::holds_alternative<Type_instance>(struct_type_reference.data) ? std::get<Type_instance>(struct_type_reference.data) : std::optional<Type_instance>{};
+
         llvm::Type* const llvm_struct_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, struct_type_reference, type_database);
 
-        llvm::Value* struct_instance_value = llvm::UndefValue::get(llvm_struct_type);
+        llvm::AllocaInst* const struct_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_struct_type);
 
         if (expression.type == Instantiate_expression_type::Default)
         {
@@ -2415,13 +2457,25 @@ namespace h::compiler
                 new_parameters.expression_type = member_type;
                 Value_and_type const member_value = create_loaded_statement_value(member_value_statement, new_parameters);
 
-                struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
+                generate_store_struct_member_instructions(
+                    parameters.clang_module_data,
+                    parameters.llvm_context,
+                    parameters.llvm_builder,
+                    parameters.llvm_data_layout,
+                    struct_alloca,
+                    member_name,
+                    module_name,
+                    struct_declaration,
+                    type_instance,
+                    member_value,
+                    parameters.type_database
+                );
             }
 
             return Value_and_type
             {
                 .name = "",
-                .value = struct_instance_value,
+                .value = struct_alloca,
                 .type = struct_type_reference
             };
         }
@@ -2446,13 +2500,25 @@ namespace h::compiler
                 new_parameters.expression_type = member_type;
                 Value_and_type const member_value = create_loaded_statement_value(member_value_statement, new_parameters);
 
-                struct_instance_value = llvm_builder.CreateInsertValue(struct_instance_value, member_value.value, { static_cast<unsigned>(member_index) });
+                generate_store_struct_member_instructions(
+                    parameters.clang_module_data,
+                    parameters.llvm_context,
+                    parameters.llvm_builder,
+                    parameters.llvm_data_layout,
+                    struct_alloca,
+                    member_name,
+                    module_name,
+                    struct_declaration,
+                    type_instance,
+                    member_value,
+                    parameters.type_database
+                );
             }
 
             return Value_and_type
             {
                 .name = "",
-                .value = struct_instance_value,
+                .value = struct_alloca,
                 .type = struct_type_reference
             };
         }
@@ -2640,7 +2706,10 @@ namespace h::compiler
         if (!parameters.expression_type.has_value())
             throw std::runtime_error{ "Could not infer type while trying to instantiate!" };
 
-        Type_reference const& type_reference = parameters.expression_type.value();
+        std::optional<Type_reference> const type_reference_optional = get_underlying_type(parameters.declaration_database, parameters.expression_type.value());
+        if (!type_reference_optional.has_value())
+            throw std::runtime_error{ "Could not find type to instantiate!" };
+        Type_reference const& type_reference = type_reference_optional.value();
 
         std::optional<Declaration_to_instantiate> const found_instance = get_declaration_type_to_instantiate(
             declaration_database,

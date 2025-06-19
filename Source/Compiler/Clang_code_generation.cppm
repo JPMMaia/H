@@ -168,11 +168,25 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
-        Value_and_type const& left_hand_side,
+        llvm::Value* const struct_alloca,
         std::string_view const access_member_name,
         std::string_view const module_name,
         Struct_declaration const& struct_declaration,
         std::optional<h::Type_instance> const& type_instance,
+        Type_database const& type_database
+    );
+
+    export Value_and_type generate_store_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Value_and_type const& value_to_store,
         Type_database const& type_database
     );
 
