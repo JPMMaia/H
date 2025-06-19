@@ -30,7 +30,7 @@ namespace h::compiler
     std::ostream& operator<<(std::ostream& output_stream, Diagnostic const& diagnostic)
     {
         if (diagnostic.file_path.has_value())
-            output_stream << std::format("{}({},{}): ", diagnostic.file_path.value().generic_string(), diagnostic.range.start.line, diagnostic.range.start.column);
+            output_stream << std::format("{}:{}:{}: ", diagnostic.file_path.value().generic_string(), diagnostic.range.start.line, diagnostic.range.start.column);
         else
             output_stream << std::format("({},{},{},{}): ", diagnostic.range.start.line, diagnostic.range.start.column, diagnostic.range.end.line, diagnostic.range.end.column);
 
