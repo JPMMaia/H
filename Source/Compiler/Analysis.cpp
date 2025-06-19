@@ -503,10 +503,44 @@ namespace h::compiler
             Access_expression const& data = std::get<h::Access_expression>(expression.data);
             
             std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
-            if (!type_reference.has_value())
-                return std::nullopt;
 
-            if (std::holds_alternative<h::Custom_type_reference>(type_reference.value().data))
+            bool const is_module_name = !type_reference.has_value();
+            if (is_module_name)
+            {
+                h::Expression const& left_hand_side_expression = statement.expressions[data.expression.expression_index];
+                
+                if (std::holds_alternative<h::Variable_expression>(left_hand_side_expression.data))
+                {
+                    h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side_expression.data);
+
+                    std::optional<Declaration> const declaration_optional = find_declaration_using_import_alias(
+                        declaration_database,
+                        core_module,
+                        variable_expression.name,
+                        data.member_name
+                    );
+
+                    if (declaration_optional.has_value())
+                    {
+                        std::optional<Declaration> const underling_declaration_optional = get_underlying_declaration(declaration_database, declaration_optional.value());
+                        if (underling_declaration_optional.has_value())
+                        {
+                            Declaration const& declaration = underling_declaration_optional.value();
+
+                            if (std::holds_alternative<Function_declaration const*>(declaration.data))
+                            {
+                                Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration.data);
+                                return create_function_type_type_reference(function_declaration.type, function_declaration.input_parameter_names, function_declaration.output_parameter_names);
+                            }
+
+                            return create_custom_type_reference(variable_expression.name, data.member_name);
+                        }
+                    }
+                }
+
+                return std::nullopt;
+            }
+            else if (std::holds_alternative<h::Custom_type_reference>(type_reference.value().data))
             {
                 std::optional<Type_reference> const underlying_type = get_underlying_type(
                     declaration_database,
