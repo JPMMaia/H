@@ -57,6 +57,16 @@ namespace h::parser
         return "";
     }
 
+    std::string_view get_string_content(
+        std::string_view const value
+    )
+    {
+        if (value.size() < 3)
+            return value;
+
+        return value.substr(1, value.size() - 2);
+    }
+
     std::string_view get_string_suffix(
         std::string_view const value
     )
@@ -379,6 +389,29 @@ namespace h::parser
             comment = extract_comments_from_node(tree, comment_node.value(), temporaries_allocator, temporaries_allocator);
         }
 
+        std::optional<std::string_view> unique_name = std::nullopt;
+
+        std::pmr::vector<Parse_node> const attribute_nodes = get_child_nodes(tree, node, "Declaration_attribute", temporaries_allocator);
+        for (Parse_node const& attribute_node : attribute_nodes)
+        {
+            std::optional<Parse_node> const name_node = get_child_node(tree, attribute_node, 0);
+            if (!name_node.has_value())
+                continue;
+
+            std::pmr::vector<Parse_node> const argument_nodes = get_child_nodes(tree, attribute_node, "Generic_expression", temporaries_allocator);
+
+            std::string_view const name = get_node_value(tree, name_node.value());
+            if (name == "@unique_name")
+            {
+                if (argument_nodes.size() == 1)
+                {
+                    Parse_node const unique_name_node = argument_nodes[0];
+
+                    unique_name = get_string_content(get_node_value(tree, unique_name_node));
+                }
+            }
+        }
+
         bool const is_export = is_export_declaration(tree, node);
 
         std::optional<Parse_node> const declaration_value_node = get_last_child_node(tree, node);
@@ -416,6 +449,7 @@ namespace h::parser
                 tree,
                 function_declaration_node.value(),
                 is_export ? h::Linkage::External : h::Linkage::Private,
+                unique_name,
                 comment,
                 output_allocator,
                 temporaries_allocator
@@ -1035,6 +1069,7 @@ namespace h::parser
         Parse_tree const& tree,
         Parse_node const& node,
         h::Linkage const linkage,
+        std::optional<std::string_view> const& unique_name,
         std::optional<std::pmr::string> const& comment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -1053,6 +1088,9 @@ namespace h::parser
             output.source_location = source_position_to_source_location(get_node_start_source_position(node));
         }
 
+        if (unique_name.has_value())
+            output.unique_name = create_string(unique_name.value(), output_allocator);
+        
         output.linkage = linkage;
 
         if (comment.has_value())
@@ -2457,6 +2495,7 @@ namespace h::parser
             tree,
             node,
             h::Linkage::Private,
+            std::nullopt,
             std::nullopt,
             output_allocator,
             temporaries_allocator

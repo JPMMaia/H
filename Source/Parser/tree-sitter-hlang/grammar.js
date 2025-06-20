@@ -24,7 +24,7 @@ module.exports = grammar({
     Import: $ => seq("import", $.Import_name, "as", $.Import_alias, ";"),
     Import_name: $ => $.Identifier_with_dots,
     Import_alias: $ => $.Identifier,
-    Declaration: $ => seq(optional($.Comment), optional("export"), choice(
+    Declaration: $ => seq(optional($.Comment), repeat($.Declaration_attribute), optional("export"), choice(
       $.Alias,
       $.Enum,
       $.Global_variable,
@@ -34,6 +34,7 @@ module.exports = grammar({
       $.Type_constructor,
       $.Function_constructor
     )),
+    Declaration_attribute: $ => seq($.Reflection_identifier, "(", optional(seq($.Generic_expression, repeat(seq(",", $.Generic_expression)))), ")"),
     Type: $ => choice(
       $.Type_name,
       $.Module_type,

@@ -174,6 +174,7 @@ namespace h::parser
         String_buffer& buffer,
         h::Module const& core_module,
         Declaration const& declaration,
+        std::optional<std::pmr::string> const& unique_name,
         bool const is_export,
         Format_options const& options
     )
@@ -182,6 +183,14 @@ namespace h::parser
         if (comment.has_value())
         {
             add_comment(buffer, comment.value(), 0);
+            add_new_line(buffer);
+        }
+
+        if (unique_name.has_value())
+        {
+            add_text(buffer, "@unique_name(\"");
+            add_text(buffer, unique_name.value());
+            add_text(buffer, "\")");
             add_new_line(buffer);
         }
 
@@ -2096,6 +2105,7 @@ namespace h::parser
     struct Declaration_info
     {
         Declaration declaration = {};
+        std::optional<std::pmr::string> unique_name = std::nullopt;
         bool is_export = false;
         std::optional<Source_location> const* source_location;
     };
@@ -2141,6 +2151,7 @@ namespace h::parser
             Declaration_info info
             {
                 .declaration = {.data = &declaration},
+                .unique_name = declaration.unique_name,
                 .is_export = is_export,
                 .source_location = &declaration.source_location
             };
@@ -2166,11 +2177,24 @@ namespace h::parser
         for (Function_declaration const& declaration : declarations.function_declarations)
             process(declaration);
 
+        auto const process_without_unique_name = [&](auto const& declaration) -> void
+        {
+            Declaration_info info
+            {
+                .declaration = {.data = &declaration},
+                .unique_name = std::nullopt,
+                .is_export = is_export,
+                .source_location = &declaration.source_location
+            };
+
+            add_sorted_declaration_info(declaration_infos, info);
+        };
+
         for (Function_constructor const& declaration : declarations.function_constructors)
-            process(declaration);
+            process_without_unique_name(declaration);
 
         for (Type_constructor const& declaration : declarations.type_constructors)
-            process(declaration);
+            process_without_unique_name(declaration);
     }
 
     std::pmr::vector<Declaration_info> get_declaration_infos(
@@ -2237,7 +2261,7 @@ namespace h::parser
         {
             Declaration_info const& declaration_info = declaration_infos[declaration_index];
 
-            add_format_declaration(buffer, core_module, declaration_info.declaration, declaration_info.is_export, new_options);
+            add_format_declaration(buffer, core_module, declaration_info.declaration, declaration_info.unique_name, declaration_info.is_export, new_options);
             add_new_line(buffer);
 
             if (declaration_index + 1 < declaration_infos.size())

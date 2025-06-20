@@ -124,6 +124,10 @@
           "named": true
         },
         {
+          "type": "Declaration_attribute",
+          "named": true
+        },
+        {
           "type": "Enum",
           "named": true
         },
@@ -149,6 +153,25 @@
         },
         {
           "type": "Union",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Declaration_attribute",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Generic_expression",
+          "named": true
+        },
+        {
+          "type": "Reflection_identifier",
           "named": true
         }
       ]
