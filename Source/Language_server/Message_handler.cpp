@@ -45,7 +45,7 @@ namespace h::language_server
         lsp::RequestHandler& request_handler = message_handler.requestHandler();
         
         request_handler.add<lsp::requests::Initialize>(
-            [](const lsp::jsonrpc::MessageId& id, lsp::requests::Initialize::Params&& params)
+            [](const lsp::jsonrpc::MessageId& id, lsp::requests::Initialize::Params&& params) -> lsp::requests::Initialize::Result
             {
                auto result = lsp::requests::Initialize::Result{
                     .capabilities = {
@@ -61,7 +61,7 @@ namespace h::language_server
         );
 
         request_handler.add<lsp::notifications::Exit>(
-            [&running]()
+            [&running]() -> void
             {
                running = false;
             }
