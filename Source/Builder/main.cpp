@@ -147,6 +147,7 @@ void print_arguments(int const argc, char const* const* argv)
     }
     
     std::fputc('\n', stdout);
+    std::fflush(stdout);
 }
 
 int main(int const argc, char const* const* argv)

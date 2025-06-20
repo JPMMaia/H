@@ -14,12 +14,14 @@ namespace h::common
     void print_message_and_exit(std::string const& message)
     {
         std::puts(message.c_str());
+        std::fflush(stdout);
         std::exit(-1);
     }
 
     void print_message_and_exit(char const* const message)
     {
         std::puts(message);
+        std::fflush(stdout);
         std::exit(-1);
     }
 
