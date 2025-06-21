@@ -202,8 +202,7 @@
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe",
 				"args": [],
-				"cwd": "${workspaceFolder}/build",
-				"preLaunchTask": "Build Language Server"
+				"cwd": "${workspaceFolder}/build"
 			},
 			{
 				"name": "Attach to Language Server",
@@ -269,6 +268,7 @@
 					"Run Language Server",
 					"Run Language Client"
 				],
+				"preLaunchTask": "Build Language Server",
 				"stopAll": true
 			}
 		]
