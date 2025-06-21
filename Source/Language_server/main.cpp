@@ -45,8 +45,7 @@ using namespace h::language_server;
 
 int main(int const argc, char const* const* argv)
 {
-    Server server = create_server();
-    Message_handler message_handler = create_message_handler(server, *stdin, *stdout);
+    Message_handler message_handler = create_message_handler();
     process_messages(message_handler);
     return 0;
 }
