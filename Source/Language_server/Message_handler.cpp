@@ -7,7 +7,7 @@ module;
 
 #include <lsp/messages.h>
 #include <lsp/connection.h>
-#include <lsp/io/standardio.h>
+#include <lsp/io/socket.h>
 #include <lsp/messagehandler.h>
 
 #include <nlohmann/json.hpp>
@@ -33,34 +33,33 @@ namespace h::language_server
         };
     }
 
-    void process_messages(
-        Message_handler& message_handler_c
-    )
+    void run_message_handler(lsp::io::Socket socket)
     {
-        lsp::Connection connection{lsp::io::standardInput(), lsp::io::standardOutput()};
-        lsp::MessageHandler message_handler{connection};
-
         bool running = true;
 
-        lsp::RequestHandler& request_handler = message_handler.requestHandler();
+        lsp::Connection connection{socket};
+        lsp::MessageHandler message_handler{connection};
         
-        request_handler.add<lsp::requests::Initialize>(
-            [](const lsp::jsonrpc::MessageId& id, lsp::requests::Initialize::Params&& params) -> lsp::requests::Initialize::Result
+        message_handler.add<lsp::requests::Initialize>(
+            [](lsp::requests::Initialize::Params&& params) -> lsp::requests::Initialize::Result
             {
-               auto result = lsp::requests::Initialize::Result{
-                    .capabilities = {
+               lsp::requests::Initialize::Result result
+               {
+                    .capabilities =
+                    {
                     },
-                  .serverInfo = lsp::InitializeResultServerInfo{
-                      .name    = "Hlang Language Server",
-                      .version = "0.1.0"
-                  }
+                    .serverInfo = lsp::InitializeResultServerInfo
+                    {
+                        .name = "Hlang Language Server",
+                        .version = "0.1.0"
+                    }
                };
 
                return result;
             }
         );
 
-        request_handler.add<lsp::notifications::Exit>(
+        message_handler.add<lsp::notifications::Exit>(
             [&running]() -> void
             {
                running = false;
@@ -69,5 +68,26 @@ namespace h::language_server
       
          while(running)
             message_handler.processIncomingMessages();
+    }
+
+    void process_messages(
+        Message_handler& message_handler_c
+    )
+    {
+        int const port = 12345;
+        lsp::io::SocketListener socket_listener = lsp::io::SocketListener(port);
+
+        while (socket_listener.isReady())
+        {
+            lsp::io::Socket socket = socket_listener.listen();
+
+            if (!socket.isOpen())
+                break;
+
+            std::thread([socket = std::move(socket)]() mutable -> void
+            {
+                run_message_handler(std::move(socket));
+            }).detach();
+        } 
     }
 }
