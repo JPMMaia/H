@@ -1,4 +1,5 @@
 import * as path from 'path';
+import * as net from 'net';
 import * as vscode from 'vscode';
 
 import {
@@ -7,47 +8,65 @@ import {
 	LanguageClientOptions,
 	NodeModule,
 	ServerOptions,
+	StreamInfo,
 	TransportKind
 } from 'vscode-languageclient/node.js';
 
 let client: LanguageClient = undefined;
 
-export async function activate(context: vscode.ExtensionContext): Promise<LanguageClient> {
-
-	const mode: string | undefined = process.env.mode;
-	const use_webpack_server = mode !== "debug";
-
-	const hlang_language_server_path = process.env.hlang_language_server;
-	const use_cpp_server = hlang_language_server_path !== undefined;
-
-	const server_module = use_cpp_server ?
-		hlang_language_server_path :
-		context.asAbsolutePath(
-			use_webpack_server ?
-				path.join("dist", "server.js") :
-				path.join("out", "packages", "server", "src", "server.js")
-		);
+function create_server_options_to_create(
+	hlang_language_server_path: string
+): ServerOptions {
 
 	const executable: Executable = {
 		command: hlang_language_server_path,
 		args: [],
-		transport: TransportKind.stdio,
+		transport: {
+			kind: TransportKind.socket,
+			port: 12345
+		}
 	};
 
-	const node_module: NodeModule = {
-		module: server_module,
-		transport: TransportKind.ipc
-	};
-
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	const server_options: ServerOptions = use_cpp_server ? {
+	const server_options: ServerOptions = {
 		run: executable,
 		debug: executable
-	} : {
-		run: node_module,
-		debug: node_module
 	};
+
+	return server_options;
+}
+
+function create_server_options_to_attach(
+	server_host: string,
+	server_port: number
+): ServerOptions {
+	 
+	const server_options = () => {
+        return new Promise<StreamInfo>((resolve, reject) => {
+            const socket = net.connect(server_port, server_host, () => {
+                resolve({
+                    reader: socket,
+                    writer: socket
+                });
+            });
+
+            socket.on('error', (err) => {
+                reject(err);
+            });
+        });
+    };
+
+	return server_options;
+}
+
+export async function activate(context: vscode.ExtensionContext): Promise<LanguageClient> {
+
+	const mode: string | undefined = process.env.mode;
+	const attach_to_server = mode === "debug";
+
+	const server_options = 
+		attach_to_server ?
+		create_server_options_to_attach("127.0.0.1", 12345) :
+		create_server_options_to_create(process.env.hlang_language_server);
 
 	// Options to control the language client
 	const client_options: LanguageClientOptions = {

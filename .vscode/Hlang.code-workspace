@@ -198,9 +198,9 @@
 			},
 			{
 				"name": "Run Language Server",
-				"type": "lldb-dap",
+				"type": "cppvsdbg",
 				"request": "launch",
-				"program": "${workspaceFolder}/build/Source/Language_server/H_language_server",
+				"program": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe",
 				"args": [],
 				"cwd": "${workspaceFolder}/build",
 				"preLaunchTask": "Build Language Server"
@@ -210,7 +210,7 @@
 				"type": "lldb-dap",
 				"request": "attach",
 				"program": "${workspaceFolder}/build/Source/Language_server/H_language_server"
-			}
+			},
 			{
 				"name": "Run Language Client",
 				"type": "extensionHost",
@@ -228,8 +228,8 @@
 				"preLaunchTask": "Build Language Client",
 				"env": {
 					"mode": "debug",
-					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/H_language_server"
-				},
+					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe"
+				}
 			},
 			{
 				"name": "Parser",
@@ -262,7 +262,16 @@
 				],
 			},
 		],
-		"compounds": []
+		"compounds": [
+			{
+				"name": "Start Language Client and Server",
+				"configurations": [
+					"Run Language Server",
+					"Run Language Client"
+				],
+				"stopAll": true
+			}
+		]
 	},
 	"tasks": {
 		"version": "2.0.0",
@@ -300,7 +309,7 @@
 				"type": "shell",
 				"args": [
 					"run",
-					"compile"
+					"webpack:client-dev"
 				],
 				"presentation": {
 					"reveal": "always"
