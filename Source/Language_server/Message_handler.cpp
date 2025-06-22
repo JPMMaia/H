@@ -3,6 +3,7 @@ module;
 #include <cstdio>
 #include <thread>
 #include <optional>
+#include <span>
 #include <string>
 
 #include <lsp/messages.h>
@@ -56,6 +57,7 @@ namespace h::language_server
 
         Server server = create_server();
 
+        bool has_configuration_capability = false;
         bool has_workspace_folder_capability = false;
         
         message_handler.add<lsp::requests::Initialize>(
@@ -64,7 +66,10 @@ namespace h::language_server
                 lsp::ClientCapabilities const& client_capabilities = parameters.capabilities;
 
                 if (client_capabilities.workspace)
+                {
+                    has_configuration_capability = client_capabilities.workspace->configuration.value_or(false);
                     has_workspace_folder_capability = client_capabilities.workspace->workspaceFolders.value_or(false);
+                }
 
                 return initialize(server, parameters);
             }
@@ -82,7 +87,12 @@ namespace h::language_server
                         }
                     );
 
-                    request_workspace_folders(message_handler, server);
+                    request_workspace_configurations(
+                        message_handler,
+                        server,
+                        server.workspace_folders,
+                        has_configuration_capability
+                    );
                 }
             }
         );
@@ -129,28 +139,46 @@ namespace h::language_server
                 return compute_workspace_diagnostics(server, parameters);
             }
         );
+
+        // TODO use workspace/didChangeWatchedFiles to watch for changes in artifact and repository files
       
          while(running)
             message_handler.processIncomingMessages();
     }
 
-    void request_workspace_folders(
+    void request_workspace_configurations(
         lsp::MessageHandler& message_handler,
-        Server& server
+        Server& server,
+        std::span<lsp::WorkspaceFolder const> const workspace_folders,
+        bool const has_configuration_capability
     )
     {
-        message_handler.sendRequest<lsp::requests::Workspace_WorkspaceFolders>(
-            [&](lsp::requests::Workspace_WorkspaceFolders::Result&& result)
+        if (!has_configuration_capability)
+        {
+            // TODO set global configuration
+        }
+
+        lsp::Array<lsp::ConfigurationItem> configuration_items;
+        configuration_items.reserve(workspace_folders.size());
+
+        for (lsp::WorkspaceFolder const& workspace_folder : workspace_folders)
+            configuration_items.push_back(lsp::ConfigurationItem{ .scopeUri = workspace_folder.uri });
+
+        lsp::requests::Workspace_Configuration::Params workspace_configuration_parameters
+        {
+            .items = std::move(configuration_items),
+        };
+
+        message_handler.sendRequest<lsp::requests::Workspace_Configuration>(
+            std::move(workspace_configuration_parameters),
+            [&](lsp::requests::Workspace_Configuration::Result&& result)
             {
-                if (!result.isNull())
-                {
-                    lsp::Array<lsp::WorkspaceFolder> const& workspace_folders = result.value();
-                    set_workspace_folders(server, workspace_folders);
-                }
+                set_workspace_folder_configurations(server, result);
             },
-            [](const lsp::ResponseError& error)
+            [](const lsp::Error& error)
             {
+                std::fprintf(stderr, error.message());
             }
-        );        
+        );
     }
 }

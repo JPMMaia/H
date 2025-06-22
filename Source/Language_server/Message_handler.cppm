@@ -1,9 +1,11 @@
 module;
 
 #include <cstdio>
+#include <span>
 
 #include <lsp/io/socket.h>
 #include <lsp/messagehandler.h>
+#include <lsp/types.h>
 
 export module h.language_server.message_handler;
 
@@ -25,8 +27,10 @@ namespace h::language_server
         lsp::io::Socket socket
     );
 
-    void request_workspace_folders(
+    void request_workspace_configurations(
         lsp::MessageHandler& message_handler,
-        Server& server
+        Server& server,
+        std::span<lsp::WorkspaceFolder const> const workspace_folders,
+        bool const has_configuration_capability
     );
 }

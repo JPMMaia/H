@@ -6,13 +6,15 @@ module;
 
 export module h.language_server.server;
 
+import h.compiler.builder;
 import h.language_server.core;
 
 namespace h::language_server
 {
     export struct Server
     {
-
+        std::pmr::vector<lsp::WorkspaceFolder> workspace_folders;
+        std::pmr::vector<h::compiler::Builder> builders;
     };
 
     export Server create_server();
@@ -33,6 +35,11 @@ namespace h::language_server
     export void set_workspace_folders(
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders
+    );
+
+    export void set_workspace_folder_configurations(
+        Server& server,
+        lsp::Workspace_ConfigurationResult const& configurations
     );
 
     export void text_document_did_open(

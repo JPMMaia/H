@@ -1,6 +1,8 @@
 add_library(H_language_server)
 add_library(H::Language_server ALIAS H_language_server)
 
+set_target_properties(H_language_server PROPERTIES OUTPUT_NAME "H_language_server_lib")
+
 target_compile_features(H_language_server PUBLIC cxx_std_23)
 
 target_link_libraries(H_language_server PUBLIC H::Common H::Compiler)
