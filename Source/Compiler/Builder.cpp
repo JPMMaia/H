@@ -83,7 +83,7 @@ namespace h::compiler
         create_directory_if_it_does_not_exist(hl_build_directory);
 
         std::pmr::vector<Artifact> const artifacts = get_sorted_artifacts(
-            artifact_file_path,
+            { &artifact_file_path, 1 },
             builder.repositories,
             output_allocator,
             temporaries_allocator
@@ -210,7 +210,7 @@ namespace h::compiler
     }
 
     std::pmr::vector<Artifact> get_sorted_artifacts(
-        std::filesystem::path const& artifact_file_path,
+        std::span<std::filesystem::path const> const artifact_file_paths,
         std::span<Repository const> repositories,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -218,17 +218,20 @@ namespace h::compiler
     {
         std::pmr::vector<Artifact> artifacts{temporaries_allocator};
 
-        Artifact const artifact = get_artifact(artifact_file_path);
-        
-        add_artifact_dependencies(
-            artifacts,
-            artifact,
-            repositories,
-            output_allocator,
-            temporaries_allocator
-        );
+        for (std::filesystem::path const& artifact_file_path : artifact_file_paths)
+        {
+            Artifact const artifact = get_artifact(artifact_file_path);
 
-        artifacts.push_back(artifact);
+            add_artifact_dependencies(
+                artifacts,
+                artifact,
+                repositories,
+                output_allocator,
+                temporaries_allocator
+            );
+            
+            artifacts.push_back(artifact);
+        }
 
         return std::pmr::vector<Artifact>{std::move(artifacts), output_allocator};
     }

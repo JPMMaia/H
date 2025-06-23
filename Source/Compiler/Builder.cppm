@@ -46,8 +46,8 @@ namespace h::compiler
         h::compiler::C_header_options const* options = nullptr;
     };
 
-    std::pmr::vector<Artifact> get_sorted_artifacts(
-        std::filesystem::path const& artifact_file_path,
+    export std::pmr::vector<Artifact> get_sorted_artifacts(
+        std::span<std::filesystem::path const> const artifact_file_paths,
         std::span<Repository const> repositories,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
