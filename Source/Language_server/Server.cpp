@@ -11,9 +11,14 @@ module;
 module h.language_server.server;
 
 import h.common.filesystem;
+import h.common.filesystem_common;
 import h.compiler;
+import h.compiler.artifact;
 import h.compiler.builder;
+import h.compiler.diagnostic;
 import h.compiler.target;
+import h.core;
+import h.language_server.diagnostics;
 
 namespace h::language_server
 {
@@ -34,16 +39,15 @@ namespace h::language_server
 
         lsp::ClientCapabilities const& client_capabilities = parameters.capabilities;
 
-        lsp::ServerCapabilitiesWorkspace workspace_server_capabilities
+        lsp::DiagnosticOptions const diagnostic_options
         {
-            .workspaceFolders = lsp::WorkspaceFoldersServerCapabilities
-            {
-                .supported = true,
-                .changeNotifications = true,
-            }
+            .workDoneProgress = false,
+            .interFileDependencies = true,
+            .workspaceDiagnostics = true,
+            .identifier = std::nullopt,
         };
 
-        lsp::TextDocumentSyncOptions text_document_sync_server_capabilities
+        lsp::TextDocumentSyncOptions const text_document_sync_server_capabilities
         {
             .openClose = true,
             .change = lsp::TextDocumentSyncKind::Incremental,
@@ -52,11 +56,21 @@ namespace h::language_server
             .save = false,
         };
 
+        lsp::ServerCapabilitiesWorkspace const workspace_server_capabilities
+        {
+            .workspaceFolders = lsp::WorkspaceFoldersServerCapabilities
+            {
+                .supported = true,
+                .changeNotifications = true,
+            }
+        };
+
         lsp::InitializeResult result
         {
             .capabilities =
             {
                 .textDocumentSync = text_document_sync_server_capabilities,
+                .diagnosticProvider = diagnostic_options,
                 .workspace = workspace_server_capabilities,
             },
             .serverInfo = lsp::InitializeResultServerInfo
@@ -99,6 +113,9 @@ namespace h::language_server
         std::span<lsp::WorkspaceFolder const> const workspace_folders
     )
     {
+        server.workspace_folders.clear();
+        server.workspaces_data.clear();
+
         server.workspace_folders.assign(workspace_folders.begin(), workspace_folders.end());
     }
 
@@ -161,6 +178,8 @@ namespace h::language_server
         if (configurations.size() != server.workspace_folders.size())
             return;
 
+        server.workspaces_data.clear();
+
         h::compiler::Target const target = h::compiler::get_default_target();
 
         for (std::size_t index = 0; index < configurations.size(); ++index)
@@ -168,7 +187,10 @@ namespace h::language_server
             lsp::WorkspaceFolder const& workspace_folder = server.workspace_folders[index];
             lsp::json::Any const& workspace_configuration = configurations[index];
 
-            std::filesystem::path const workspace_folder_path = workspace_folder.uri.path();
+            std::filesystem::path const workspace_folder_path = 
+                target.operating_system == "windows" ?
+                workspace_folder.uri.path().substr(1) :
+                workspace_folder.uri.path();
             std::filesystem::path const build_directory_path = workspace_folder_path / "build";
 
             std::pmr::vector<std::filesystem::path> const header_search_paths = get_header_search_paths_from_configuration(workspace_configuration);
@@ -191,7 +213,27 @@ namespace h::language_server
                 {}
             );
 
-            server.builders.push_back(std::move(builder));
+            std::pmr::vector<std::filesystem::path> const artifact_file_paths = h::common::search_files(
+                workspace_folder_path,
+                "hlang_artifact.json",
+                {},
+                {}
+            );
+
+            std::pmr::vector<h::compiler::Artifact> artifacts = h::compiler::get_sorted_artifacts(
+                artifact_file_paths,
+                builder.repositories,
+                {},
+                {}
+            );
+
+            Workspace_data workspace_data
+            {
+                .builder = std::move(builder),
+                .artifacts = std::move(artifacts),
+            };
+
+            server.workspaces_data.push_back(std::move(workspace_data));
         }
     }
 
@@ -224,20 +266,71 @@ namespace h::language_server
         lsp::WorkspaceDiagnosticParams const& parameters
     )
     {
-        
-        /*for (lsp::WorkspaceFolder const& workspace_folder : workspace_folders)
+        if (server.workspace_folders.size() != server.workspaces_data.size())
+            return {};
+
+        // TODO use workDoneToken
+        // TODO use partialResultToken
+
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
+        lsp::WorkspaceDiagnosticReport report;
+
+        for (std::size_t workspace_index = 0; workspace_index < server.workspace_folders.size(); ++workspace_index)
         {
-            lsp::Uri const& workspace_uri = workspace_folder.uri;
-            std::filesystem::path const workspace_path = workspace_uri.path();
+            Workspace_data& workspace_data = server.workspaces_data[workspace_index];
+            h::compiler::Builder& builder = workspace_data.builder;
 
-            
+            std::span<h::compiler::Artifact const> const artifacts = workspace_data.artifacts;
 
-            // TODO read workspace configuration
-            // TODO read all repositories
-            // TODO read all artifacts
-        }*/
+            std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
+                artifacts,
+                temporaries_allocator,
+                temporaries_allocator
+            );
 
-        // TODO
-        return {};
+            std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
+                builder,
+                c_headers_and_options,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+            h::compiler::add_builtin_module(header_modules, temporaries_allocator, temporaries_allocator);
+
+            std::pmr::vector<std::filesystem::path> const source_file_paths = h::compiler::get_artifacts_source_files(
+                artifacts,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+
+            std::pmr::vector<h::Module> core_modules = h::compiler::parse_source_files_and_cache(
+                builder,
+                source_file_paths,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+
+            h::compiler::Declaration_database_and_sorted_modules const result = h::compiler::create_declaration_database_and_sorted_modules(
+                header_modules,
+                core_modules,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+
+            std::span<h::compiler::Diagnostic const> const diagnostics = result.diagnostics;
+
+            std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
+                result.diagnostics,
+                core_modules,
+                temporaries_allocator
+            );
+
+            for (lsp::WorkspaceFullDocumentDiagnosticReport const& item : items)
+            {
+                report.items.push_back(item);
+            }
+        }
+
+        return report;
     }
 }

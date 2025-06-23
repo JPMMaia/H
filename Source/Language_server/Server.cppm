@@ -6,15 +6,21 @@ module;
 
 export module h.language_server.server;
 
+import h.compiler.artifact;
 import h.compiler.builder;
-import h.language_server.core;
 
 namespace h::language_server
 {
+    struct Workspace_data
+    {
+        h::compiler::Builder builder;
+        std::pmr::vector<h::compiler::Artifact> artifacts;
+    };
+
     export struct Server
     {
         std::pmr::vector<lsp::WorkspaceFolder> workspace_folders;
-        std::pmr::vector<h::compiler::Builder> builders;
+        std::pmr::vector<Workspace_data> workspaces_data;
     };
 
     export Server create_server();
