@@ -40,7 +40,7 @@ namespace h::compiler
         std::filesystem::path const& artifact_file_path
     );
 
-    struct C_header_and_options
+    export struct C_header_and_options
     {
         h::compiler::C_header c_header = {};
         h::compiler::C_header_options const* options = nullptr;
@@ -53,32 +53,32 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::pmr::vector<C_header_and_options> get_artifacts_c_headers(
+    export std::pmr::vector<C_header_and_options> get_artifacts_c_headers(
         std::span<Artifact const> const artifacts,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::pmr::vector<std::filesystem::path> get_artifacts_source_files(
+    export std::pmr::vector<std::filesystem::path> get_artifacts_source_files(
         std::span<Artifact const> const artifacts,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::pmr::vector<h::Module> parse_c_headers_and_cache(
+    export std::pmr::vector<h::Module> parse_c_headers_and_cache(
         Builder const& builder,
         std::span<C_header_and_options const> const c_headers,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    void add_builtin_module(
+    export void add_builtin_module(
         std::pmr::vector<h::Module>& header_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    std::pmr::vector<h::Module> parse_source_files_and_cache(
+    export std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder const& builder,
         std::span<std::filesystem::path const> const source_file_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
