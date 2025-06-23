@@ -13,6 +13,8 @@ namespace h::compiler
     {
         Warning,
         Error,
+        Information,
+        Hint,
     };
 
     export enum class Diagnostic_source
