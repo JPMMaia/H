@@ -1538,8 +1538,7 @@ namespace h::compiler
             std::sort(alias_import.usages.begin(), alias_import.usages.end());
     }
 
-    Compilation_database process_modules_and_create_compilation_database(
-        LLVM_data& llvm_data,
+    Declaration_database_and_sorted_modules create_declaration_database_and_sorted_modules(
         std::span<h::Module const> const header_modules,
         std::span<h::Module> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
@@ -1551,10 +1550,10 @@ namespace h::compiler
 
         std::pmr::unordered_map<std::string_view, std::pmr::vector<std::pmr::string>> usages_per_module;
 
-        std::pmr::vector<h::Module const*> const sorted_core_modules = sort_core_modules(
+        std::pmr::vector<h::Module const*> sorted_core_modules = sort_core_modules(
             core_modules,
             output_allocator,
-            temporaries_allocator
+            output_allocator
         );
 
         Declaration_database declaration_database = create_declaration_database();
@@ -1575,10 +1574,17 @@ namespace h::compiler
         // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
         for (Module& core_module : core_modules)
         {
-            Analysis_result const result = process_module(core_module, declaration_database, {}, temporaries_allocator);
+            Analysis_result result = process_module(core_module, declaration_database, {}, temporaries_allocator);
 
             if (!result.diagnostics.empty())
             {
+                return Declaration_database_and_sorted_modules
+                {
+                    .sorted_core_modules = std::move(sorted_core_modules),
+                    .declaration_database = std::move(declaration_database),
+                    .diagnostics = std::move(result.diagnostics),
+                };
+
                 for (std::size_t diagnostic_index = 0; diagnostic_index < result.diagnostics.size(); ++diagnostic_index)
                 {
                     Diagnostic const& diagnostic = result.diagnostics[diagnostic_index];
@@ -1607,6 +1613,63 @@ namespace h::compiler
                     h::common::print_message_and_exit("Validation failed.");
             }
         }
+
+        return Declaration_database_and_sorted_modules
+        {
+            .sorted_core_modules = std::move(sorted_core_modules),
+            .declaration_database = std::move(declaration_database),
+            .diagnostics = {},
+        };
+    }
+
+    Compilation_database process_modules_and_create_compilation_database(
+        LLVM_data& llvm_data,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Declaration_database_and_sorted_modules declaration_database_and_sorted_modules = create_declaration_database_and_sorted_modules(
+            header_modules,
+            core_modules,
+            output_allocator,
+            temporaries_allocator
+        );
+
+        std::span<Diagnostic const> const diagnostics = declaration_database_and_sorted_modules.diagnostics;
+        if (!diagnostics.empty())
+        {
+            for (std::size_t diagnostic_index = 0; diagnostic_index < diagnostics.size(); ++diagnostic_index)
+            {
+                Diagnostic const& diagnostic = diagnostics[diagnostic_index];
+
+                std::pmr::string const diagnostic_string = diagnostic_to_string(
+                    diagnostic,
+                    temporaries_allocator,
+                    temporaries_allocator
+                );
+
+                ::fprintf(stderr, "%s\n", diagnostic_string.c_str());
+            }
+
+            auto const is_error_diagnostic = [](Diagnostic const& diagnostic) -> bool
+            {
+                return diagnostic.severity == Diagnostic_severity::Error;
+            };
+
+            bool const contains_errors = std::any_of(
+                diagnostics.begin(),
+                diagnostics.end(),
+                is_error_diagnostic
+            );
+
+            if (contains_errors)
+                h::common::print_message_and_exit("Validation failed.");
+        }
+    
+        std::span<h::Module const* const> const sorted_core_modules = declaration_database_and_sorted_modules.sorted_core_modules;
+        Declaration_database declaration_database = std::move(declaration_database_and_sorted_modules.declaration_database);
 
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,

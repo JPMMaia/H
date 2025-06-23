@@ -21,6 +21,7 @@ export module h.compiler;
 import h.core;
 import h.core.declarations;
 import h.compiler.clang_data;
+import h.compiler.diagnostic;
 import h.compiler.expressions;
 import h.compiler.types;
 
@@ -92,6 +93,20 @@ namespace h::compiler
         Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         Compilation_options const& compilation_options
+    );
+
+    export struct Declaration_database_and_sorted_modules
+    {
+        std::pmr::vector<h::Module const*> sorted_core_modules;
+        Declaration_database declaration_database;
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics;
+    };
+
+    export Declaration_database_and_sorted_modules create_declaration_database_and_sorted_modules(
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     export struct Compilation_database
