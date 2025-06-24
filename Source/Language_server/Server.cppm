@@ -8,6 +8,9 @@ export module h.language_server.server;
 
 import h.compiler.artifact;
 import h.compiler.builder;
+import h.core;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 namespace h::language_server
 {
@@ -15,15 +18,24 @@ namespace h::language_server
     {
         h::compiler::Builder builder;
         std::pmr::vector<h::compiler::Artifact> artifacts;
+        std::pmr::vector<h::Module> header_modules;
+        std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
+        std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
+        std::pmr::vector<h::Module> core_modules;
     };
-
+    
     export struct Server
     {
         std::pmr::vector<lsp::WorkspaceFolder> workspace_folders;
         std::pmr::vector<Workspace_data> workspaces_data;
+        h::parser::Parser parser;
     };
 
     export Server create_server();
+
+    export void destroy_server(
+        Server& server
+    );
 
     export lsp::InitializeResult initialize(
         Server& server,

@@ -19,6 +19,8 @@ import h.compiler.diagnostic;
 import h.compiler.target;
 import h.core;
 import h.language_server.diagnostics;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 namespace h::language_server
 {
@@ -26,7 +28,23 @@ namespace h::language_server
 
     Server create_server()
     {
-        return {};
+        h::parser::Parser parser = h::parser::create_parser();
+
+        return
+        {
+            .workspace_folders = {},
+            .workspaces_data = {},
+            .parser = std::move(parser)
+        };
+    }
+
+    void destroy_server(
+        Server& server
+    )
+    {
+        // TODO destroy existing trees in each workspace data
+
+        h::parser::destroy_parser(std::move(server.parser));
     }
 
     lsp::InitializeResult initialize(
@@ -178,9 +196,12 @@ namespace h::language_server
         if (configurations.size() != server.workspace_folders.size())
             return;
 
+        // TODO destroy parse_trees
         server.workspaces_data.clear();
 
         h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
 
         for (std::size_t index = 0; index < configurations.size(); ++index)
         {
@@ -227,10 +248,37 @@ namespace h::language_server
                 {}
             );
 
+            std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
+                artifacts,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+
+            std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
+                builder,
+                c_headers_and_options,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+            h::compiler::add_builtin_module(header_modules, temporaries_allocator, temporaries_allocator);
+
+            // TODO
+            std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
+
+            // TODO parse all source files
+            std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
+
+            // TODO convert all source files to modules (if they dont contain any parsing errors)
+            std::pmr::vector<h::Module> core_modules;
+
             Workspace_data workspace_data
             {
                 .builder = std::move(builder),
                 .artifacts = std::move(artifacts),
+                .header_modules = std::move(header_modules),
+                .core_module_source_file_paths = std::move(core_module_source_file_paths),
+                .core_module_parse_trees = std::move(core_module_parse_trees),
+                .core_modules = std::move(core_modules),
             };
 
             server.workspaces_data.push_back(std::move(workspace_data));
@@ -242,7 +290,7 @@ namespace h::language_server
         lsp::DidOpenTextDocumentParams const& parameters
     )
     {
-        // TODO
+        // TODO set version of document
     }
 
     void text_document_did_close(
@@ -250,7 +298,7 @@ namespace h::language_server
         lsp::DidCloseTextDocumentParams const& parameters
     )
     {
-        // TODO
+        // TODO unset version of document
     }
 
     void text_document_did_change(
@@ -258,7 +306,8 @@ namespace h::language_server
         lsp::DidChangeTextDocumentParams const& parameters
     )
     {
-        // TODO
+        // TODO set version of document
+        // TODO update parse tree
     }
 
     lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
@@ -279,55 +328,44 @@ namespace h::language_server
         for (std::size_t workspace_index = 0; workspace_index < server.workspace_folders.size(); ++workspace_index)
         {
             Workspace_data& workspace_data = server.workspaces_data[workspace_index];
-            h::compiler::Builder& builder = workspace_data.builder;
 
-            std::span<h::compiler::Artifact const> const artifacts = workspace_data.artifacts;
-
-            std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
-                artifacts,
+            std::pmr::vector<h::compiler::Diagnostic> const parser_diagnostics = create_parser_diagnostics(
+                workspace_data.core_module_source_file_paths,
+                workspace_data.core_module_parse_trees,
                 temporaries_allocator,
                 temporaries_allocator
             );
 
-            std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
-                builder,
-                c_headers_and_options,
-                temporaries_allocator,
-                temporaries_allocator
-            );
-            h::compiler::add_builtin_module(header_modules, temporaries_allocator, temporaries_allocator);
-
-            std::pmr::vector<std::filesystem::path> const source_file_paths = h::compiler::get_artifacts_source_files(
-                artifacts,
-                temporaries_allocator,
-                temporaries_allocator
-            );
-
-            std::pmr::vector<h::Module> core_modules = h::compiler::parse_source_files_and_cache(
-                builder,
-                source_file_paths,
-                temporaries_allocator,
-                temporaries_allocator
-            );
-
-            h::compiler::Declaration_database_and_sorted_modules const result = h::compiler::create_declaration_database_and_sorted_modules(
-                header_modules,
-                core_modules,
-                temporaries_allocator,
-                temporaries_allocator
-            );
-
-            std::span<h::compiler::Diagnostic const> const diagnostics = result.diagnostics;
-
-            std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
-                result.diagnostics,
-                core_modules,
-                temporaries_allocator
-            );
-
-            for (lsp::WorkspaceFullDocumentDiagnosticReport const& item : items)
+            if (!parser_diagnostics.empty())
             {
-                report.items.push_back(item);
+                std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
+                    parser_diagnostics,
+                    workspace_data.core_module_source_file_paths,
+                    temporaries_allocator
+                );
+
+                for (lsp::WorkspaceFullDocumentDiagnosticReport const& item : items)
+                    report.items.push_back(item);
+            }
+            else
+            {
+                h::compiler::Declaration_database_and_sorted_modules const result = h::compiler::create_declaration_database_and_sorted_modules(
+                    workspace_data.header_modules,
+                    workspace_data.core_modules,
+                    temporaries_allocator,
+                    temporaries_allocator
+                );
+
+                std::span<h::compiler::Diagnostic const> const compiler_diagnostics = result.diagnostics;
+
+                std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
+                    compiler_diagnostics,
+                    workspace_data.core_module_source_file_paths,
+                    temporaries_allocator
+                );
+
+                for (lsp::WorkspaceFullDocumentDiagnosticReport const& item : items)
+                    report.items.push_back(item);
             }
         }
 
