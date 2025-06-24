@@ -19,7 +19,8 @@ namespace h::compiler
 
     export enum class Diagnostic_source
     {
-        Parse_tree_validation,
+        Parser,
+        Compiler
     };
 
     export struct Diagnostic_related_information

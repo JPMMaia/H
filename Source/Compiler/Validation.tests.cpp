@@ -96,7 +96,7 @@ var my_global_1: Int32 = 2.0f32;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(4, 26, 4, 32),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
@@ -124,7 +124,7 @@ var my_global_1 = get_value();
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 19, 9, 30),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'my_global_1' must be a computable at compile-time.",
                 .related_information = {},
@@ -153,7 +153,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 13, 9, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot take address of a global constant.",
                 .related_information = {},
@@ -181,14 +181,14 @@ struct My_struct
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_struct.b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_struct.b'.",
                 .related_information = {},
@@ -214,7 +214,7 @@ struct My_struct
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 16, 6, 22),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign expression of type 'Float32' to 'My_struct.b' of type 'Int32'.",
                 .related_information = {},
@@ -245,7 +245,7 @@ struct My_struct
             h::compiler::Diagnostic
             {
                 .range = create_source_range(11, 16, 11, 27),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'My_struct.b' must be a computable at compile-time.",
                 .related_information = {},
@@ -270,14 +270,14 @@ struct My_struct
             h::compiler::Diagnostic
             {
                 .range = create_source_range(5, 16, 5, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign expression of type '<undefined>' to 'My_struct.a' of type 'Int32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(5, 16, 5, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'My_struct.a' must be a computable at compile-time.",
                 .related_information = {},
@@ -320,7 +320,7 @@ struct My_struct_1
             h::compiler::Diagnostic
             {
                 .range = create_source_range(23, 16, 23, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot initialize 'My_struct_1.d' member of type 'Int32' with an instantiate expression.",
                 .related_information = {},
@@ -348,14 +348,14 @@ union My_union
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_union.b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_union.b'.",
                 .related_information = {},
@@ -383,14 +383,14 @@ enum My_enum
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_enum.b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate member name 'My_enum.b'.",
                 .related_information = {},
@@ -417,14 +417,14 @@ enum My_enum
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 9, 6, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The enum value assigned to 'My_enum.b' must be a Int32 type.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 9, 7, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The enum value assigned to 'My_enum.c' must be a Int32 type.",
                 .related_information = {},
@@ -455,14 +455,14 @@ enum My_enum
             h::compiler::Diagnostic
             {
                 .range = create_source_range(11, 9, 11, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'My_enum.b' must be a computable at compile-time.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(11, 9, 11, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot use 'get_value' to calculate 'My_enum.b'.",
                 .related_information = {},
@@ -509,14 +509,14 @@ enum My_enum
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The enum value 'My_enum.c' can only be calculated using previous enum values.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The enum value 'My_enum.d' can only be calculated using previous enum values.",
                 .related_information = {},
@@ -546,14 +546,14 @@ function add(first: Int32, second: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(5, 28, 5, 33),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 30, 7, 36),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
                 .related_information = {},
@@ -597,21 +597,21 @@ function add(first: Int32, second: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(19, 64, 19, 76),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(21, 52, 21, 58),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'result' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(22, 53, 22, 57),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'beep' does not exist.",
                 .related_information = {},
@@ -655,14 +655,14 @@ function add(first: Int32, second: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(19, 66, 19, 78),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(22, 54, 22, 58),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'beep' does not exist.",
                 .related_information = {},
@@ -686,14 +686,14 @@ using My_uint = Uint65;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 16, 3, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Number of bits of integer cannot be larger than 64.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(4, 17, 4, 23),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Number of bits of integer cannot be larger than 64.",
                 .related_information = {},
@@ -717,7 +717,7 @@ using My_type = My_struct;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(4, 17, 4, 26),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Type 'My_struct' does not exist.",
                 .related_information = {},
@@ -753,7 +753,7 @@ struct My_struct
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 21, 7, 32),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Type 'B.My_struct_2' does not exist.",
                 .related_information = {},
@@ -775,7 +775,7 @@ using My_type = B.My_struct;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 17, 3, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Module alias 'B' does not exist.",
                 .related_information = {},
@@ -804,14 +804,14 @@ import module_b as module_a;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 20, 3, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate import alias 'module_a'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(4, 20, 4, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate import alias 'module_a'.",
                 .related_information = {},
@@ -834,7 +834,7 @@ import my.module_a as my_module;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 8, 3, 19),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot find module 'my.module_a'.",
                 .related_information = {},
@@ -863,14 +863,14 @@ union My_type
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 8, 3, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate declaration name 'My_type'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 7, 7, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate declaration name 'My_type'.",
                 .related_information = {},
@@ -900,21 +900,21 @@ using true = Float32;
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 8, 3, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Invalid declaration name 'Int32' which is a reserved keyword.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 7, 7, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Invalid declaration name 'Float32' which is a reserved keyword.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(11, 7, 11, 11),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Invalid declaration name 'true' which is a reserved keyword.",
                 .related_information = {},
@@ -943,28 +943,28 @@ function run(c: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 14, 3, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'c'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(6, 9, 6, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'c'.",
                 .related_information = {},
@@ -999,7 +999,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(15, 13, 15, 29),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign expression of type 'void' to variable 'b'.",
                 .related_information = {},
@@ -1028,28 +1028,28 @@ function run(c: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(3, 14, 3, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'c'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(6, 9, 6, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'b'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate variable name 'c'.",
                 .related_information = {},
@@ -1080,14 +1080,14 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(10, 20, 10, 26),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(11, 20, 11, 31),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
@@ -1112,7 +1112,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(5, 20, 5, 25),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
@@ -1156,14 +1156,14 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(21, 33, 21, 39),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Float32' does not match expected type 'My_struct'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(24, 32, 24, 33),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'My_union'.",
                 .related_information = {},
@@ -1192,21 +1192,21 @@ function run(a: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 13, 7, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'd' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 17, 7, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'e' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 17, 8, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'k' does not exist.",
                 .related_information = {},
@@ -1294,28 +1294,28 @@ union My_union
             h::compiler::Diagnostic
             {
                 .range = create_source_range(26, 19, 26, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'My_enum_2' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(31, 19, 31, 26),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'value_4' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(37, 19, 37, 38),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
                 .related_information = {},
             },
             {
                 .range = create_source_range(38, 20, 38, 31),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'My_module_2' does not exist.",
                 .related_information = {},
@@ -1367,21 +1367,21 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(24, 19, 24, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'C' does not exist in the type 'My_enum'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(28, 19, 28, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'c' does not exist in the type 'My_struct'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(32, 19, 32, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'c' does not exist in the type 'My_union'.",
                 .related_information = {},
@@ -1440,21 +1440,21 @@ export union My_union
             h::compiler::Diagnostic
             {
                 .range = create_source_range(8, 19, 8, 38),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'C' does not exist in the type 'My_enum'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(12, 19, 12, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'c' does not exist in the type 'My_struct'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(16, 19, 16, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'c' does not exist in the type 'My_union'.",
                 .related_information = {},
@@ -1481,7 +1481,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 31, 6, 36),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
                 .related_information = {},
@@ -1509,7 +1509,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 15, 7, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expected type is 'Int32' but got 'Float32'.",
                 .related_information = {},
@@ -1550,21 +1550,21 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(16, 20, 16, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '~' to expression.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(19, 20, 19, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '-' to expression.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(20, 20, 20, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '~' to expression.",
                 .related_information = {},
@@ -1593,7 +1593,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 20, 9, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '!' to expression.",
                 .related_information = {},
@@ -1624,21 +1624,21 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 20, 7, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '&' to expression.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(10, 20, 10, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '*' to expression.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(11, 20, 11, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '*' to expression.",
                 .related_information = {},
@@ -1671,7 +1671,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(12, 5, 12, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression does not evaluate to a callable expression.",
                 .related_information = {},
@@ -1717,35 +1717,35 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(18, 5, 18, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_0' expects 0 arguments, but 1 were provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(21, 5, 21, 12),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_1' expects 1 arguments, but 0 were provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(22, 5, 22, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_1' expects 1 arguments, but 2 were provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(25, 5, 25, 12),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_2' expects 2 arguments, but 0 were provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(26, 5, 26, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_2' expects 2 arguments, but 1 were provided.",
                 .related_information = {},
@@ -1776,7 +1776,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(11, 5, 11, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'foo_0' expects at least 2 arguments, but 1 were provided.",
                 .related_information = {},
@@ -1815,35 +1815,35 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(14, 11, 14, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(17, 14, 17, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'v1' expects type 'Float32', but 'Int32' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(18, 11, 18, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(18, 19, 18, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'v1' expects type 'Float32', but 'Int32' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(19, 11, 19, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
                 .related_information = {},
@@ -1872,7 +1872,7 @@ function run() -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 11, 9, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
@@ -1903,7 +1903,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 9, 9, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Return expression type 'Int32' does not match function return type 'void'.",
                 .related_information = {},
@@ -1928,14 +1928,14 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(5, 5, 5, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot deduce return type.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(5, 12, 5, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
@@ -1975,14 +1975,14 @@ function run(value: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(5, 8, 5, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Condition expression type 'Int32' is not 'bool'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(14, 13, 14, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Condition expression type 'Int32' is not 'bool'.",
                 .related_information = {},
@@ -2009,7 +2009,7 @@ function run(value: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 20, 6, 25),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
                 .related_information = {},
@@ -2035,7 +2035,7 @@ function run(condition: Bool) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 20, 6, 42),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The expression types of the then ('Int32') and else ('Float32') part of a ternary expression must match.",
                 .related_information = {},
@@ -2103,21 +2103,21 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(30, 12, 30, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression must evaluate to an integer or an enum value.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(37, 12, 37, 23),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression must evaluate to an integer or an enum value.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(43, 12, 43, 19),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression must evaluate to an integer or an enum value.",
                 .related_information = {},
@@ -2167,7 +2167,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(16, 14, 16, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type must match the switch case input type.",
                 .related_information = {},
@@ -2221,21 +2221,21 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(20, 14, 20, 23),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type must match the switch case input type.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(26, 14, 26, 15),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type must match the switch case input type.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(29, 14, 29, 25),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type must match the switch case input type.",
                 .related_information = {},
@@ -2274,7 +2274,7 @@ function run(enum_value: My_enum) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(14, 14, 14, 26),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value.",
                 .related_information = {},
@@ -2310,21 +2310,21 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(8, 5, 8, 43),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The range begin, end and step_by expression types must all match.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(11, 5, 11, 40),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The range begin, end and step_by expression types must all match.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(14, 5, 14, 40),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The range begin, end and step_by expression types must all match.",
                 .related_information = {},
@@ -2362,14 +2362,14 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(13, 5, 13, 45),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The range begin, end and step_by expression must evaluate to numbers.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(17, 5, 17, 55),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The range begin, end and step_by expression must evaluate to numbers.",
                 .related_information = {},
@@ -2399,7 +2399,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(8, 11, 8, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
                 .related_information = {},
@@ -2433,21 +2433,21 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 13, 6, 27),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary expression requires both operands to be of the same type. Left side type 'Int32' does not match right hand side type 'Float32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 13, 7, 26),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary expression requires both operands to be of the same type. Left side type 'Bool' does not match right hand side type 'Float32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(13, 14, 13, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary expression requires both operands to be of the same type. Left side type '*mutable Int32' does not match right hand side type 'Int32'.",
                 .related_information = {},
@@ -2474,7 +2474,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(7, 13, 7, 25),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary operation '+' can only be applied to numeric types.",
                 .related_information = {},
@@ -2508,7 +2508,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(14, 13, 14, 36),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
                 .related_information = {},
@@ -2553,7 +2553,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 13, 6, 23),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary operation '&&' can only be applied to a boolean value.",
                 .related_information = {},
@@ -2579,7 +2579,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 13, 6, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary operation '&' can only be applied to integers or bytes.",
                 .related_information = {},
@@ -2606,14 +2606,14 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(6, 13, 6, 19),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The left hand side type of a '<<' binary operation must be an integer or a byte.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 22, 7, 28),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The right hand side type of a '<<' binary operation must be an integer.",
                 .related_information = {},
@@ -2646,7 +2646,7 @@ function run(value: My_enum) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(12, 13, 12, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Binary operation 'has' can only be applied to enum values.",
                 .related_information = {},
@@ -2682,14 +2682,14 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(13, 9, 13, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate instantiate member 'a'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(14, 9, 14, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Duplicate instantiate member 'a'.",
                 .related_information = {},
@@ -2729,7 +2729,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(17, 33, 20, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration.",
                 .related_information = {},
@@ -2769,7 +2769,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(17, 33, 20, 6),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'My_struct.b' is not set. Explicit instantiate expression requires all members to be set.",
                 .related_information = {},
@@ -2808,7 +2808,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(18, 9, 18, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'My_struct.d' does not exist.",
                 .related_information = {},
@@ -2841,7 +2841,7 @@ function run(value: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(11, 12, 11, 18),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
                 .related_information = {},
@@ -2887,35 +2887,35 @@ function run(value: Int32) -> (result: Int32)
             h::compiler::Diagnostic
             {
                 .range = create_source_range(11, 16, 11, 20),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign expression of type 'Null_pointer_type' to 'My_struct.b' of type 'Int32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(16, 15, 16, 19),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 'non_pointer' expects type 'Int32', but 'Null_pointer_type' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(20, 12, 20, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign value of type 'Null_pointer_type' to member 'My_struct.b' of type 'Int32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(23, 20, 23, 24),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expected type is 'Int32' but got 'Null_pointer_type'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(25, 5, 25, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Return expression type 'Null_pointer_type' does not match function return type 'Int32'.",
                 .related_information = {},
@@ -2997,21 +2997,21 @@ function run(input: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(22, 5, 22, 10),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(25, 9, 25, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(30, 9, 30, 14),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
@@ -3057,14 +3057,14 @@ function run(input: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(20, 15, 20, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'break' loop count of 2 is invalid.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(25, 15, 25, 16),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'break' loop count of 0 is invalid.",
                 .related_information = {},
@@ -3163,28 +3163,28 @@ function run(input: Int32) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(15, 5, 15, 13),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(18, 9, 18, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(23, 9, 23, 17),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(30, 13, 30, 21),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
@@ -3224,7 +3224,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(19, 19, 19, 36),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply numeric cast from 'My_struct' to 'Int64'.",
                 .related_information = {},
@@ -3261,7 +3261,7 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(17, 19, 17, 41),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply numeric cast from 'Int32' to 'My_struct'.",
                 .related_information = {},
@@ -3296,14 +3296,14 @@ function run(int_input: Int32, enum_input: My_enum) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(14, 19, 14, 37),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Warning,
                 .message = "Numeric cast from 'Int32' to 'Int32'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(15, 19, 15, 40),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Warning,
                 .message = "Numeric cast from 'My_enum' to 'My_enum'.",
                 .related_information = {},
@@ -3350,7 +3350,7 @@ function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
             h::compiler::Diagnostic
             {
                 .range = create_source_range(9, 19, 9, 52),
-                .source = Diagnostic_source::Parse_tree_validation,
+                .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply numeric cast from 'Int32' to 'dependency.My_struct'.",
                 .related_information = {},

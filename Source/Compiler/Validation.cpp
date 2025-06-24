@@ -30,7 +30,7 @@ namespace h::compiler
         {
             .file_path = source_file_path,
             .range = range.has_value() ? range.value() : Source_range{},
-            .source = Diagnostic_source::Parse_tree_validation,
+            .source = Diagnostic_source::Compiler,
             .severity = Diagnostic_severity::Error,
             .message = std::pmr::string{message},
             .related_information = {},
