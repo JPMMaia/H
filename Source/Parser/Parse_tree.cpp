@@ -205,4 +205,83 @@ namespace h::parser
             }
         };
     }
+
+    bool has_errors(
+        Parse_node const& node
+    )
+    {
+        return ts_node_has_error(node.ts_node);
+    }
+
+    bool is_error_node(
+        Parse_node const& node
+    )
+    {
+        return ts_node_is_error(node.ts_node);
+    }
+
+    static bool is_error_or_missing_node(
+        TSNode const node
+    )
+    {
+        return ts_node_is_error(node) || ts_node_is_missing(node);
+    }
+
+    template<class FunctionT>
+    void depth_first_search(
+        TSTreeCursor* cursor,
+        FunctionT&& visitor
+    )
+    {
+        bool const search_children = visitor(cursor);
+        if (!search_children)
+            return;
+
+        if (ts_tree_cursor_goto_first_child(cursor))
+        {
+            do
+            {
+                depth_first_search(cursor, visitor);
+            } while (ts_tree_cursor_goto_next_sibling(cursor));
+
+            ts_tree_cursor_goto_parent(cursor);
+        }
+    }
+
+    std::pmr::vector<Parse_node> get_error_or_missing_nodes(
+        Parse_tree const& tree,
+        Parse_node const& node,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        if (!ts_node_has_error(node.ts_node))
+            return std::pmr::vector<Parse_node>{output_allocator};
+
+        std::pmr::vector<Parse_node> output{temporaries_allocator};
+
+        auto const visitor = [&](TSTreeCursor* cursor) -> bool
+        {
+            TSNode const current_node = ts_tree_cursor_current_node(cursor);
+
+            if (!ts_node_has_error(current_node))
+                return false;
+
+            if (is_error_or_missing_node(current_node))
+            {
+                output.push_back({.ts_node = current_node});
+                return false;
+            }
+
+            return true;
+        };
+
+        TSTreeCursor cursor = ts_tree_cursor_new(node.ts_node);
+
+        depth_first_search(&cursor, visitor);
+
+        ts_tree_cursor_delete(&cursor);
+
+        return std::pmr::vector<Parse_node>{std::move(output), output_allocator};
+    }
 }
