@@ -6,6 +6,7 @@ module;
 
 export module h.parser.parser;
 
+import h.core;
 import h.parser.parse_tree;
 
 namespace h::parser

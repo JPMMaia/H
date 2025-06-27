@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -16,6 +17,7 @@ module h.parser.parser;
 
 import h.common;
 import h.common.filesystem;
+import h.core;
 
 extern "C"
 {
@@ -68,6 +70,143 @@ namespace h::parser
     void destroy_tree(Parse_tree&& tree)
     {
         ts_tree_delete(tree.ts_tree);
+    }
+
+    static bool is_utf_8_code_point(
+        char8_t const character
+    )
+    {
+        return (character & 0b11000000) != 0b10000000;
+    }
+
+    static std::uint32_t calculate_new_end_byte(
+        std::uint32_t const start_byte,
+        std::uint32_t const old_end_byte,
+        std::uint32_t const new_text_size_in_bytes
+    )
+    {
+        std::uint32_t const bytes_to_remove = old_end_byte - start_byte;
+        std::uint32_t const new_end_byte = start_byte + new_text_size_in_bytes;
+        return new_end_byte;    
+    }
+
+    static TSPoint calculate_point(
+        std::u8string_view const text,
+        TSPoint const start_point,
+        std::uint32_t const start_byte,
+        std::uint32_t const target_byte
+    )
+    {
+        TSPoint current_point = start_point;
+        std::uint32_t current_byte = start_byte;
+
+        while (current_byte < target_byte)
+        {
+            char8_t const character = text[current_byte];
+
+            if (character == '\n')
+            {
+                current_point.row += 1;
+                current_point.column = 0;
+            }
+            else if (is_utf_8_code_point(character))
+            {
+                current_point.column += 1;
+            }
+
+            current_byte += 1;
+        }
+        assert(current_byte == target_byte);
+
+        return current_point;
+    }
+
+    static std::uint32_t calculate_byte(
+        std::u8string_view const text,
+        TSPoint const start_point,
+        std::uint32_t const start_byte,
+        TSPoint const target_point
+    )
+    {
+        TSPoint current_point = start_point;
+        std::uint32_t current_byte = start_byte;
+
+        while (current_point.row < target_point.row)
+        {
+            char8_t const character = text[current_byte];
+            
+            if (character == '\n')
+            {
+                current_point.row += 1;
+                current_point.column = 0;
+            }
+
+            current_byte += 1;
+        }
+        assert(current_point.row == target_point.row);
+        
+        while (current_point.column < target_point.column)
+        {
+            char8_t const character = text[current_byte];
+
+            if (is_utf_8_code_point(character))
+                current_point.column += 1;
+            
+            current_byte += 1;
+        }
+        assert(current_point.column == target_point.column);
+        
+        return current_byte;
+    }
+
+    Parse_tree edit_tree(
+        Parser const& parser,
+        Parse_tree& previous_parse_tree,
+        h::Source_range const range,
+        std::u8string_view const new_text
+    )
+    {
+        std::u8string_view const text_before_edit = {};
+        std::pmr::u8string const text_after_edit = {}; // TODO
+        TSNode const root = {};
+
+        TSPoint const start_point{range.start.line, range.start.column};
+        TSPoint const old_end_point{range.end.line, range.end.column};
+
+        TSNode const node = ts_node_descendant_for_point_range(root, start_point, start_point);
+        TSPoint const node_start_point = ts_node_start_point(node);
+        std::uint32_t const node_start_byte = ts_node_start_byte(node);
+
+        std::uint32_t const start_byte = calculate_byte(text_before_edit, node_start_point, node_start_byte, start_point);
+        std::uint32_t const old_end_byte = calculate_byte(text_before_edit, start_point, start_byte, old_end_point);
+
+        std::uint32_t const new_end_byte = calculate_new_end_byte(start_byte, old_end_byte, new_text.size());
+        TSPoint const new_end_point = calculate_point(text_after_edit, start_point, start_byte, new_end_byte);
+
+        TSInputEdit const edit
+        {
+            .start_byte = start_byte,
+            .old_end_byte = old_end_byte,
+            .new_end_byte = new_end_byte,
+            .start_point = start_point,
+            .old_end_point = old_end_point,
+            .new_end_point = new_end_point,
+        };
+
+        ts_tree_edit(previous_parse_tree.ts_tree, &edit);
+
+        TSTree* new_tree = ts_parser_parse_string(
+            parser.parser,
+            previous_parse_tree.ts_tree,
+            reinterpret_cast<char const*>(text_after_edit.data()),
+            text_after_edit.size()
+        );
+
+        return Parse_tree
+        { 
+            .source = {}, // TODO
+            .ts_tree = new_tree
+        };
     }
 
     std::optional<std::pmr::string> read_module_name(std::filesystem::path const& unparsed_file_path)
