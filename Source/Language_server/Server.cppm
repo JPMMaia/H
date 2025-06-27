@@ -20,6 +20,7 @@ namespace h::language_server
         std::pmr::vector<h::compiler::Artifact> artifacts;
         std::pmr::vector<h::Module> header_modules;
         std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
+        std::pmr::vector<std::optional<int>> core_module_versions;
         std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
         std::pmr::vector<h::Module> core_modules;
     };
@@ -78,5 +79,14 @@ namespace h::language_server
     export lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
         Server& server,
         lsp::WorkspaceDiagnosticParams const& parameters
+    );
+
+    std::filesystem::path to_filesystem_path(
+        h::compiler::Target const& target,
+        lsp::Uri const& uri
+    );
+
+    h::Source_range utf_16_lsp_range_to_utf_8_source_range(
+        lsp::Range const& range
     );
 }

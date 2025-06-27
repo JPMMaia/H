@@ -18,6 +18,7 @@ import h.compiler.builder;
 import h.compiler.diagnostic;
 import h.compiler.target;
 import h.core;
+import h.language_server.core;
 import h.language_server.diagnostics;
 import h.parser.parse_tree;
 import h.parser.parser;
@@ -208,10 +209,11 @@ namespace h::language_server
             lsp::WorkspaceFolder const& workspace_folder = server.workspace_folders[index];
             lsp::json::Any const& workspace_configuration = configurations[index];
 
-            std::filesystem::path const workspace_folder_path = 
-                target.operating_system == "windows" ?
-                workspace_folder.uri.path().substr(1) :
-                workspace_folder.uri.path();
+            std::filesystem::path const workspace_folder_path = to_filesystem_path(
+                target,
+                workspace_folder.uri
+            );
+
             std::filesystem::path const build_directory_path = workspace_folder_path / "build";
 
             std::pmr::vector<std::filesystem::path> const header_search_paths = get_header_search_paths_from_configuration(workspace_configuration);
@@ -265,6 +267,9 @@ namespace h::language_server
             // TODO
             std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
 
+            // TODO
+            std::pmr::vector<std::optional<int>> core_module_versions = {};
+
             // TODO parse all source files
             std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
 
@@ -277,6 +282,7 @@ namespace h::language_server
                 .artifacts = std::move(artifacts),
                 .header_modules = std::move(header_modules),
                 .core_module_source_file_paths = std::move(core_module_source_file_paths),
+                .core_module_versions = std::move(core_module_versions),
                 .core_module_parse_trees = std::move(core_module_parse_trees),
                 .core_modules = std::move(core_modules),
             };
@@ -285,12 +291,44 @@ namespace h::language_server
         }
     }
 
+    static std::optional<std::pair<Workspace_data&, std::size_t>> find_workspace_core_module_index(
+        Server& server,
+        lsp::Uri const& uri
+    )
+    {
+        for (Workspace_data& workspace_data : server.workspaces_data)
+        {
+            std::filesystem::path const file_path = to_filesystem_path(workspace_data.builder.target, uri);
+
+            auto const location = std::find(
+                workspace_data.core_module_source_file_paths.begin(),
+                workspace_data.core_module_source_file_paths.end(),
+                file_path
+            );
+            if (location == workspace_data.core_module_source_file_paths.end())
+                continue;
+
+            auto const index = std::distance(workspace_data.core_module_source_file_paths.begin(), location);
+            
+            return std::pair<Workspace_data&, std::size_t>{ workspace_data, index };
+        }
+
+        return std::nullopt;
+    }
+
     void text_document_did_open(
         Server& server,
         lsp::DidOpenTextDocumentParams const& parameters
     )
     {
-        // TODO set version of document
+        std::optional<std::pair<Workspace_data&, std::size_t>> const result = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!result.has_value())
+            return;
+
+        result->first.core_module_versions[result->second] = parameters.textDocument.version;
     }
 
     void text_document_did_close(
@@ -298,7 +336,14 @@ namespace h::language_server
         lsp::DidCloseTextDocumentParams const& parameters
     )
     {
-        // TODO unset version of document
+        std::optional<std::pair<Workspace_data&, std::size_t>> const result = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!result.has_value())
+            return;
+
+        result->first.core_module_versions[result->second] = std::nullopt;
     }
 
     void text_document_did_change(
@@ -306,8 +351,34 @@ namespace h::language_server
         lsp::DidChangeTextDocumentParams const& parameters
     )
     {
-        // TODO set version of document
-        // TODO update parse tree
+        std::optional<std::pair<Workspace_data&, std::size_t>> const result = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!result.has_value())
+            return;
+
+        result->first.core_module_versions[result->second] = parameters.textDocument.version;
+
+        for (lsp::TextDocumentContentChangeEvent const& event : parameters.contentChanges)
+        {
+            if (std::holds_alternative<lsp::TextDocumentContentChangeEvent_Text>(event))
+            {
+                lsp::TextDocumentContentChangeEvent_Text const& full_content_event = std::get<lsp::TextDocumentContentChangeEvent_Text>(event);
+
+                // TODO update parse tree
+            }
+            else if (std::holds_alternative<lsp::TextDocumentContentChangeEvent_Range_Text>(event))
+            {
+                lsp::TextDocumentContentChangeEvent_Range_Text const& range_content_event = std::get<lsp::TextDocumentContentChangeEvent_Range_Text>(event);
+
+                h::Source_range const range = utf_16_lsp_range_to_utf_8_source_range(range_content_event.range);
+
+                
+                
+                // TODO update parse tree
+            }
+        }
     }
 
     lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
@@ -370,5 +441,27 @@ namespace h::language_server
         }
 
         return report;
+    }
+
+    std::filesystem::path to_filesystem_path(
+        h::compiler::Target const& target,
+        lsp::Uri const& uri
+    )
+    {
+        std::filesystem::path file_path = 
+            target.operating_system == "windows" ?
+            uri.path().substr(1) :
+            uri.path();
+
+        return file_path;
+    }
+
+    h::Source_range utf_16_lsp_range_to_utf_8_source_range(
+        lsp::Range const& range
+    )
+    {
+        // TODO do conversion
+
+        return to_source_range(range);
     }
 }
