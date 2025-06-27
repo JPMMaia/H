@@ -19,10 +19,12 @@ target_sources(H_language_server
    PUBLIC FILE_SET modules TYPE CXX_MODULES
         FILES
             "Breakpoint.cppm"
+            "Core.cppm"
             "Diagnostics.cppm"
             "Message_handler.cppm"
             "Server.cppm"
    PRIVATE
+      "Core.cpp"
       "Diagnostics.cpp"
       "Message_handler.cpp"
       "Server.cpp"

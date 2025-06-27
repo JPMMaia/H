@@ -14,6 +14,7 @@ module h.language_server.diagnostics;
 
 import h.compiler.diagnostic;
 import h.core;
+import h.language_server.core;
 import h.parser.parse_tree;
 
 namespace h::language_server
@@ -116,28 +117,6 @@ namespace h::language_server
         }
 
         return items;
-    }
-
-    lsp::Position to_lsp_position(
-        h::Source_position const& input
-    )
-    {
-        return lsp::Position
-        {
-            .line = input.line - 1,
-            .character = input.column - 1,
-        };
-    }
-
-    lsp::Range to_lsp_range(
-        h::Source_range const& input
-    )
-    {
-        return lsp::Range
-        {
-            .start = to_lsp_position(input.start),
-            .end = to_lsp_position(input.end),
-        };
     }
 
     lsp::DiagnosticSeverity to_lsp_diagnostic_severity(
