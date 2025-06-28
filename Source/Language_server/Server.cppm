@@ -51,6 +51,10 @@ namespace h::language_server
         Server& server
     );
 
+    void destroy_workspaces_data(
+        Server& server
+    );
+
     export void set_workspace_folders(
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders

@@ -3,6 +3,7 @@ module;
 #include <filesystem>
 #include <format>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -86,17 +87,23 @@ namespace h::language_server
     std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> create_document_diagnostics_report(
         std::span<h::compiler::Diagnostic const> const diagnostics,
         std::span<std::filesystem::path const> const core_module_source_file_paths,
+        std::span<std::optional<int> const> const core_module_versions,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
         std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> items{output_allocator};
         items.reserve(core_module_source_file_paths.size());
 
-        for (std::filesystem::path const& source_file_path : core_module_source_file_paths)
+        for (std::size_t index = 0; index < core_module_source_file_paths.size(); ++index)
         {
+            std::filesystem::path const& source_file_path = core_module_source_file_paths[index];
+            std::optional<int> const version = core_module_versions[index];
+
             lsp::WorkspaceFullDocumentDiagnosticReport document_report = {};
             document_report.uri = lsp::DocumentUri::fromPath(source_file_path.generic_string());
-            document_report.version = nullptr; // TODO
+
+            if (version.has_value())
+                document_report.version = version.value();
 
             document_report.items = {};
 

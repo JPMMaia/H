@@ -1,5 +1,9 @@
 module;
 
+#include <memory_resource>
+#include <string>
+#include <string_view>
+
 #include <lsp/types.h>
 
 module h.language_server.core;
@@ -50,5 +54,19 @@ namespace h::language_server
             .start = to_source_position(input.start),
             .end = to_source_position(input.end),
         };
+    }
+
+    
+    std::pmr::u8string convert_to_utf_8_string(
+        std::string_view const& input,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::u8string output{output_allocator};
+        output.resize(input.size());
+
+        std::memcpy(output.data(), input.data(), output.size());
+
+        return output;
     }
 }

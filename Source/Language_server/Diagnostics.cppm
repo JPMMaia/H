@@ -2,6 +2,7 @@ module;
 
 #include <filesystem>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -25,6 +26,7 @@ namespace h::language_server
     export std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> create_document_diagnostics_report(
         std::span<h::compiler::Diagnostic const> const diagnostics,
         std::span<std::filesystem::path const> const core_module_source_file_paths,
+        std::span<std::optional<int> const> const core_module_versions,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 

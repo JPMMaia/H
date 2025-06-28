@@ -10,6 +10,7 @@ module;
 
 module h.language_server.server;
 
+import h.common;
 import h.common.filesystem;
 import h.common.filesystem_common;
 import h.compiler;
@@ -20,6 +21,7 @@ import h.compiler.target;
 import h.core;
 import h.language_server.core;
 import h.language_server.diagnostics;
+import h.parser.convertor;
 import h.parser.parse_tree;
 import h.parser.parser;
 
@@ -43,8 +45,7 @@ namespace h::language_server
         Server& server
     )
     {
-        // TODO destroy existing trees in each workspace data
-
+        destroy_workspaces_data(server);
         h::parser::destroy_parser(std::move(server.parser));
     }
 
@@ -127,13 +128,28 @@ namespace h::language_server
             std::printf("Language Server exit\n");
     }
 
+    void destroy_workspaces_data(
+        Server& server
+    )
+    {
+        for (Workspace_data& workspace_data : server.workspaces_data)
+        {
+            for (std::size_t index = 0; index < workspace_data.core_module_parse_trees.size(); ++index)
+            {
+                h::parser::destroy_tree(std::move(workspace_data.core_module_parse_trees[index]));
+            }
+        }
+
+        server.workspaces_data.clear();
+    }
+
     void set_workspace_folders(
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders
     )
     {
         server.workspace_folders.clear();
-        server.workspaces_data.clear();
+        destroy_workspaces_data(server);
 
         server.workspace_folders.assign(workspace_folders.begin(), workspace_folders.end());
     }
@@ -189,6 +205,67 @@ namespace h::language_server
         return repository_paths;
     }
 
+    static std::pmr::vector<h::parser::Parse_tree> parse_source_files(
+        h::parser::Parser const& parser,
+        std::span<std::filesystem::path const> const source_files_paths,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::parser::Parse_tree> trees{output_allocator};
+        trees.resize(source_files_paths.size());
+
+        for (std::size_t index = 0; index < source_files_paths.size(); ++index)
+        {
+            std::filesystem::path const& source_file_path = source_files_paths[index];
+
+            std::optional<std::pmr::string> const source_content = h::common::get_file_contents(source_file_path);
+            if (!source_content.has_value())
+                continue;
+
+            std::pmr::u8string const utf_8_source_content{reinterpret_cast<char8_t const*>(source_content->data()), source_content->size(), output_allocator};
+            h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(utf_8_source_content));
+
+            trees[index] = std::move(parse_tree);
+        }
+
+        return trees;
+    }
+
+    static std::pmr::vector<h::Module> convert_to_core_modules(
+        std::span<std::filesystem::path const> const source_file_paths,
+        std::span<h::parser::Parse_tree const> const parse_trees,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Module> core_modules{output_allocator};
+        core_modules.resize(parse_trees.size(), h::Module{});
+
+        for (std::size_t index = 0; index < parse_trees.size(); ++index)
+        {
+            std::filesystem::path const& source_file_path = source_file_paths[index];
+            h::parser::Parse_tree const& parse_tree = parse_trees[index];
+            h::parser::Parse_node const& root_node = h::parser::get_root_node(parse_tree);
+
+            if (!h::parser::has_errors(root_node))
+            {
+                std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+                    parse_tree,
+                    root_node,
+                    source_file_path,
+                    output_allocator,
+                    temporaries_allocator
+                );
+
+                if (core_module.has_value())
+                    core_modules[index] = std::move(core_module.value());
+            }
+        }
+
+        return core_modules;
+    }
+
     void set_workspace_folder_configurations(
         Server& server,
         lsp::Workspace_ConfigurationResult const& configurations
@@ -197,11 +274,11 @@ namespace h::language_server
         if (configurations.size() != server.workspace_folders.size())
             return;
 
-        // TODO destroy parse_trees
-        server.workspaces_data.clear();
+        destroy_workspaces_data(server);
 
         h::compiler::Target const target = h::compiler::get_default_target();
 
+        std::pmr::polymorphic_allocator<> output_allocator;
         std::pmr::polymorphic_allocator<> temporaries_allocator;
 
         for (std::size_t index = 0; index < configurations.size(); ++index)
@@ -233,48 +310,59 @@ namespace h::language_server
                 header_search_paths,
                 repository_paths,
                 compilation_options,
-                {}
+                output_allocator
             );
 
             std::pmr::vector<std::filesystem::path> const artifact_file_paths = h::common::search_files(
                 workspace_folder_path,
                 "hlang_artifact.json",
-                {},
-                {}
+                temporaries_allocator,
+                temporaries_allocator
             );
 
             std::pmr::vector<h::compiler::Artifact> artifacts = h::compiler::get_sorted_artifacts(
                 artifact_file_paths,
                 builder.repositories,
-                {},
-                {}
+                output_allocator,
+                temporaries_allocator
             );
 
             std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
                 artifacts,
-                temporaries_allocator,
+                output_allocator,
                 temporaries_allocator
             );
 
             std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
                 builder,
                 c_headers_and_options,
-                temporaries_allocator,
+                output_allocator,
                 temporaries_allocator
             );
-            h::compiler::add_builtin_module(header_modules, temporaries_allocator, temporaries_allocator);
+            h::compiler::add_builtin_module(header_modules, output_allocator, temporaries_allocator);
 
-            // TODO
-            std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
+            std::pmr::vector<std::filesystem::path> core_module_source_file_paths = get_artifacts_source_files(
+                artifacts,
+                output_allocator,
+                temporaries_allocator
+            );
 
-            // TODO
-            std::pmr::vector<std::optional<int>> core_module_versions = {};
+            std::pmr::vector<std::optional<int>> core_module_versions{output_allocator};
+            core_module_versions.resize(core_module_source_file_paths.size(), std::nullopt);
 
-            // TODO parse all source files
-            std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
+            std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees = parse_source_files(
+                server.parser,
+                core_module_source_file_paths,
+                output_allocator,
+                temporaries_allocator
+            );
 
-            // TODO convert all source files to modules (if they dont contain any parsing errors)
-            std::pmr::vector<h::Module> core_modules;
+            std::pmr::vector<h::Module> core_modules = convert_to_core_modules(
+                core_module_source_file_paths,
+                core_module_parse_trees,
+                output_allocator,
+                temporaries_allocator
+            );
 
             Workspace_data workspace_data
             {
@@ -358,7 +446,10 @@ namespace h::language_server
         if (!result.has_value())
             return;
 
-        result->first.core_module_versions[result->second] = parameters.textDocument.version;
+        Workspace_data& workspace_data = result->first;
+        std::size_t const core_module_index = result->second;
+        
+        workspace_data.core_module_versions[core_module_index] = parameters.textDocument.version;
 
         for (lsp::TextDocumentContentChangeEvent const& event : parameters.contentChanges)
         {
@@ -366,17 +457,27 @@ namespace h::language_server
             {
                 lsp::TextDocumentContentChangeEvent_Text const& full_content_event = std::get<lsp::TextDocumentContentChangeEvent_Text>(event);
 
-                // TODO update parse tree
+                std::pmr::u8string text = convert_to_utf_8_string(full_content_event.text, {});
+                h::parser::Parse_tree parse_tree = h::parser::parse(server.parser, std::move(text));
+
+                h::parser::destroy_tree(std::move(workspace_data.core_module_parse_trees[core_module_index]));
+                workspace_data.core_module_parse_trees[core_module_index] = std::move(parse_tree);
             }
             else if (std::holds_alternative<lsp::TextDocumentContentChangeEvent_Range_Text>(event))
             {
                 lsp::TextDocumentContentChangeEvent_Range_Text const& range_content_event = std::get<lsp::TextDocumentContentChangeEvent_Range_Text>(event);
 
                 h::Source_range const range = utf_16_lsp_range_to_utf_8_source_range(range_content_event.range);
+                std::pmr::u8string const new_text = convert_to_utf_8_string(range_content_event.text, {});
 
-                
-                
-                // TODO update parse tree
+                h::parser::Parse_tree new_parse_tree = h::parser::edit_tree(
+                    server.parser,
+                    std::move(workspace_data.core_module_parse_trees[core_module_index]),
+                    range,
+                    new_text
+                );
+
+                workspace_data.core_module_parse_trees[core_module_index] = std::move(new_parse_tree);
             }
         }
     }
@@ -412,6 +513,7 @@ namespace h::language_server
                 std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
                     parser_diagnostics,
                     workspace_data.core_module_source_file_paths,
+                    workspace_data.core_module_versions,
                     temporaries_allocator
                 );
 
@@ -432,6 +534,7 @@ namespace h::language_server
                 std::pmr::vector<lsp::WorkspaceFullDocumentDiagnosticReport> const items = create_document_diagnostics_report(
                     compiler_diagnostics,
                     workspace_data.core_module_source_file_paths,
+                    workspace_data.core_module_versions,
                     temporaries_allocator
                 );
 
@@ -457,11 +560,12 @@ namespace h::language_server
     }
 
     h::Source_range utf_16_lsp_range_to_utf_8_source_range(
-        lsp::Range const& range
+        lsp::Range const& utf_16_range
     )
     {
         // TODO do conversion
+        lsp::Range const utf_8_range = utf_16_range;
 
-        return to_source_range(range);
+        return to_source_range(utf_8_range);
     }
 }
