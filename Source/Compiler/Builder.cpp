@@ -399,11 +399,12 @@ namespace h::compiler
                 }
             }
 
-            std::optional<std::pmr::string> source_content = h::common::get_file_contents(source_file_path);
+            std::optional<std::pmr::string> const source_content = h::common::get_file_contents(source_file_path);
             if (!source_content.has_value())
                 h::common::print_message_and_exit(std::format("Could not read source file {}.", source_file_path.generic_string()));
 
-            h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, source_content.value());
+            std::pmr::u8string const utf_8_source_content{reinterpret_cast<char8_t const*>(source_content->data()), source_content->size(), temporaries_allocator};
+            h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(utf_8_source_content));
 
             h::parser::Parse_node const root = get_root_node(parse_tree);
     

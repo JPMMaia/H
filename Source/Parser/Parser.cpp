@@ -57,12 +57,18 @@ namespace h::parser
         }
     }
 
-    Parse_tree parse(Parser const& parser, Parse_tree* previous_parse_tree, std::string_view const source)
+    Parse_tree parse(Parser const& parser, std::pmr::u8string text)
     {
-        TSTree* tree = ts_parser_parse_string(parser.parser, nullptr, source.data(), source.size());
+        TSTree* tree = ts_parser_parse_string(
+            parser.parser,
+            nullptr,
+            reinterpret_cast<char const*>(text.data()),
+            text.size()
+        );
+
         return Parse_tree
         { 
-            .source = source,
+            .text = std::move(text),
             .ts_tree = tree
         };
     }
@@ -159,16 +165,29 @@ namespace h::parser
         return current_byte;
     }
 
+    static void edit_text(
+        std::pmr::u8string& text_to_edit,
+        std::uint32_t const start_byte,
+        std::uint32_t const end_byte,
+        std::u8string_view const new_text
+    )
+    {
+        std::uint32_t const count = end_byte - start_byte;
+        text_to_edit.replace(
+            start_byte,
+            count,
+            new_text
+        );
+    }
+
     Parse_tree edit_tree(
         Parser const& parser,
-        Parse_tree& previous_parse_tree,
+        Parse_tree&& previous_parse_tree,
         h::Source_range const range,
         std::u8string_view const new_text
     )
     {
-        std::u8string_view const text_before_edit = {};
-        std::pmr::u8string const text_after_edit = {}; // TODO
-        TSNode const root = {};
+        TSNode const root = ts_tree_root_node(previous_parse_tree.ts_tree);
 
         TSPoint const start_point{range.start.line, range.start.column};
         TSPoint const old_end_point{range.end.line, range.end.column};
@@ -177,8 +196,11 @@ namespace h::parser
         TSPoint const node_start_point = ts_node_start_point(node);
         std::uint32_t const node_start_byte = ts_node_start_byte(node);
 
-        std::uint32_t const start_byte = calculate_byte(text_before_edit, node_start_point, node_start_byte, start_point);
-        std::uint32_t const old_end_byte = calculate_byte(text_before_edit, start_point, start_byte, old_end_point);
+        std::uint32_t const start_byte = calculate_byte(previous_parse_tree.text, node_start_point, node_start_byte, start_point);
+        std::uint32_t const old_end_byte = calculate_byte(previous_parse_tree.text, start_point, start_byte, old_end_point);
+
+        edit_text(previous_parse_tree.text, start_byte, old_end_byte, new_text);
+        std::pmr::u8string& text_after_edit = previous_parse_tree.text;
 
         std::uint32_t const new_end_byte = calculate_new_end_byte(start_byte, old_end_byte, new_text.size());
         TSPoint const new_end_point = calculate_point(text_after_edit, start_point, start_byte, new_end_byte);
@@ -202,9 +224,11 @@ namespace h::parser
             text_after_edit.size()
         );
 
+        destroy_tree(std::move(previous_parse_tree));
+
         return Parse_tree
         { 
-            .source = {}, // TODO
+            .text = std::move(text_after_edit),
             .ts_tree = new_tree
         };
     }

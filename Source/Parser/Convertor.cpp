@@ -209,8 +209,10 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        std::u8string_view const utf_8_source{reinterpret_cast<char8_t const*>(source.data()), source.size()};
+
         Parser parser = create_parser();
-        Parse_tree tree = parse(parser, nullptr, source);
+        Parse_tree tree = parse(parser, std::pmr::u8string{utf_8_source, temporaries_allocator});
         
         Parse_node const root = get_root_node(tree);
 

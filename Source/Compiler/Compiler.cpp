@@ -785,7 +785,9 @@ namespace h::compiler
             return std::nullopt;
 
         h::parser::Parser parser = h::parser::create_parser();
-        h::parser::Parse_tree parse_tree = h::parser::parse(parser, nullptr, input_content.value());
+        
+        std::pmr::u8string utf_8_source{reinterpret_cast<char8_t const*>(input_content->data()), input_content->size()};
+        h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(utf_8_source));
 
         h::parser::Parse_node const root = get_root_node(parse_tree);
 

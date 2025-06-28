@@ -6,7 +6,7 @@ module;
 #include <string_view>
 #include <vector>
 
-#include "C:/Users/JPMMa/Desktop/source/vcpkg/packages/tree-sitter_x64-windows/include/tree_sitter/api.h"
+#include <tree_sitter/api.h>
 
 module h.parser.parse_tree;
 
@@ -22,7 +22,7 @@ namespace h::parser
         std::uint32_t const start_byte = ts_node_start_byte(node.ts_node);
         std::uint32_t const end_byte = ts_node_end_byte(node.ts_node);
         std::uint32_t const count = end_byte - start_byte;
-        return tree.source.substr(start_byte, count);
+        return std::string_view{reinterpret_cast<char const*>(tree.text.data()) + start_byte, count};
     }
 
     std::string_view get_node_symbol(

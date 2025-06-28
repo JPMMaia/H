@@ -21,7 +21,7 @@ namespace h::parser
 
     export struct Parse_tree
     {
-        std::string_view const source;
+        std::pmr::u8string text;
         TSTree* ts_tree;
     };
 
