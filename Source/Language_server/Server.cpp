@@ -232,6 +232,31 @@ namespace h::language_server
         return trees;
     }
 
+    static std::optional<h::Module> convert_to_core_module(
+        std::filesystem::path const& source_file_path,
+        h::parser::Parse_tree const& parse_tree,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::parser::Parse_node const& root_node = h::parser::get_root_node(parse_tree);
+
+        if (!h::parser::has_errors(root_node))
+        {
+            std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+                parse_tree,
+                root_node,
+                source_file_path,
+                output_allocator,
+                temporaries_allocator
+            );
+
+            return core_module;
+        }
+
+        return std::nullopt;
+    }
+
     static std::pmr::vector<h::Module> convert_to_core_modules(
         std::span<std::filesystem::path const> const source_file_paths,
         std::span<h::parser::Parse_tree const> const parse_trees,
@@ -246,21 +271,16 @@ namespace h::language_server
         {
             std::filesystem::path const& source_file_path = source_file_paths[index];
             h::parser::Parse_tree const& parse_tree = parse_trees[index];
-            h::parser::Parse_node const& root_node = h::parser::get_root_node(parse_tree);
 
-            if (!h::parser::has_errors(root_node))
-            {
-                std::optional<h::Module> core_module = h::parser::parse_node_to_module(
-                    parse_tree,
-                    root_node,
-                    source_file_path,
-                    output_allocator,
-                    temporaries_allocator
-                );
+            std::optional<h::Module> core_module = convert_to_core_module(
+                source_file_path,
+                parse_tree,
+                output_allocator,
+                temporaries_allocator
+            );
 
-                if (core_module.has_value())
-                    core_modules[index] = std::move(core_module.value());
-            }
+            if (core_module.has_value())
+                core_modules[index] = std::move(core_module.value());
         }
 
         return core_modules;
@@ -446,6 +466,9 @@ namespace h::language_server
         if (!result.has_value())
             return;
 
+        std::pmr::polymorphic_allocator<> output_allocator;
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
         Workspace_data& workspace_data = result->first;
         std::size_t const core_module_index = result->second;
         
@@ -479,6 +502,15 @@ namespace h::language_server
 
                 workspace_data.core_module_parse_trees[core_module_index] = std::move(new_parse_tree);
             }
+
+            std::optional<h::Module> core_module = convert_to_core_module(
+                workspace_data.core_module_source_file_paths[core_module_index],
+                workspace_data.core_module_parse_trees[core_module_index],
+                output_allocator,
+                temporaries_allocator
+            );
+            if (core_module.has_value())
+                workspace_data.core_modules[core_module_index] = core_module.value();
         }
     }
 
