@@ -132,6 +132,13 @@ namespace h::language_server
             }
         );
 
+        message_handler.add<lsp::requests::TextDocument_Diagnostic>(
+            [&](lsp::requests::TextDocument_Diagnostic::Params&& parameters) -> lsp::requests::TextDocument_Diagnostic::Result
+            {
+                return lsp::RelatedFullDocumentDiagnosticReport{};
+            }
+        );
+
         message_handler.add<lsp::requests::Workspace_Diagnostic>(
             [&](lsp::requests::Workspace_Diagnostic::Params&& parameters) -> lsp::requests::Workspace_Diagnostic::Result
             {
