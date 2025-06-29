@@ -189,8 +189,8 @@ namespace h::parser
     {
         TSNode const root = ts_tree_root_node(previous_parse_tree.ts_tree);
 
-        TSPoint const start_point{range.start.line, range.start.column};
-        TSPoint const old_end_point{range.end.line, range.end.column};
+        TSPoint const start_point{range.start.line - 1, range.start.column - 1};
+        TSPoint const old_end_point{range.end.line - 1, range.end.column - 1};
 
         TSNode const node = ts_node_descendant_for_point_range(root, start_point, start_point);
         TSPoint const node_start_point = ts_node_start_point(node);
