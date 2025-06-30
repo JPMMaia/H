@@ -1,6 +1,7 @@
 module;
 
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -68,5 +69,21 @@ namespace h::language_server
         std::memcpy(output.data(), input.data(), output.size());
 
         return output;
+    }
+
+    std::optional<lsp::PreviousResultId> find_previous_result_id(
+        std::span<lsp::PreviousResultId const> const result_ids,
+        lsp::DocumentUri const& document_uri
+    )
+    {
+        auto const location = std::find_if(
+            result_ids.begin(),
+            result_ids.end(),
+            [&](lsp::PreviousResultId const& result_id) -> bool { return result_id.uri == document_uri; }
+        );
+        if (location == result_ids.end())
+            return std::nullopt;
+
+        return *location;
     }
 }

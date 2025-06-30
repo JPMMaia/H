@@ -1431,7 +1431,7 @@ namespace h::compiler
         sorted.push_back(&core_module);
     }
 
-    static std::pmr::vector<h::Module const*> sort_core_modules(
+    std::pmr::vector<h::Module const*> sort_core_modules(
         std::span<h::Module const> const core_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator

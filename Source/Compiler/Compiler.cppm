@@ -95,6 +95,12 @@ namespace h::compiler
         Compilation_options const& compilation_options
     );
 
+    export std::pmr::vector<h::Module const*> sort_core_modules(
+        std::span<h::Module const> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export Declaration_database create_declaration_database_and_add_modules(
         std::span<h::Module const> const header_modules,
         std::span<h::Module const* const> const sorted_core_modules

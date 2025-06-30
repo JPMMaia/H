@@ -1,6 +1,7 @@
 module;
 
 #include <memory_resource>
+#include <span>
 #include <string>
 #include <string_view>
 
@@ -31,5 +32,10 @@ namespace h::language_server
     export std::pmr::u8string convert_to_utf_8_string(
         std::string_view const& input,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::optional<lsp::PreviousResultId> find_previous_result_id(
+        std::span<lsp::PreviousResultId const> const result_ids,
+        lsp::DocumentUri const& document_uri
     );
 }
