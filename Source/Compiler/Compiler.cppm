@@ -95,6 +95,11 @@ namespace h::compiler
         Compilation_options const& compilation_options
     );
 
+    export Declaration_database create_declaration_database_and_add_modules(
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const* const> const sorted_core_modules
+    );
+
     export struct Declaration_database_and_sorted_modules
     {
         std::pmr::vector<h::Module const*> sorted_core_modules;

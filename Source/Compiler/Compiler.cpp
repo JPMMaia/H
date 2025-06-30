@@ -1540,6 +1540,22 @@ namespace h::compiler
             std::sort(alias_import.usages.begin(), alias_import.usages.end());
     }
 
+    Declaration_database create_declaration_database_and_add_modules(
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const* const> const sorted_core_modules
+    )
+    {
+        Declaration_database declaration_database = create_declaration_database();
+        
+        for (Module const& header_module : header_modules)
+            add_declarations(declaration_database, header_module);
+
+        for (Module const* core_module : sorted_core_modules)
+            add_declarations(declaration_database, *core_module);
+
+        return declaration_database;
+    }
+
     Declaration_database_and_sorted_modules create_declaration_database_and_sorted_modules(
         std::span<h::Module const> const header_modules,
         std::span<h::Module> const core_modules,
@@ -1558,20 +1574,10 @@ namespace h::compiler
             output_allocator
         );
 
-        Declaration_database declaration_database = create_declaration_database();
-        for (Module const& header_module : header_modules)
-        {
-            add_declarations(declaration_database, header_module);
-            /*auto const location = usages_per_module.find(header_module.name);
-            if (location != usages_per_module.end())
-            {
-                std::pmr::vector<std::pmr::string> const& usages = location->second;
-                // TODO add usages
-                add_declarations(declaration_database, header_module);
-            }*/
-        }
-        for (Module const* core_module : sorted_core_modules)
-            add_declarations(declaration_database, *core_module);
+        Declaration_database declaration_database = create_declaration_database_and_add_modules(
+            header_modules,
+            sorted_core_modules
+        );
 
         // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
         for (Module& core_module : core_modules)
@@ -1586,33 +1592,6 @@ namespace h::compiler
                     .declaration_database = std::move(declaration_database),
                     .diagnostics = std::move(result.diagnostics),
                 };
-
-                for (std::size_t diagnostic_index = 0; diagnostic_index < result.diagnostics.size(); ++diagnostic_index)
-                {
-                    Diagnostic const& diagnostic = result.diagnostics[diagnostic_index];
-
-                    std::pmr::string const diagnostic_string = diagnostic_to_string(
-                        diagnostic,
-                        temporaries_allocator,
-                        temporaries_allocator
-                    );
-
-                    ::fprintf(stderr, "%s\n", diagnostic_string.c_str());
-                }
-
-                auto const is_error_diagnostic = [](Diagnostic const& diagnostic) -> bool
-                {
-                    return diagnostic.severity == Diagnostic_severity::Error;
-                };
-
-                bool const contains_errors = std::any_of(
-                    result.diagnostics.begin(),
-                    result.diagnostics.end(),
-                    is_error_diagnostic
-                );
-
-                if (contains_errors)
-                    h::common::print_message_and_exit("Validation failed.");
             }
         }
 
