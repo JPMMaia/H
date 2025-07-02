@@ -9,9 +9,9 @@
   ],
   "executable": {
     "source": "main.hltxt",
-    "entry_point": "with_prefix_use_main_main",
-    "include": [
-      "./**/*.hltxt"
-    ]
-  }
+    "entry_point": "with_prefix_use_main_main"
+  },
+  "include": [
+    "./**/*.hltxt"
+  ]
 }
