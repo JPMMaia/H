@@ -43,6 +43,7 @@ namespace h::compiler
     export struct C_header_and_options
     {
         h::compiler::C_header c_header = {};
+        std::optional<std::filesystem::path> artifact_parent_path = std::nullopt;
         h::compiler::C_header_options const* options = nullptr;
     };
 

@@ -257,6 +257,7 @@ namespace h::compiler
                         C_header_and_options c_header_and_options
                         {
                             .c_header = c_header,
+                            .artifact_parent_path = artifact.file_path.parent_path(),
                             .options = get_c_header_options(library_info, c_header)
                         };
 
@@ -290,6 +291,23 @@ namespace h::compiler
         return std::pmr::vector<std::filesystem::path>{std::move(source_files), output_allocator};
     }
 
+    static std::pmr::vector<std::filesystem::path> create_c_header_search_paths(
+        std::optional<std::filesystem::path> const& artifact_parent_path,
+        std::span<std::filesystem::path const> const builder_header_search_paths,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::filesystem::path> header_search_paths{temporaries_allocator};
+        header_search_paths.reserve(builder_header_search_paths.size() + 1);
+        
+        if (artifact_parent_path.has_value())
+            header_search_paths.push_back(artifact_parent_path.value());
+        
+        header_search_paths.insert(header_search_paths.end(), builder_header_search_paths.begin(), builder_header_search_paths.end());
+
+        return header_search_paths;
+    }
+
     std::pmr::vector<h::Module> parse_c_headers_and_cache(
         Builder const& builder,
         std::span<C_header_and_options const> const c_headers,
@@ -300,20 +318,30 @@ namespace h::compiler
         std::pmr::vector<h::Module> header_modules{output_allocator};
         header_modules.resize(c_headers.size(), {});
 
+        std::filesystem::path const build_directory_path = get_hl_build_directory(builder.build_directory_path);
+        create_directory_if_it_does_not_exist(build_directory_path);
+
         for (std::size_t header_index = 0; header_index < c_headers.size(); ++header_index)
         {
             C_header_and_options const& c_header_and_options = c_headers[header_index];
             C_header const& c_header = c_header_and_options.c_header;
+            std::optional<std::filesystem::path> const& artifact_parent_path = c_header_and_options.artifact_parent_path;
 
             std::string_view const header_module_name = c_header.module_name;
             std::string_view const header_filename = c_header.header;
 
-            std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, builder.header_search_paths);
+            std::pmr::vector<std::filesystem::path> const header_search_paths = create_c_header_search_paths(
+                artifact_parent_path,
+                builder.header_search_paths,
+                temporaries_allocator
+            );
+
+            std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, header_search_paths);
             if (!header_path.has_value())
                 h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
 
             std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
-            std::filesystem::path const output_header_module_path = get_hl_build_directory(builder.build_directory_path) / header_module_filename;
+            std::filesystem::path const output_header_module_path = build_directory_path / header_module_filename;
 
             if (std::filesystem::exists(output_header_module_path))
             {
