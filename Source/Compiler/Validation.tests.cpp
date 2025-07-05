@@ -33,12 +33,16 @@ namespace h::compiler
             .validate = true,
         };
 
+        std::pmr::vector<h::Module> dependency_core_modules;
+        dependency_core_modules.reserve(input_dependencies_text.size());
+
         for (std::size_t index = 0; index < input_dependencies_text.size(); ++index)
         {
             std::string_view const dependency_text = input_dependencies_text[index];
 
             std::optional<h::Module> dependency_module = h::parser::parse_and_convert_to_module(
-                input_text,
+                dependency_text,
+                std::nullopt,
                 {},
                 {}
             );
@@ -53,6 +57,8 @@ namespace h::compiler
                 {}
             );
             REQUIRE(result.diagnostics.empty());
+
+            dependency_core_modules.push_back(std::move(dependency_module.value()));
         }
 
         std::optional<h::Module> core_module = h::parser::parse_and_convert_to_module(
@@ -82,6 +88,255 @@ namespace h::compiler
             CHECK(actual_diagnostic == expected_diagnostic);
         }
     }
+
+    
+    TEST_CASE("Validates that left hand side is either a module alias, a variable of type struct/union or an enum type", "[Validation][Access_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+import Test_2 as My_module;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var value_0 = My_enum.A;
+    var value_1 = My_enum_2.A;
+    
+    var value_2: My_struct = {};
+    var value_3 = value_2.a;
+
+    var value_4 = value_4.b;
+
+    var value_6: My_union = { b: 0.0f32 };
+    var value_7 = value_6.b;
+
+    var value_8 = My_module.My_enum.A;
+    var value_9 = My_module.My_enum_2.A;
+    var value_10 = My_module_2.My_enum.A;
+
+    var value_11: My_module.My_struct = {};
+    var value_12 = value_11.a;
+
+    var value_13: My_module.My_union = { b: 0.0f32 };
+    var value_14 = value_13.b;
+}
+)";
+
+        std::string_view const test_2_input = R"(module Test_2;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { test_2_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(26, 19, 26, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'My_enum_2' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(31, 19, 31, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value_4' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(37, 19, 37, 38),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(38, 20, 38, 31),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'My_module_2' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a member name of local type exists", "[Validation][Access_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A = 0,
+    B,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var value_0 = My_enum.A;
+    var value_1 = My_enum.C;
+    
+    var value_2: My_struct = {};
+    var value_3 = value_2.a;
+    var value_4 = value_2.c;
+
+    var value_5: My_union = { b: 0.0f32 };
+    var value_6 = value_5.a;
+    var value_7 = value_5.c;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(24, 19, 24, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'C' does not exist in the type 'My_enum'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(28, 19, 28, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'c' does not exist in the type 'My_struct'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(32, 19, 32, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'c' does not exist in the type 'My_union'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a member name of an imported type exists", "[Validation][Access_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+import Test_2 as My_module;
+
+function run() -> ()
+{
+    var value_0 = My_module.My_enum.A;
+    var value_1 = My_module.My_enum.C;
+    
+    var value_2: My_module.My_struct = {};
+    var value_3 = value_2.a;
+    var value_4 = value_2.c;
+
+    var value_5: My_module.My_union = { b: 0.0f32 };
+    var value_6 = value_5.a;
+    var value_7 = value_5.c;
+}
+)";
+
+        std::string_view const test_2_input = R"(module Test_2;
+
+export enum My_enum
+{
+    A = 0,
+    B,
+}
+
+export struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 1;
+}
+
+export union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { test_2_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(8, 19, 8, 38),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'C' does not exist in the type 'My_module.My_enum'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(12, 19, 12, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'c' does not exist in the type 'My_module.My_struct'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(16, 19, 16, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'c' does not exist in the type 'My_module.My_union'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
     {
@@ -1214,254 +1469,6 @@ function run(a: Int32) -> ()
         };
 
         test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that left hand side is either a module alias, a variable of type struct/union or an enum type", "[Validation][Access_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-import Test_2 as My_module;
-
-enum My_enum
-{
-    A = 0,
-    B,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 1;
-}
-
-union My_union
-{
-    a: Int32;
-    b: Float32;
-}
-
-function run() -> ()
-{
-    var value_0 = My_enum.A;
-    var value_1 = My_enum_2.A;
-    
-    var value_2: My_struct = {};
-    var value_3 = value_2.a;
-
-    var value_4 = value_4.b;
-
-    var value_6: My_union = { b: 0.0f32 };
-    var value_7 = value_6.b;
-
-    var value_8 = My_module.My_enum.A;
-    var value_9 = My_module.My_enum_2.A;
-    var value_10 = My_module_2.My_enum.A;
-
-    var value_11: My_module.My_struct = {};
-    var value_12 = value_11.a;
-
-    var value_13: My_module.My_union = { b: 0.0f32 };
-    var value_14 = value_13.b;
-}
-)";
-
-        std::string_view const test_2_input = R"(module Test_2;
-
-enum My_enum
-{
-    A = 0,
-    B,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 1;
-}
-
-union My_union
-{
-    a: Int32;
-    b: Float32;
-}
-)";
-
-        std::pmr::vector<std::string_view> const dependencies = { test_2_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(26, 19, 26, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'My_enum_2' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(31, 19, 31, 26),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'value_4' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(37, 19, 37, 38),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(38, 20, 38, 31),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'My_module_2' does not exist.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a member name of local type exists", "[Validation][Access_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A = 0,
-    B,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 1;
-}
-
-union My_union
-{
-    a: Int32;
-    b: Float32;
-}
-
-function run() -> ()
-{
-    var value_0 = My_enum.A;
-    var value_1 = My_enum.C;
-    
-    var value_2: My_struct = {};
-    var value_3 = value_2.a;
-    var value_4 = value_2.c;
-
-    var value_5: My_union = { b: 0.0f32 };
-    var value_6 = value_5.a;
-    var value_7 = value_5.c;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(24, 19, 24, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'C' does not exist in the type 'My_enum'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(28, 19, 28, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'c' does not exist in the type 'My_struct'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(32, 19, 32, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'c' does not exist in the type 'My_union'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a member name of an imported type exists", "[Validation][Access_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-import Test_2 as My_module;
-
-function run() -> ()
-{
-    var value_0 = My_module.My_enum.A;
-    var value_1 = My_module.My_enum.C;
-    
-    var value_2: My_module.My_struct = {};
-    var value_3 = value_2.a;
-    var value_4 = value_2.c;
-
-    var value_5: My_module.My_union = { b: 0.0f32 };
-    var value_6 = value_5.a;
-    var value_7 = value_5.c;
-}
-)";
-
-        std::string_view const test_2_input = R"(module Test_2;
-
-export enum My_enum
-{
-    A = 0,
-    B,
-}
-
-export struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 1;
-}
-
-export union My_union
-{
-    a: Int32;
-    b: Float32;
-}
-)";
-
-        std::pmr::vector<std::string_view> const dependencies = { test_2_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(8, 19, 8, 38),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'C' does not exist in the type 'My_enum'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(12, 19, 12, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'c' does not exist in the type 'My_struct'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(16, 19, 16, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Member 'c' does not exist in the type 'My_union'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
     }
 
 
