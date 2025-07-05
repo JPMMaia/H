@@ -328,6 +328,20 @@ namespace h::language_server
         }
     }
 
+    lsp::String diagnostic_source_to_string(
+        h::compiler::Diagnostic_source const source
+    )
+    {
+        switch (source)
+        {
+            case h::compiler::Diagnostic_source::Parser:
+                return "Parser";
+            case h::compiler::Diagnostic_source::Compiler:
+            default:
+                return "Compiler";
+        }
+    }
+
     lsp::Diagnostic to_lsp_diagnostic(
         h::compiler::Diagnostic const& input
     )
@@ -337,6 +351,7 @@ namespace h::language_server
             .range = to_lsp_range(input.range),
             .message = lsp::String{input.message},
             .severity = to_lsp_diagnostic_severity(input.severity),
+            .source = diagnostic_source_to_string(input.source),
         };
     }
 }
