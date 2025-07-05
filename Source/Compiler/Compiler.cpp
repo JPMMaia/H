@@ -71,6 +71,7 @@ namespace h::compiler
         case Linkage::External:
             return llvm::GlobalValue::LinkageTypes::ExternalLinkage;
         case Linkage::Private:
+        default:
             return llvm::GlobalValue::LinkageTypes::PrivateLinkage;
         }
     }

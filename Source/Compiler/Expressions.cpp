@@ -3895,7 +3895,8 @@ namespace h::compiler
         case Condition_type::Precondition: {
             return "precondition";
         }
-        case Condition_type::Postcondition: {
+        case Condition_type::Postcondition:
+        default: {
             return "postcondition";
         }
         }
