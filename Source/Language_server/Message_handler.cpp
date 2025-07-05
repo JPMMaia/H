@@ -5,6 +5,7 @@ module;
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 
 #include <lsp/messages.h>
 #include <lsp/connection.h>
@@ -57,6 +58,7 @@ namespace h::language_server
         Server server = create_server();
 
         bool has_configuration_capability = false;
+        bool has_workspace_diagnostic_refresh_capability = false;
         bool has_workspace_folder_capability = false;
         
         message_handler.add<lsp::requests::Initialize>(
@@ -68,6 +70,11 @@ namespace h::language_server
                 {
                     has_configuration_capability = client_capabilities.workspace->configuration.value_or(false);
                     has_workspace_folder_capability = client_capabilities.workspace->workspaceFolders.value_or(false);
+
+                    if (client_capabilities.workspace->diagnostics)
+                    {
+                        has_workspace_diagnostic_refresh_capability = client_capabilities.workspace->diagnostics->refreshSupport.value_or(false);
+                    }
                 }
 
                 return initialize(server, parameters);
@@ -90,7 +97,8 @@ namespace h::language_server
                         message_handler,
                         server,
                         server.workspace_folders,
-                        has_configuration_capability
+                        has_configuration_capability,
+                        has_workspace_diagnostic_refresh_capability
                     );
                 }
             }
@@ -156,7 +164,8 @@ namespace h::language_server
         lsp::MessageHandler& message_handler,
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders,
-        bool const has_configuration_capability
+        bool const has_configuration_capability,
+        bool const has_workspace_diagnostic_refresh_capability
     )
     {
         if (!has_configuration_capability)
@@ -180,6 +189,17 @@ namespace h::language_server
             [&](lsp::requests::Workspace_Configuration::Result&& result)
             {
                 set_workspace_folder_configurations(server, result);
+
+                message_handler.sendNotification<Workspace_initialized>();
+
+                if (has_workspace_diagnostic_refresh_capability)
+                {
+                    message_handler.sendRequest<lsp::requests::Workspace_Diagnostic_Refresh>(
+                        [](lsp::Workspace_Diagnostic_RefreshResult&& result)
+                        {
+                        }
+                    );
+                }
             },
             [](const lsp::Error& error)
             {

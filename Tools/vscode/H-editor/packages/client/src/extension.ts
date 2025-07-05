@@ -91,10 +91,24 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 	client.middleware.provideCompletionItem = provide_completion_item;
 	client.middleware.provideInlayHints = provide_inlay_hints;
 
+	const workspace_initialized_promise = wait_for_workspace_initialized_notification(client);
+
 	// Start the client. This will also launch the server
 	await client.start();
 
+	await workspace_initialized_promise;
+
 	return client;
+}
+
+async function wait_for_workspace_initialized_notification(
+	client: LanguageClient
+): Promise<void> {
+	return new Promise( resolve => {
+		client.onNotification("hlang/workspaceInitialized", () => {
+			resolve();
+		});
+	});
 }
 
 export function deactivate(): Thenable<void> | undefined {
