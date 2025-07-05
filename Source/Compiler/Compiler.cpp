@@ -1402,7 +1402,7 @@ namespace h::compiler
         auto const location = std::find_if(
             sorted.begin(),
             sorted.end(),
-            [&](h::Module const* current) -> bool { return current->name == core_module.name; }
+            [&](h::Module const* current) -> bool { return current == &core_module; }
         );
         if (location != sorted.end())
             return;
@@ -1451,6 +1451,7 @@ namespace h::compiler
             );
         }
 
+        assert(sorted.size() == core_modules.size());
         return sorted;
     }
 
