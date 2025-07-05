@@ -222,6 +222,44 @@ namespace h
         return std::nullopt;
     }
 
+    std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::string_view const declaration_name
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration(
+            database,
+            module_name,
+            declaration_name
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
+        );
+    }
+
+    std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        Type_reference const& type_reference
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration(
+            database,
+            type_reference
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
+        );
+    }
+
     std::optional<Declaration> find_declaration_using_import_alias(
         Declaration_database const& database,
         h::Module const& core_module,
@@ -241,6 +279,28 @@ namespace h
             database,
             location->module_name,
             declaration_name
+        );
+    }
+
+    std::optional<Declaration> find_underlying_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration_using_import_alias(
+            database,
+            core_module,
+            import_alias_name,
+            declaration_name
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
         );
     }
 

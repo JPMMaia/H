@@ -101,7 +101,25 @@ namespace h
         Type_reference const& type_reference
     );
 
+    export std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::string_view const declaration_name
+    );
+
+    export std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        Type_reference const& type_reference
+    );
+
     export std::optional<Declaration> find_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    );
+
+    export std::optional<Declaration> find_underlying_declaration_using_import_alias(
         Declaration_database const& database,
         h::Module const& core_module,
         std::string_view const import_alias_name,
