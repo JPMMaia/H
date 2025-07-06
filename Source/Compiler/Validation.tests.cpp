@@ -183,7 +183,7 @@ union My_union
                 .range = create_source_range(37, 19, 37, 38),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Declaration 'My_enum_2' does not exist in the module 'Test_2' ('My_module').",
+                .message = "Declaration 'My_enum_2' does not exist in the module 'Test_2' (alias 'My_module').",
                 .related_information = {},
             },
             {
@@ -335,6 +335,50 @@ export union My_union
         };
 
         test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(a: Int32) -> ()
+{
+    var b = 0;
+    var c = a + b;
+    var d = c + e;
+    var e = d + f;
+    var f = f;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 17, 7, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'e' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 17, 8, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'f' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(9, 13, 9, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'f' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
     }
 
 
@@ -1421,49 +1465,6 @@ function run() -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'My_union'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-    
-    
-    TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(a: Int32) -> ()
-{
-    var b = 0;
-    var c = a + b;
-    var d = d + e;
-    var e = d + k;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 13, 7, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'd' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 17, 7, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'e' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(8, 17, 8, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'k' does not exist.",
                 .related_information = {},
             },
         };

@@ -89,8 +89,9 @@ namespace h::compiler
             .temporaries_allocator = temporaries_allocator
         };
 
-        for (std::size_t expression_index = 0; expression_index < statement.expressions.size(); ++expression_index)
+        for (std::size_t index = 0; index < statement.expressions.size(); ++index)
         {
+            std::size_t const expression_index = statement.expressions.size() - 1 - index;
             parameters.expression_index = expression_index;
 
             std::pmr::vector<h::compiler::Diagnostic> diagnostics = validate_expression(
@@ -119,6 +120,11 @@ namespace h::compiler
         {
             h::Binary_expression const& value = std::get<h::Binary_expression>(expression.data);
             return validate_binary_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Variable_expression>(expression.data))
+        {
+            h::Variable_expression const& value = std::get<h::Variable_expression>(expression.data);
+            return validate_variable_expression(parameters, value, expression.source_range);
         }
 
         return {};
@@ -268,7 +274,7 @@ namespace h::compiler
             {
                 h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side_expression.data);
 
-                // Try enum
+                // Try enum:
                 {
                     std::optional<Declaration> const declaration_optional = find_underlying_declaration(
                         parameters.declaration_database,
@@ -305,10 +311,39 @@ namespace h::compiler
                     }
                 }
 
-                // TODO try import alias
-            }
+                // Check declaration inside imported module:
+                {
+                    Import_module_with_alias const* const import_alias = find_import_module_with_alias(
+                        parameters.core_module,
+                        variable_expression.name
+                    );
+                    if (import_alias != nullptr)
+                    {
+                        std::optional<Declaration> const declaration_optional = find_underlying_declaration(
+                            parameters.declaration_database,
+                            import_alias->module_name,
+                            access_expression.member_name
+                        );
 
-            // TODO lhs must be import alias name or enum name of current module
+                        if (!declaration_optional.has_value())
+                        {
+                            return
+                            {
+                                create_error_diagnostic(
+                                    parameters.core_module.source_file_path,
+                                    source_range,
+                                    std::format(
+                                        "Declaration '{}' does not exist in the module '{}' (alias '{}').",
+                                        access_expression.member_name,
+                                        import_alias->module_name,
+                                        variable_expression.name
+                                    )
+                                )
+                            };
+                        }
+                    }
+                }
+            }
         }
 
         return {};
@@ -343,5 +378,75 @@ namespace h::compiler
         }
 
         return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
+        Validate_expression_parameters const& parameters,
+        h::Variable_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        Variable const* const variable = find_variable_from_scope(
+            parameters.scope,
+            expression.name
+        );
+        if (variable != nullptr)
+            return {};
+
+        std::optional<Declaration> const declaration_optional = find_declaration(
+            parameters.declaration_database,
+            parameters.core_module.name,
+            expression.name
+        );
+        if (declaration_optional.has_value())
+            return {};
+
+        Import_module_with_alias const* const import_alias = find_import_module_with_alias(
+            parameters.core_module,
+            expression.name
+        );
+        if (import_alias != nullptr)
+            return {};
+
+        return
+        {
+            create_error_diagnostic(
+                parameters.core_module.source_file_path,
+                source_range,
+                std::format("Variable '{}' does not exist.", expression.name)
+            )
+        };
+    }
+
+    Import_module_with_alias const* find_import_module_with_alias(
+        h::Module const& core_module,
+        std::string_view const alias_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
+
+    Variable const* find_variable_from_scope(
+        Scope const& scope,
+        std::string_view const name
+    )
+    {
+        auto const location = std::find_if(
+            scope.variables.begin(),
+            scope.variables.end(),
+            [&](Variable const& variable) -> bool { return variable.name == name; }
+        );
+        if (location == scope.variables.end())
+            return nullptr;
+
+        return &(*location);
     }
 }
