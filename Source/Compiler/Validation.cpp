@@ -355,13 +355,13 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& left_hand_side_type = parameters.expression_types[expression.left_hand_side.expression_index];
-        std::optional<h::Type_reference> const& right_hand_side_type = parameters.expression_types[expression.right_hand_side.expression_index];
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
         
-        if (!are_compatible_types(left_hand_side_type, right_hand_side_type))
+        if (!are_compatible_types(left_hand_side_type_optional, right_hand_side_type_optional))
         {
-            std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
-            std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -375,6 +375,45 @@ namespace h::compiler
                     )
                 )
             };
+        }
+
+        if (!left_hand_side_type_optional.has_value() || !right_hand_side_type_optional.has_value())
+            return {};
+
+        h::Type_reference const& type = left_hand_side_type_optional.value();
+
+        if (is_bitwise_binary_operation(expression.operation))
+        {
+            // TODO type must be integer
+        }
+        else if (is_equality_binary_operation(expression.operation))
+        {
+            // TODO type must be equally comparable
+        }
+        else if (is_comparison_binary_operation(expression.operation))
+        {
+            // TODO type must be comparable
+        }
+        else if (is_logical_binary_operation(expression.operation))
+        {
+            // TODO type must be boolean
+        }
+        else if (is_numeric_binary_operation(expression.operation))
+        {
+            if (!is_integer(type) && !is_floating_point(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numeric types.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
         }
 
         return {};

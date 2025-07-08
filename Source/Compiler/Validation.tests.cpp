@@ -338,6 +338,252 @@ export union My_union
     }
 
 
+    TEST_CASE("Validates that left and right hand side expression types match", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value + 1;
+    var b = value + 1.0f32;
+    var c = true + 1.0f32;
+
+    var d = &a;
+    var e = &a;
+    var t1 = e == d;
+    var t2 = e == null;
+    var t3 = d == a;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 27),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary expression requires both operands to be of the same type. Left side type 'Int32' does not match right hand side type 'Float32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 13, 7, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary expression requires both operands to be of the same type. Left side type 'Bool' does not match right hand side type 'Float32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(13, 14, 13, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary expression requires both operands to be of the same type. Left side type '*mutable Int32' does not match right hand side type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in numeric operations both types must be numbers", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value + 1;
+    var b = 1.0f32 + 2.0f32;
+    var c = true + false;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 13, 7, 25),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation '+' can only be applied to numeric types.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in comparison operations both types must be comparable 0", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var a = value < 1;
+
+    var instance_0: My_struct = {};
+    var instance_1: My_struct = {};
+    var b = instance_0 < instance_1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 13, 14, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in comparison operations both types must be comparable 1", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_uint = Uint32;
+
+function run(first: My_uint, second: My_uint) -> ()
+{
+    var a = first < second;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in logical operations both types must be boolean", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = true && false;
+    var b = value && 1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation '&&' can only be applied to a boolean value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in bitwise operations both types must be integers or bytes", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value & 1;
+    var b = 1.0f32 & 2.0f32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation '&' can only be applied to integers or bytes.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in bit shift operations the left type must be an integer or byte and the right side must be an integer", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    var a = value << 1;
+    var b = 1.0f32 << 0;
+    var c = value << 2.0f32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The left hand side type of a '<<' binary operation must be an integer or a byte.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 22, 7, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The right hand side type of a '<<' binary operation must be an integer.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that in has operations both expressions must evaluate to enum values", "[Validation][Binary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+}
+
+function run(value: My_enum) -> ()
+{ 
+    var a = value has My_enum.A;
+    var b = 1 has 0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(12, 13, 12, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation 'has' can only be applied to enum values.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -2410,253 +2656,6 @@ function run(value: Int32) -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that left and right hand side expression types match", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    var a = value + 1;
-    var b = value + 1.0f32;
-    var c = true + 1.0f32;
-
-    var d = &a;
-    var e = &a;
-    var t1 = e == d;
-    var t2 = e == null;
-    var t3 = d == a;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 13, 6, 27),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary expression requires both operands to be of the same type. Left side type 'Int32' does not match right hand side type 'Float32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 13, 7, 26),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary expression requires both operands to be of the same type. Left side type 'Bool' does not match right hand side type 'Float32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(13, 14, 13, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary expression requires both operands to be of the same type. Left side type '*mutable Int32' does not match right hand side type 'Int32'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in numeric operations both types must be numbers", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    var a = value + 1;
-    var b = 1.0f32 + 2.0f32;
-    var c = true + false;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 13, 7, 25),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '+' can only be applied to numeric types.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in comparison operations both types must be comparable 0", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var a = value < 1;
-
-    var instance_0: My_struct = {};
-    var instance_1: My_struct = {};
-    var b = instance_0 < instance_1;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(14, 13, 14, 36),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in comparison operations both types must be comparable 1", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-using My_uint = Uint32;
-
-function run(first: My_uint, second: My_uint) -> ()
-{
-    var a = first < second;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in logical operations both types must be boolean", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    var a = true && false;
-    var b = value && 1;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 13, 6, 23),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '&&' can only be applied to a boolean value.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in bitwise operations both types must be integers or bytes", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    var a = value & 1;
-    var b = 1.0f32 & 2.0f32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 13, 6, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '&' can only be applied to integers or bytes.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that in bit shift operations the left type must be an integer or byte and the right side must be an integer", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    var a = value << 1;
-    var b = 1.0f32 << 0;
-    var c = value << 2.0f32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 13, 6, 19),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The left hand side type of a '<<' binary operation must be an integer or a byte.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 22, 7, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The right hand side type of a '<<' binary operation must be an integer.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that in has operations both expressions must evaluate to enum values", "[Validation][Binary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A,
-    B,
-}
-
-function run(value: My_enum) -> ()
-{ 
-    var a = value has My_enum.A;
-    var b = 1 has 0;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(12, 13, 12, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Binary operation 'has' can only be applied to enum values.",
                 .related_information = {},
             },
         };
