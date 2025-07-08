@@ -90,6 +90,76 @@ namespace h
         };
     }
 
+    
+    bool is_bitwise_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Bitwise_and:
+            case h::Binary_operation::Bitwise_or:
+            case h::Binary_operation::Bitwise_xor:
+            case h::Binary_operation::Bit_shift_left:
+            case h::Binary_operation::Bit_shift_right:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_equality_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Equal:
+            case h::Binary_operation::Not_equal:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_comparison_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Less_than:
+            case h::Binary_operation::Less_than_or_equal_to:
+            case h::Binary_operation::Greater_than:
+            case h::Binary_operation::Greater_than_or_equal_to:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_logical_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Logical_and:
+            case h::Binary_operation::Logical_or:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    
+    bool is_numeric_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Add:
+            case h::Binary_operation::Subtract:
+            case h::Binary_operation::Multiply:
+            case h::Binary_operation::Divide:
+            case h::Binary_operation::Modulus:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     h::Module const& find_module(
         h::Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies,
