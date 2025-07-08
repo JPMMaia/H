@@ -381,6 +381,10 @@ namespace h::parser
         Format_options const& options
     );
 
+    export std::string_view binary_operation_symbol_to_string(
+        Binary_operation operation
+    );
+
     void add_format_binary_operation_symbol(
         String_buffer& buffer,
         Binary_operation operation

@@ -571,71 +571,65 @@ namespace h::parser
         add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), 0, options);
     }
 
-    void add_format_binary_operation_symbol(
-        String_buffer& buffer,
+    std::string_view binary_operation_symbol_to_string(
         Binary_operation operation
     )
     {
         switch (operation)
         {
             case Binary_operation::Add:
-                add_text(buffer, "+");
-                break;
+                return "+";
             case Binary_operation::Subtract:
-                add_text(buffer, "-");
-                break;
+                return "-";
             case Binary_operation::Multiply:
-                add_text(buffer, "*");
-                break;
+                return "*";
             case Binary_operation::Divide:
-                add_text(buffer, "/");
-                break;
+                return "/";
             case Binary_operation::Modulus:
-                add_text(buffer, "%");
-                break;
+                return "%";
             case Binary_operation::Equal:
-                add_text(buffer, "==");
-                break;
+                return "==";
             case Binary_operation::Not_equal:
-                add_text(buffer, "!=");
-                break;
+                return "!=";
             case Binary_operation::Less_than:
-                add_text(buffer, "<");
-                break;
+                return "<";
             case Binary_operation::Less_than_or_equal_to:
-                add_text(buffer, "<=");
-                break;
+                return "<=";
             case Binary_operation::Greater_than:
-                add_text(buffer, ">");
-                break;
+                return ">";
             case Binary_operation::Greater_than_or_equal_to:
-                add_text(buffer, ">=");
-                break;
+                return ">=";
             case Binary_operation::Logical_and:
-                add_text(buffer, "&&");
-                break;
+                return "&&";
             case Binary_operation::Logical_or:
-                add_text(buffer, "||");
-                break;
+                return "||";
             case Binary_operation::Bitwise_and:
-                add_text(buffer, "&");
-                break;
+                return "&";
             case Binary_operation::Bitwise_or:
-                add_text(buffer, "|");
-                break;
+                return "|";
             case Binary_operation::Bitwise_xor:
-                add_text(buffer, "^");
-                break;
+                return "^";
             case Binary_operation::Bit_shift_left:
-                add_text(buffer, "<<");
-                break;
+                return "<<";
             case Binary_operation::Bit_shift_right:
-                add_text(buffer, ">>");
-                break;
+                return ">>";
             case Binary_operation::Has:
-                add_text(buffer, "has");
-                break;
+                return "has";
+            default:
+                return "<unknown>";
         }
+    }
+
+    void add_format_binary_operation_symbol(
+        String_buffer& buffer,
+        Binary_operation operation
+    )
+    {
+        std::string_view const symbol = binary_operation_symbol_to_string(
+            operation
+        );
+
+        add_text(buffer, symbol);
     }
 
     void add_format_expression_statements(
@@ -1486,6 +1480,8 @@ namespace h::parser
             return "C_ulonglong";
         case Fundamental_type::C_longdouble:
             return "C_longdouble";
+        default:
+            return "<unknown>";
         }
     }
 
