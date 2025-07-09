@@ -1103,13 +1103,17 @@ namespace h::parser
         std::pmr::vector<Parse_node> const input_parameter_nodes = get_child_nodes_of_parent(tree, node, "Function_input_parameters", "Function_parameter", temporaries_allocator);
         output.input_parameter_source_positions = std::pmr::vector<Source_position>{};
         output.type.is_variadic = is_variadic(tree, input_parameter_nodes);
+        std::span<Parse_node const> const input_parameter_nodes_without_variadic = 
+            output.type.is_variadic ?
+            std::span<Parse_node const>{input_parameter_nodes.begin(), input_parameter_nodes.end() - 1} :
+            std::span<Parse_node const>{input_parameter_nodes};
         add_function_parameters(
             output.input_parameter_names,
             output.type.input_parameter_types,
             output.input_parameter_source_positions.value(),
             module_info,
             tree,
-            input_parameter_nodes,
+            input_parameter_nodes_without_variadic,
             output_allocator,
             temporaries_allocator
         );

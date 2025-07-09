@@ -21,13 +21,13 @@ namespace h::parser
     )
     {
         std::filesystem::path const input_file_path = g_test_source_files_path / input_file;
-        std::optional<std::pmr::string> const file_contents = h::common::get_file_contents(input_file_path);
+        std::optional<std::pmr::u8string> const file_contents = h::common::get_file_utf8_contents(input_file_path);
         REQUIRE(file_contents.has_value());
         
-        std::pmr::string const& source = file_contents.value();
+        std::pmr::u8string const& source = file_contents.value();
 
         Parser parser = create_parser();
-        Parse_tree tree = parse(parser, nullptr, source);
+        Parse_tree tree = parse(parser, source);
         Parse_node const root = get_root_node(tree);
 
         std::optional<h::Module> const converted_module = parse_node_to_module(
@@ -55,7 +55,9 @@ namespace h::parser
                 format_options
             );
 
-            CHECK(converted_text == source);
+            std::pmr::string const non_utf8_source{source.begin(), source.end()};
+
+            CHECK(converted_text == non_utf8_source);
         }
 
         destroy_tree(std::move(tree));
@@ -515,6 +517,12 @@ namespace h::parser
     TEST_CASE("Converts variables.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "variables.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts variadic_functions.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "variadic_functions.hltxt";
         test_convertor(input_file);
     }
 
