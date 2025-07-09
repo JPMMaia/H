@@ -51,6 +51,32 @@ namespace h::common
         return file_contents;
     }
 
+    std::optional<std::pmr::u8string> get_file_utf8_contents(char const* const path)
+    {
+        std::FILE* file = std::fopen(path, "r");
+        if (file == nullptr)
+            return {};
+
+        std::pmr::u8string contents;
+        std::fseek(file, 0, SEEK_END);
+        contents.resize(std::ftell(file));
+        std::rewind(file);
+        std::size_t const read_bytes = std::fread(&contents[0], 1, contents.size(), file);
+        std::fclose(file);
+
+        if (read_bytes < contents.size())
+            contents.erase(contents.begin() + read_bytes, contents.end());
+
+        return contents;
+    }
+
+    std::optional<std::pmr::u8string> get_file_utf8_contents(std::filesystem::path const& path)
+    {
+        std::string const path_string = path.generic_string();
+        std::optional<std::pmr::u8string> const file_contents = get_file_utf8_contents(path_string.c_str());
+        return file_contents;
+    }
+
     void write_to_file(char const* const path, std::string_view const content)
     {
         std::FILE* const file = std::fopen(path, "w");
