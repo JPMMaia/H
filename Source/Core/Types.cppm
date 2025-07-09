@@ -35,6 +35,7 @@ namespace h
     export bool is_function_pointer(Type_reference const& type);
 
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
+    export bool is_byte(Type_reference const& type);
     export bool is_floating_point(Type_reference const& type);
     
     export Type_reference create_c_string_type_reference(bool const is_mutable);

@@ -199,6 +199,17 @@ namespace h
         };
     }
 
+    bool is_byte(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Byte);
+        }
+
+        return false;
+    }
+
     bool is_floating_point(Type_reference const& type)
     {
         if (std::holds_alternative<Fundamental_type>(type.data))
