@@ -127,13 +127,12 @@ namespace h
   )
   {
     std::filesystem::path const input_file_path = g_test_source_files_path / input_file;
-    std::optional<std::pmr::string> input_content = h::common::get_file_contents(input_file_path);
+    std::optional<std::pmr::u8string> input_content = h::common::get_file_utf8_contents(input_file_path);
     REQUIRE(input_content.has_value());
 
     h::parser::Parser parser = h::parser::create_parser();
 
-    std::pmr::u8string const utf_8_input_content{reinterpret_cast<char8_t const*>(input_content->data()), input_content->size(), {}};
-    h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(utf_8_input_content));
+    h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(input_content.value()));
 
     h::parser::Parse_node const root = get_root_node(parse_tree);
 
