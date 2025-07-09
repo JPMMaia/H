@@ -438,7 +438,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(14, 13, 14, 36),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '<' cannot be applied to types 'Test.My_struct' and 'Test.My_struct'.",
+                .message = "Binary operation '<' can only be applied to numeric types.",
                 .related_information = {},
             },
         };
@@ -524,8 +524,7 @@ function run(value: Int32) -> ()
 function run(value: Int32) -> ()
 {
     var a = value << 1;
-    var b = 1.0f32 << 0;
-    var c = value << 2.0f32;
+    var b = 1.0f32 << 2.0f32;
 }
 )";
 
@@ -533,17 +532,10 @@ function run(value: Int32) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 13, 6, 19),
+                .range = create_source_range(6, 13, 6, 29),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The left hand side type of a '<<' binary operation must be an integer or a byte.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 22, 7, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The right hand side type of a '<<' binary operation must be an integer.",
+                .message = "Binary operation '<<' can only be applied to integers or bytes.",
                 .related_information = {},
             },
         };

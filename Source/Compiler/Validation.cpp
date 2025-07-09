@@ -380,23 +380,98 @@ namespace h::compiler
         if (!left_hand_side_type_optional.has_value() || !right_hand_side_type_optional.has_value())
             return {};
 
-        h::Type_reference const& type = left_hand_side_type_optional.value();
+        std::optional<h::Type_reference> const type_optional = get_underlying_type(parameters.declaration_database, left_hand_side_type_optional.value());
+        if (!type_optional.has_value())
+            return {};
+        
+        h::Type_reference const& type = type_optional.value();
 
         if (is_bitwise_binary_operation(expression.operation))
         {
-            // TODO type must be integer
+            if (!is_integer(type) && !is_byte(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to integers or bytes.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
         }
         else if (is_equality_binary_operation(expression.operation))
         {
-            // TODO type must be equally comparable
+            if (is_pointer(type) || is_null_pointer_type(type))
+            {
+                h::Type_reference const& right_hand_side_type = right_hand_side_type_optional.value();
+
+                if (!is_pointer(right_hand_side_type) && !is_null_pointer_type(right_hand_side_type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            std::format(
+                                "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
+                                h::parser::binary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+            }
+            else if (!is_integer(type) && !is_floating_point(type) && !is_byte(type) && !is_bool(type) && !is_c_bool(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
         }
         else if (is_comparison_binary_operation(expression.operation))
         {
-            // TODO type must be comparable
+            if (!is_integer(type) && !is_floating_point(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numeric types.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
         }
         else if (is_logical_binary_operation(expression.operation))
         {
-            // TODO type must be boolean
+            if (!is_bool(type) && !is_c_bool(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to a boolean value.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
         }
         else if (is_numeric_binary_operation(expression.operation))
         {
@@ -409,6 +484,23 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to numeric types.",
+                            h::parser::binary_operation_symbol_to_string(expression.operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (expression.operation == h::Binary_operation::Has)
+        {
+            if (!is_enum_type(parameters.declaration_database, type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation 'has' can only be applied to enum values.",
                             h::parser::binary_operation_symbol_to_string(expression.operation)
                         )
                     )
@@ -455,6 +547,21 @@ namespace h::compiler
                 std::format("Variable '{}' does not exist.", expression.name)
             )
         };
+    }
+
+    bool is_enum_type(
+        Declaration_database const& declaration_database,
+        Type_reference const& type
+    )
+    {
+        std::optional<Declaration> const declaration = find_underlying_declaration(
+            declaration_database,
+            type
+        );
+        if (!declaration.has_value())
+            return false;
+        
+        return std::holds_alternative<Enum_declaration const*>(declaration->data);
     }
 
     Import_module_with_alias const* find_import_module_with_alias(

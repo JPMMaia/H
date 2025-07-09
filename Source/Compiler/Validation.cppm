@@ -56,6 +56,11 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    bool is_enum_type(
+        Declaration_database const& declaration_database,
+        Type_reference const& type
+    );
+
     Import_module_with_alias const* find_import_module_with_alias(
         h::Module const& core_module,
         std::string_view const alias_name
