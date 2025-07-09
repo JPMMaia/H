@@ -576,6 +576,240 @@ function run(value: My_enum) -> ()
     }
 
 
+    TEST_CASE("Validates that can only call functions or expressions whose type is a function type", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo() -> ()
+{
+}
+
+function run() -> ()
+{
+    foo();
+
+    var int_value = 0;
+    int_value();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(12, 5, 12, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression does not evaluate to a callable expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that function call has the correct number of arguments", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo_0() -> ()
+{
+}
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function foo_2(v0: Int32, v1: Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_0();
+    foo_0(0);
+
+    foo_1(0);
+    foo_1();
+    foo_1(0, 0);
+
+    foo_2(0, 0);
+    foo_2();
+    foo_2(0);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(18, 5, 18, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 0 arguments, but 1 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(21, 5, 21, 12),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 0 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(22, 5, 22, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 2 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(25, 5, 25, 12),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 2 arguments, but 0 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(26, 5, 26, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 2 arguments, but 1 were provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that variadic function call has the correct number of arguments", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo_0(first: Int32, second: Int32, ...) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_0(0, 1);
+    foo_0(0, 1, 2);
+    foo_0(0);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 5, 11, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects at least 2 arguments, but 1 were provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that function call has the correct argument types", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function foo_2(v0: Int32, v1: Float32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_1(0);
+    foo_1(0.0f32);
+
+    foo_2(0, 0.0f32);
+    foo_2(0, 0);
+    foo_2(0.0f32, 0);
+    foo_2(0.0f32, 0.0f32);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 11, 14, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is 'Int32' but 'Float32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(17, 14, 17, 15),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 1 type is 'Float32' but 'Int32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(18, 11, 18, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is 'Int32' but 'Float32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(18, 19, 18, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 1 type is 'Float32' but 'Int32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(19, 11, 19, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is 'Int32' but 'Float32' was provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that function call arguments are values, not types", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo_1(v0: Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    foo_1(Int32);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 11, 9, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'Int32' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -1887,240 +2121,6 @@ function run() -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '*' to expression.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that can only call functions or expressions whose type is a function type", "[Validation][Call_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo() -> ()
-{
-}
-
-function run() -> ()
-{
-    foo();
-
-    var int_value = 0;
-    int_value();
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(12, 5, 12, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression does not evaluate to a callable expression.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that function call has the correct number of arguments", "[Validation][Call_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo_0() -> ()
-{
-}
-
-function foo_1(v0: Int32) -> ()
-{
-}
-
-function foo_2(v0: Int32, v1: Int32) -> ()
-{
-}
-
-function run() -> ()
-{
-    foo_0();
-    foo_0(0);
-
-    foo_1(0);
-    foo_1();
-    foo_1(0, 0);
-
-    foo_2(0, 0);
-    foo_2();
-    foo_2(0);
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(18, 5, 18, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_0' expects 0 arguments, but 1 were provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(21, 5, 21, 12),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_1' expects 1 arguments, but 0 were provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(22, 5, 22, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_1' expects 1 arguments, but 2 were provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(25, 5, 25, 12),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_2' expects 2 arguments, but 0 were provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(26, 5, 26, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_2' expects 2 arguments, but 1 were provided.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that variadic function call has the correct number of arguments", "[Validation][Call_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo_0(first: Int32, second: Int32, ...) -> ()
-{
-}
-
-function run() -> ()
-{
-    foo_0(0, 1);
-    foo_0(0, 1, 2);
-    foo_0(0);
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 5, 11, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Function 'foo_0' expects at least 2 arguments, but 1 were provided.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that function call has the correct argument types", "[Validation][Call_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo_1(v0: Int32) -> ()
-{
-}
-
-function foo_2(v0: Int32, v1: Float32) -> ()
-{
-}
-
-function run() -> ()
-{
-    foo_1(0);
-    foo_1(0.0f32);
-
-    foo_2(0, 0.0f32);
-    foo_2(0, 0);
-    foo_2(0.0f32, 0);
-    foo_2(0.0f32, 0.0f32);
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(14, 11, 14, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(17, 14, 17, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'v1' expects type 'Float32', but 'Int32' was provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(18, 11, 18, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(18, 19, 18, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'v1' expects type 'Float32', but 'Int32' was provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(19, 11, 19, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'v0' expects type 'Int32', but 'Float32' was provided.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that function call arguments are values, not types", "[Validation][Call_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo_1(v0: Int32) -> ()
-{
-}
-
-function run() -> ()
-{
-    foo_1(Int32);
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 11, 9, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
             },
         };

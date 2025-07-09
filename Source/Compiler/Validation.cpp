@@ -121,6 +121,11 @@ namespace h::compiler
             h::Binary_expression const& value = std::get<h::Binary_expression>(expression.data);
             return validate_binary_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Call_expression>(expression.data))
+        {
+            h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
+            return validate_call_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))
         {
             h::Variable_expression const& value = std::get<h::Variable_expression>(expression.data);
@@ -509,6 +514,97 @@ namespace h::compiler
         }
 
         return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
+        Validate_expression_parameters const& parameters,
+        h::Call_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& callable_type_optional = parameters.expression_types[expression.expression.expression_index];
+
+        if (!callable_type_optional.has_value() || !is_function_pointer(callable_type_optional.value()))
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Expression does not evaluate to a callable expression."
+                )
+            };
+        }
+
+        h::Function_pointer_type const& function_pointer_type = std::get<h::Function_pointer_type>(callable_type_optional->data);
+
+        if (function_pointer_type.type.is_variadic)
+        {
+            if (expression.arguments.size() < function_pointer_type.type.input_parameter_types.size())
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Function expects at least {} arguments, but {} were provided.",
+                            function_pointer_type.type.input_parameter_types.size(),
+                            expression.arguments.size()
+                        )
+                    )
+                };  
+            }
+        }
+        else if (expression.arguments.size() != function_pointer_type.type.input_parameter_types.size())
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    std::format(
+                        "Function expects {} arguments, but {} were provided.",
+                        function_pointer_type.type.input_parameter_types.size(),
+                        expression.arguments.size()
+                    )
+                )
+            };
+        }
+
+        std::pmr::vector<Diagnostic> diagnostics{parameters.temporaries_allocator};
+
+        for (std::size_t argument_index = 0; argument_index < function_pointer_type.type.input_parameter_types.size(); ++argument_index)
+        {
+            std::uint64_t const expression_index = expression.arguments[argument_index].expression_index;
+            std::optional<h::Type_reference> const& argument_type_optional = parameters.expression_types[expression_index];
+            
+            h::Type_reference const& parameter_type = function_pointer_type.type.input_parameter_types[argument_index];
+
+            if (!are_compatible_types(argument_type_optional, parameter_type))
+            {
+                std::optional<Source_range> const argument_source_range = parameters.statement.expressions[expression_index].source_range;
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, argument_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, parameter_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                diagnostics.push_back(
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            argument_source_range,
+                            std::format(
+                                "Argument {} type is '{}' but '{}' was provided.",
+                                argument_index,
+                                expected_type_name,
+                                provided_type_name
+                            )
+                        )
+                    }
+                );
+            }
+        }
+
+        return diagnostics;
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(

@@ -800,17 +800,41 @@ namespace h::compiler
         {
             Variable_expression const& data = std::get<h::Variable_expression>(expression.data);
 
-            auto const location = std::find_if(
-                scope.variables.begin(),
-                scope.variables.end(),
-                [&](Variable const& variable) -> bool {
-                    return variable.name == data.name;
-                }
-            );
-            if (location == scope.variables.end())
-                return std::nullopt;
+            // Try variable:
+            {
+                auto const location = std::find_if(
+                    scope.variables.begin(),
+                    scope.variables.end(),
+                    [&](Variable const& variable) -> bool {
+                        return variable.name == data.name;
+                    }
+                );
+                if (location != scope.variables.end())
+                    return location->type;
+            }
 
-            return location->type;
+            // Try function:
+            {
+                std::optional<Declaration> const declaration_optional = find_declaration(
+                    declaration_database,
+                    core_module.name,
+                    data.name
+                );
+                if (declaration_optional.has_value())
+                {
+                    if (std::holds_alternative<Function_declaration const*>(declaration_optional->data))
+                    {
+                        Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration_optional->data);
+                        return create_function_type_type_reference(
+                            function_declaration.type,
+                            function_declaration.input_parameter_names,
+                            function_declaration.output_parameter_names
+                        );
+                    }
+                }
+            }
+
+            return std::nullopt;
         }
         else
         {
