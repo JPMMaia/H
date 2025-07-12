@@ -277,4 +277,20 @@ namespace h
     {
         return get_value(name, module.export_declarations.union_declarations, module.internal_declarations.union_declarations);
     }
+
+    Import_module_with_alias const* find_import_module_with_alias(
+        h::Module const& core_module,
+        std::string_view const alias_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
 }

@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <cassert>
 #include <format>
 #include <memory_resource>
 #include <optional>
@@ -547,7 +548,13 @@ namespace h::compiler
                                     return create_function_type_type_reference(function_declaration.type, function_declaration.input_parameter_names, function_declaration.output_parameter_names);
                                 }
 
-                                return create_custom_type_reference(variable_expression.name, data.member_name);
+                                Import_module_with_alias const* import_alias = find_import_module_with_alias(
+                                    core_module,
+                                    variable_expression.name
+                                );
+                                assert(import_alias != nullptr);
+
+                                return create_custom_type_reference(import_alias->module_name, data.member_name);
                             }
                         }
                     }
