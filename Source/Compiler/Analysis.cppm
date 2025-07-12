@@ -87,6 +87,7 @@ namespace h::compiler
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
+        std::optional<h::Type_reference> const& expected_statement_type,
         h::Declaration_database& declaration_database,
         Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator

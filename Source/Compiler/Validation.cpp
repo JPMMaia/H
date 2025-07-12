@@ -58,6 +58,7 @@ namespace h::compiler
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
+        std::optional<h::Type_reference> const& expected_statement_type,
         Declaration_database const& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -83,6 +84,7 @@ namespace h::compiler
             .core_module = core_module,
             .scope = scope,
             .statement = statement,
+            .expected_statement_type = expected_statement_type,
             .expression_types = expression_types,
             .expression_index = 0,
             .declaration_database = declaration_database,
@@ -125,6 +127,16 @@ namespace h::compiler
         {
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
             return validate_call_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+        {
+            h::Instantiate_expression const& value = std::get<h::Instantiate_expression>(expression.data);
+            return validate_instantiate_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Unary_expression>(expression.data))
+        {
+            h::Unary_expression const& value = std::get<h::Unary_expression>(expression.data);
+            return validate_unary_expression(parameters, value, expression.source_range);
         }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))
         {
@@ -607,6 +619,313 @@ namespace h::compiler
         return diagnostics;
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_instantiate_expression(
+        Validate_expression_parameters const& parameters,
+        h::Instantiate_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        for (std::size_t member_index = 1; member_index < expression.members.size(); ++member_index)
+        {
+            h::Instantiate_member_value_pair const& pair = expression.members[member_index];
+
+            auto const duplicate_location = std::find_if(
+                expression.members.begin(),
+                expression.members.begin() + member_index,
+                [&](h::Instantiate_member_value_pair const& other_pair) -> bool
+                {
+                    return pair.member_name == other_pair.member_name;
+                }
+            );
+
+            if (duplicate_location != expression.members.begin() + member_index)
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        create_sub_source_range(pair.source_range, 0, pair.member_name.size()),
+                        std::format(
+                            "Duplicate instantiate member '{}'.",
+                            pair.member_name
+                        )
+                    )
+                };
+            }
+        }
+
+        std::optional<h::Type_reference> const type_to_instantiate = get_type_to_instantiate(parameters, expression);
+        if (!type_to_instantiate.has_value())
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Could not deduce type to instantiate."
+                )
+            };
+        }
+
+        std::optional<Declaration> const declaration_optional = find_underlying_declaration(
+            parameters.declaration_database,
+            type_to_instantiate.value()
+        );
+        if (!declaration_optional.has_value())
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Could not find declaration of type to instantiate."
+                )
+            };
+        }
+
+        Declaration const& declaration = declaration_optional.value();
+
+        std::pmr::vector<Declaration_member_info> const member_infos = get_declaration_member_infos(declaration, parameters.temporaries_allocator);
+
+        std::size_t previous_original_index = 0;
+
+        for (std::size_t member_index = 0; member_index < expression.members.size(); ++member_index)
+        {
+            h::Instantiate_member_value_pair const& pair = expression.members[member_index];
+
+            auto const location = std::find_if(
+                member_infos.begin(),
+                member_infos.end(),
+                [&](Declaration_member_info const& member_info) -> bool
+                {
+                    return pair.member_name == member_info.member_name;
+                }
+            );
+
+            if (location == member_infos.end())
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        create_sub_source_range(pair.source_range, 0, pair.member_name.size()),
+                        std::format(
+                            "'{}.{}' does not exist.",
+                            h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            pair.member_name
+                        )
+                    )
+                };
+            }
+
+            h::Type_reference const& member_type = location->member_type;
+
+            std::optional<h::Type_reference> const assigned_value_type = get_expression_type(
+                parameters.core_module,
+                parameters.scope,
+                pair.value,
+                parameters.declaration_database
+            );
+
+            if (!are_compatible_types(member_type, assigned_value_type))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, assigned_value_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, member_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        get_statement_source_range(pair.value),
+                        std::format(
+                            "Cannot assign value of type '{}' to member '{}.{}' of type '{}'.",
+                            provided_type_name,
+                            h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            pair.member_name,
+                            expected_type_name
+                        )
+                    )
+                };
+            }
+
+            std::size_t const original_index = std::distance(member_infos.begin(), location);
+            if (member_index > 0)
+            {
+                if (original_index < previous_original_index)
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            "Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration."
+                        )
+                    };
+                }
+            }
+            previous_original_index = original_index;
+        }
+
+        if (expression.type == Instantiate_expression_type::Explicit)
+        {
+            if (expression.members.size() != member_infos.size())
+            {
+                std::pmr::vector<h::compiler::Diagnostic> diagnostics{parameters.temporaries_allocator};
+
+                for (std::size_t member_index = 0; member_index < member_infos.size(); ++member_index)
+                {
+                    Declaration_member_info const& member_info = member_infos[member_index];
+
+                    auto const location = std::find_if(
+                        expression.members.begin(),
+                        expression.members.end(),
+                        [&](h::Instantiate_member_value_pair const& pair) -> bool
+                        {
+                            return pair.member_name == member_info.member_name;
+                        }
+                    );
+
+                    if (location == expression.members.end())
+                    {
+                        diagnostics.push_back(
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                source_range,
+                                std::format(
+                                    "'{}.{}' is not set. Explicit instantiate expression requires all members to be set.",
+                                    h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                                    member_info.member_name
+                                )
+                            )
+                        );
+                    }
+                }
+
+                return diagnostics;
+            }
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_unary_expression(
+        Validate_expression_parameters const& parameters,
+        h::Unary_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& operand_type_optional = parameters.expression_types[expression.expression.expression_index];
+
+        if (!operand_type_optional.has_value())
+            return {}; // TODO error
+
+        std::optional<h::Type_reference> const type_optional = get_underlying_type(parameters.declaration_database, operand_type_optional.value());
+        if (!type_optional.has_value())
+            return {}; // TODO error
+        
+        h::Type_reference const& type = type_optional.value();
+
+        switch (expression.operation)
+        {
+            case Unary_operation::Not:
+            {
+                if (!is_bool(type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            std::format(
+                                "Cannot apply unary operation '{}' to expression.",
+                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+                break;
+            }
+            case Unary_operation::Bitwise_not:
+            {
+                if (!is_integer(type) && !is_byte(type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            std::format(
+                                "Cannot apply unary operation '{}' to expression.",
+                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+                break;
+            }
+            case Unary_operation::Minus:
+            {
+                if (!is_integer(type) && !is_floating_point(type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            std::format(
+                                "Cannot apply unary operation '{}' to expression.",
+                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+                break;
+            }
+            case Unary_operation::Indirection:
+            {
+                if (!is_non_void_pointer(type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            std::format(
+                                "Cannot apply unary operation '{}' to expression.",
+                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+                break;
+            }
+            case Unary_operation::Address_of:
+            {
+                Expression const& operand_expression = parameters.statement.expressions[expression.expression.expression_index];
+                bool const is_temporary = !std::holds_alternative<h::Variable_expression>(operand_expression.data);
+                if (is_temporary)
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            std::format(
+                                "Cannot apply unary operation '{}' to expression.",
+                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                            )
+                        )
+                    };
+                }
+                break;
+            }
+            default:
+                break;
+        }
+
+        return {};
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
@@ -658,6 +977,99 @@ namespace h::compiler
             return false;
         
         return std::holds_alternative<Enum_declaration const*>(declaration->data);
+    }
+
+    std::optional<h::Source_range> get_statement_source_range(
+        h::Statement const& statement
+    )
+    {
+        if (statement.expressions.empty())
+            return std::nullopt;
+
+        h::Expression const& first_expression = statement.expressions.front();
+        return first_expression.source_range;
+    }
+
+    std::optional<h::Source_range> create_sub_source_range(
+        std::optional<h::Source_range> const& source_range,
+        std::uint32_t const start_index,
+        std::uint32_t const count
+    )
+    {
+        if (!source_range.has_value())
+            return std::nullopt;
+
+        h::Source_range const& original_source_range = source_range.value();
+
+        return h::Source_range
+        {
+            .start = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index
+            },
+            .end = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index + count
+            }
+        };
+    }
+
+    std::optional<h::Type_reference> get_type_to_instantiate(
+        Validate_expression_parameters const& parameters,
+        h::Instantiate_expression const& expression
+    )
+    {
+        if (parameters.statement.expressions.size() <= 1 && parameters.expected_statement_type.has_value())
+            return parameters.expected_statement_type;
+
+        // TODO search expressions: return, call
+
+        return std::nullopt;
+    }
+
+    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
+        Declaration const& declaration,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<Declaration_member_info> members{output_allocator};
+
+        if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+        {
+            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
+
+            members.reserve(struct_declaration.member_types.size());
+
+            for (std::size_t member_index = 0; member_index < struct_declaration.member_types.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = struct_declaration.member_names[member_index],
+                    .member_type = struct_declaration.member_types[member_index],
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
+        {
+            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
+
+            members.reserve(union_declaration.member_types.size());
+
+            for (std::size_t member_index = 0; member_index < union_declaration.member_types.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = union_declaration.member_names[member_index],
+                    .member_type = union_declaration.member_types[member_index],
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+
+        return members;
     }
 
     Import_module_with_alias const* find_import_module_with_alias(

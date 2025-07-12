@@ -96,6 +96,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 condition.condition,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -112,6 +113,7 @@ namespace h::compiler
                     core_module,
                     scope,
                     condition.condition,
+                    std::nullopt,
                     declaration_database,
                     options,
                     temporaries_allocator
@@ -154,6 +156,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 statement,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -183,6 +186,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 statement,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -195,6 +199,7 @@ namespace h::compiler
         h::Module& core_module,
         Scope& scope,
         h::Statement& statement,
+        std::optional<h::Type_reference> const& expected_statement_type,
         h::Declaration_database& declaration_database,
         Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -206,6 +211,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 statement,
+                expected_statement_type,
                 declaration_database,
                 temporaries_allocator
             );
@@ -309,6 +315,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 data.range_end,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -361,6 +368,7 @@ namespace h::compiler
                         core_module,
                         scope,
                         serie.condition.value(),
+                        std::nullopt,
                         declaration_database,
                         options,
                         temporaries_allocator
@@ -388,6 +396,7 @@ namespace h::compiler
                     core_module,
                     scope,
                     member.value,
+                    std::nullopt,
                     declaration_database,
                     options,
                     temporaries_allocator
@@ -418,6 +427,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 data.then_statement,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -427,6 +437,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 data.else_statement,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator
@@ -444,7 +455,7 @@ namespace h::compiler
         else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
         {
             h::Variable_declaration_with_type_expression& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-            process_statement(result, core_module, scope, data.right_hand_side, declaration_database, options, temporaries_allocator);
+            process_statement(result, core_module, scope, data.right_hand_side, data.type, declaration_database, options, temporaries_allocator);
             scope.variables.push_back({.name = data.name, .type = data.type});
         }
         else if (std::holds_alternative<h::While_loop_expression>(expression.data))
@@ -455,6 +466,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 data.condition,
+                std::nullopt,
                 declaration_database,
                 options,
                 temporaries_allocator

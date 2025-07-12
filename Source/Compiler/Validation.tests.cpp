@@ -810,6 +810,321 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that members are not duplicate", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        a: 0
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            {
+                .range = create_source_range(14, 9, 14, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate instantiate member 'a'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that members are sorted", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0
+    };
+
+    var instance_1: My_struct = {
+        c: 0,
+        a: 0
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(17, 33, 20, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that all members exist if explicit is used", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0
+    };
+
+    var instance_1: My_struct = explicit {
+        a: 0,
+        c: 0
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(17, 33, 20, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'My_struct.b' is not set. Explicit instantiate expression requires all members to be set.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that all members set by the instantiate expression are actual members", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    c: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        c: 0
+    };
+
+    var instance_1: My_struct = explicit {
+        d: 0
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(18, 9, 18, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'My_struct.d' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that assigned value types match the member types", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    var instance_0: My_struct = {
+        a: 0.0f32
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 12, 11, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that numeric unary operations can only be applied to numbers", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+}
+
+function run() -> ()
+{
+    mutable int_value = 0;
+    mutable float_value = 0.0f32;
+
+    var result_0 = -int_value;
+    var result_1 = -float_value;
+    
+    var result_2 = ~int_value;
+    var result_3 = ~float_value;
+
+    var instance: My_struct = {};
+    var result_4 = -instance;
+    var result_5 = ~instance;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 20, 16, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '~' to expression.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(19, 20, 19, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '-' to expression.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(20, 20, 20, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '~' to expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that logical unary operations can only be applied to booleans", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var boolean_value = true;
+    var result_0 = !boolean_value;
+
+    var int_value = 0;
+    var result_1 = !int_value;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 20, 9, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '!' to expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates unary operations related to pointers", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var int_value = 0;
+    var result_0 = &int_value;
+    var result_1 = &0;
+
+    var result_2 = *result_0;
+    var result_3 = *result_2;
+    var result_4 = *0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 20, 7, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '&' to expression.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(10, 20, 10, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '*' to expression.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 20, 11, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '*' to expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -1998,135 +2313,6 @@ function run() -> ()
 
         test_validate_module(input, {}, expected_diagnostics);
     }
-
-
-    TEST_CASE("Validates that numeric unary operations can only be applied to numbers", "[Validation][Unary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-}
-
-function run() -> ()
-{
-    mutable int_value = 0;
-    mutable float_value = 0.0f32;
-
-    var result_0 = -int_value;
-    var result_1 = -float_value;
-    
-    var result_2 = ~int_value;
-    var result_3 = ~float_value;
-
-    var instance: My_struct = {};
-    var result_4 = -instance;
-    var result_5 = ~instance;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(16, 20, 16, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '~' to expression.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(19, 20, 19, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '-' to expression.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(20, 20, 20, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '~' to expression.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that logical unary operations can only be applied to booleans", "[Validation][Unary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run() -> ()
-{
-    var boolean_value = true;
-    var result_0 = !boolean_value;
-
-    var int_value = 0;
-    var result_1 = !int_value;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 20, 9, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '!' to expression.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates unary operations related to pointers", "[Validation][Unary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run() -> ()
-{
-    var int_value = 0;
-    var result_0 = &int_value;
-    var result_1 = &0;
-
-    var result_2 = *result_0;
-    var result_3 = *result_2;
-    var result_4 = *0;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 20, 7, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '&' to expression.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(10, 20, 10, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '*' to expression.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 20, 11, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply unary operation '*' to expression.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
     
     
     TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
@@ -2648,201 +2834,6 @@ function run(value: Int32) -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that members are not duplicate", "[Validation][Instantiate_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0;
-    c: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var instance_0: My_struct = {
-        a: 0,
-        a: 0
-    };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(13, 9, 13, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate instantiate member 'a'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(14, 9, 14, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate instantiate member 'a'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that members are sorted", "[Validation][Instantiate_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0;
-    c: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var instance_0: My_struct = {
-        a: 0,
-        c: 0
-    };
-
-    var instance_1: My_struct = {
-        c: 0,
-        a: 0
-    };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(17, 33, 20, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Instantiate members are not sorted. They must appear in the order they were declarated in the struct declaration.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that all members exist if explicit is used", "[Validation][Instantiate_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0;
-    c: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var instance_0: My_struct = {
-        a: 0,
-        c: 0
-    };
-
-    var instance_1: My_struct = explicit {
-        a: 0,
-        c: 0
-    };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(17, 33, 20, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'My_struct.b' is not set. Explicit instantiate expression requires all members to be set.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that all members set by the instantiate expression are actual members", "[Validation][Instantiate_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0;
-    c: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var instance_0: My_struct = {
-        a: 0,
-        c: 0
-    };
-
-    var instance_1: My_struct = explicit {
-        d: 0
-    };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(18, 9, 18, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'My_struct.d' does not exist.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that assigned value types match the member types", "[Validation][Instantiate_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    var instance_0: My_struct = {
-        a: 0.0f32
-    };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 12, 11, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
                 .related_information = {},
             },
         };
