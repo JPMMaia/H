@@ -796,6 +796,7 @@ namespace h
     {
         std::pmr::string member_name;
         Statement value;
+        std::optional<h::Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Instantiate_member_value_pair const&, Instantiate_member_value_pair const&) = default;

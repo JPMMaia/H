@@ -1697,6 +1697,7 @@ namespace h::json
         writer.String(output.member_name.data(), output.member_name.size());
         writer.Key("value");
         write_object(writer, output.value);
+        write_optional(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 

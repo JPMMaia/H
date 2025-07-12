@@ -343,6 +343,10 @@ namespace h::parser
         Format_options const& options
     );
 
+    export std::string_view unary_operation_symbol_to_string(
+        Unary_operation const operation
+    );
+
     void add_format_expression_unary(
         String_buffer& buffer,
         Statement const& statement,

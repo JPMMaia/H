@@ -1346,6 +1346,27 @@ namespace h::parser
         add_format_type_name(buffer, {&expression.type, 1}, options);
     }
 
+    std::string_view unary_operation_symbol_to_string(
+        Unary_operation const operation
+    )
+    {
+        switch (operation)
+        {
+            case Unary_operation::Not:
+                return "!";
+            case Unary_operation::Bitwise_not:
+                return "~";
+            case Unary_operation::Minus:
+                return "-";
+            case Unary_operation::Indirection:
+                return "*";
+            case Unary_operation::Address_of:
+                return "&";
+            default:
+                return "<unknown>";
+        }
+    }
+
     void add_format_expression_unary(
         String_buffer& buffer,
         Statement const& statement,
@@ -1353,24 +1374,10 @@ namespace h::parser
         Format_options const& options
     )
     {
-        switch (expression.operation)
-        {
-            case Unary_operation::Not:
-                add_text(buffer, "!");
-                break;
-            case Unary_operation::Bitwise_not:
-                add_text(buffer, "~");
-                break;
-            case Unary_operation::Minus:
-                add_text(buffer, "-");
-                break;
-            case Unary_operation::Indirection:
-                add_text(buffer, "*");
-                break;
-            case Unary_operation::Address_of:
-                add_text(buffer, "&");
-                break;
-        }
+        std::string_view const symbol_string = unary_operation_symbol_to_string(
+            expression.operation
+        );
+        add_text(buffer, symbol_string);
         
         add_format_expression(buffer, statement, get_expression(statement, expression.expression), 0, options);
     }

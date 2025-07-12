@@ -2625,6 +2625,8 @@ namespace h::parser
             {
                 pair.member_name = create_string(get_node_value(tree, name_node.value()), output_allocator);
             }
+
+            pair.source_range = get_node_source_range(member_node);
             
             std::optional<Parse_node> const value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");
             if (value_node.has_value())
