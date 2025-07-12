@@ -1125,6 +1125,241 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that a variable declaration name is not a duplicate", "[Validation][Variable_declaration_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(c: Int32) -> ()
+{
+    var a = 0;
+    var b = 1;
+    var b = 2;
+    var c = 3;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 9, 7, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 9, 8, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'c'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a variable declaration right side expression type is not void", "[Validation][Variable_declaration_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_non_void_value() -> (result: Int32)
+{
+    return 0;
+}
+
+function get_void_value() -> ()
+{
+}
+
+function run() -> ()
+{
+    var a = get_non_void_value();
+    var b = get_void_value();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(15, 13, 15, 29),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign expression of type 'void' to variable 'b'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+    
+    
+    TEST_CASE("Validates that a variable declaration with type name is not a duplicate", "[Validation][Variable_declaration_with_type_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(c: Int32) -> ()
+{
+    var a: Int32 = 0;
+    var b: Int32 = 1;
+    var b: Int32 = 2;
+    var c: Int32 = 3;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 14, 3, 15),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'c'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(6, 9, 6, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 9, 7, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 9, 8, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate variable name 'c'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates the right hand side type of a variable declaration with type is equal to the type", "[Validation][Variable_declaration_with_type_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_value() -> (result: Float32)
+{
+}
+
+function run() -> ()
+{
+    var a: Int32 = 0;
+    var b: Int32 = 1.0f32;
+    var c: Int32 = get_value();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(10, 20, 10, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 20, 11, 31),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates the right hand side type of a variable declaration with type is a value, not a type", "[Validation][Variable_declaration_with_type_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var a: Int32 = Int32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 20, 5, 25),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'Int32' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates the right hand side expression is an instantiate expression when variable type is a struct or union", "[Validation][Variable_declaration_with_type_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Float32 = 0.0f32;
+}
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+}
+
+function run() -> ()
+{
+    var instance_0: My_struct = {
+        a: 0,
+        b: 0.0f32
+    };
+    var instance_1: My_struct = 1.0f32;
+
+    var instance_2: My_union = { b: 0.0f32 };
+    var instance_3: My_union = 0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(21, 33, 21, 39),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Float32' does not match expected type 'My_struct'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(24, 32, 24, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'My_union'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a variable name must exist", "[Validation][Variable_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -2005,255 +2240,6 @@ using true = Float32;
                 .message = "Invalid declaration name 'true' which is a reserved keyword.",
                 .related_information = {},
             }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that a variable declaration name is not a duplicate", "[Validation][Variable_declaration_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(c: Int32) -> ()
-{
-    var a = 0;
-    var b = 1;
-    var b = 2;
-    var c = 3;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 14, 3, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'c'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(6, 9, 6, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'c'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a variable declaration right side expression type is not void", "[Validation][Variable_declaration_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_non_void_value() -> (result: Int32)
-{
-    return 0;
-}
-
-function get_void_value() -> ()
-{
-}
-
-function run() -> ()
-{
-    var a = get_non_void_value();
-    var b = get_void_value();
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(15, 13, 15, 29),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type 'void' to variable 'b'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-    
-    
-    TEST_CASE("Validates that a variable declaration with type name is not a duplicate", "[Validation][Variable_declaration_with_type_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(c: Int32) -> ()
-{
-    var a: Int32 = 0;
-    var b: Int32 = 1;
-    var b: Int32 = 2;
-    var c: Int32 = 3;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 14, 3, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'c'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(6, 9, 6, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'c'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates the right hand side type of a variable declaration with type is equal to the type", "[Validation][Variable_declaration_with_type_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_value() -> (result: Float32)
-{
-}
-
-function run() -> ()
-{
-    var a: Int32 = 0;
-    var b: Int32 = 1.0f32;
-    var c: Int32 = get_value();
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(10, 20, 10, 26),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 20, 11, 31),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates the right hand side type of a variable declaration with type is a value, not a type", "[Validation][Variable_declaration_with_type_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run() -> ()
-{
-    var a: Int32 = Int32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 20, 5, 25),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'Int32' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates the right hand side expression is an instantiate expression when variable type is a struct or union", "[Validation][Variable_declaration_with_type_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Float32 = 0.0f32;
-}
-
-union My_union
-{
-    a: Int32;
-    b: Float32;
-}
-
-function run() -> ()
-{
-    var instance_0: My_struct = {
-        a: 0,
-        b: 0.0f32
-    };
-    var instance_1: My_struct = 1.0f32;
-
-    var instance_2: My_union = { b: 0.0f32 };
-    var instance_3: My_union = 0;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(21, 33, 21, 39),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Float32' does not match expected type 'My_struct'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(24, 32, 24, 33),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'My_union'.",
-                .related_information = {},
-            },
         };
 
         test_validate_module(input, {}, expected_diagnostics);

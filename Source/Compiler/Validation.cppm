@@ -70,6 +70,18 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_variable_declaration_expression(
+        Validate_expression_parameters const& parameters,
+        h::Variable_declaration_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_variable_declaration_with_type_expression(
+        Validate_expression_parameters const& parameters,
+        h::Variable_declaration_with_type_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
@@ -105,11 +117,6 @@ namespace h::compiler
     std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
         Declaration const& declaration,
         std::pmr::polymorphic_allocator<> const& output_allocator
-    );
-
-    Import_module_with_alias const* find_import_module_with_alias(
-        h::Module const& core_module,
-        std::string_view const alias_name
     );
 
     Variable const* find_variable_from_scope(

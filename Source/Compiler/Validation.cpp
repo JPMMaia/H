@@ -138,6 +138,16 @@ namespace h::compiler
             h::Unary_expression const& value = std::get<h::Unary_expression>(expression.data);
             return validate_unary_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Variable_declaration_expression>(expression.data))
+        {
+            h::Variable_declaration_expression const& value = std::get<h::Variable_declaration_expression>(expression.data);
+            return validate_variable_declaration_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
+        {
+            h::Variable_declaration_with_type_expression const& value = std::get<h::Variable_declaration_with_type_expression>(expression.data);
+            return validate_variable_declaration_with_type_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))
         {
             h::Variable_expression const& value = std::get<h::Variable_expression>(expression.data);
@@ -165,7 +175,34 @@ namespace h::compiler
             {
                 Declaration const& declaration = declaration_optional.value();
 
-                if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
+                if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
+                {
+                    h::Enum_declaration const& enum_declaration = *std::get<h::Enum_declaration const*>(declaration.data);
+
+                    auto const location = std::find_if(
+                        enum_declaration.values.begin(),
+                        enum_declaration.values.end(),
+                        [&](h::Enum_value const& enum_value) -> bool { return enum_value.name == access_expression.member_name; }
+                    );
+                    if (location == enum_declaration.values.end())
+                    {
+                        std::pmr::string const enum_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                source_range,
+                                std::format(
+                                    "Member '{}' does not exist in the type '{}'.",
+                                    access_expression.member_name,
+                                    enum_full_name
+                                )
+                            )
+                        };
+                    }
+                }
+                else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
                 {
                     h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
                     
@@ -223,63 +260,6 @@ namespace h::compiler
                 {
                     // TODO error
                     // TODO what about function constructors and struct constructors?
-                }
-            }
-            else
-            {
-                h::Expression const& left_hand_side_expression = parameters.statement.expressions[access_expression.expression.expression_index];
-                
-                if (std::holds_alternative<h::Access_expression>(left_hand_side_expression.data))
-                {
-                    h::Access_expression const& access_module_expression = std::get<h::Access_expression>(left_hand_side_expression.data);
-
-                    h::Expression const& module_expression = parameters.statement.expressions[access_module_expression.expression.expression_index];
-
-                    if (std::holds_alternative<h::Variable_expression>(module_expression.data))
-                    {
-                        h::Variable_expression const& module_name_expression = std::get<h::Variable_expression>(module_expression.data);
-
-                        std::optional<Declaration> const declaration_optional = find_underlying_declaration_using_import_alias(
-                            parameters.declaration_database,
-                            parameters.core_module,
-                            module_name_expression.name,
-                            access_module_expression.member_name
-                        );
-                        if (!declaration_optional.has_value())
-                        {
-                            // TODO error
-                            return {};
-                        }
-
-                        Declaration const& declaration = declaration_optional.value();
-
-                        if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
-                        {
-                            h::Enum_declaration const& enum_declaration = *std::get<h::Enum_declaration const*>(declaration.data);
-
-                            auto const location = std::find_if(
-                                enum_declaration.values.begin(),
-                                enum_declaration.values.end(),
-                                [&](h::Enum_value const& enum_value) -> bool { return enum_value.name == access_expression.member_name; }
-                            );
-                            if (location == enum_declaration.values.end())
-                            {
-                                return
-                                {
-                                    create_error_diagnostic(
-                                        parameters.core_module.source_file_path,
-                                        source_range,
-                                        std::format(
-                                            "Member '{}' does not exist in the type '{}.{}'.",
-                                            access_expression.member_name,
-                                            module_name_expression.name,
-                                            enum_declaration.name
-                                        )
-                                    )
-                                };
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -926,6 +906,61 @@ namespace h::compiler
         return {};
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_variable_declaration_expression(
+        Validate_expression_parameters const& parameters,
+        h::Variable_declaration_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        Variable const* const variable = find_variable_from_scope(
+            parameters.scope,
+            expression.name
+        );
+        if (variable != nullptr)
+        {
+            std::optional<h::Source_range> const& name_source_range = create_sub_source_range(
+                source_range,
+                expression.is_mutable ? 8 : 4,
+                expression.name.size()
+            );
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    name_source_range,
+                    std::format("Duplicate variable name '{}'.", expression.name)
+                )
+            };
+        }
+
+        std::optional<h::Type_reference> const& type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
+        if (!type_optional.has_value())
+        {
+            h::Expression const& right_hand_side = parameters.statement.expressions[expression.right_hand_side.expression_index];
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    right_hand_side.source_range,
+                    std::format("Cannot assign expression of type 'void' to variable '{}'.", expression.name)
+                )
+            };
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_variable_declaration_with_type_expression(
+        Validate_expression_parameters const& parameters,
+        h::Variable_declaration_with_type_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        return {};
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
@@ -1070,22 +1105,6 @@ namespace h::compiler
         }
 
         return members;
-    }
-
-    Import_module_with_alias const* find_import_module_with_alias(
-        h::Module const& core_module,
-        std::string_view const alias_name
-    )
-    {
-        auto const location = std::find_if(
-            core_module.dependencies.alias_imports.begin(),
-            core_module.dependencies.alias_imports.end(),
-            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
-        );
-        if (location == core_module.dependencies.alias_imports.end())
-            return nullptr;
-
-        return &(*location);
     }
 
     Variable const* find_variable_from_scope(
