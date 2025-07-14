@@ -49,8 +49,8 @@ namespace h
 
     export struct Source_range
     {
-        Source_position start = {};
-        Source_position end = {};
+        Source_position start;
+        Source_position end;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Source_range const& lhs, Source_range const& rhs) = default;
@@ -796,7 +796,7 @@ namespace h
     {
         std::pmr::string member_name;
         Statement value;
-        std::optional<h::Source_range> source_range;
+        std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Instantiate_member_value_pair const&, Instantiate_member_value_pair const&) = default;
@@ -984,7 +984,7 @@ namespace h
         std::pmr::string name;
         bool is_mutable;
         Type_reference type;
-        Statement right_hand_side;
+        Expression_index right_hand_side;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Variable_declaration_with_type_expression const&, Variable_declaration_with_type_expression const&) = default;

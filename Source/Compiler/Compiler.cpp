@@ -52,6 +52,7 @@ import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.debug_info;
+import h.compiler.diagnostic;
 import h.compiler.expressions;
 import h.compiler.instructions;
 import h.compiler.types;
@@ -1367,7 +1368,16 @@ namespace h::compiler
         // TODO do this a different place so we can modify original
         Module new_core_module = core_module;
         add_import_usages(new_core_module, {});
-        process_module(new_core_module, declaration_database, {}, {});
+        {
+            Analysis_result const result = process_module(new_core_module, declaration_database, {}, {});
+            if (!result.diagnostics.empty())
+            {
+                for (h::compiler::Diagnostic const& diagnostic : result.diagnostics)
+                    std::cerr << h::compiler::diagnostic_to_string(diagnostic, {}, {}) << std::endl;
+                
+                throw std::runtime_error{"Failed to process module!"};
+            }
+        }
 
         std::pmr::vector<h::Module const*> all_core_modules{
             sorted_core_module_dependencies.begin(), sorted_core_module_dependencies.end()

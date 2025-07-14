@@ -757,11 +757,6 @@ namespace h
             if (visit_expressions(data.else_statement, predicate))
                 return true;
         }
-        else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
-        {
-            Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
-            return visit_expressions(data.right_hand_side, predicate);
-        }
         else if (std::holds_alternative<While_loop_expression>(expression.data))
         {
             While_loop_expression const& data = std::get<While_loop_expression>(expression.data);

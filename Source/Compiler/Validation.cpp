@@ -56,6 +56,7 @@ namespace h::compiler
 
     std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
+        Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         std::optional<h::Type_reference> const& expected_statement_type,
@@ -82,6 +83,7 @@ namespace h::compiler
         Validate_expression_parameters parameters
         {
             .core_module = core_module,
+            .function_declaration = function_declaration,
             .scope = scope,
             .statement = statement,
             .expected_statement_type = expected_statement_type,
@@ -958,6 +960,74 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
+        Variable const* const variable = find_variable_from_scope(
+            parameters.scope,
+            expression.name
+        );
+        if (variable != nullptr)
+        {
+            std::optional<h::Source_range> const& name_source_range = create_sub_source_range(
+                source_range,
+                expression.is_mutable ? 8 : 4,
+                expression.name.size()
+            );
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    name_source_range,
+                    std::format("Duplicate variable name '{}'.", expression.name)
+                )
+            };
+        }
+        
+        h::Expression const& right_hand_side = parameters.statement.expressions[expression.right_hand_side.expression_index];
+        h::Type_reference const& type = expression.type;
+
+        if (std::holds_alternative<h::Instantiate_expression>(right_hand_side.data))
+        {
+            std::optional<Declaration> const declaration_optional = find_underlying_declaration(parameters.declaration_database, type);
+            if (!declaration_optional.has_value() || (!std::holds_alternative<h::Struct_declaration const*>(declaration_optional->data) && !std::holds_alternative<h::Union_declaration const*>(declaration_optional->data)))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        right_hand_side.source_range,
+                        std::format(
+                            "Cannot assign expression of type '{}' to variable '{}'. Expected struct or union type.",
+                            h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            expression.name
+                        )
+                    )
+                };
+            }
+        }
+        else
+        {
+            std::optional<h::Type_reference> const& right_hand_side_type = parameters.expression_types[expression.right_hand_side.expression_index];
+
+            if (!are_compatible_types(type, right_hand_side_type))
+            {
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        right_hand_side.source_range,
+                        std::format(
+                            "Expression type '{}' does not match expected type '{}'.",
+                            provided_type_name,
+                            expected_type_name
+                        )
+                    )
+                };
+            }
+        }
+
         return {};
     }
 
@@ -1057,7 +1127,44 @@ namespace h::compiler
         if (parameters.statement.expressions.size() <= 1 && parameters.expected_statement_type.has_value())
             return parameters.expected_statement_type;
 
-        // TODO search expressions: return, call
+        for (std::size_t index = 0; index < parameters.statement.expressions.size(); ++index)
+        {
+            h::Expression const& current_expression = parameters.statement.expressions[index];
+            
+            if (std::holds_alternative<h::Call_expression>(current_expression.data))
+            {
+                h::Call_expression const& call_expression = std::get<h::Call_expression>(current_expression.data);
+
+                for (std::size_t argument_index = 0; argument_index < call_expression.arguments.size(); ++argument_index)
+                {
+                    h::Expression_index const& argument_expression = call_expression.arguments[argument_index];
+                    if (argument_expression.expression_index == parameters.expression_index)
+                    {
+                        if (parameters.function_declaration != nullptr && argument_index < parameters.function_declaration->type.input_parameter_types.size())
+                            return parameters.function_declaration->type.input_parameter_types[argument_index];
+                        else
+                            return std::nullopt;
+                    }
+                }
+            }
+            else if (std::holds_alternative<h::Return_expression>(current_expression.data))
+            {
+                h::Return_expression const& return_expression = std::get<h::Return_expression>(current_expression.data);
+                if (return_expression.expression.has_value() && return_expression.expression->expression_index == parameters.expression_index)
+                {
+                    if (parameters.function_declaration != nullptr && !parameters.function_declaration->type.output_parameter_types.empty())
+                        return parameters.function_declaration->type.output_parameter_types[0];
+                    else
+                        return std::nullopt;
+                }
+            }
+            else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(current_expression.data))
+            {
+                h::Variable_declaration_with_type_expression const& declaration_expression = std::get<h::Variable_declaration_with_type_expression>(current_expression.data);
+                if (declaration_expression.right_hand_side.expression_index == parameters.expression_index)
+                    return declaration_expression.type;
+            }
+        }
 
         return std::nullopt;
     }

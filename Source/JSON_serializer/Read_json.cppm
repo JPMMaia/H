@@ -2992,12 +2992,12 @@ namespace h::json
 
         if (key == "source_range")
         {
-            parent->source_range = h::Source_range{};
+            parent->source_range = Source_range{};
             return Stack_state
             {
                 .pointer = &parent->source_range.value(),
-                .type = "h::Source_range",
-                .get_next_state = nullptr,
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 
@@ -3443,8 +3443,8 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->right_hand_side,
-                .type = "Statement",
-                .get_next_state = get_next_state_statement,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
             };
         }
 

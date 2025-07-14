@@ -538,6 +538,17 @@ namespace h
                 .name = access_expression.member_name
             };
         }
+        else if (std::holds_alternative<h::Instance_call_expression>(expression.data))
+        {
+            Instance_call_expression const& data = std::get<h::Instance_call_expression>(expression.data);
+
+            return get_function_constructor_type_reference(
+                declaration_database,
+                statement.expressions[data.left_hand_side.expression_index],
+                statement,
+                current_module_name
+            );
+        }
 
         return std::nullopt;
     }

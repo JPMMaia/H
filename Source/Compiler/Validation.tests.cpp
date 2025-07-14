@@ -1213,20 +1213,6 @@ function run(c: Int32) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(3, 14, 3, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'c'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(6, 9, 6, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate variable name 'b'.",
-                .related_information = {},
-            },
-            {
                 .range = create_source_range(7, 9, 7, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,

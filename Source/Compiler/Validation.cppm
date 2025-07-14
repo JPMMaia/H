@@ -17,6 +17,7 @@ namespace h::compiler
 {
     export std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
+        Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         std::optional<h::Type_reference> const& expected_statement_type,
@@ -27,6 +28,7 @@ namespace h::compiler
     export struct Validate_expression_parameters
     {
         h::Module const& core_module;
+        h::Function_declaration const* function_declaration;
         Scope const& scope;
         h::Statement const& statement;
         std::optional<h::Type_reference> const& expected_statement_type;

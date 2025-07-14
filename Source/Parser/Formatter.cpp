@@ -1423,7 +1423,7 @@ namespace h::parser
         add_text(buffer, ": ");
         add_format_type_name(buffer, expression.type, options);
         add_text(buffer, " = ");
-        add_format_statement(buffer, expression.right_hand_side, outside_indentation, options, false);
+        add_format_expression(buffer, statement, get_expression(statement, expression.right_hand_side), outside_indentation, options);
     }
 
     void add_format_expression_while_loop(

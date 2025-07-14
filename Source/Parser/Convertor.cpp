@@ -2992,7 +2992,7 @@ namespace h::parser
         std::optional<Parse_node> const right_hand_side_node = get_child_node(tree, node, "Generic_expression_or_instantiate");
         if (right_hand_side_node.has_value())
         {
-            output.right_hand_side = node_to_statement(module_info, tree, right_hand_side_node.value(), output_allocator, temporaries_allocator);
+            output.right_hand_side = node_to_expression(statement, module_info, tree, right_hand_side_node.value(), output_allocator, temporaries_allocator);
         }
         
         return output;

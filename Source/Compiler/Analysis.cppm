@@ -65,6 +65,7 @@ namespace h::compiler
     void process_block(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* function_declaration,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
@@ -75,6 +76,7 @@ namespace h::compiler
     void process_statements(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* function_declaration,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
@@ -85,6 +87,7 @@ namespace h::compiler
     void process_statement(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* function_declaration,
         Scope& scope,
         h::Statement& statement,
         std::optional<h::Type_reference> const& expected_statement_type,
@@ -96,6 +99,7 @@ namespace h::compiler
     void process_expression(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* function_declaration,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,

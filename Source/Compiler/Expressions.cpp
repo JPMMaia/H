@@ -3301,6 +3301,7 @@ namespace h::compiler
 
     Value_and_type create_variable_declaration_with_type_expression_value(
         Variable_declaration_with_type_expression const& expression,
+        h::Statement const& statement,
         Expression_parameters const& parameters
     )
     {
@@ -3318,8 +3319,10 @@ namespace h::compiler
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = core_type;
-        Value_and_type const right_hand_side = create_loaded_statement_value(
-            expression.right_hand_side,
+        
+        Value_and_type const right_hand_side = create_expression_value(
+            expression.right_hand_side.expression_index,
+            statement,
             new_parameters
         );
 
@@ -3696,7 +3699,7 @@ namespace h::compiler
         else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
         {
             Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
-            return create_variable_declaration_with_type_expression_value(data, new_parameters);
+            return create_variable_declaration_with_type_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Variable_expression>(expression.data))
         {

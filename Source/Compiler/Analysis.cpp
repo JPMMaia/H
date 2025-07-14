@@ -95,6 +95,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                &function_declaration,
                 scope,
                 condition.condition,
                 std::nullopt,
@@ -112,6 +113,7 @@ namespace h::compiler
                 process_statement(
                     result,
                     core_module,
+                    &function_declaration,
                     scope,
                     condition.condition,
                     std::nullopt,
@@ -130,6 +132,7 @@ namespace h::compiler
         process_block(
             result,
             core_module,
+            &function_declaration,
             scope,
             function_definition.statements,
             declaration_database,
@@ -141,6 +144,7 @@ namespace h::compiler
     void process_block(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
@@ -155,6 +159,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 statement,
                 std::nullopt,
@@ -173,6 +178,7 @@ namespace h::compiler
     void process_statements(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope& scope,
         std::span<Statement> const statements,
         h::Declaration_database& declaration_database,
@@ -185,6 +191,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 statement,
                 std::nullopt,
@@ -198,6 +205,7 @@ namespace h::compiler
     void process_statement(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope& scope,
         h::Statement& statement,
         std::optional<h::Type_reference> const& expected_statement_type,
@@ -210,6 +218,7 @@ namespace h::compiler
         {
             std::pmr::vector<h::compiler::Diagnostic> diagnostics = validate_statement(
                 core_module,
+                function_declaration,
                 scope,
                 statement,
                 expected_statement_type,
@@ -236,6 +245,7 @@ namespace h::compiler
             process_expression(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 statement,
                 expression,
@@ -249,6 +259,7 @@ namespace h::compiler
     void process_expression(
         Analysis_result& result,
         h::Module& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,
@@ -263,6 +274,7 @@ namespace h::compiler
             process_block(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.statements,
                 declaration_database,
@@ -301,6 +313,7 @@ namespace h::compiler
             process_statements(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.array_data,
                 declaration_database,
@@ -314,6 +327,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.range_end,
                 std::nullopt,
@@ -324,6 +338,7 @@ namespace h::compiler
             process_block(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.then_statements,
                 declaration_database,
@@ -350,6 +365,7 @@ namespace h::compiler
             process_statements(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.arguments,
                 declaration_database,
@@ -367,6 +383,7 @@ namespace h::compiler
                     process_statement(
                         result,
                         core_module,
+                        function_declaration,
                         scope,
                         serie.condition.value(),
                         std::nullopt,
@@ -379,6 +396,7 @@ namespace h::compiler
                 process_block(
                     result,
                     core_module,
+                    function_declaration,
                     scope,
                     serie.then_statements,
                     declaration_database,
@@ -395,6 +413,7 @@ namespace h::compiler
                 process_statement(
                     result,
                     core_module,
+                    function_declaration,
                     scope,
                     member.value,
                     std::nullopt,
@@ -412,6 +431,7 @@ namespace h::compiler
                 process_block(
                     result,
                     core_module,
+                    function_declaration,
                     scope,
                     serie.statements,
                     declaration_database,
@@ -426,6 +446,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.then_statement,
                 std::nullopt,
@@ -436,6 +457,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.else_statement,
                 std::nullopt,
@@ -456,7 +478,6 @@ namespace h::compiler
         else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
         {
             h::Variable_declaration_with_type_expression& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-            process_statement(result, core_module, scope, data.right_hand_side, data.type, declaration_database, options, temporaries_allocator);
             scope.variables.push_back({.name = data.name, .type = data.type});
         }
         else if (std::holds_alternative<h::While_loop_expression>(expression.data))
@@ -465,6 +486,7 @@ namespace h::compiler
             process_statement(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.condition,
                 std::nullopt,
@@ -475,6 +497,7 @@ namespace h::compiler
             process_block(
                 result,
                 core_module,
+                function_declaration,
                 scope,
                 data.then_statements,
                 declaration_database,
@@ -986,6 +1009,10 @@ namespace h::compiler
                 }
             }
         }
+        else if (parameter_type == argument_type)
+        {
+
+        }
     }
 
     std::optional<std::pmr::vector<Statement>> deduce_instance_call_arguments(
@@ -1064,6 +1091,24 @@ namespace h::compiler
         {
             deduced_parameters.clear();
             deduced_parameters.resize(function_constructor->parameters.size());
+
+            if (std::holds_alternative<h::Instance_call_expression>(left_hand_side.data))
+            {
+                h::Instance_call_expression const& instance_call_expression = std::get<h::Instance_call_expression>(left_hand_side.data);
+                for (std::size_t index = 0; index < instance_call_expression.arguments.size(); ++index)
+                {
+                    h::Statement const& argument_statement = instance_call_expression.arguments[index];
+                    if (argument_statement.expressions.size() == 1)
+                    {
+                        h::Expression const& argument_expression = argument_statement.expressions[0];
+                        if (std::holds_alternative<h::Type_expression>(argument_expression.data))
+                        {
+                            h::Type_expression const& type_expression = std::get<h::Type_expression>(argument_expression.data);
+                            deduced_parameters[index] = type_expression.type;
+                        }
+                    }
+                }
+            }
 
             for (std::size_t index = 0; index < function_expression->declaration.type.input_parameter_types.size(); ++index)
             {
