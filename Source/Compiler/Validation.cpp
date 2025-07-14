@@ -135,6 +135,11 @@ namespace h::compiler
             h::Instantiate_expression const& value = std::get<h::Instantiate_expression>(expression.data);
             return validate_instantiate_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Return_expression>(expression.data))
+        {
+            h::Return_expression const& value = std::get<h::Return_expression>(expression.data);
+            return validate_return_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Unary_expression>(expression.data))
         {
             h::Unary_expression const& value = std::get<h::Unary_expression>(expression.data);
@@ -784,6 +789,70 @@ namespace h::compiler
                 }
 
                 return diagnostics;
+            }
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_return_expression(
+        Validate_expression_parameters const& parameters,
+        h::Return_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        if (parameters.function_declaration == nullptr)
+            return {};
+
+        std::optional<h::Type_reference> const expected_type = 
+            !parameters.function_declaration->type.output_parameter_types.empty() ?
+            std::optional<h::Type_reference>{parameters.function_declaration->type.output_parameter_types[0]} :
+            std::optional<h::Type_reference>{std::nullopt};
+
+        if (expression.expression.has_value())
+        {
+            std::optional<h::Type_reference> const& provided_type = parameters.expression_types[expression.expression->expression_index];
+
+            if (!are_compatible_types(provided_type, expected_type))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, provided_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Function '{}' expects a return value of type '{}', but '{}' was provided.",
+                            parameters.function_declaration->name,
+                            expected_type_name,
+                            provided_type_name
+                        )
+                    )
+                };
+            }
+        }
+        else
+        {
+            if (parameters.function_declaration != nullptr)
+            {
+                if (!parameters.function_declaration->type.output_parameter_types.empty())
+                {
+                    std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                    return {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            std::format(
+                                "Function '{}' expects a return value of type '{}', but none was provided.",
+                                parameters.function_declaration->name,
+                                expected_type_name
+                            )
+                        )
+                    };
+                }
             }
         }
 

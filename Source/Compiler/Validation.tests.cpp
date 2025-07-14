@@ -996,6 +996,79 @@ function run(value: Int32) -> ()
     }
 
 
+    TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run_void(value: Int32) -> ()
+{
+    if value == 0 {
+        return;
+    }
+    else if value == 1 {
+        return 1;
+    }
+}
+
+function run_int32(value: Int32) -> (result: Int32)
+{
+    if value == 0 {
+        return 1;
+    }
+    else if value == 1 {
+        return;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 9, 9, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function 'run_void' expects a return value of type 'void', but 'Int32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(19, 9, 19, 15),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function 'run_int32' expects a return value of type 'Int32', but none was provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of a return expression is defined", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    return Int32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 12, 5, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'Int32' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that numeric unary operations can only be applied to numbers", "[Validation][Unary_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -2281,69 +2354,6 @@ function run() -> ()
                 .message = "Expected type is 'Int32' but got 'Float32'.",
                 .related_information = {},
             }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-    
-    
-    TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    if value == 0 {
-        return;
-    }
-    else if value == 1 {
-        return 1;
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 9, 9, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Return expression type 'Int32' does not match function return type 'void'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression type of a return expression is defined", "[Validation][Return_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    return Int32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 5, 5, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot deduce return type.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(5, 12, 5, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'Int32' does not exist.",
-                .related_information = {},
-            },
         };
 
         test_validate_module(input, {}, expected_diagnostics);
