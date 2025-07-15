@@ -54,6 +54,55 @@ namespace h::compiler
         return first == second;
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_type_reference(
+        h::Module const& core_module,
+        h::Type_reference const& type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        if (is_custom_type_reference(type))
+        {   
+            return validate_custom_type_reference(
+                core_module,
+                type,
+                declaration_database,
+                temporaries_allocator
+            );
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_custom_type_reference(
+        h::Module const& core_module,
+        h::Type_reference const& type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::optional<Declaration> const declaration = find_declaration(
+            declaration_database,
+            type
+        );
+
+        if (!declaration.has_value())
+        {
+            std::pmr::string const type_name = h::parser::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    core_module.source_file_path,
+                    type.source_range,
+                    std::format("Type '{}' does not exist.", type_name)
+                )
+            };
+        }
+
+        return {};
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
         Function_declaration const* const function_declaration,

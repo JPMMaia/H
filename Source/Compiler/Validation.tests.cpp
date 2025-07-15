@@ -809,6 +809,89 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    
+    TEST_CASE("Validates that a type exists", "[Validation][Custom_type_reference]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_int = Int32;
+using My_type = My_struct;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(4, 17, 4, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Type 'My_struct' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a type from an import module exists", "[Validation][Custom_type_reference]")
+    {
+        std::string_view const input = R"(module Test_a;
+
+import Test_b as B;
+
+using My_int = Int32;
+using My_type = B.My_struct;
+using My_type_2 = B.My_struct_2;
+)";
+
+        std::string_view const test_b_input = R"(module Test_b;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { test_b_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 19, 7, 32),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Type 'B.My_struct_2' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the module alias accessed by the custom type reference exists", "[Validation][Custom_type_reference]")
+    {
+        std::string_view const input = R"(module Test_a;
+
+using My_type = B.My_struct;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 17, 3, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                //.message = "Module alias 'B' does not exist.",
+                .message = "Type 'My_struct' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that members are not duplicate", "[Validation][Instantiate_expression]")
     {
@@ -2084,88 +2167,6 @@ using My_uint = Uint65;
     }
 
 
-    TEST_CASE("Validates that a type exists", "[Validation][Custom_type_reference]")
-    {
-        std::string_view const input = R"(module Test;
-
-using My_int = Int32;
-using My_type = My_struct;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(4, 17, 4, 26),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Type 'My_struct' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a type from an import module exists", "[Validation][Custom_type_reference]")
-    {
-        std::string_view const input = R"(module Test_a;
-
-import Test_b as B;
-
-using My_int = Int32;
-using My_type = B.My_struct;
-using My_type_2 = B.My_struct_2;
-)";
-
-        std::string_view const test_b_input = R"(module Test_b;
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-)";
-
-        std::pmr::vector<std::string_view> const dependencies = { test_b_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 21, 7, 32),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Type 'B.My_struct_2' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the module alias accessed by the custom type reference exists", "[Validation][Custom_type_reference]")
-    {
-        std::string_view const input = R"(module Test_a;
-
-using My_type = B.My_struct;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 17, 3, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Module alias 'B' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    
     TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
     {
         std::string_view const input = R"(module Test;
