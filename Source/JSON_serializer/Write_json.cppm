@@ -1139,6 +1139,7 @@ namespace h::json
         }
         writer.EndObject();
 
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 

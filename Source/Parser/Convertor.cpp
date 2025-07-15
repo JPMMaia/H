@@ -614,6 +614,8 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        h::Source_range const source_range = get_node_source_range(child);
+
         if (type_choice == "Type_name")
         {
             std::optional<Parse_node> const type_name_node = get_child_node(tree, child, 0);
@@ -625,11 +627,16 @@ namespace h::parser
             if (type_name == "Type")
                 return create_builtin_type_reference(create_string("Type", output_allocator));
 
-            return parse_type_name(
+            std::optional<h::Type_reference> type_reference = parse_type_name(
                 module_info.module_name,
                 type_name,
                 output_allocator
             );
+            if (!type_reference.has_value())
+                return std::nullopt;
+            
+            type_reference->source_range = source_range;
+            return type_reference;
         }
         else if (type_choice == "Module_type")
         {
@@ -664,7 +671,7 @@ namespace h::parser
                 type.name = create_string(get_node_value(tree, type_name_node.value()), output_allocator);
             }
 
-            return h::Type_reference{ .data = std::move(type) };
+            return h::Type_reference{ .data = std::move(type), .source_range = source_range };
         }
         else if (type_choice == "Pointer_type")
         {
@@ -694,7 +701,7 @@ namespace h::parser
                 }
             }
 
-            return h::Type_reference{ .data = std::move(output) };
+            return h::Type_reference{ .data = std::move(output), .source_range = source_range };
         }
         else if (type_choice == "Constant_array_type")
         {
@@ -726,7 +733,7 @@ namespace h::parser
                 output.size = length;
             }
 
-            return h::Type_reference{ .data = std::move(output) };
+            return h::Type_reference{ .data = std::move(output), .source_range = source_range };
         }
         else if (type_choice == "Function_pointer_type")
         {
@@ -770,7 +777,7 @@ namespace h::parser
                 temporaries_allocator
             );
 
-            return h::Type_reference{ .data = std::move(output) };
+            return h::Type_reference{ .data = std::move(output), .source_range = source_range };
         }
         else if (type_choice == "Type_instance_type")
         {
@@ -799,7 +806,7 @@ namespace h::parser
             std::pmr::vector<Parse_node> const argument_nodes = get_child_nodes_of_parent(tree, child, "Type_instance_type_parameters", "Expression_instance_call_parameter", temporaries_allocator);
             output.arguments = node_to_block(module_info, tree, argument_nodes, output_allocator, temporaries_allocator);
             
-            return h::Type_reference{ .data = std::move(output) };
+            return h::Type_reference{ .data = std::move(output), .source_range = source_range };
         }
 
         return std::nullopt;

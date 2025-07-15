@@ -76,6 +76,11 @@ namespace h
         return lhs.data == rhs.data;
     }
 
+    bool operator==(Type_reference const& lhs, Type_reference const& rhs)
+    {
+        return lhs.data == rhs.data;
+    }
+
     Source_range create_source_range(
         std::uint32_t const start_line,
         std::uint32_t const start_column,

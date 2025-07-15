@@ -264,12 +264,14 @@ namespace h
         >;
 
         Data_type data;
+        std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Type_reference const&, Type_reference const&);
         friend bool operator==(Type_reference const& lhs, Type_reference const& rhs);
 #else
         friend auto operator<=>(Type_reference const&, Type_reference const&) = default;
+        friend bool operator==(Type_reference const& lhs, Type_reference const& rhs);
 #endif
     };
 
