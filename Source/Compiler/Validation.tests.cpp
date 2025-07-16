@@ -893,6 +893,101 @@ using My_type = B.My_struct;
     }
 
 
+    TEST_CASE("Validates that the expression types of a for loop range begin, end and step_by match", "[Validation][For_loop_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    for index in 0 to value step_by 1 {
+    }
+
+    for index in 0.0f32 to value step_by 1 {
+    }
+
+    for index in 0 to 10.0f32 step_by 1 {
+    }
+
+    for index in 0 to 10 step_by 1.0f32 {
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(8, 28, 8, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "For loop range end type 'Int32' does not match range begin type 'Float32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 23, 11, 30),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "For loop range end type 'Float32' does not match range begin type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(14, 34, 14, 40),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "For loop step_by type 'Float32' does not match range begin type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression types of a for loop range begin, end and step_by are numbers", "[Validation][For_loop_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(value: Int32) -> ()
+{
+    for index in 0 to value step_by 1 {
+    }
+
+    for index in true to false step_by false {
+    }
+
+    var instance: My_struct = {};
+    for index in instance to instance step_by instance {
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(13, 18, 13, 22),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "For loop range begin type 'Bool' is not a number.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(17, 18, 17, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "For loop range begin type 'My_struct' is not a number.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that if condition expression type is boolean", "[Validation][If_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -926,6 +1021,52 @@ function run(value: Int32) -> ()
             },
             {
                 .range = create_source_range(15, 13, 15, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][lf_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value {
+        return 0;
+    }
+    else if value == 0 {
+        return 1;
+    }
+    else if true {
+        return 2;
+    }
+    else if 1 {
+        return 3;
+    }
+    else if 1cb {
+        return 4;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 8, 5, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(14, 13, 14, 14),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expression type 'Int32' does not match expected type 'Bool'.",
@@ -1882,6 +2023,36 @@ function run(a: Int32) -> ()
     }
 
 
+    TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][While_loop_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    while value == 0 {
+    }
+
+    while value {
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(8, 11, 8, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
     {
         std::string_view const input = R"(module Test;
@@ -2691,178 +2862,6 @@ function run() -> ()
                 .message = "Expected type is 'Int32' but got 'Float32'.",
                 .related_information = {},
             }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][lf_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> (result: Int32)
-{
-    if value {
-        return 0;
-    }
-    else if value == 0 {
-        return 1;
-    }
-    else if true {
-        return 2;
-    }
-    else if 1 {
-        return 3;
-    }
-    else if 1cb {
-        return 4;
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 8, 5, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Condition expression type 'Int32' is not 'bool'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(14, 13, 14, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Condition expression type 'Int32' is not 'bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the expression types of a for loop range begin, end and step_by match", "[Validation][For_loop_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    for index in 0 to value step_by 1 {
-    }
-
-    for index in 0.0f32 to value step_by 1 {
-    }
-
-    for index in 0 to 10.0f32 step_by 1 {
-    }
-
-    for index in 0 to 10 step_by 1.0f32 {
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(8, 5, 8, 43),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The range begin, end and step_by expression types must all match.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 5, 11, 40),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The range begin, end and step_by expression types must all match.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(14, 5, 14, 40),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The range begin, end and step_by expression types must all match.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression types of a for loop range begin, end and step_by are numbers", "[Validation][For_loop_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(value: Int32) -> ()
-{
-    for index in 0 to value step_by 1 {
-    }
-
-    for index in true to false step_by false {
-    }
-
-    var instance: My_struct = {};
-    for index in instance to instance step_by instance {
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(13, 5, 13, 45),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The range begin, end and step_by expression must evaluate to numbers.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(17, 5, 17, 55),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The range begin, end and step_by expression must evaluate to numbers.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][While_loop_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    while value == 0 {
-    }
-
-    while value {
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(8, 11, 8, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
         };
 
         test_validate_module(input, {}, expected_diagnostics);

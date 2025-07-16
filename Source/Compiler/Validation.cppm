@@ -74,6 +74,12 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_for_loop_expression(
+        Validate_expression_parameters const& parameters,
+        h::For_loop_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_if_expression(
         Validate_expression_parameters const& parameters,
         h::If_expression const& expression,
@@ -125,6 +131,12 @@ namespace h::compiler
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_while_loop_expression(
+        Validate_expression_parameters const& parameters,
+        h::While_loop_expression const& expression,
         std::optional<h::Source_range> const& source_range
     );
 

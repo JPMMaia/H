@@ -179,6 +179,11 @@ namespace h::compiler
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
             return validate_call_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::For_loop_expression>(expression.data))
+        {
+            h::For_loop_expression const& value = std::get<h::For_loop_expression>(expression.data);
+            return validate_for_loop_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::If_expression>(expression.data))
         {
             h::If_expression const& value = std::get<h::If_expression>(expression.data);
@@ -223,6 +228,11 @@ namespace h::compiler
         {
             h::Variable_expression const& value = std::get<h::Variable_expression>(expression.data);
             return validate_variable_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::While_loop_expression>(expression.data))
+        {
+            h::While_loop_expression const& value = std::get<h::While_loop_expression>(expression.data);
+            return validate_while_loop_expression(parameters, value, expression.source_range);
         }
 
         return {};
@@ -668,6 +678,86 @@ namespace h::compiler
         }
 
         return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_for_loop_expression(
+        Validate_expression_parameters const& parameters,
+        h::For_loop_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& range_begin_type_optional = parameters.expression_types[expression.range_begin.expression_index];
+
+        if (!range_begin_type_optional.has_value() || (!is_integer(range_begin_type_optional.value()) && !is_floating_point(range_begin_type_optional.value())))
+        {
+            h::Expression const& range_begin_expression = parameters.statement.expressions[expression.range_begin.expression_index];
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    range_begin_expression.source_range,
+                    std::format(
+                        "For loop range begin type '{}' is not a number.",
+                        provided_type_name
+                    )
+                )
+            };
+        }
+
+        std::optional<h::Type_reference> const range_end_type_optional = get_expression_type(
+            parameters.core_module,
+            parameters.scope,
+            expression.range_end,
+            parameters.declaration_database
+        );
+
+        if (!are_compatible_types(range_begin_type_optional, range_end_type_optional))
+        {
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, range_end_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    get_statement_source_range(expression.range_end),
+                    std::format(
+                        "For loop range end type '{}' does not match range begin type '{}'.",
+                        provided_type_name,
+                        expected_type_name
+                    )
+                )
+            };
+        }
+
+        if (expression.step_by.has_value())
+        {
+            std::optional<h::Type_reference> const& step_by_type_optional = parameters.expression_types[expression.step_by->expression_index];
+
+            if (!are_compatible_types(range_begin_type_optional, step_by_type_optional))
+            {
+                h::Expression const& step_by_expression = parameters.statement.expressions[expression.step_by->expression_index];
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, step_by_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        step_by_expression.source_range,
+                        std::format(
+                            "For loop step_by type '{}' does not match range begin type '{}'.",
+                            provided_type_name,
+                            expected_type_name
+                        )
+                    )
+                };
+            }
+        }
+
+        return {};
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_if_expression(
@@ -1388,6 +1478,39 @@ namespace h::compiler
                 std::format("Variable '{}' does not exist.", expression.name)
             )
         };
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_while_loop_expression(
+        Validate_expression_parameters const& parameters,
+        h::While_loop_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
+            parameters.core_module,
+            parameters.scope,
+            expression.condition,
+            parameters.declaration_database
+        );
+
+        if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+        {
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return 
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    get_statement_source_range(expression.condition),
+                    std::format(
+                        "Expression type '{}' does not match expected type 'Bool'.",
+                        provided_type_name
+                    )
+                )
+            };
+        }
+
+        return {};
     }
 
     bool is_computable_at_compile_time(
