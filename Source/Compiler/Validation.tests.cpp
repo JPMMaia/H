@@ -893,6 +893,50 @@ using My_type = B.My_struct;
     }
 
 
+    TEST_CASE("Validates that if condition expression type is boolean", "[Validation][If_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    if value == 0
+    {
+    }
+    else if value == 1
+    {
+    }
+
+    if value
+    {
+    }
+    else if value
+    {
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            {
+                .range = create_source_range(12, 8, 12, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(15, 13, 15, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that members are not duplicate", "[Validation][Instantiate_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -1144,6 +1188,298 @@ function run(value: Int32) -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'Int32' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that the expression type of the switch input is an integer or an enum value", "[Validation][Switch_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        default: {
+            return 0;
+        }
+    }
+
+    switch enum_value {
+        default: {
+            return 1;
+        }
+    }
+
+    var instance: My_struct = {};
+    switch instance {
+        default: {
+            return 2;
+        }
+    }
+
+    var float_value = 0.0f32;
+    switch float_value {
+        default: {
+            return 3;
+        }
+    }
+
+    switch My_enum {
+        default: {
+            return 3;
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(30, 12, 30, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch condition type is 'My_struct' but expected an integer or an enum value.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(37, 12, 37, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch condition type is 'Float32' but expected an integer or an enum value.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(43, 12, 43, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch condition type is 'void' but expected an integer or an enum value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of the switch case is an integer or an enum value", "[Validation][Switch_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        case 0: {
+            return 0;
+        }
+        case 1.0f32: {
+            return 1;
+        }
+        default: {
+            return 2;
+        }
+    }
+
+    switch enum_value {
+        case My_enum.A: {
+            return 3;
+        }
+    }
+
+    return 4;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 14, 16, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch case value type 'Float32' does not match switch condition type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of the switch case must match the type of the input", "[Validation][Switch_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+enum My_enum_2
+{
+    A,
+    B,
+    C,
+}
+
+function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
+{
+    switch int_value {
+        case My_enum.A: {
+            return 0;
+        }
+    }
+
+    switch enum_value {
+        case 0: {
+            return 1;
+        }
+        case My_enum_2.A: {
+            return 2;
+        }
+    }
+
+    return 3;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(20, 14, 20, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch case value type 'My_enum' does not match switch condition type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(26, 14, 26, 15),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch case value type 'Int32' does not match switch condition type 'My_enum'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(29, 14, 29, 25),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch case value type 'My_enum_2' does not match switch condition type 'My_enum'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of the switch case is a single constant expression", "[Validation][Switch_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+    C,
+}
+
+function run(enum_value: My_enum) -> (result: Int32)
+{
+    var enum_value_2 = My_enum.A;
+    switch enum_value {
+        case enum_value_2: {
+            return 1;
+        }
+    }
+
+    return 2;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 14, 14, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that the expression type of the condition expression is a boolean", "[Validation][Ternary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    var result_0 = value == 0 ? 0 : 1;
+    var result_1 = value ? 0 : 1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 20, 6, 25),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the expression type of the then and else expressions matches", "[Validation][Ternary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(condition: Bool) -> (result: Int32)
+{
+    var result_0 = condition ? 0 : 1;
+    var result_1 = condition ? 0 : 1.0f32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 20, 6, 42),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Ternary condition expression requires both branches to be of the same type. Left side type 'Int32' does not match right side type 'Float32'.",
                 .related_information = {},
             },
         };
@@ -2400,298 +2736,6 @@ function run(value: Int32) -> (result: Int32)
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Condition expression type 'Int32' is not 'bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the expression type of the condition expression is a boolean", "[Validation][Ternary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> (result: Int32)
-{
-    var result_0 = value == 0 ? 0 : 1;
-    var result_1 = value ? 0 : 1;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 20, 6, 25),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression type of the then and else expressions matches", "[Validation][Ternary_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(condition: Bool) -> (result: Int32)
-{
-    var result_0 = condition ? 0 : 1;
-    var result_1 = condition ? 0 : 1.0f32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 20, 6, 42),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The expression types of the then ('Int32') and else ('Float32') part of a ternary expression must match.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the expression type of the switch input is an integer or an enum value", "[Validation][Switch_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A,
-    B,
-    C,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
-{
-    switch int_value {
-        default: {
-            return 0;
-        }
-    }
-
-    switch enum_value {
-        default: {
-            return 1;
-        }
-    }
-
-    var instance: My_struct = {};
-    switch instance {
-        default: {
-            return 2;
-        }
-    }
-
-    var float_value = 0.0f32;
-    switch float_value {
-        default: {
-            return 3;
-        }
-    }
-
-    switch My_enum {
-    default: {
-        return 3;
-    }
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(30, 12, 30, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression must evaluate to an integer or an enum value.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(37, 12, 37, 23),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression must evaluate to an integer or an enum value.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(43, 12, 43, 19),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression must evaluate to an integer or an enum value.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression type of the switch case is an integer or an enum value", "[Validation][Switch_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A,
-    B,
-    C,
-}
-
-function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
-{
-    switch int_value {
-        case 0: {
-            return 0;
-        }
-        case 1.0f32: {
-            return 1;
-        }
-        default: {
-            return 2;
-        }
-    }
-
-    switch enum_value {
-        case My_enum.A: {
-            return 3;
-        }
-    }
-
-    return 4;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(16, 14, 16, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type must match the switch case input type.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression type of the switch case must match the type of the input", "[Validation][Switch_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A,
-    B,
-    C,
-}
-
-enum My_enum_2
-{
-    A,
-    B,
-    C,
-}
-
-function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
-{
-    switch int_value {
-        case My_enum.A: {
-            return 0;
-        }
-    }
-
-    switch enum_value {
-        case 0: {
-            return 1;
-        }
-        case My_enum_2.A: {
-            return 2;
-        }
-    }
-
-    return 3;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(20, 14, 20, 23),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type must match the switch case input type.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(26, 14, 26, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type must match the switch case input type.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(29, 14, 29, 25),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type must match the switch case input type.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the expression type of the switch case is a single constant expression", "[Validation][Switch_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A,
-    B,
-    C,
-}
-
-function run(enum_value: My_enum) -> (result: Int32)
-{
-    var enum_value_2 = My_enum.A;
-    switch enum_value {
-        case enum_value_2: {
-            return 1;
-        }
-    }
-
-    return 2;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(14, 14, 14, 26),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value.",
                 .related_information = {},
             },
         };

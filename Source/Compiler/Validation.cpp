@@ -179,6 +179,11 @@ namespace h::compiler
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
             return validate_call_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::If_expression>(expression.data))
+        {
+            h::If_expression const& value = std::get<h::If_expression>(expression.data);
+            return validate_if_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
         {
             h::Instantiate_expression const& value = std::get<h::Instantiate_expression>(expression.data);
@@ -188,6 +193,16 @@ namespace h::compiler
         {
             h::Return_expression const& value = std::get<h::Return_expression>(expression.data);
             return validate_return_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Switch_expression>(expression.data))
+        {
+            h::Switch_expression const& value = std::get<h::Switch_expression>(expression.data);
+            return validate_switch_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Ternary_condition_expression>(expression.data))
+        {
+            h::Ternary_condition_expression const& value = std::get<h::Ternary_condition_expression>(expression.data);
+            return validate_ternary_condition_expression(parameters, value, expression.source_range);
         }
         else if (std::holds_alternative<h::Unary_expression>(expression.data))
         {
@@ -655,6 +670,46 @@ namespace h::compiler
         return diagnostics;
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_if_expression(
+        Validate_expression_parameters const& parameters,
+        h::If_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{parameters.temporaries_allocator};
+
+        for (Condition_statement_pair const& pair : expression.series)
+        {
+            if (!pair.condition.has_value())
+                continue;
+
+            std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
+                parameters.core_module,
+                parameters.scope,
+                pair.condition.value(),
+                parameters.declaration_database
+            );
+
+            if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        get_statement_source_range(pair.condition.value()),
+                        std::format(
+                            "Expression type '{}' does not match expected type 'Bool'.",
+                            provided_type_name
+                        )
+                    )
+                );
+            }
+        }
+
+        return diagnostics;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_instantiate_expression(
         Validate_expression_parameters const& parameters,
         h::Instantiate_expression const& expression,
@@ -903,6 +958,154 @@ namespace h::compiler
                     };
                 }
             }
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_switch_expression(
+        Validate_expression_parameters const& parameters,
+        h::Switch_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<Type_reference> const type_optional = parameters.expression_types[expression.value.expression_index];
+
+        if (!type_optional.has_value() || (!is_enum_type(parameters.declaration_database, type_optional.value()) && !is_integer(type_optional.value())))
+        {
+            h::Expression const& value_expression = parameters.statement.expressions[expression.value.expression_index];
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    value_expression.source_range,
+                    std::format(
+                        "Switch condition type is '{}' but expected an integer or an enum value.",
+                        provided_type_name
+                    )
+                )
+            };
+        }
+
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{parameters.temporaries_allocator};
+
+        std::size_t default_case_count = 0;
+
+        for (Switch_case_expression_pair const& pair : expression.cases)
+        {
+            if (!pair.case_value.has_value())
+            {
+                default_case_count += 1;
+
+                if (default_case_count > 1)
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            "Switch expression cannot have more than one default case."
+                        )
+                    };
+                }
+
+                continue;
+            }
+
+            h::Expression const& case_value_expression = parameters.statement.expressions[pair.case_value->expression_index];
+            std::optional<h::Type_reference> const case_value_type_optional = parameters.expression_types[pair.case_value->expression_index];
+
+            if (!are_compatible_types(type_optional, case_value_type_optional))
+            {
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, case_value_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        case_value_expression.source_range,
+                        std::format(
+                            "Switch case value type '{}' does not match switch condition type '{}'.",
+                            provided_type_name,
+                            expected_type_name
+                        )
+                    )
+                );
+            }
+            else if (!is_computable_at_compile_time(case_value_expression, case_value_type_optional, parameters.declaration_database))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        case_value_expression.source_range,
+                        "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value."
+                    )
+                );
+            }
+        }
+
+        return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_ternary_condition_expression(
+        Validate_expression_parameters const& parameters,
+        h::Ternary_condition_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& condition_type_optional = parameters.expression_types[expression.condition.expression_index];
+
+        if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+        {
+            h::Expression const& condition_expression = parameters.statement.expressions[expression.condition.expression_index];
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    condition_expression.source_range,
+                    std::format(
+                        "Expression type '{}' does not match expected type 'Bool'.",
+                        provided_type_name
+                    )
+                )
+            };
+        }
+
+        std::optional<h::Type_reference> const then_type_optional = get_expression_type(
+            parameters.core_module,
+            parameters.scope,
+            expression.then_statement,
+            parameters.declaration_database
+        );
+
+        std::optional<h::Type_reference> const else_type_optional = get_expression_type(
+            parameters.core_module,
+            parameters.scope,
+            expression.else_statement,
+            parameters.declaration_database
+        );
+
+        if (!are_compatible_types(then_type_optional, else_type_optional))
+        {
+            std::pmr::string const then_type_name = h::parser::format_type_reference(parameters.core_module, then_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const else_type_name = h::parser::format_type_reference(parameters.core_module, else_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    std::format(
+                        "Ternary condition expression requires both branches to be of the same type. Left side type '{}' does not match right side type '{}'.",
+                        then_type_name,
+                        else_type_name
+                    )
+                )
+            };
         }
 
         return {};
@@ -1185,6 +1388,27 @@ namespace h::compiler
                 std::format("Variable '{}' does not exist.", expression.name)
             )
         };
+    }
+
+    bool is_computable_at_compile_time(
+        h::Expression const& expression,
+        std::optional<h::Type_reference> const& expression_type,
+        Declaration_database const& declaration_database
+    )
+    {
+        if (std::holds_alternative<h::Access_expression>(expression.data))
+        {
+            if (expression_type.has_value() && is_enum_type(declaration_database, expression_type.value()))
+            {
+                return true;
+            }
+        }
+        else if (std::holds_alternative<h::Constant_expression>(expression.data))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     bool is_enum_type(

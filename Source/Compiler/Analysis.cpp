@@ -739,7 +739,34 @@ namespace h::compiler
         else if (std::holds_alternative<h::Binary_expression>(expression.data))
         {
             Binary_expression const& data = std::get<h::Binary_expression>(expression.data);
-            return get_expression_type(core_module, scope, statement, statement.expressions[data.left_hand_side.expression_index], declaration_database);
+
+            switch (data.operation)
+            {
+                case h::Binary_operation::Equal:
+                case h::Binary_operation::Not_equal:
+                case h::Binary_operation::Less_than:
+                case h::Binary_operation::Less_than_or_equal_to:
+                case h::Binary_operation::Greater_than:
+                case h::Binary_operation::Greater_than_or_equal_to:
+                case h::Binary_operation::Logical_and:
+                case h::Binary_operation::Logical_or:
+                case h::Binary_operation::Has: {
+                    return create_bool_type_reference();
+                }
+                case h::Binary_operation::Add:
+                case h::Binary_operation::Subtract:
+                case h::Binary_operation::Multiply:
+                case h::Binary_operation::Divide:
+                case h::Binary_operation::Modulus:
+                case h::Binary_operation::Bitwise_and:
+                case h::Binary_operation::Bitwise_or:
+                case h::Binary_operation::Bitwise_xor:
+                case h::Binary_operation::Bit_shift_left:
+                case h::Binary_operation::Bit_shift_right:
+                default: {
+                    return get_expression_type(core_module, scope, statement, statement.expressions[data.left_hand_side.expression_index], declaration_database);
+                }
+            }
         }
         else if (std::holds_alternative<h::Call_expression>(expression.data))
         {

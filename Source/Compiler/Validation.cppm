@@ -74,6 +74,12 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_if_expression(
+        Validate_expression_parameters const& parameters,
+        h::If_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_instantiate_expression(
         Validate_expression_parameters const& parameters,
         h::Instantiate_expression const& expression,
@@ -83,6 +89,18 @@ namespace h::compiler
     std::pmr::vector<h::compiler::Diagnostic> validate_return_expression(
         Validate_expression_parameters const& parameters,
         h::Return_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_switch_expression(
+        Validate_expression_parameters const& parameters,
+        h::Switch_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_ternary_condition_expression(
+        Validate_expression_parameters const& parameters,
+        h::Ternary_condition_expression const& expression,
         std::optional<h::Source_range> const& source_range
     );
 
@@ -108,6 +126,12 @@ namespace h::compiler
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
         std::optional<h::Source_range> const& source_range
+    );
+
+    bool is_computable_at_compile_time(
+        h::Expression const& expression,
+        std::optional<h::Type_reference> const& expression_type,
+        Declaration_database const& declaration_database
     );
 
     bool is_enum_type(
