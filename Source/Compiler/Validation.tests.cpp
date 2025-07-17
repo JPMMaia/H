@@ -338,6 +338,95 @@ export union My_union
     }
 
 
+    TEST_CASE("Validates that assert must evaluate to a boolean", "[Validation][Assert_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> ()
+{
+    assert "value is not 0" { value != 0 };
+    assert "value is not 0" { value };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 31, 6, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that left hand side type matches right hand side type", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    mutable value_0 = 0;
+    value_0 = 1;
+    value_0 = 1.0f32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 15, 7, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expected type is 'Int32' but got 'Float32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that cannot add to struct when assigning", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+}
+
+function run() -> ()
+{
+    mutable value_0 = 0;
+    value_0 += 1;
+
+    mutable value_1: My_struct = {};
+    var value_2: My_struct = {};
+    value_1 += value_2;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 5, 14, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Binary operation '+' can only be applied to numeric types.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that left and right hand side expression types match", "[Validation][Binary_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -810,6 +899,172 @@ function run() -> ()
     }
 
     
+    TEST_CASE("Validates that the numeric cast source type is a numeric type or an enum type", "[Validation][Cast_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A = 0,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as Int64;
+    var value_1 = enum_input as Int64;
+
+    var instance: My_struct = {};
+    var value_2 = instance as Int64;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(19, 19, 19, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply numeric cast from 'My_struct' to 'Int64'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the numeric cast destination type is a numeric type or an enum type", "[Validation][Cast_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A = 0,
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as My_enum;
+    var value_1 = enum_input as Int64;
+    var value_2 = int_input as My_struct;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(17, 19, 17, 41),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply numeric cast from 'Int32' to 'My_struct'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Warn if cast source and destination types are the same (except when using alias)", "[Validation][Cast_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_int = Int32;
+
+enum My_enum
+{
+    A = 0,
+}
+
+function run(int_input: Int32, enum_input: My_enum) -> ()
+{
+    var value_0 = int_input as Int64;
+    var value_1 = int_input as My_int;
+    var value_2 = int_input as Int32;
+    var value_3 = enum_input as My_enum;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 19, 14, 37),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Warning,
+                .message = "Numeric cast from 'Int32' to 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(15, 19, 15, 40),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Warning,
+                .message = "Numeric cast from 'My_enum' to 'My_enum'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that the numeric cast destination type is a numeric type or an enum type using imported modules", "[Validation][Cast_expression]")
+    {
+
+        std::string_view const dependency = R"(module Dependency;
+
+export using Flags = Uint32;
+
+export enum My_enum
+{
+    A = 0,
+}
+
+export struct My_struct
+{
+    a: Int32 = 0;
+}
+)";
+
+        std::string_view const input = R"(module Test;
+
+import Dependency as dependency;
+
+function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
+{
+    var value_0 = int_input as dependency.My_enum;
+    var value_1 = enum_input as dependency.Flags;
+    var value_2 = int_input as dependency.My_struct;
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { dependency };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 19, 9, 52),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply numeric cast from 'Int32' to 'dependency.My_struct'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a type exists", "[Validation][Custom_type_reference]")
     {
         std::string_view const input = R"(module Test;
@@ -1256,6 +1511,82 @@ function run(value: Int32) -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that null can only be assigned to pointer types", "[Validation][Null_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo(pointer: *Int32, non_pointer: Int32) -> (result: *Int32)
+{
+    return null;
+}
+
+struct My_struct
+{
+    a: *Int32 = null;
+    b: Int32 = null;
+}
+
+function run(value: Int32) -> (result: Int32)
+{
+    foo(null, null);
+    
+    var instance_0: My_struct = {
+        a: null,
+        b: null
+    };
+
+    var instance_1: My_struct = {};
+    instance_1.a = null;
+    instance_1.b = null;
+
+    return null;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 16, 11, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign expression of type 'Null_pointer_type' to 'My_struct.b' of type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(16, 15, 16, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 1 type is 'Int32' but 'Null_pointer_type' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(20, 12, 20, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign value of type 'Null_pointer_type' to member 'My_struct.b' of type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(23, 20, 23, 24),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expected type is 'Int32' but got 'Null_pointer_type'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(25, 5, 25, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function 'run' expects a return value of type 'Int32', but 'Null_pointer_type' was provided.",
                 .related_information = {},
             },
         };
@@ -2813,135 +3144,6 @@ using true = Float32;
     }
 
 
-    TEST_CASE("Validates that assert must evaluate to a boolean", "[Validation][Assert_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(value: Int32) -> ()
-{
-    assert "value is not 0" { value != 0 };
-    assert "value is not 0" { value };
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 31, 6, 36),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that left hand side type matches right hand side type", "[Validation][Assignment_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run() -> ()
-{
-    mutable value_0 = 0;
-    value_0 = 1;
-    value_0 = 1.0f32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 15, 7, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expected type is 'Int32' but got 'Float32'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that null can only be assigned to pointer types", "[Validation][Null_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function foo(pointer: *Int32, non_pointer: Int32) -> (result: *Int32)
-{
-    return null;
-}
-
-struct My_struct
-{
-    a: *Int32 = null;
-    b: Int32 = null;
-}
-
-function run(value: Int32) -> (result: Int32)
-{
-    foo(null, null);
-    
-    var instance_0: My_struct = {
-        a: null,
-        b: null
-    };
-    instance_0.a = null;
-    instance_0.b = null;
-
-    return null;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 16, 11, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type 'Null_pointer_type' to 'My_struct.b' of type 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(16, 15, 16, 19),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Argument 'non_pointer' expects type 'Int32', but 'Null_pointer_type' was provided.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(20, 12, 20, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign value of type 'Null_pointer_type' to member 'My_struct.b' of type 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(23, 20, 23, 24),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expected type is 'Int32' but got 'Null_pointer_type'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(25, 5, 25, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Return expression type 'Null_pointer_type' does not match function return type 'Int32'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
     TEST_CASE("Validates that break can only be placed inside for loops, while loops and switch cases", "[Validation][Break_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -3208,171 +3410,5 @@ function run(input: Int32) -> ()
         };
 
         test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that the numeric cast source type is a numeric type or an enum type", "[Validation][Cast_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A = 0,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(int_input: Int32, enum_input: My_enum) -> ()
-{
-    var value_0 = int_input as Int64;
-    var value_1 = enum_input as Int64;
-
-    var instance: My_struct = {};
-    var value_2 = instance as Int64;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(19, 19, 19, 36),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply numeric cast from 'My_struct' to 'Int64'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the numeric cast destination type is a numeric type or an enum type", "[Validation][Cast_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    A = 0,
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-}
-
-function run(int_input: Int32, enum_input: My_enum) -> ()
-{
-    var value_0 = int_input as My_enum;
-    var value_1 = enum_input as Int64;
-    var value_2 = int_input as My_struct;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(17, 19, 17, 41),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply numeric cast from 'Int32' to 'My_struct'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Warn if cast source and destination types are the same (except when using alias)", "[Validation][Cast_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-using My_int = Int32;
-
-enum My_enum
-{
-    A = 0,
-}
-
-function run(int_input: Int32, enum_input: My_enum) -> ()
-{
-    var value_0 = int_input as Int64;
-    var value_1 = int_input as My_int;
-    var value_2 = int_input as Int32;
-    var value_3 = enum_input as My_enum;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(14, 19, 14, 37),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Warning,
-                .message = "Numeric cast from 'Int32' to 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(15, 19, 15, 40),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Warning,
-                .message = "Numeric cast from 'My_enum' to 'My_enum'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that the numeric cast destination type is a numeric type or an enum type using imported modules", "[Validation][Cast_expression]")
-    {
-
-        std::string_view const dependency = R"(module Dependency;
-
-export using Flags = Uint32;
-
-export enum My_enum
-{
-    A = 0,
-}
-
-export struct My_struct
-{
-    a: Int32 = 0;
-}
-)";
-
-        std::string_view const input = R"(module Test;
-
-import Dependency as dependency;
-
-function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
-{
-    var value_0 = int_input as dependency.My_enum;
-    var value_1 = enum_input as dependency.Flags;
-    var value_2 = int_input as dependency.My_struct;
-}
-)";
-
-        std::pmr::vector<std::string_view> const dependencies = { dependency };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 19, 9, 52),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot apply numeric cast from 'Int32' to 'dependency.My_struct'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
     }
 }

@@ -341,6 +341,43 @@ namespace h
         return !is_signed_integer(type);
     }
 
+    bool is_number_or_c_number(Type_reference const& type)
+    {
+        if (is_integer(type))
+            return true;
+        
+        if (is_floating_point(type))
+            return true;
+
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            switch (data)
+            {
+                case Fundamental_type::Float16:
+                case Fundamental_type::Float32:
+                case Fundamental_type::Float64:
+                case Fundamental_type::C_char:
+                case Fundamental_type::C_schar:
+                case Fundamental_type::C_uchar:
+                case Fundamental_type::C_short:
+                case Fundamental_type::C_ushort:
+                case Fundamental_type::C_int:
+                case Fundamental_type::C_uint:
+                case Fundamental_type::C_long:
+                case Fundamental_type::C_ulong:
+                case Fundamental_type::C_longlong:
+                case Fundamental_type::C_ulonglong:
+                case Fundamental_type::C_longdouble:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
     Type_reference create_null_pointer_type_type_reference()
     {
         Null_pointer_type pointer_type

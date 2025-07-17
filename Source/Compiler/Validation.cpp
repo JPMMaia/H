@@ -37,6 +37,23 @@ namespace h::compiler
         };
     }
 
+    h::compiler::Diagnostic create_warning_diagnostic(
+        std::optional<std::filesystem::path> const source_file_path,
+        std::optional<Source_range> const range,
+        std::string_view const message
+    )
+    {
+        return h::compiler::Diagnostic
+        {
+            .file_path = source_file_path,
+            .range = range.has_value() ? range.value() : Source_range{},
+            .source = Diagnostic_source::Compiler,
+            .severity = Diagnostic_severity::Warning,
+            .message = std::pmr::string{message},
+            .related_information = {},
+        };
+    }
+
     bool are_compatible_types(
         std::optional<h::Type_reference> const& first,
         std::optional<h::Type_reference> const& second
@@ -169,6 +186,16 @@ namespace h::compiler
             h::Access_expression const& value = std::get<h::Access_expression>(expression.data);
             return validate_access_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Assert_expression>(expression.data))
+        {
+            h::Assert_expression const& value = std::get<h::Assert_expression>(expression.data);
+            return validate_assert_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Assignment_expression>(expression.data))
+        {
+            h::Assignment_expression const& value = std::get<h::Assignment_expression>(expression.data);
+            return validate_assignment_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Binary_expression>(expression.data))
         {
             h::Binary_expression const& value = std::get<h::Binary_expression>(expression.data);
@@ -178,6 +205,11 @@ namespace h::compiler
         {
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
             return validate_call_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Cast_expression>(expression.data))
+        {
+            h::Cast_expression const& value = std::get<h::Cast_expression>(expression.data);
+            return validate_cast_expression(parameters, value, expression.source_range);
         }
         else if (std::holds_alternative<h::For_loop_expression>(expression.data))
         {
@@ -427,6 +459,230 @@ namespace h::compiler
         return {};
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_assert_expression(
+        Validate_expression_parameters const& parameters,
+        h::Assert_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
+            parameters.core_module,
+            parameters.scope,
+            expression.statement,
+            parameters.declaration_database
+        );
+
+        if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+        {
+            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return 
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    get_statement_source_range(expression.statement),
+                    std::format(
+                        "Expression type '{}' does not match expected type 'Bool'.",
+                        provided_type_name
+                    )
+                )
+            };
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_binary_operation(
+        Validate_expression_parameters const& parameters,
+        h::Expression_index const left_hand_side,
+        h::Expression_index const right_hand_side,
+        h::Binary_operation const operation,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[left_hand_side.expression_index];
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[right_hand_side.expression_index];
+
+        if (!left_hand_side_type_optional.has_value() || !right_hand_side_type_optional.has_value())
+            return {};
+
+        std::optional<h::Type_reference> const type_optional = get_underlying_type(parameters.declaration_database, left_hand_side_type_optional.value());
+        if (!type_optional.has_value())
+            return {};
+        
+        h::Type_reference const& type = type_optional.value();
+
+        if (is_bitwise_binary_operation(operation))
+        {
+            if (!is_integer(type) && !is_byte(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to integers or bytes.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (is_equality_binary_operation(operation))
+        {
+            if (is_pointer(type) || is_null_pointer_type(type))
+            {
+                h::Type_reference const& right_hand_side_type = right_hand_side_type_optional.value();
+
+                if (!is_pointer(right_hand_side_type) && !is_null_pointer_type(right_hand_side_type))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            std::format(
+                                "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
+                                h::parser::binary_operation_symbol_to_string(operation)
+                            )
+                        )
+                    };
+                }
+            }
+            else if (!is_integer(type) && !is_floating_point(type) && !is_byte(type) && !is_bool(type) && !is_c_bool(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (is_comparison_binary_operation(operation))
+        {
+            if (!is_integer(type) && !is_floating_point(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numeric types.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (is_logical_binary_operation(operation))
+        {
+            if (!is_bool(type) && !is_c_bool(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to a boolean value.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (is_numeric_binary_operation(operation))
+        {
+            if (!is_integer(type) && !is_floating_point(type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to numeric types.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (operation == h::Binary_operation::Has)
+        {
+            if (!is_enum_type(parameters.declaration_database, type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation 'has' can only be applied to enum values.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_assignment_expression(
+        Validate_expression_parameters const& parameters,
+        h::Assignment_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
+        
+        if (!are_compatible_types(left_hand_side_type_optional, right_hand_side_type_optional))
+        {
+            h::Expression const& right_hand_side_expression = parameters.statement.expressions[expression.right_hand_side.expression_index];
+            std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    right_hand_side_expression.source_range,
+                    std::format(
+                        "Expected type is '{}' but got '{}'.",
+                        left_hand_side_type_name,
+                        right_hand_side_type_name
+                    )
+                )
+            };
+        }
+
+        if (expression.additional_operation.has_value())
+        {
+            std::pmr::vector<h::compiler::Diagnostic> diagnostics = validate_binary_operation(
+                parameters,
+                expression.left_hand_side,
+                expression.right_hand_side,
+                expression.additional_operation.value(),
+                source_range
+            );
+
+            if (!diagnostics.empty())
+                return diagnostics;
+        }
+
+        return {};
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_binary_expression(
         Validate_expression_parameters const& parameters,
         h::Binary_expression const& expression,
@@ -455,138 +711,13 @@ namespace h::compiler
             };
         }
 
-        if (!left_hand_side_type_optional.has_value() || !right_hand_side_type_optional.has_value())
-            return {};
-
-        std::optional<h::Type_reference> const type_optional = get_underlying_type(parameters.declaration_database, left_hand_side_type_optional.value());
-        if (!type_optional.has_value())
-            return {};
-        
-        h::Type_reference const& type = type_optional.value();
-
-        if (is_bitwise_binary_operation(expression.operation))
-        {
-            if (!is_integer(type) && !is_byte(type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation '{}' can only be applied to integers or bytes.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-        else if (is_equality_binary_operation(expression.operation))
-        {
-            if (is_pointer(type) || is_null_pointer_type(type))
-            {
-                h::Type_reference const& right_hand_side_type = right_hand_side_type_optional.value();
-
-                if (!is_pointer(right_hand_side_type) && !is_null_pointer_type(right_hand_side_type))
-                {
-                    return
-                    {
-                        create_error_diagnostic(
-                            parameters.core_module.source_file_path,
-                            source_range,
-                            std::format(
-                                "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
-                                h::parser::binary_operation_symbol_to_string(expression.operation)
-                            )
-                        )
-                    };
-                }
-            }
-            else if (!is_integer(type) && !is_floating_point(type) && !is_byte(type) && !is_bool(type) && !is_c_bool(type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-        else if (is_comparison_binary_operation(expression.operation))
-        {
-            if (!is_integer(type) && !is_floating_point(type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation '{}' can only be applied to numeric types.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-        else if (is_logical_binary_operation(expression.operation))
-        {
-            if (!is_bool(type) && !is_c_bool(type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation '{}' can only be applied to a boolean value.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-        else if (is_numeric_binary_operation(expression.operation))
-        {
-            if (!is_integer(type) && !is_floating_point(type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation '{}' can only be applied to numeric types.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-        else if (expression.operation == h::Binary_operation::Has)
-        {
-            if (!is_enum_type(parameters.declaration_database, type))
-            {
-                return
-                {
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        source_range,
-                        std::format(
-                            "Binary operation 'has' can only be applied to enum values.",
-                            h::parser::binary_operation_symbol_to_string(expression.operation)
-                        )
-                    )
-                };
-            }
-        }
-
-        return {};
+        return validate_binary_operation(
+            parameters,
+            expression.left_hand_side,
+            expression.right_hand_side,
+            expression.operation,
+            source_range
+        );
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
@@ -678,6 +809,76 @@ namespace h::compiler
         }
 
         return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_cast_expression(
+        Validate_expression_parameters const& parameters,
+        h::Cast_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::optional<h::Type_reference> const& source_type_optional = parameters.expression_types[expression.source.expression_index];
+        std::optional<Type_reference> const& underlying_destination_type = get_underlying_type(parameters.declaration_database, expression.destination_type);
+
+        if (!source_type_optional.has_value() || !underlying_destination_type.has_value())
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    std::format(
+                        "Cannot apply numeric cast from '{}' to '{}'.",
+                        h::parser::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::parser::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                    )
+                )
+            };
+        }
+        
+        std::optional<Type_reference> const& underlying_source_type = get_underlying_type(parameters.declaration_database, source_type_optional.value());
+
+        bool const is_source_numeric = 
+            underlying_source_type.has_value() && 
+            (is_number_or_c_number(source_type_optional.value()) || is_enum_type(parameters.declaration_database, source_type_optional.value()));
+        
+        bool const is_destination_numeric =
+            underlying_destination_type.has_value() &&
+            (is_number_or_c_number(underlying_destination_type.value()) || is_enum_type(parameters.declaration_database, underlying_destination_type.value()));
+
+        if (!is_source_numeric || !is_destination_numeric)
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    std::format(
+                        "Cannot apply numeric cast from '{}' to '{}'.",
+                        h::parser::format_type_reference(parameters.core_module, underlying_source_type, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::parser::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                    )
+                )
+            };
+        }
+
+        if (source_type_optional.value() == expression.destination_type)
+        {
+            return
+            {
+                create_warning_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    std::format(
+                        "Numeric cast from '{}' to '{}'.",
+                        h::parser::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::parser::format_type_reference(parameters.core_module, expression.destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                    )
+                )
+            };
+        }
+
+        return {};
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_for_loop_expression(

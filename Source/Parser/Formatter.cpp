@@ -1590,6 +1590,10 @@ namespace h::parser
             add_text(buffer, value.is_signed ? "Int" : "Uint");
             add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
         }
+        else if (std::holds_alternative<Null_pointer_type>(type.data))
+        {
+            add_text(buffer, "Null_pointer_type");
+        }
         else if (std::holds_alternative<Parameter_type>(type.data))
         {
             Parameter_type const& value = std::get<Parameter_type>(type.data);

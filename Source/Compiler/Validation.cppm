@@ -62,6 +62,26 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_assert_expression(
+        Validate_expression_parameters const& parameters,
+        h::Assert_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_binary_operation(
+        Validate_expression_parameters const& parameters,
+        h::Expression_index const left_hand_side_index,
+        h::Expression_index const right_hand_side_index,
+        h::Binary_operation const operation,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_assignment_expression(
+        Validate_expression_parameters const& parameters,
+        h::Assignment_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_binary_expression(
         Validate_expression_parameters const& parameters,
         h::Binary_expression const& expression,
@@ -71,6 +91,12 @@ namespace h::compiler
     std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
         Validate_expression_parameters const& parameters,
         h::Call_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_cast_expression(
+        Validate_expression_parameters const& parameters,
+        h::Cast_expression const& expression,
         std::optional<h::Source_range> const& source_range
     );
 
