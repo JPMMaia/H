@@ -89,6 +89,726 @@ namespace h::compiler
         }
     }
 
+
+    TEST_CASE("Validates that a declaration name is not a duplicate", "[Validation][Declaration]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_type
+{
+}
+
+union My_type
+{
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            {
+                .range = create_source_range(7, 7, 7, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate declaration name 'My_type'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a declaration name is not a builtin type", "[Validation][Declaration]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct Int32
+{
+}
+
+union Float32
+{
+}
+
+using true = Float32;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 8, 3, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Invalid declaration name 'Int32' which is a reserved keyword.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 7, 7, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Invalid declaration name 'Float32' which is a reserved keyword.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 7, 11, 11),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Invalid declaration name 'true' which is a reserved keyword.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
+    {
+        std::string_view const input = R"(module Test;
+
+import module_a as module_a;
+import module_b as module_a;
+)";
+
+        std::string_view const module_a_input = "module module_a;";
+        std::string_view const module_b_input = "module module_b;";
+        
+        std::pmr::vector<std::string_view> const dependencies = { module_a_input, module_b_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 20, 3, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate import alias 'module_a'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(4, 20, 4, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate import alias 'module_a'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a import module exists", "[Validation][Import]")
+    {
+        std::string_view const input = R"(module Test;
+
+import my.module_a as my_module;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 8, 3, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot find module 'my.module_a'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that enum member names are different from each other", "[Validation][Enum]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    a = 0,
+    b = 1,
+    b = 2,
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 5, 6, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_enum.b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 5, 7, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_enum.b'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that enum values are signed 32-bit integers", "[Validation][Enum]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    a = 0,
+    b = 1i16,
+    c = 2.0f32,
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 9, 6, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The enum value assigned to 'My_enum.b' must be a Int32 type.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 9, 7, 15),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The enum value assigned to 'My_enum.c' must be a Int32 type.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that enum values can be computed at compile-time", "[Validation][Enum]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+enum My_enum
+{
+    a = 0,
+    b = get_value(),
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 9, 11, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'My_enum.b' must be a computable at compile-time.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 9, 11, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot use 'get_value' to calculate 'My_enum.b'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Allows enum values to be computed using enum values", "[Validation][Enum]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    a = 1,
+    b = 2,
+    c = 4,
+    d = a | b | c,
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics = {};
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validate that enum value can only be calculated using previous enum values", "[Validation][Enum]")
+    {
+        std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    a = 1,
+    b = a,
+    c = d,
+    d = d,
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 9, 7, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The enum value 'My_enum.c' can only be calculated using previous enum values.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 9, 8, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The enum value 'My_enum.d' can only be calculated using previous enum values.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that member names are different from each other", "[Validation][Struct]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+    b: Int32 = 0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 5, 6, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_struct.b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 5, 7, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_struct.b'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that member default values types must match member types", "[Validation][Struct]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0.0f32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 16, 6, 22),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign expression of type 'Float32' to 'My_struct.b' of type 'Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that member default values only use compile time expressions", "[Validation][Struct]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = get_value();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 16, 11, 27),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'My_struct.b' must be a computable at compile-time.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that member default values are values, not types", "[Validation][Struct]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = Int32;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 16, 5, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot assign expression of type '<undefined>' to 'My_struct.a' of type 'Int32'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(5, 16, 5, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'My_struct.a' must be a computable at compile-time.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that instantiate expressions can only be assigned to struct or union types", "[Validation][Struct]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct_0
+{
+    a: Int32 = 0;
+}
+
+union My_union_0
+{
+    a: Int32;
+    b: Float32;
+}
+
+struct My_struct_1
+{
+    a: My_struct_0 = {};
+    b: My_struct_1 = explicit {
+        a: 1
+    };
+    c: My_union_0 = {
+        b: 1.0f32
+    };
+    d: Int32 = {};
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(23, 16, 23, 18),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot initialize 'My_struct_1.d' member of type 'Int32' with an instantiate expression.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that member names are different from each other", "[Validation][Union]")
+    {
+        std::string_view const input = R"(module Test;
+
+union My_union
+{
+    a: Int32;
+    b: Float32;
+    b: Float64;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 5, 6, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_union.b'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 5, 7, 6),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate member name 'My_union.b'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+var my_global_0: Float32 = 2.0f32;
+var my_global_1: Int32 = 2.0f32;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(4, 26, 4, 32),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that expression only uses compile time expressions", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+var my_global_0 = 0;
+var my_global_1 = get_value();
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 19, 9, 30),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'my_global_1' must be a computable at compile-time.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that pointers to global constants do not exist", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+mutable my_global_0 = 0;
+var my_global_1 = 0;
+
+function run() -> ()
+{
+    var a = &my_global_0;
+    var b = &my_global_1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 13, 9, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot take address of a global constant.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    
+    TEST_CASE("Validates that precondition and postcondition must evaluate to a boolean", "[Validation][Function_contracts]")
+    {
+        std::string_view const input = R"(module Test;
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "first > 0 && second > 0" { first > 0 && second > 0 }
+    precondition "first" { first }
+    postcondition "result > 0" { result > 0 }
+    postcondition "result" { result }
+{
+    return first + second;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 28, 5, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 30, 7, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that precondition can only reference function inputs, global constants, enum values and call functions", "[Validation][Function_contracts]")
+    {
+        std::string_view const input = R"(module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_precondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    precondition "validate with function" { check_precondition(first) }
+    precondition "validate with global constant" { first + g_my_constant > 0 }
+    precondition "validate with global non-constant" { first + g_my_mutable > 0 }
+    precondition "validate with enum value" { first > (My_enum.First as Int32) }
+    precondition "validate with function output" { result > 0 }
+    precondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(19, 64, 19, 76),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(21, 52, 21, 58),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'result' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(22, 53, 22, 57),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'beep' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that postcondition can only reference function inputs, function outputs, global constants, enum values and call functions", "[Validation][Function_contracts]")
+    {
+        std::string_view const input = R"(module Test;
+
+var g_my_constant = 0;
+mutable g_my_mutable = 0;
+
+enum My_enum
+{
+    First = 0,
+}
+
+function check_postcondition(value: Int32) -> (result: Bool)
+{
+    return value > 0;
+}
+
+function add(first: Int32, second: Int32) -> (result: Int32)
+    postcondition "validate with function" { check_postcondition(result) }
+    postcondition "validate with global constant" { result + g_my_constant > 0 }
+    postcondition "validate with global non-constant" { result + g_my_mutable > 0 }
+    postcondition "validate with enum value" { result > (My_enum.First as Int32) }
+    postcondition "validate with function input" { first + second == result }
+    postcondition "validate with unknown variable" { beep > 0 }
+{
+    return first + second;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(19, 66, 19, 78),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(22, 54, 22, 58),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'beep' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
     
     TEST_CASE("Validates that left hand side is either a module alias, a variable of type struct/union or an enum type", "[Validation][Access_expression]")
     {
@@ -665,6 +1385,155 @@ function run(value: My_enum) -> ()
     }
 
 
+        TEST_CASE("Validates that break can only be placed inside for loops, while loops and switch cases", "[Validation][Break_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        break;
+    }
+
+    while false
+    {
+        break;
+    }
+
+    switch (input)
+    {
+        case 0: {
+            break;
+        }
+    }
+
+    break;
+
+    {
+        break;
+    }
+
+    if false
+    {
+        break;
+    }
+
+    for index in 0 to 10
+    {
+        {
+            break;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        if index % 2 == 0
+        {
+            break;
+        }
+    }
+
+    while false
+    {
+        {
+            break;
+        }
+    }
+
+    while false
+    {
+        if input % 2 == 0
+        {
+            break;
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(22, 5, 22, 10),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(25, 9, 25, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(30, 9, 30, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that break loop count is valid", "[Validation][Break_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        break 1;
+    }
+
+    while false
+    {
+        for index in 0 to 10
+        {
+            break 2;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        break 2;
+    }
+
+    for index in 0 to 10
+    {
+        break 0;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(20, 15, 20, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'break' loop count of 2 is invalid.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(25, 15, 25, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'break' loop count of 0 is invalid.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that can only call functions or expressions whose type is a function type", "[Validation][Call_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -1062,6 +1931,126 @@ function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
         };
 
         test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that continue can only be placed inside for loops and while loops", "[Validation][Continue_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(input: Int32) -> ()
+{
+    for index in 0 to 10
+    {
+        continue;
+    }
+
+    while false
+    {
+        continue;
+    }
+
+    continue;
+
+    {
+        continue;
+    }
+
+    if false
+    {
+        continue;
+    }
+
+    var value_0 = 0;
+    switch (value_0)
+    {
+        case 0: {
+            continue;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        {
+            continue;
+        }
+    }
+
+    for index in 0 to 10
+    {
+        if index % 2 == 0
+        {
+            continue;
+        }
+
+        var value_1 = 0;
+        switch value_1
+        {
+            case 0: {
+                continue;
+            }
+        }
+    }
+
+    while false
+    {
+        {
+            continue;
+        }
+    }
+
+    while false
+    {
+        if input % 2 == 0
+        {
+            continue;
+        }
+
+        var value_2 = 0;
+        switch value_2
+        {
+            case 0: {
+                continue;
+            }
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(15, 5, 15, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'continue' can only be placed inside for loops and while loops.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(18, 9, 18, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'continue' can only be placed inside for loops and while loops.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(23, 9, 23, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'continue' can only be placed inside for loops and while loops.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(30, 13, 30, 21),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'continue' can only be placed inside for loops and while loops.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
     }
 
 
@@ -2382,596 +3371,6 @@ function run(value: Int32) -> ()
 
         test_validate_module(input, {}, expected_diagnostics);
     }
-
-
-    TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-var my_global_0: Float32 = 2.0f32;
-var my_global_1: Int32 = 2.0f32;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(4, 26, 4, 32),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that expression only uses compile time expressions", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_value() -> (result: Int32)
-{
-    return 0;
-}
-
-var my_global_0 = 0;
-var my_global_1 = get_value();
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 19, 9, 30),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The value of 'my_global_1' must be a computable at compile-time.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that pointers to global constants do not exist", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-mutable my_global_0 = 0;
-var my_global_1 = 0;
-
-function run() -> ()
-{
-    var a = &my_global_0;
-    var b = &my_global_1;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 13, 9, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot take address of a global constant.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that member names are different from each other", "[Validation][Struct]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0;
-    b: Int32 = 0;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_struct.b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_struct.b'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that member default values types must match member types", "[Validation][Struct]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = 0.0f32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 16, 6, 22),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type 'Float32' to 'My_struct.b' of type 'Int32'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that member default values only use compile time expressions", "[Validation][Struct]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_value() -> (result: Int32)
-{
-    return 0;
-}
-
-struct My_struct
-{
-    a: Int32 = 0;
-    b: Int32 = get_value();
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 16, 11, 27),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_struct.b' must be a computable at compile-time.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that member default values are values, not types", "[Validation][Struct]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct
-{
-    a: Int32 = Int32;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 16, 5, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type '<undefined>' to 'My_struct.a' of type 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(5, 16, 5, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_struct.a' must be a computable at compile-time.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that instantiate expressions can only be assigned to struct or union types", "[Validation][Struct]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_struct_0
-{
-    a: Int32 = 0;
-}
-
-union My_union_0
-{
-    a: Int32;
-    b: Float32;
-}
-
-struct My_struct_1
-{
-    a: My_struct_0 = {};
-    b: My_struct_1 = explicit {
-        a: 1
-    };
-    c: My_union_0 = {
-        b: 1.0f32
-    };
-    d: Int32 = {};
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(23, 16, 23, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot initialize 'My_struct_1.d' member of type 'Int32' with an instantiate expression.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that member names are different from each other", "[Validation][Union]")
-    {
-        std::string_view const input = R"(module Test;
-
-union My_union
-{
-    a: Int32;
-    b: Float32;
-    b: Float64;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_union.b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_union.b'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that enum member names are different from each other", "[Validation][Enum]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    a = 0,
-    b = 1,
-    b = 2,
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_enum.b'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 5, 7, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_enum.b'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that enum values are signed 32-bit integers", "[Validation][Enum]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    a = 0,
-    b = 1i16,
-    c = 2.0f32,
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(6, 9, 6, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The enum value assigned to 'My_enum.b' must be a Int32 type.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 9, 7, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The enum value assigned to 'My_enum.c' must be a Int32 type.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that enum values can be computed at compile-time", "[Validation][Enum]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_value() -> (result: Int32)
-{
-    return 0;
-}
-
-enum My_enum
-{
-    a = 0,
-    b = get_value(),
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 9, 11, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_enum.b' must be a computable at compile-time.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 9, 11, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot use 'get_value' to calculate 'My_enum.b'.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Allows enum values to be computed using enum values", "[Validation][Enum]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    a = 1,
-    b = 2,
-    c = 4,
-    d = a | b | c,
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics = {};
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validate that enum value can only be calculated using previous enum values", "[Validation][Enum]")
-    {
-        std::string_view const input = R"(module Test;
-
-enum My_enum
-{
-    a = 1,
-    b = a,
-    c = d,
-    d = d,
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(7, 9, 7, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The enum value 'My_enum.c' can only be calculated using previous enum values.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(8, 9, 8, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The enum value 'My_enum.d' can only be calculated using previous enum values.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that precondition and postcondition must evaluate to a boolean", "[Validation][Function_contracts]")
-    {
-        std::string_view const input = R"(module Test;
-
-function add(first: Int32, second: Int32) -> (result: Int32)
-    precondition "first > 0 && second > 0" { first > 0 && second > 0 }
-    precondition "first" { first }
-    postcondition "result > 0" { result > 0 }
-    postcondition "result" { result }
-{
-    return first + second;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 28, 5, 33),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 30, 7, 36),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Bool'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that precondition can only reference function inputs, global constants, enum values and call functions", "[Validation][Function_contracts]")
-    {
-        std::string_view const input = R"(module Test;
-
-var g_my_constant = 0;
-mutable g_my_mutable = 0;
-
-enum My_enum
-{
-    First = 0,
-}
-
-function check_precondition(value: Int32) -> (result: Bool)
-{
-    return value > 0;
-}
-
-function add(first: Int32, second: Int32) -> (result: Int32)
-    precondition "validate with function" { check_precondition(first) }
-    precondition "validate with global constant" { first + g_my_constant > 0 }
-    precondition "validate with global non-constant" { first + g_my_mutable > 0 }
-    precondition "validate with enum value" { first > (My_enum.First as Int32) }
-    precondition "validate with function output" { result > 0 }
-    precondition "validate with unknown variable" { beep > 0 }
-{
-    return first + second;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(19, 64, 19, 76),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(21, 52, 21, 58),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'result' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(22, 53, 22, 57),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'beep' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that postcondition can only reference function inputs, function outputs, global constants, enum values and call functions", "[Validation][Function_contracts]")
-    {
-        std::string_view const input = R"(module Test;
-
-var g_my_constant = 0;
-mutable g_my_mutable = 0;
-
-enum My_enum
-{
-    First = 0,
-}
-
-function check_postcondition(value: Int32) -> (result: Bool)
-{
-    return value > 0;
-}
-
-function add(first: Int32, second: Int32) -> (result: Int32)
-    postcondition "validate with function" { check_postcondition(result) }
-    postcondition "validate with global constant" { result + g_my_constant > 0 }
-    postcondition "validate with global non-constant" { result + g_my_mutable > 0 }
-    postcondition "validate with enum value" { result > (My_enum.First as Int32) }
-    postcondition "validate with function input" { first + second == result }
-    postcondition "validate with unknown variable" { beep > 0 }
-{
-    return first + second;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(19, 66, 19, 78),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(22, 54, 22, 58),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'beep' does not exist.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
     
     
     TEST_CASE("Validates that number of bits cannot be larger than 64", "[Validation][Integer]")
@@ -2999,414 +3398,6 @@ using My_uint = Uint65;
                 .message = "Number of bits of integer cannot be larger than 64.",
                 .related_information = {},
             }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
-    {
-        std::string_view const input = R"(module Test;
-
-import module_a as module_a;
-import module_b as module_a;
-)";
-
-        std::string_view const module_a_input = "module module_a;";
-        std::string_view const module_b_input = "module module_b;";
-        
-        std::pmr::vector<std::string_view> const dependencies = { module_a_input, module_b_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 20, 3, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate import alias 'module_a'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(4, 20, 4, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate import alias 'module_a'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that a import module exists", "[Validation][Import]")
-    {
-        std::string_view const input = R"(module Test;
-
-import my.module_a as my_module;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 8, 3, 19),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot find module 'my.module_a'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that a declaration name is not a duplicate", "[Validation][Declaration]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct My_type
-{
-}
-
-union My_type
-{
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 8, 3, 15),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate declaration name 'My_type'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 7, 7, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate declaration name 'My_type'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a declaration name is not a builtin type", "[Validation][Declaration]")
-    {
-        std::string_view const input = R"(module Test;
-
-struct Int32
-{
-}
-
-union Float32
-{
-}
-
-using true = Float32;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 8, 3, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Invalid declaration name 'Int32' which is a reserved keyword.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(7, 7, 7, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Invalid declaration name 'Float32' which is a reserved keyword.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 7, 11, 11),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Invalid declaration name 'true' which is a reserved keyword.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that break can only be placed inside for loops, while loops and switch cases", "[Validation][Break_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(input: Int32) -> ()
-{
-    for index in 0 to 10
-    {
-        break;
-    }
-
-    while false
-    {
-        break;
-    }
-
-    switch (input)
-    {
-        case 0: {
-            break;
-        }
-    }
-
-    break;
-
-    {
-        break;
-    }
-
-    if false
-    {
-        break;
-    }
-
-    for index in 0 to 10
-    {
-        {
-            break;
-        }
-    }
-
-    for index in 0 to 10
-    {
-        if index % 2 == 0
-        {
-            break;
-        }
-    }
-
-    while false
-    {
-        {
-            break;
-        }
-    }
-
-    while false
-    {
-        if input % 2 == 0
-        {
-            break;
-        }
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(22, 5, 22, 10),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(25, 9, 25, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(30, 9, 30, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
-                .related_information = {},
-            },
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that break loop count is valid", "[Validation][Break_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(input: Int32) -> ()
-{
-    for index in 0 to 10
-    {
-        break 1;
-    }
-
-    while false
-    {
-        for index in 0 to 10
-        {
-            break 2;
-        }
-    }
-
-    for index in 0 to 10
-    {
-        break 2;
-    }
-
-    for index in 0 to 10
-    {
-        break 0;
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(20, 15, 20, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' loop count of 2 is invalid.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(25, 15, 25, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' loop count of 0 is invalid.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
-    TEST_CASE("Validates that continue can only be placed inside for loops and while loops", "[Validation][Continue_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-function run(input: Int32) -> ()
-{
-    for index in 0 to 10
-    {
-        continue;
-    }
-
-    while false
-    {
-        continue;
-    }
-
-    continue;
-
-    {
-        continue;
-    }
-
-    if false
-    {
-        continue;
-    }
-
-    var value_0 = 0;
-    switch (value_0)
-    {
-        case 0: {
-            continue;
-        }
-    }
-
-    for index in 0 to 10
-    {
-        {
-            continue;
-        }
-    }
-
-    for index in 0 to 10
-    {
-        if index % 2 == 0
-        {
-            continue;
-        }
-
-        var value_1 = 0;
-        switch value_1
-        {
-            case 0: {
-                continue;
-            }
-        }
-    }
-
-    while false
-    {
-        {
-            continue;
-        }
-    }
-
-    while false
-    {
-        if input % 2 == 0
-        {
-            continue;
-        }
-
-        var value_2 = 0;
-        switch value_2
-        {
-            case 0: {
-                continue;
-            }
-        }
-    }
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(15, 5, 15, 13),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(18, 9, 18, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(23, 9, 23, 17),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(30, 13, 30, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
-                .related_information = {},
-            },
         };
 
         test_validate_module(input, {}, expected_diagnostics);

@@ -29,6 +29,40 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    export std::pmr::vector<h::compiler::Diagnostic> validate_declarations(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<h::compiler::Diagnostic> validate_enum_declaration(
+        h::Module const& core_module,
+        h::Enum_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<h::compiler::Diagnostic> validate_global_variable_declaration(
+        h::Module const& core_module,
+        h::Global_variable_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<h::compiler::Diagnostic> validate_struct_declaration(
+        h::Module const& core_module,
+        h::Struct_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<h::compiler::Diagnostic> validate_union_declaration(
+        h::Module const& core_module,
+        h::Union_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
         Function_declaration const* const function_declaration,
@@ -184,6 +218,11 @@ namespace h::compiler
     std::optional<h::Source_range> create_sub_source_range(
         std::optional<h::Source_range> const& source_range,
         std::uint32_t const start_index,
+        std::uint32_t const count
+    );
+
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_location> const& source_location,
         std::uint32_t const count
     );
 

@@ -6,6 +6,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <span>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -117,6 +118,240 @@ namespace h::compiler
             };
         }
 
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_declarations(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
+
+        auto const process_declaration_name = [&](
+            std::string_view const name,
+            std::optional<Source_location> const& source_location
+        ) -> void
+        {
+            if (all_names.contains(name))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_source_range_from_source_location(source_location, name.size()),
+                        std::format("Duplicate declaration name '{}'.", name)
+                    )
+                );
+            }
+            else
+            {
+                all_names.insert(name);
+            }
+        };
+
+        for (Alias_type_declaration const& declaration : core_module.export_declarations.alias_type_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Alias_type_declaration const& declaration : core_module.internal_declarations.alias_type_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Enum_declaration const& declaration : core_module.export_declarations.enum_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> declaration_diagnostics = validate_enum_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+            
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Enum_declaration const& declaration : core_module.internal_declarations.enum_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_enum_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+            
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Global_variable_declaration const& declaration : core_module.export_declarations.global_variable_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_global_variable_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+            
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Global_variable_declaration const& declaration : core_module.internal_declarations.global_variable_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_global_variable_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+            
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Struct_declaration const& declaration : core_module.export_declarations.struct_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_struct_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Struct_declaration const& declaration : core_module.internal_declarations.struct_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_struct_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Union_declaration const& declaration : core_module.export_declarations.union_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_union_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Union_declaration const& declaration : core_module.internal_declarations.union_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+
+            std::pmr::vector<h::compiler::Diagnostic> const declaration_diagnostics = validate_union_declaration(
+                core_module,
+                declaration,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!declaration_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), declaration_diagnostics.begin(), declaration_diagnostics.end());
+        }
+
+        for (Function_declaration const& declaration : core_module.export_declarations.function_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Function_declaration const& declaration : core_module.internal_declarations.function_declarations)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Function_constructor const& declaration : core_module.export_declarations.function_constructors)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Function_constructor const& declaration : core_module.internal_declarations.function_constructors)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Type_constructor const& declaration : core_module.export_declarations.type_constructors)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        for (Type_constructor const& declaration : core_module.internal_declarations.type_constructors)
+        {
+            process_declaration_name(declaration.name, declaration.source_location);
+        }
+
+        return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_enum_declaration(
+        h::Module const& core_module,
+        h::Enum_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_global_variable_declaration(
+        h::Module const& core_module,
+        h::Global_variable_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_struct_declaration(
+        h::Module const& core_module,
+        h::Struct_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_union_declaration(
+        h::Module const& core_module,
+        h::Union_declaration const& declaration,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
         return {};
     }
 
@@ -1781,6 +2016,29 @@ namespace h::compiler
             .end = {
                 .line = original_source_range.start.line,
                 .column = original_source_range.start.column + start_index + count
+            }
+        };
+    }
+
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_location> const& source_location,
+        std::uint32_t const count
+    )
+    {
+        if (!source_location.has_value())
+            return std::nullopt;
+
+        return h::Source_range
+        {
+            .start =
+            {
+                .line = source_location->line,
+                .column = source_location->column
+            },
+            .end = 
+            {
+                .line = source_location->line,
+                .column = source_location->column + count
             }
         };
     }

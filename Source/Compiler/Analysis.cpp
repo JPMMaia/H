@@ -57,6 +57,17 @@ namespace h::compiler
 
             if (!result.diagnostics.empty())
                 return result;
+
+            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_declarations(
+                core_module,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!diagnostics.empty())
+            {
+                result.diagnostics.insert(result.diagnostics.end(), diagnostics.begin(), diagnostics.end());
+                return result;
+            }
         }
 
         process_declarations(result, core_module, core_module.export_declarations, core_module.definitions, declaration_database, options, temporaries_allocator);
