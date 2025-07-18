@@ -113,6 +113,7 @@ namespace h::compiler
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
+        std::optional<h::Type_reference> const& expected_statement_type,
         h::Declaration_database const& declaration_database
     );
 
@@ -121,6 +122,7 @@ namespace h::compiler
         Scope const& scope,
         h::Statement const& statement,
         h::Expression const& expression,
+        std::optional<h::Type_reference> const& expected_expression_type,
         Declaration_database const& declaration_database
     );
 

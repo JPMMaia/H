@@ -544,6 +544,7 @@ namespace h::compiler
                     core_module,
                     scope,
                     statement,
+                    std::nullopt,
                     declaration_database,
                     temporaries_allocator
                 );
@@ -572,6 +573,7 @@ namespace h::compiler
                     core_module,
                     scope,
                     statement,
+                    std::nullopt,
                     declaration_database
                 );
                 
@@ -610,6 +612,7 @@ namespace h::compiler
             core_module,
             {},
             declaration.initial_value,
+            declaration.type,
             declaration_database,
             temporaries_allocator
         );
@@ -702,6 +705,7 @@ namespace h::compiler
                 core_module,
                 {},
                 member_default_value,
+                member_type,
                 declaration_database,
                 temporaries_allocator
             );
@@ -878,6 +882,7 @@ namespace h::compiler
                 core_module,
                 scope,
                 function_condition.condition,
+                std::nullopt,
                 declaration_database
             );
 
@@ -938,6 +943,7 @@ namespace h::compiler
             core_module,
             scope,
             statement,
+            expected_statement_type,
             declaration_database,
             temporaries_allocator
         );
@@ -1265,6 +1271,7 @@ namespace h::compiler
             parameters.core_module,
             parameters.scope,
             expression.statement,
+            std::nullopt,
             parameters.declaration_database
         );
 
@@ -1707,6 +1714,7 @@ namespace h::compiler
             parameters.core_module,
             parameters.scope,
             expression.range_end,
+            std::nullopt,
             parameters.declaration_database
         );
 
@@ -1774,6 +1782,7 @@ namespace h::compiler
                 parameters.core_module,
                 parameters.scope,
                 pair.condition.value(),
+                std::nullopt,
                 parameters.declaration_database
             );
 
@@ -1902,6 +1911,7 @@ namespace h::compiler
                 parameters.core_module,
                 parameters.scope,
                 pair.value,
+                member_type,
                 parameters.declaration_database
             );
 
@@ -2166,6 +2176,7 @@ namespace h::compiler
             parameters.core_module,
             parameters.scope,
             expression.then_statement,
+            std::nullopt,
             parameters.declaration_database
         );
 
@@ -2173,6 +2184,7 @@ namespace h::compiler
             parameters.core_module,
             parameters.scope,
             expression.else_statement,
+            std::nullopt,
             parameters.declaration_database
         );
 
@@ -2499,6 +2511,7 @@ namespace h::compiler
             parameters.core_module,
             parameters.scope,
             expression.condition,
+            std::nullopt,
             parameters.declaration_database
         );
 
@@ -2526,6 +2539,7 @@ namespace h::compiler
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
+        std::optional<h::Type_reference> const expected_statement_type,
         Declaration_database const& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -2542,6 +2556,7 @@ namespace h::compiler
                 scope,
                 statement,
                 expression,
+                expected_statement_type,
                 declaration_database
             );
         }
@@ -2665,6 +2680,26 @@ namespace h::compiler
         }
         else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
         {
+            return true;
+        }
+        else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+        {
+            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
+
+            for (h::Instantiate_member_value_pair const& pair : instantiate_expression.members)
+            {
+                bool const is_compile_time = is_computable_at_compile_time(
+                    core_module,
+                    scope,
+                    pair.value,
+                    expression_types,
+                    declaration_database
+                );
+
+                if (!is_compile_time)
+                    return false;
+            }
+
             return true;
         }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))

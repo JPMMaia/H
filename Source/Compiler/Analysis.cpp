@@ -485,7 +485,7 @@ namespace h::compiler
         else if (std::holds_alternative<h::Variable_declaration_expression>(expression.data))
         {
             h::Variable_declaration_expression& data = std::get<h::Variable_declaration_expression>(expression.data);
-            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.right_hand_side.expression_index], declaration_database);
+            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.right_hand_side.expression_index], std::nullopt, declaration_database);
             if (type_reference.has_value())
                 scope.variables.push_back({.name = data.name, .type = type_reference.value(), .is_compile_time = false});
             
@@ -527,6 +527,7 @@ namespace h::compiler
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
+        std::optional<h::Type_reference> const& expected_statement_type,
         h::Declaration_database const& declaration_database
     )
     {
@@ -538,6 +539,7 @@ namespace h::compiler
             scope,
             statement,
             statement.expressions[0],
+            expected_statement_type,
             declaration_database
         );
     }
@@ -547,6 +549,7 @@ namespace h::compiler
         Scope const& scope,
         h::Statement const& statement,
         h::Expression const& expression,
+        std::optional<h::Type_reference> const& expected_expression_type,
         h::Declaration_database const& declaration_database
     )
     {
@@ -554,7 +557,7 @@ namespace h::compiler
         {
             Access_expression const& data = std::get<h::Access_expression>(expression.data);
             
-            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
 
             bool const is_import_alias_or_enum_name = !type_reference.has_value();
             if (is_import_alias_or_enum_name)
@@ -716,7 +719,7 @@ namespace h::compiler
         else if (std::holds_alternative<h::Access_array_expression>(expression.data))
         {
             Access_array_expression const& data = std::get<h::Access_array_expression>(expression.data);
-            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
             if (!type_reference.has_value())
                 return std::nullopt;
 
@@ -750,7 +753,7 @@ namespace h::compiler
                 case h::Binary_operation::Bit_shift_left:
                 case h::Binary_operation::Bit_shift_right:
                 default: {
-                    return get_expression_type(core_module, scope, statement, statement.expressions[data.left_hand_side.expression_index], declaration_database);
+                    return get_expression_type(core_module, scope, statement, statement.expressions[data.left_hand_side.expression_index], std::nullopt, declaration_database);
                 }
             }
         }
@@ -758,7 +761,7 @@ namespace h::compiler
         {
             Call_expression const& data = std::get<h::Call_expression>(expression.data);
 
-            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
             if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
                 return std::nullopt;
 
@@ -782,7 +785,7 @@ namespace h::compiler
         else if (std::holds_alternative<h::Defer_expression>(expression.data))
         {
             Defer_expression const& data = std::get<h::Defer_expression>(expression.data);
-            return get_expression_type(core_module, scope, statement, statement.expressions[data.expression_to_defer.expression_index], declaration_database);
+            return get_expression_type(core_module, scope, statement, statement.expressions[data.expression_to_defer.expression_index], std::nullopt, declaration_database);
         }
         else if (std::holds_alternative<h::Dereference_and_access_expression>(expression.data))
         {
@@ -817,6 +820,23 @@ namespace h::compiler
 
             return create_function_type_type_reference(function_expression->declaration.type, function_expression->declaration.input_parameter_names, function_expression->declaration.output_parameter_names);
         }
+        else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+        {
+            if (!expected_expression_type.has_value())
+                return std::nullopt;
+
+            std::optional<Declaration> const declaration = find_declaration(
+                declaration_database,
+                expected_expression_type.value()
+            );
+            if (!declaration.has_value())
+                return std::nullopt;
+
+            if (std::holds_alternative<h::Struct_declaration const*>(declaration->data) || std::holds_alternative<h::Union_declaration const*>(declaration->data))
+                return expected_expression_type.value();
+
+            return std::nullopt;
+        }
         else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
         {
             return create_null_pointer_type_type_reference();
@@ -824,12 +844,12 @@ namespace h::compiler
         else if (std::holds_alternative<h::Parenthesis_expression>(expression.data))
         {
             Parenthesis_expression const& data = std::get<h::Parenthesis_expression>(expression.data);
-            return get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+            return get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
         }
         else if (std::holds_alternative<h::Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<h::Ternary_condition_expression>(expression.data);
-            return get_expression_type(core_module, scope, data.then_statement, declaration_database);
+            return get_expression_type(core_module, scope, data.then_statement, std::nullopt, declaration_database);
         }
         else if (std::holds_alternative<h::Unary_expression>(expression.data))
         {
@@ -848,11 +868,11 @@ namespace h::compiler
                 case h::Unary_operation::Pre_decrement:
                 case h::Unary_operation::Post_decrement:
                 {
-                    return get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                    return get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
                 }
                 case h::Unary_operation::Indirection:
                 {
-                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
                     if (!expression_type.has_value())
                         return std::nullopt;
 
@@ -871,7 +891,7 @@ namespace h::compiler
                 }
                 case h::Unary_operation::Address_of:
                 {
-                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], declaration_database);
+                    std::optional<h::Type_reference> const expression_type = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
                     if (!expression_type.has_value())
                         return create_pointer_type_type_reference({}, true);
 
@@ -913,7 +933,7 @@ namespace h::compiler
                         if (global_variable_declaration.type.has_value())
                             return global_variable_declaration.type.value();
                     
-                        return get_expression_type(core_module, scope, global_variable_declaration.initial_value, declaration_database);
+                        return get_expression_type(core_module, scope, global_variable_declaration.initial_value, std::nullopt, declaration_database);
                     }
                     else if (std::holds_alternative<Function_declaration const*>(declaration_optional->data))
                     {
@@ -948,6 +968,7 @@ namespace h::compiler
             scope,
             statement,
             expression,
+            std::nullopt,
             declaration_database
         );
         if (expression_type.has_value() && std::holds_alternative<h::Custom_type_reference>(expression_type.value().data))
@@ -979,6 +1000,7 @@ namespace h::compiler
                 scope,
                 statement,
                 statement.expressions[data.expression.expression_index],
+                std::nullopt,
                 declaration_database
             );
             if (!type_reference.has_value())
@@ -1117,6 +1139,7 @@ namespace h::compiler
                 scope,
                 statement,
                 argument_expression,
+                std::nullopt,
                 declaration_database
             );
             if (!argument_type.has_value())

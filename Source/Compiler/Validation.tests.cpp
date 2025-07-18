@@ -586,7 +586,7 @@ struct My_struct_1
                 .range = create_source_range(23, 16, 23, 18),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Cannot initialize 'My_struct_1.d' member of type 'Int32' with an instantiate expression.",
+                .message = "Expression type 'void' does not match expected type 'Int32'.",
                 .related_information = {},
             }
         };
