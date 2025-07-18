@@ -145,4 +145,9 @@ namespace h::compiler
         std::span<std::optional<Type_reference> const> const type_references,
         std::pmr::polymorphic_allocator<> const& allocator
     );
+
+    std::optional<h::Type_reference> get_declaration_member_type(
+        Declaration const& declaration,
+        std::string_view const member_name
+    );
 }

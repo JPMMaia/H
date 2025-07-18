@@ -340,6 +340,17 @@ namespace h::compiler
         else if (std::holds_alternative<h::For_loop_expression>(expression.data))
         {
             h::For_loop_expression& data = std::get<h::For_loop_expression>(expression.data);
+
+            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.range_begin.expression_index], std::nullopt, declaration_database);
+            if (type_reference.has_value())
+            {
+                scope.variables.push_back(
+                    {
+                        .name = data.variable_name, .type = type_reference.value(), .is_compile_time = false
+                    }
+                );
+            }
+
             process_statement(
                 result,
                 core_module,
@@ -621,64 +632,17 @@ namespace h::compiler
             }
             else if (std::holds_alternative<h::Custom_type_reference>(type_reference.value().data))
             {
-                std::optional<Type_reference> const underlying_type = get_underlying_type(
-                    declaration_database,
-                    type_reference.value()
-                );
-                if (!underlying_type.has_value())
-                    return std::nullopt;
-
-                std::optional<Declaration> const declaration = find_declaration(
+                std::optional<Declaration> const declaration = find_underlying_declaration(
                     declaration_database,
                     type_reference.value()
                 );
                 if (!declaration.has_value())
                     return std::nullopt;
 
-                if (std::holds_alternative<h::Enum_declaration const*>(declaration.value().data))
-                {
-                    return h::create_integer_type_type_reference(32, true);
-                }
-                else if (std::holds_alternative<h::Struct_declaration const*>(declaration.value().data))
-                {
-                    h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.value().data);
-
-                    auto const location = std::find_if(
-                        struct_declaration.member_names.begin(),
-                        struct_declaration.member_names.end(),
-                        [&](std::pmr::string const& member_name) -> bool
-                        {
-                            return member_name == data.member_name;
-                        }
-                    );
-                    if (location == struct_declaration.member_names.end())
-                        return std::nullopt;
-
-                    std::size_t const member_index = std::distance(struct_declaration.member_names.begin(), location);
-                    return struct_declaration.member_types[member_index];
-                }
-                else if (std::holds_alternative<h::Union_declaration const*>(declaration.value().data))
-                {
-                    h::Union_declaration const& union_declaration = *std::get<h::Union_declaration const*>(declaration.value().data);
-                    
-                    auto const location = std::find_if(
-                        union_declaration.member_names.begin(),
-                        union_declaration.member_names.end(),
-                        [&](std::pmr::string const& member_name) -> bool
-                        {
-                            return member_name == data.member_name;
-                        }
-                    );
-                    if (location == union_declaration.member_names.end())
-                        return std::nullopt;
-
-                    std::size_t const member_index = std::distance(union_declaration.member_names.begin(), location);
-                    return union_declaration.member_types[member_index];
-                }
-                else
-                {
-                    return std::nullopt;
-                }
+                return get_declaration_member_type(
+                    declaration.value(),
+                    data.member_name
+                );
             }
             else if (std::holds_alternative<h::Type_instance>(type_reference.value().data))
             {
@@ -718,12 +682,22 @@ namespace h::compiler
         }
         else if (std::holds_alternative<h::Access_array_expression>(expression.data))
         {
-            Access_array_expression const& data = std::get<h::Access_array_expression>(expression.data);
-            std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
-            if (!type_reference.has_value())
+            h::Access_array_expression const& data = std::get<h::Access_array_expression>(expression.data);
+
+            std::optional<h::Type_reference> const lhs_type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
+            if (!lhs_type_reference.has_value())
                 return std::nullopt;
 
-            return std::nullopt; // TODO
+            if (std::holds_alternative<h::Constant_array_type>(lhs_type_reference->data))
+            {
+                h::Constant_array_type const& array_type = std::get<h::Constant_array_type>(lhs_type_reference->data);
+                if (array_type.value_type.empty())
+                    return std::nullopt;
+
+                return array_type.value_type[0];
+            }
+
+            return std::nullopt;
         }
         else if (std::holds_alternative<h::Binary_expression>(expression.data))
         {
@@ -781,6 +755,24 @@ namespace h::compiler
         {
             Constant_expression const& data = std::get<h::Constant_expression>(expression.data);
             return data.type;
+        }
+        else if (std::holds_alternative<h::Constant_array_expression>(expression.data))
+        {
+            Constant_array_expression const& data = std::get<h::Constant_array_expression>(expression.data);
+            if (data.array_data.empty())
+            {
+                if (expected_expression_type.has_value())
+                    return expected_expression_type.value();
+
+                // For empty array and no expected type, we assume it's an empty array of Int32:
+                return create_constant_array_type_reference({create_integer_type_type_reference(32, true)}, data.array_data.size());
+            }
+
+            std::optional<h::Type_reference> const element_type = get_expression_type(core_module, scope, data.array_data[0], std::nullopt, declaration_database);
+            if (!element_type.has_value())
+                return std::nullopt;
+
+            return create_constant_array_type_reference({element_type.value()}, data.array_data.size());
         }
         else if (std::holds_alternative<h::Defer_expression>(expression.data))
         {
@@ -1290,5 +1282,56 @@ namespace h::compiler
         }
 
         return statements;
+    }
+
+    std::optional<h::Type_reference> get_declaration_member_type(
+        Declaration const& declaration,
+        std::string_view const member_name
+    )
+    {
+        if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
+        {
+            return h::create_integer_type_type_reference(32, true);
+        }
+        else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
+        {
+            h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
+
+            auto const location = std::find_if(
+                struct_declaration.member_names.begin(),
+                struct_declaration.member_names.end(),
+                [&](std::pmr::string const& current_member_name) -> bool
+                {
+                    return current_member_name == member_name;
+                }
+            );
+            if (location == struct_declaration.member_names.end())
+                return std::nullopt;
+
+            std::size_t const member_index = std::distance(struct_declaration.member_names.begin(), location);
+            return struct_declaration.member_types[member_index];
+        }
+        else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
+        {
+            h::Union_declaration const& union_declaration = *std::get<h::Union_declaration const*>(declaration.data);
+            
+            auto const location = std::find_if(
+                union_declaration.member_names.begin(),
+                union_declaration.member_names.end(),
+                [&](std::pmr::string const& current_member_name) -> bool
+                {
+                    return current_member_name == member_name;
+                }
+            );
+            if (location == union_declaration.member_names.end())
+                return std::nullopt;
+
+            std::size_t const member_index = std::distance(union_declaration.member_names.begin(), location);
+            return union_declaration.member_types[member_index];
+        }
+        else
+        {
+            return std::nullopt;
+        }
     }
 }

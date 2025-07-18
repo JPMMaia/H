@@ -1643,7 +1643,7 @@ namespace h::compiler
 
         bool const is_source_numeric = 
             underlying_source_type.has_value() && 
-            (is_number_or_c_number(source_type_optional.value()) || is_enum_type(parameters.declaration_database, source_type_optional.value()));
+            (is_number_or_c_number(underlying_source_type.value()) || is_enum_type(parameters.declaration_database, underlying_source_type.value()));
         
         bool const is_destination_numeric =
             underlying_destination_type.has_value() &&
@@ -2438,7 +2438,14 @@ namespace h::compiler
         }
         else
         {
-            std::optional<h::Type_reference> const& right_hand_side_type = parameters.expression_types[expression.right_hand_side.expression_index];
+            std::optional<h::Type_reference> const& right_hand_side_type = get_expression_type(
+                parameters.core_module,
+                parameters.scope,
+                parameters.statement,
+                right_hand_side,
+                type,
+                parameters.declaration_database
+            );
 
             if (!are_compatible_types(type, right_hand_side_type))
             {
@@ -2676,6 +2683,25 @@ namespace h::compiler
         }
         else if (std::holds_alternative<h::Constant_expression>(expression.data))
         {
+            return true;
+        }
+        else if (std::holds_alternative<h::Constant_array_expression>(expression.data))
+        {
+            h::Constant_array_expression const& constant_array_expression = std::get<h::Constant_array_expression>(expression.data);
+
+            for (h::Statement const& element : constant_array_expression.array_data)
+            {
+                bool const is_compile_time = is_computable_at_compile_time(
+                    core_module,
+                    scope,
+                    element,
+                    expression_types,
+                    declaration_database
+                );
+                if (!is_compile_time)
+                    return false;
+            }
+
             return true;
         }
         else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
