@@ -81,6 +81,23 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    export std::pmr::vector<h::compiler::Diagnostic> validate_function(
+        h::Module const& core_module,
+        h::Function_declaration const& declaration,
+        h::Function_definition const* const definition,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_function_contracts(
+        h::Module const& core_module,
+        Function_declaration const& function_declaration,
+        h::compiler::Scope const& scope,
+        std::span<h::Function_condition const> const function_conditions,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
         Function_declaration const* const function_declaration,
@@ -264,7 +281,19 @@ namespace h::compiler
         Type_reference const& type
     );
 
+    Global_variable_declaration const* get_global_variable(
+        std::string_view const current_module_name,
+        h::Expression const& expression,
+        Declaration_database const& declaration_database
+    );
+
     bool is_constant_global_variable(
+        std::string_view const current_module_name,
+        h::Expression const& expression,
+        Declaration_database const& declaration_database
+    );
+
+    bool is_mutable_global_variable(
         std::string_view const current_module_name,
         h::Expression const& expression,
         Declaration_database const& declaration_database
@@ -309,5 +338,11 @@ namespace h::compiler
     Variable const* find_variable_from_scope(
         Scope const& scope,
         std::string_view const name
+    );
+
+    void add_function_parameters_to_scope(
+        Scope& scope,
+        std::span<std::pmr::string const> const parameter_names,
+        std::span<Type_reference const> const parameter_types
     );
 }

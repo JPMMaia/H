@@ -447,11 +447,37 @@ namespace h::compiler
         for (Function_declaration const& declaration : core_module.export_declarations.function_declarations)
         {
             process_declaration_name(declaration.name, declaration.source_location);
+
+            std::optional<Function_definition const*> const definition = find_function_definition(core_module, declaration.name);
+
+            std::pmr::vector<h::compiler::Diagnostic> const function_diagnostics = validate_function(
+                core_module,
+                declaration,
+                definition.has_value() ? definition.value() : nullptr,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!function_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), function_diagnostics.begin(), function_diagnostics.end());
         }
 
         for (Function_declaration const& declaration : core_module.internal_declarations.function_declarations)
         {
             process_declaration_name(declaration.name, declaration.source_location);
+
+            std::optional<Function_definition const*> const definition = find_function_definition(core_module, declaration.name);
+
+            std::pmr::vector<h::compiler::Diagnostic> const function_diagnostics = validate_function(
+                core_module,
+                declaration,
+                definition.has_value() ? definition.value() : nullptr,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!function_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), function_diagnostics.begin(), function_diagnostics.end());
         }
 
         for (Function_constructor const& declaration : core_module.export_declarations.function_constructors)
@@ -761,6 +787,138 @@ namespace h::compiler
             {
                 all_names.insert(member_name);
             }
+        }
+
+        return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_function(
+        h::Module const& core_module,
+        h::Function_declaration const& declaration,
+        h::Function_definition const* const definition,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        {
+            Scope scope
+            {
+                .variables{temporaries_allocator}
+            };
+
+            add_function_parameters_to_scope(
+                scope,
+                declaration.input_parameter_names,
+                declaration.type.input_parameter_types
+            );
+
+            std::pmr::vector<h::compiler::Diagnostic> pre_condition_diagnostics = validate_function_contracts(
+                core_module,
+                declaration,
+                scope,
+                declaration.preconditions,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!pre_condition_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), pre_condition_diagnostics.begin(), pre_condition_diagnostics.end());
+
+            add_function_parameters_to_scope(
+                scope,
+                declaration.output_parameter_names,
+                declaration.type.output_parameter_types
+            );
+
+            std::pmr::vector<h::compiler::Diagnostic> post_condition_diagnostics = validate_function_contracts(
+                core_module,
+                declaration,
+                scope,
+                declaration.postconditions,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!post_condition_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), post_condition_diagnostics.begin(), post_condition_diagnostics.end());
+        }
+
+        return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_function_contracts(
+        h::Module const& core_module,
+        Function_declaration const& function_declaration,
+        h::compiler::Scope const& scope,
+        std::span<h::Function_condition const> const function_conditions,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        for (h::Function_condition const& function_condition : function_conditions)
+        {
+            std::pmr::vector<h::compiler::Diagnostic> statement_diagnostics = validate_statement(
+                core_module,
+                &function_declaration,
+                scope,
+                function_condition.condition,
+                create_bool_type_reference(),
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!statement_diagnostics.empty())
+            {
+                diagnostics.insert(diagnostics.end(), statement_diagnostics.begin(), statement_diagnostics.end());
+                continue;
+            }
+
+            std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
+                core_module,
+                scope,
+                function_condition.condition,
+                declaration_database
+            );
+
+            if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, condition_type_optional, temporaries_allocator, temporaries_allocator);
+
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        get_statement_source_range(function_condition.condition),
+                        std::format("Expression type '{}' does not match expected type 'Bool'.", provided_type_name)
+                    )
+                );
+            }
+
+            auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+            {
+                bool const is_mutable_global_constant = is_mutable_global_variable(
+                    core_module.name,
+                    expression,
+                    declaration_database
+                );
+                if (is_mutable_global_constant)
+                {
+                    diagnostics.push_back(
+                        create_error_diagnostic(
+                            core_module.source_file_path,
+                            expression.source_range,
+                            "Cannot use mutable global variable in function preconditions and postconditions. Consider making the global constant."
+                        )
+                    );
+                }
+
+                return false;
+            };
+
+            visit_expressions(
+                function_condition.condition,
+                process_expression
+            );
         }
 
         return diagnostics;
@@ -2537,7 +2695,7 @@ namespace h::compiler
         return std::holds_alternative<Enum_declaration const*>(declaration->data);
     }
 
-    bool is_constant_global_variable(
+    Global_variable_declaration const* get_global_variable(
         std::string_view const current_module_name,
         h::Expression const& expression,
         Declaration_database const& declaration_database
@@ -2555,16 +2713,49 @@ namespace h::compiler
                 variable_expression.name
             );
             if (!declaration.has_value())
-                return false;
+                return nullptr;
 
             if (std::holds_alternative<Global_variable_declaration const*>(declaration->data))
             {
-                Global_variable_declaration const& global_variable_declaration = *std::get<Global_variable_declaration const*>(declaration->data);
-                return !global_variable_declaration.is_mutable;
+                return std::get<Global_variable_declaration const*>(declaration->data);
             }
         }
-            
-        return false;
+
+        return nullptr;
+    }
+
+    bool is_constant_global_variable(
+        std::string_view const current_module_name,
+        h::Expression const& expression,
+        Declaration_database const& declaration_database
+    )
+    {
+        Global_variable_declaration const* const global_variable = get_global_variable(
+            current_module_name,
+            expression,
+            declaration_database
+        );
+        if (global_variable == nullptr)
+            return false;
+
+        return !global_variable->is_mutable;
+    }
+
+    bool is_mutable_global_variable(
+        std::string_view const current_module_name,
+        h::Expression const& expression,
+        Declaration_database const& declaration_database
+    )
+    {
+        Global_variable_declaration const* const global_variable = get_global_variable(
+            current_module_name,
+            expression,
+            declaration_database
+        );
+        if (global_variable == nullptr)
+            return false;
+
+        return global_variable->is_mutable;
     }
 
     std::optional<h::Source_range> get_statement_source_range(
@@ -2757,5 +2948,24 @@ namespace h::compiler
             return nullptr;
 
         return &(*location);
+    }
+
+    void add_function_parameters_to_scope(
+        Scope& scope,
+        std::span<std::pmr::string const> const parameter_names,
+        std::span<Type_reference const> const parameter_types
+    )
+    {
+        for (std::size_t index = 0; index < parameter_names.size(); ++index)
+        {
+            scope.variables.push_back(
+                Variable
+                {
+                    .name = parameter_names[index],
+                    .type = parameter_types[index],
+                    .is_compile_time = false,
+                }
+            );
+        }
     }
 }
