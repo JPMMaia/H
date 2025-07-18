@@ -442,7 +442,7 @@ function run() -> ()
     }
 
 
-    TEST_CASE("Validates that member names are different from each other", "[Validation][Struct]")
+    TEST_CASE("Validates that struct member names are different from each other", "[Validation][Struct]")
     {
         std::string_view const input = R"(module Test;
 
@@ -458,17 +458,10 @@ struct My_struct
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_struct.b'.",
-                .related_information = {},
-            },
-            {
                 .range = create_source_range(7, 5, 7, 6),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_struct.b'.",
+                .message = "Duplicate struct member name 'My_struct.b'.",
                 .related_information = {},
             }
         };
@@ -494,7 +487,7 @@ struct My_struct
                 .range = create_source_range(6, 16, 6, 22),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type 'Float32' to 'My_struct.b' of type 'Int32'.",
+                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             }
         };
@@ -546,13 +539,6 @@ struct My_struct
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
             h::compiler::Diagnostic
-            {
-                .range = create_source_range(5, 16, 5, 21),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type '<undefined>' to 'My_struct.a' of type 'Int32'.",
-                .related_information = {},
-            },
             {
                 .range = create_source_range(5, 16, 5, 21),
                 .source = Diagnostic_source::Compiler,
@@ -609,7 +595,7 @@ struct My_struct_1
     }
 
 
-    TEST_CASE("Validates that member names are different from each other", "[Validation][Union]")
+    TEST_CASE("Validates that union member names are different from each other", "[Validation][Union]")
     {
         std::string_view const input = R"(module Test;
 
@@ -625,17 +611,10 @@ union My_union
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_union.b'.",
-                .related_information = {},
-            },
-            {
                 .range = create_source_range(7, 5, 7, 6),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_union.b'.",
+                .message = "Duplicate union member name 'My_union.b'.",
                 .related_information = {},
             }
         };
@@ -2255,7 +2234,7 @@ function run(value: Int32) -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
-    TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][lf_expression]")
+    TEST_CASE("Validates that the expression type of a if condition expression is a boolean", "[Validation][lf_expression]")
     {
         std::string_view const input = R"(module Test;
 
@@ -2488,7 +2467,33 @@ function run(value: Int32) -> ()
     }
 
 
-    TEST_CASE("Validates that null can only be assigned to pointer types", "[Validation][Null_expression]")
+    TEST_CASE("Validates that null can only be assigned to pointer types in structs", "[Validation][Null_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: *Int32 = null;
+    b: Int32 = null;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 16, 6, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Null_pointer_type' does not match expected type 'Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that null can only be assigned to pointer types in functions", "[Validation][Null_expression]")
     {
         std::string_view const input = R"(module Test;
 
@@ -2500,17 +2505,12 @@ function foo(pointer: *Int32, non_pointer: Int32) -> (result: *Int32)
 struct My_struct
 {
     a: *Int32 = null;
-    b: Int32 = null;
+    b: Int32 = 0;
 }
 
 function run(value: Int32) -> (result: Int32)
 {
     foo(null, null);
-    
-    var instance_0: My_struct = {
-        a: null,
-        b: null
-    };
 
     var instance_1: My_struct = {};
     instance_1.a = null;
@@ -2522,14 +2522,6 @@ function run(value: Int32) -> (result: Int32)
 
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(11, 16, 11, 20),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign expression of type 'Null_pointer_type' to 'My_struct.b' of type 'Int32'.",
-                .related_information = {},
-            },
             {
                 .range = create_source_range(16, 15, 16, 19),
                 .source = Diagnostic_source::Compiler,
@@ -2538,21 +2530,14 @@ function run(value: Int32) -> (result: Int32)
                 .related_information = {},
             },
             {
-                .range = create_source_range(20, 12, 20, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot assign value of type 'Null_pointer_type' to member 'My_struct.b' of type 'Int32'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(23, 20, 23, 24),
+                .range = create_source_range(20, 20, 20, 24),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Expected type is 'Int32' but got 'Null_pointer_type'.",
                 .related_information = {},
             },
             {
-                .range = create_source_range(25, 5, 25, 16),
+                .range = create_source_range(22, 5, 22, 16),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function 'run' expects a return value of type 'Int32', but 'Null_pointer_type' was provided.",

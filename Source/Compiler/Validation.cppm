@@ -285,6 +285,11 @@ namespace h::compiler
         std::uint32_t const count
     );
 
+    std::optional<h::Source_range> create_source_range_from_source_position(
+        std::optional<h::Source_position> const& source_position,
+        std::uint32_t const count
+    );
+
     std::optional<h::Type_reference> get_type_to_instantiate(
         Validate_expression_parameters const& parameters,
         h::Instantiate_expression const& expression

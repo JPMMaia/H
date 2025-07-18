@@ -641,7 +641,90 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return {};
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
+
+        for (std::size_t member_index = 0; member_index < declaration.member_names.size(); ++member_index)
+        {
+            std::string_view const member_name = declaration.member_names[member_index];
+
+            std::optional<Source_position> const member_source_position =
+                declaration.member_source_positions.has_value() ?
+                declaration.member_source_positions.value()[member_index] :
+                std::optional<Source_position>{std::nullopt};
+
+            if (all_names.contains(member_name))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_source_range_from_source_position(member_source_position, member_name.size()),
+                        std::format("Duplicate struct member name '{}.{}'.", declaration.name, member_name)
+                    )
+                );
+            }
+            else
+            {
+                all_names.insert(member_name);
+            }
+
+            h::Type_reference const& member_type = declaration.member_types[member_index];
+            h::Statement const& member_default_value = declaration.member_default_values[member_index];
+
+            std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+                core_module,
+                {},
+                member_default_value,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            bool const is_compile_time = is_computable_at_compile_time(
+                core_module,
+                {},
+                member_default_value,
+                expression_types,
+                declaration_database
+            );
+
+            if (!is_compile_time)
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        get_statement_source_range(member_default_value),
+                        std::format("The value of '{}.{}' must be a computable at compile-time.", declaration.name, member_name)
+                    )
+                );
+                continue;
+            }
+
+            std::optional<Type_reference> const& default_value_type =
+                !expression_types.empty() ?
+                expression_types[0] :
+                std::optional<Type_reference>{std::nullopt};
+
+            if (!are_compatible_types(default_value_type, member_type))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, default_value_type, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, member_type, temporaries_allocator, temporaries_allocator);
+
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        get_statement_source_range(member_default_value),
+                        std::format(
+                            "Expression type '{}' does not match expected type '{}'.",
+                            provided_type_name,
+                            expected_type_name
+                        )
+                    )
+                );
+            }
+        }
+
+        return diagnostics;
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_union_declaration(
@@ -651,7 +734,36 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return {};
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
+
+        for (std::size_t member_index = 0; member_index < declaration.member_names.size(); ++member_index)
+        {
+            std::string_view const member_name = declaration.member_names[member_index];
+
+            std::optional<Source_position> const member_source_position =
+                declaration.member_source_positions.has_value() ?
+                declaration.member_source_positions.value()[member_index] :
+                std::optional<Source_position>{std::nullopt};
+
+            if (all_names.contains(member_name))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_source_range_from_source_position(member_source_position, member_name.size()),
+                        std::format("Duplicate union member name '{}.{}'.", declaration.name, member_name)
+                    )
+                );
+            }
+            else
+            {
+                all_names.insert(member_name);
+            }
+        }
+
+        return diagnostics;
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_statement(
@@ -2393,6 +2505,10 @@ namespace h::compiler
         {
             return true;
         }
+        else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
+        {
+            return true;
+        }
         else if (std::holds_alternative<h::Variable_expression>(expression.data))
         {
             h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
@@ -2505,6 +2621,29 @@ namespace h::compiler
             {
                 .line = source_location->line,
                 .column = source_location->column + count
+            }
+        };
+    }
+
+    std::optional<h::Source_range> create_source_range_from_source_position(
+        std::optional<h::Source_position> const& source_position,
+        std::uint32_t const count
+    )
+    {
+        if (!source_position.has_value())
+            return std::nullopt;
+
+        return h::Source_range
+        {
+            .start =
+            {
+                .line = source_position->line,
+                .column = source_position->column
+            },
+            .end = 
+            {
+                .line = source_position->line,
+                .column = source_position->column + count
             }
         };
     }
