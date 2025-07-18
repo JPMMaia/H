@@ -580,6 +580,57 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+            core_module,
+            {},
+            declaration.initial_value,
+            declaration_database,
+            temporaries_allocator
+        );
+
+        bool const is_compile_time = is_computable_at_compile_time(
+            core_module,
+            {},
+            declaration.initial_value,
+            expression_types,
+            declaration_database
+        );
+
+        if (!is_compile_time)
+        {
+            return
+            {
+                create_error_diagnostic(
+                    core_module.source_file_path,
+                    get_statement_source_range(declaration.initial_value),
+                    std::format("The value of '{}' must be a computable at compile-time.", declaration.name)
+                )
+            };
+        }
+
+        if (declaration.type.has_value())
+        {
+            std::optional<h::Type_reference> const& type_reference =
+                !expression_types.empty() ?
+                expression_types[0] :
+                std::optional<h::Type_reference>{std::nullopt};
+
+            if (!are_compatible_types(declaration.type, type_reference))
+            {
+                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, type_reference, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, declaration.type, temporaries_allocator, temporaries_allocator);
+
+                return
+                {
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        get_statement_source_range(declaration.initial_value),
+                        std::format("Expression type '{}' does not match expected type '{}'.", provided_type_name, expected_type_name)
+                    )
+                };
+            }
+        }
+
         return {};
     }
 
@@ -1971,6 +2022,7 @@ namespace h::compiler
             case Unary_operation::Address_of:
             {
                 Expression const& operand_expression = parameters.statement.expressions[expression.expression.expression_index];
+                // TODO should be possible to take address from access expression too
                 bool const is_temporary = !std::holds_alternative<h::Variable_expression>(operand_expression.data);
                 if (is_temporary)
                 {
@@ -1983,6 +2035,17 @@ namespace h::compiler
                                 "Cannot apply unary operation '{}' to expression.",
                                 h::parser::unary_operation_symbol_to_string(expression.operation)
                             )
+                        )
+                    };
+                }
+                else if (is_constant_global_variable(parameters.core_module.name, operand_expression, parameters.declaration_database))
+                {
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            create_sub_source_range(source_range, 0, 1),
+                            "Cannot take address of a global constant."
                         )
                     };
                 }
@@ -2356,6 +2419,36 @@ namespace h::compiler
             return false;
         
         return std::holds_alternative<Enum_declaration const*>(declaration->data);
+    }
+
+    bool is_constant_global_variable(
+        std::string_view const current_module_name,
+        h::Expression const& expression,
+        Declaration_database const& declaration_database
+    )
+    {
+        // TODO can also be access expression
+
+        if (std::holds_alternative<h::Variable_expression>(expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
+
+            std::optional<Declaration> const declaration = find_underlying_declaration(
+                declaration_database,
+                current_module_name,
+                variable_expression.name
+            );
+            if (!declaration.has_value())
+                return false;
+
+            if (std::holds_alternative<Global_variable_declaration const*>(declaration->data))
+            {
+                Global_variable_declaration const& global_variable_declaration = *std::get<Global_variable_declaration const*>(declaration->data);
+                return !global_variable_declaration.is_mutable;
+            }
+        }
+            
+        return false;
     }
 
     std::optional<h::Source_range> get_statement_source_range(

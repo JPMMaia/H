@@ -361,6 +361,87 @@ enum My_enum
     }
 
 
+    TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+var my_global_0: Float32 = 2.0f32;
+var my_global_1: Int32 = 2.0f32;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(4, 26, 4, 32),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that expression only uses compile time expressions", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+function get_value() -> (result: Int32)
+{
+    return 0;
+}
+
+var my_global_0 = 0;
+var my_global_1 = get_value();
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 19, 9, 30),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'my_global_1' must be a computable at compile-time.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that pointers to global constants do not exist", "[Validation][Global_variable]")
+    {
+        std::string_view const input = R"(module Test;
+
+mutable my_global_0 = 0;
+var my_global_1 = 0;
+
+function run() -> ()
+{
+    var a = &my_global_0;
+    var b = &my_global_1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 13, 9, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot take address of a global constant.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that member names are different from each other", "[Validation][Struct]")
     {
         std::string_view const input = R"(module Test;
@@ -561,88 +642,6 @@ union My_union
 
         test_validate_module(input, {}, expected_diagnostics);
     }
-
-
-    TEST_CASE("Validates that type and type of value match", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-var my_global_0: Float32 = 2.0f32;
-var my_global_1: Int32 = 2.0f32;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(4, 26, 4, 32),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Float32' does not match expected type 'Int32'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that expression only uses compile time expressions", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-function get_value() -> (result: Int32)
-{
-    return 0;
-}
-
-var my_global_0 = 0;
-var my_global_1 = get_value();
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 19, 9, 30),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "The value of 'my_global_1' must be a computable at compile-time.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that pointers to global constants do not exist", "[Validation][Global_variable]")
-    {
-        std::string_view const input = R"(module Test;
-
-mutable my_global_0 = 0;
-var my_global_1 = 0;
-
-function run() -> ()
-{
-    var a = &my_global_0;
-    var b = &my_global_1;
-}
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(9, 13, 9, 14),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot take address of a global constant.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
 
     
     TEST_CASE("Validates that precondition and postcondition must evaluate to a boolean", "[Validation][Function_contracts]")

@@ -898,7 +898,7 @@ namespace h::compiler
                     return location->type;
             }
 
-            // Try function:
+            // Try declarations:
             {
                 std::optional<Declaration> const declaration_optional = find_declaration(
                     declaration_database,
@@ -907,7 +907,15 @@ namespace h::compiler
                 );
                 if (declaration_optional.has_value())
                 {
-                    if (std::holds_alternative<Function_declaration const*>(declaration_optional->data))
+                    if (std::holds_alternative<Global_variable_declaration const*>(declaration_optional->data))
+                    {
+                        Global_variable_declaration const& global_variable_declaration = *std::get<Global_variable_declaration const*>(declaration_optional->data);
+                        if (global_variable_declaration.type.has_value())
+                            return global_variable_declaration.type.value();
+                    
+                        return get_expression_type(core_module, scope, global_variable_declaration.initial_value, declaration_database);
+                    }
+                    else if (std::holds_alternative<Function_declaration const*>(declaration_optional->data))
                     {
                         Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration_optional->data);
                         return create_function_type_type_reference(
