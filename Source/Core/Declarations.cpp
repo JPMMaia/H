@@ -132,12 +132,12 @@ namespace h
             core_module.name,
             core_module.internal_declarations.alias_type_declarations,
             core_module.internal_declarations.enum_declarations,
-            core_module.export_declarations.global_variable_declarations,
+            core_module.internal_declarations.global_variable_declarations,
             core_module.internal_declarations.struct_declarations,
             core_module.internal_declarations.union_declarations,
             core_module.internal_declarations.function_declarations,
-            core_module.export_declarations.function_constructors,
-            core_module.export_declarations.type_constructors
+            core_module.internal_declarations.function_constructors,
+            core_module.internal_declarations.type_constructors
         );
 
         add_instantiated_type_instances(database, core_module);
