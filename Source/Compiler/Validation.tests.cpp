@@ -299,7 +299,7 @@ enum My_enum
                 .range = create_source_range(13, 9, 13, 20),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_enum.d' must be a computable at compile-time.",
+                .message = "The value of 'My_enum.d' must be computable at compile-time.",
                 .related_information = {},
             },
         };
@@ -345,14 +345,14 @@ enum My_enum
                 .range = create_source_range(7, 9, 7, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_enum.c' must be a computable at compile-time.",
+                .message = "The value of 'My_enum.c' must be computable at compile-time.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 9, 8, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_enum.d' must be a computable at compile-time.",
+                .message = "The value of 'My_enum.d' must be computable at compile-time.",
                 .related_information = {},
             },
         };
@@ -404,7 +404,7 @@ var my_global_1 = get_value();
                 .range = create_source_range(9, 19, 9, 30),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'my_global_1' must be a computable at compile-time.",
+                .message = "The value of 'my_global_1' must be computable at compile-time.",
                 .related_information = {},
             }
         };
@@ -518,7 +518,7 @@ struct My_struct
                 .range = create_source_range(11, 16, 11, 27),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_struct.b' must be a computable at compile-time.",
+                .message = "The value of 'My_struct.b' must be computable at compile-time.",
                 .related_information = {},
             }
         };
@@ -543,7 +543,7 @@ struct My_struct
                 .range = create_source_range(5, 16, 5, 21),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_struct.a' must be a computable at compile-time.",
+                .message = "The value of 'My_struct.a' must be computable at compile-time.",
                 .related_information = {},
             }
         };

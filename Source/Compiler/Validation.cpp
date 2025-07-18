@@ -562,7 +562,7 @@ namespace h::compiler
                         create_error_diagnostic(
                             core_module.source_file_path,
                             get_statement_source_range(statement),
-                            std::format("The value of '{}.{}' must be a computable at compile-time.", declaration.name, value.name)
+                            std::format("The value of '{}.{}' must be computable at compile-time.", declaration.name, value.name)
                         )
                     );
                     continue;
@@ -629,7 +629,7 @@ namespace h::compiler
                 create_error_diagnostic(
                     core_module.source_file_path,
                     get_statement_source_range(declaration.initial_value),
-                    std::format("The value of '{}' must be a computable at compile-time.", declaration.name)
+                    std::format("The value of '{}' must be computable at compile-time.", declaration.name)
                 )
             };
         }
@@ -720,7 +720,7 @@ namespace h::compiler
                     create_error_diagnostic(
                         core_module.source_file_path,
                         get_statement_source_range(member_default_value),
-                        std::format("The value of '{}.{}' must be a computable at compile-time.", declaration.name, member_name)
+                        std::format("The value of '{}.{}' must be computable at compile-time.", declaration.name, member_name)
                     )
                 );
                 continue;
