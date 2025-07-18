@@ -18,6 +18,7 @@ namespace h::compiler
     {
         std::pmr::string name;
         h::Type_reference type;
+        bool is_compile_time;
     };
 
     export struct Scope

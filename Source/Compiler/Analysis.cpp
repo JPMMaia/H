@@ -84,7 +84,8 @@ namespace h::compiler
             scope.variables.push_back(
                 {
                     .name = parameter_names[parameter_index],
-                    .type = parameter_types[parameter_index] 
+                    .type = parameter_types[parameter_index],
+                    .is_compile_time = false,
                 }
             );
         }
@@ -486,14 +487,14 @@ namespace h::compiler
             h::Variable_declaration_expression& data = std::get<h::Variable_declaration_expression>(expression.data);
             std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, scope, statement, statement.expressions[data.right_hand_side.expression_index], declaration_database);
             if (type_reference.has_value())
-                scope.variables.push_back({.name = data.name, .type = type_reference.value()});
+                scope.variables.push_back({.name = data.name, .type = type_reference.value(), .is_compile_time = false});
             
             // TODO error if type is nullopt
         }
         else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
         {
             h::Variable_declaration_with_type_expression& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-            scope.variables.push_back({.name = data.name, .type = data.type});
+            scope.variables.push_back({.name = data.name, .type = data.type, .is_compile_time = false});
         }
         else if (std::holds_alternative<h::While_loop_expression>(expression.data))
         {

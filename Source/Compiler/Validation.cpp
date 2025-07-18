@@ -512,10 +512,12 @@ namespace h::compiler
 
             if (value.value.has_value())
             {
+                h::Statement const& statement = value.value.value();
+
                 std::optional<Type_reference> const type = get_expression_type(
                     core_module,
                     scope,
-                    value.value.value(),
+                    statement,
                     declaration_database
                 );
                 
@@ -524,8 +526,35 @@ namespace h::compiler
                     diagnostics.push_back(
                         create_error_diagnostic(
                             core_module.source_file_path,
-                            get_statement_source_range(value.value.value()),
+                            get_statement_source_range(statement),
                             std::format("Enum value '{}.{}' must be a Int32 type.", declaration.name, value.name)
+                        )
+                    );
+                }
+
+                std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+                    core_module,
+                    scope,
+                    statement,
+                    declaration_database,
+                    temporaries_allocator
+                );
+
+                bool const is_compile_time = is_computable_at_compile_time(
+                    core_module,
+                    scope,
+                    statement,
+                    expression_types,
+                    declaration_database
+                );
+
+                if (!is_compile_time)
+                {
+                    diagnostics.push_back(
+                        create_error_diagnostic(
+                            core_module.source_file_path,
+                            get_statement_source_range(statement),
+                            std::format("The value of '{}.{}' must be a computable at compile-time.", declaration.name, value.name)
                         )
                     );
                 }
@@ -534,7 +563,8 @@ namespace h::compiler
             scope.variables.push_back(
                 {
                     .name = value.name,
-                    .type = int32_type
+                    .type = int32_type,
+                    .is_compile_time = true,
                 }
             );
         }
@@ -582,21 +612,13 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<std::optional<h::Type_reference>> expression_types{temporaries_allocator};
-        expression_types.resize(statement.expressions.size(), std::nullopt);
-
-        for (std::size_t expression_index = 0; expression_index < statement.expressions.size(); ++expression_index)
-        {
-            h::Expression const& expression = statement.expressions[expression_index];
-            
-            expression_types[expression_index] = get_expression_type(
-                core_module,
-                scope,
-                statement,
-                expression,
-                declaration_database
-            );
-        }
+        std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+            core_module,
+            scope,
+            statement,
+            declaration_database,
+            temporaries_allocator
+        );
 
         Validate_expression_parameters parameters
         {
@@ -1777,7 +1799,7 @@ namespace h::compiler
                     )
                 );
             }
-            else if (!is_computable_at_compile_time(case_value_expression, case_value_type_optional, parameters.declaration_database))
+            else if (!is_computable_at_compile_time(case_value_expression, case_value_type_optional, parameters))
             {
                 diagnostics.push_back(
                     create_error_diagnostic(
@@ -2166,9 +2188,105 @@ namespace h::compiler
         return {};
     }
 
+    std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Statement const& statement,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::optional<h::Type_reference>> expression_types{temporaries_allocator};
+        expression_types.resize(statement.expressions.size(), std::nullopt);
+
+        for (std::size_t expression_index = 0; expression_index < statement.expressions.size(); ++expression_index)
+        {
+            h::Expression const& expression = statement.expressions[expression_index];
+            
+            expression_types[expression_index] = get_expression_type(
+                core_module,
+                scope,
+                statement,
+                expression,
+                declaration_database
+            );
+        }
+
+        return expression_types;
+    }
+
     bool is_computable_at_compile_time(
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
+        Validate_expression_parameters const& parameters
+    )
+    {
+        return is_computable_at_compile_time(
+            parameters.core_module,
+            parameters.scope,
+            parameters.statement,
+            expression,
+            expression_type,
+            parameters.expression_types,
+            parameters.declaration_database
+        );
+    }
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
+        Declaration_database const& declaration_database
+    )
+    {
+        if (statement.expressions.empty())
+            return true;
+
+        h::Expression const& expression = statement.expressions[0];
+        std::optional<h::Type_reference> const& expression_type = expression_types[0];
+
+        return is_computable_at_compile_time(
+            core_module,
+            scope,
+            statement,
+            expression,
+            expression_type,
+            expression_types,
+            declaration_database
+        );
+    }
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        h::Expression_index const& expression_index,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
+        Declaration_database const& declaration_database
+    )
+    {
+        h::Expression const& expression = statement.expressions[expression_index.expression_index];
+        std::optional<h::Type_reference> const& expression_type = expression_types[expression_index.expression_index];
+
+        return is_computable_at_compile_time(
+            core_module,
+            scope,
+            statement,
+            expression,
+            expression_type,
+            expression_types,
+            declaration_database
+        );
+    }
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        h::Expression const& expression,
+        std::optional<h::Type_reference> const& expression_type,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
         Declaration_database const& declaration_database
     )
     {
@@ -2179,9 +2297,46 @@ namespace h::compiler
                 return true;
             }
         }
+        else if (std::holds_alternative<h::Binary_expression>(expression.data))
+        {
+            h::Binary_expression const& binary_expression = std::get<h::Binary_expression>(expression.data);
+
+            bool const is_lhs_compile_time = is_computable_at_compile_time(
+                core_module,
+                scope,
+                statement,
+                binary_expression.left_hand_side,
+                expression_types,
+                declaration_database
+            );
+            if (!is_lhs_compile_time)
+                return false;
+
+            bool const is_rhs_compile_time = is_computable_at_compile_time(
+                core_module,
+                scope,
+                statement,
+                binary_expression.right_hand_side,
+                expression_types,
+                declaration_database
+            );
+            if (!is_rhs_compile_time)
+                return false;
+
+            return true;
+        }
         else if (std::holds_alternative<h::Constant_expression>(expression.data))
         {
             return true;
+        }
+        else if (std::holds_alternative<h::Variable_expression>(expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
+            Variable const* const variable = find_variable_from_scope(scope, variable_expression.name);
+            if (variable == nullptr)
+                return false;
+
+            return variable->is_compile_time;
         }
 
         return false;

@@ -218,9 +218,44 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Statement const& statement,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     bool is_computable_at_compile_time(
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
+        Validate_expression_parameters const& parameters
+    );
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
+        Declaration_database const& declaration_database
+    );
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        h::Expression_index const& expression_index,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
+        Declaration_database const& declaration_database
+    );
+
+    bool is_computable_at_compile_time(
+        h::Module const& core_module,
+        h::compiler::Scope const& scope,
+        h::Statement const& statement,
+        h::Expression const& expression,
+        std::optional<h::Type_reference> const& expression_type,
+        std::span<std::optional<h::Type_reference> const> const expression_types,
         Declaration_database const& declaration_database
     );
 

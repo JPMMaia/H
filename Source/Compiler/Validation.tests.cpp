@@ -286,7 +286,9 @@ function get_value() -> (result: Int32)
 enum My_enum
 {
     a = 0,
-    b = get_value(),
+    b = 1 + 2,
+    c = a + b,
+    d = get_value(),
 }
 )";
 
@@ -294,17 +296,10 @@ enum My_enum
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(11, 9, 11, 20),
+                .range = create_source_range(13, 9, 13, 20),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The value of 'My_enum.b' must be a computable at compile-time.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(11, 9, 11, 18),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot use 'get_value' to calculate 'My_enum.b'.",
+                .message = "The value of 'My_enum.d' must be a computable at compile-time.",
                 .related_information = {},
             },
         };
