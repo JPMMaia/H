@@ -514,24 +514,6 @@ namespace h::compiler
             {
                 h::Statement const& statement = value.value.value();
 
-                std::optional<Type_reference> const type = get_expression_type(
-                    core_module,
-                    scope,
-                    statement,
-                    declaration_database
-                );
-                
-                if (!type.has_value() || type.value() != int32_type)
-                {
-                    diagnostics.push_back(
-                        create_error_diagnostic(
-                            core_module.source_file_path,
-                            get_statement_source_range(statement),
-                            std::format("Enum value '{}.{}' must be a Int32 type.", declaration.name, value.name)
-                        )
-                    );
-                }
-
                 std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
                     core_module,
                     scope,
@@ -555,6 +537,25 @@ namespace h::compiler
                             core_module.source_file_path,
                             get_statement_source_range(statement),
                             std::format("The value of '{}.{}' must be a computable at compile-time.", declaration.name, value.name)
+                        )
+                    );
+                    continue;
+                }
+
+                std::optional<Type_reference> const type = get_expression_type(
+                    core_module,
+                    scope,
+                    statement,
+                    declaration_database
+                );
+                
+                if (!type.has_value() || type.value() != int32_type)
+                {
+                    diagnostics.push_back(
+                        create_error_diagnostic(
+                            core_module.source_file_path,
+                            get_statement_source_range(statement),
+                            std::format("Enum value '{}.{}' must be a Int32 type.", declaration.name, value.name)
                         )
                     );
                 }

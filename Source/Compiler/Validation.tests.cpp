@@ -345,14 +345,14 @@ enum My_enum
                 .range = create_source_range(7, 9, 7, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The enum value 'My_enum.c' can only be calculated using previous enum values.",
+                .message = "The value of 'My_enum.c' must be a computable at compile-time.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(8, 9, 8, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The enum value 'My_enum.d' can only be calculated using previous enum values.",
+                .message = "The value of 'My_enum.d' must be a computable at compile-time.",
                 .related_information = {},
             },
         };
