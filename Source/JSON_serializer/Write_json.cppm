@@ -2319,6 +2319,7 @@ namespace h::json
         writer.String(output.alias.data(), output.alias.size());
         writer.Key("usages");
         write_object(writer, output.usages);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 

@@ -4297,6 +4297,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_range")
+        {
+            parent->source_range = Source_range{};
+            return Stack_state
+            {
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
+            };
+        }
+
         return {};
     }
 

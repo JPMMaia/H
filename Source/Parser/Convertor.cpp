@@ -350,10 +350,14 @@ namespace h::parser
         std::string_view const import_name = get_node_value(tree, import_name_node.value());
         std::string_view const import_alias = get_node_value(tree, import_alias_node.value());
 
+        Source_range const source_range = get_node_source_range(node);
+
         return Import_module_with_alias
         {
             .module_name = create_string(import_name, output_allocator),
-            .alias = create_string(import_alias, output_allocator)
+            .alias = create_string(import_alias, output_allocator),
+            .usages = {},
+            .source_range = source_range,
         };
     }
 

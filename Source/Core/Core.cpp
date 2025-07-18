@@ -81,6 +81,12 @@ namespace h
         return lhs.data == rhs.data;
     }
 
+    bool operator==(Import_module_with_alias const& lhs, Import_module_with_alias const& rhs)
+    {
+        return lhs.module_name == rhs.module_name &&
+               lhs.alias == rhs.alias;
+    }
+
     Source_range create_source_range(
         std::uint32_t const start_line,
         std::uint32_t const start_column,

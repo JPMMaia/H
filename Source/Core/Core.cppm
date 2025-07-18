@@ -1136,12 +1136,14 @@ namespace h
         std::pmr::string module_name;
         std::pmr::string alias;
         std::pmr::vector<std::pmr::string> usages;
+        std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Import_module_with_alias const&, Import_module_with_alias const&) = default;
 #else
         friend auto operator<=>(Import_module_with_alias const&, Import_module_with_alias const&) = default;
 #endif
+        friend bool operator==(Import_module_with_alias const& lhs, Import_module_with_alias const& rhs);
     };
 
     export struct Module_dependencies
