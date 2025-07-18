@@ -414,12 +414,14 @@ namespace h
     {
         std::pmr::string description;
         Statement condition;
+        std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Function_condition const&, Function_condition const&) = default;
 #else
         friend auto operator<=>(Function_condition const&, Function_condition const&) = default;
 #endif
+        friend bool operator==(Function_condition const& lhs, Function_condition const& rhs);
     };
 
     export enum class Linkage

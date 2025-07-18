@@ -1301,6 +1301,7 @@ namespace h::json
         writer.String(output.description.data(), output.description.size());
         writer.Key("condition");
         write_object(writer, output.condition);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 

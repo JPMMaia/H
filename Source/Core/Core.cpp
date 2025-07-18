@@ -87,6 +87,12 @@ namespace h
                lhs.alias == rhs.alias;
     }
 
+    bool operator==(Function_condition const& lhs, Function_condition const& rhs)
+    {
+        return lhs.description == rhs.description &&
+               lhs.condition == rhs.condition;
+    }
+
     Source_range create_source_range(
         std::uint32_t const start_line,
         std::uint32_t const start_column,

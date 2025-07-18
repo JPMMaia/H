@@ -1023,6 +1023,8 @@ namespace h::parser
             output.condition = node_to_statement(module_info, tree, condition_node.value(), output_allocator, temporaries_allocator);
         }
 
+        output.source_range = get_node_source_range(node);
+
         return output;
     }
 
