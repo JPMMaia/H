@@ -15,7 +15,25 @@ import h.core.declarations;
 
 namespace h::compiler
 {
-    export std::pmr::vector<h::compiler::Diagnostic> validate_type_reference(
+    export std::pmr::vector<h::compiler::Diagnostic> validate_module(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_imports(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_type_references(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_type_reference(
         h::Module const& core_module,
         h::Type_reference const& type,
         Declaration_database const& declaration_database,

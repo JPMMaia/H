@@ -50,4 +50,8 @@ namespace h::compiler
         std::ostream& output_stream,
         Diagnostic const& diagnostic
     );
+
+    export void sort_diagnostics(
+        std::pmr::vector<Diagnostic>& diagnostics
+    );
 }

@@ -43,4 +43,27 @@ namespace h::compiler
 
         return output_stream;
     }
+
+    void sort_diagnostics(
+        std::pmr::vector<Diagnostic>& diagnostics
+    )
+    {
+        std::sort(
+            diagnostics.begin(),
+            diagnostics.end(),
+            [](Diagnostic const& lhs, Diagnostic const& rhs)
+            {
+                if (lhs.file_path != rhs.file_path)
+                    return lhs.file_path < rhs.file_path;
+
+                if (lhs.range.start.line != rhs.range.start.line)
+                    return lhs.range.start.line < rhs.range.start.line;
+
+                if (lhs.range.start.column != rhs.range.start.column)
+                    return lhs.range.start.column < rhs.range.start.column;
+
+                return lhs.message < rhs.message;
+            }
+        );
+    }
 }

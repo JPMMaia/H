@@ -1,5 +1,6 @@
 module;
 
+#include <array>
 #include <cstddef>
 #include <filesystem>
 #include <format>
@@ -72,6 +73,153 @@ namespace h::compiler
         return first == second;
     }
 
+    std::array<std::string_view, 14> get_reserved_keywords()
+    {
+        return
+        {
+            "Byte",
+            "Int8",
+            "Int16",
+            "Int32",
+            "Int64",
+            "Uint8",
+            "Uint16",
+            "Uint32",
+            "Uint64",
+            "Float16",
+            "Float32",
+            "Float64",
+            "true",
+            "false",
+        };
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_module(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        // TODO validate module name
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_imports(
+                core_module,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!diagnostics.empty())
+                return diagnostics;
+        }
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_type_references(
+                core_module,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!diagnostics.empty())
+                return diagnostics;
+        }
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_declarations(
+                core_module,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!diagnostics.empty())
+                return diagnostics;
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_imports(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
+
+        for (Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
+        {
+            if (all_names.contains(import_module.alias))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_sub_source_range(
+                            import_module.source_range,
+                            11 + import_module.module_name.size(),
+                            import_module.alias.size()
+                        ),
+                        std::format("Duplicate import alias '{}'.", import_module.alias)
+                    )
+                );
+            }
+            else
+            {
+                all_names.insert(import_module.alias);
+            }
+
+            auto const location = declaration_database.map.find(import_module.module_name);
+            if (location == declaration_database.map.end())
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_sub_source_range(
+                            import_module.source_range,
+                            7,
+                            import_module.module_name.size()
+                        ),
+                        std::format("Cannot find module '{}'.", import_module.module_name)
+                    )
+                );
+            }
+        }
+
+        return diagnostics;
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_type_references(
+        h::Module const& core_module,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        auto const process_type_reference = [&](
+            std::string_view const declaration_name,
+            h::Type_reference const& type
+        ) -> bool
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const current_diagnostics = validate_type_reference(
+                core_module,
+                type,
+                declaration_database,
+                temporaries_allocator
+            );
+
+            if (!current_diagnostics.empty())
+            {
+                diagnostics.insert(diagnostics.end(), current_diagnostics.begin(), current_diagnostics.end());
+                return true;
+            }
+
+            return false;
+        };
+
+        visit_type_references_recursively_with_declaration_name(core_module, process_type_reference);
+
+        return diagnostics;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_type_reference(
         h::Module const& core_module,
         h::Type_reference const& type,
@@ -131,6 +279,8 @@ namespace h::compiler
 
         std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
 
+        std::array<std::string_view, 14> const reserved_keywords = get_reserved_keywords();
+
         auto const process_declaration_name = [&](
             std::string_view const name,
             std::optional<Source_location> const& source_location
@@ -149,6 +299,18 @@ namespace h::compiler
             else
             {
                 all_names.insert(name);
+            }
+
+            auto const location = std::find(reserved_keywords.begin(), reserved_keywords.end(), name);
+            if (location != reserved_keywords.end())
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_source_range_from_source_location(source_location, name.size()),
+                        std::format("Invalid declaration name '{}' which is a reserved keyword.", name)
+                    )
+                );
             }
         };
 
@@ -312,6 +474,7 @@ namespace h::compiler
             process_declaration_name(declaration.name, declaration.source_location);
         }
 
+        sort_diagnostics(diagnostics);
         return diagnostics;
     }
 
@@ -322,7 +485,61 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return {};
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        std::pmr::unordered_set<std::string_view> all_names{temporaries_allocator};
+
+        Scope scope;
+
+        Type_reference const int32_type = create_integer_type_type_reference(32, true);
+
+        for (Enum_value const& value : declaration.values)
+        {
+            if (all_names.contains(value.name))
+            {
+                diagnostics.push_back(
+                    create_error_diagnostic(
+                        core_module.source_file_path,
+                        create_source_range_from_source_location(value.source_location, value.name.size()),
+                        std::format("Duplicate enum value name '{}.{}'.", declaration.name, value.name)
+                    )
+                );
+            }
+            else
+            {
+                all_names.insert(value.name);
+            }
+
+            if (value.value.has_value())
+            {
+                std::optional<Type_reference> const type = get_expression_type(
+                    core_module,
+                    scope,
+                    value.value.value(),
+                    declaration_database
+                );
+                
+                if (!type.has_value() || type.value() != int32_type)
+                {
+                    diagnostics.push_back(
+                        create_error_diagnostic(
+                            core_module.source_file_path,
+                            get_statement_source_range(value.value.value()),
+                            std::format("Enum value '{}.{}' must be a Int32 type.", declaration.name, value.name)
+                        )
+                    );
+                }
+            }
+
+            scope.variables.push_back(
+                {
+                    .name = value.name,
+                    .type = int32_type
+                }
+            );
+        }
+
+        return diagnostics;
     }
 
     std::pmr::vector<h::compiler::Diagnostic> validate_global_variable_declaration(

@@ -32,33 +32,7 @@ namespace h::compiler
 
         if (options.validate)
         {
-            auto const process_type_reference = [&](
-                std::string_view const declaration_name,
-                h::Type_reference const& type
-            ) -> bool
-            {
-                std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_type_reference(
-                    core_module,
-                    type,
-                    declaration_database,
-                    temporaries_allocator
-                );
-
-                if (!diagnostics.empty())
-                {
-                    result.diagnostics.insert(result.diagnostics.end(), diagnostics.begin(), diagnostics.end());
-                    return true;
-                }
-
-                return false;
-            };
-
-            visit_type_references_recursively_with_declaration_name(core_module, process_type_reference);
-
-            if (!result.diagnostics.empty())
-                return result;
-
-            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_declarations(
+            std::pmr::vector<h::compiler::Diagnostic> const diagnostics = validate_module(
                 core_module,
                 declaration_database,
                 temporaries_allocator

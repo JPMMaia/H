@@ -90,6 +90,57 @@ namespace h::compiler
     }
 
 
+        TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
+    {
+        std::string_view const input = R"(module Test;
+
+import module_a as module_a;
+import module_b as module_a;
+)";
+
+        std::string_view const module_a_input = "module module_a;";
+        std::string_view const module_b_input = "module module_b;";
+        
+        std::pmr::vector<std::string_view> const dependencies = { module_a_input, module_b_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(4, 20, 4, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Duplicate import alias 'module_a'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a import module exists", "[Validation][Import]")
+    {
+        std::string_view const input = R"(module Test;
+
+import my.module_a as my_module;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 8, 3, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot find module 'my.module_a'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that a declaration name is not a duplicate", "[Validation][Declaration]")
     {
         std::string_view const input = R"(module Test;
@@ -162,64 +213,6 @@ using true = Float32;
     }
 
 
-    TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
-    {
-        std::string_view const input = R"(module Test;
-
-import module_a as module_a;
-import module_b as module_a;
-)";
-
-        std::string_view const module_a_input = "module module_a;";
-        std::string_view const module_b_input = "module module_b;";
-        
-        std::pmr::vector<std::string_view> const dependencies = { module_a_input, module_b_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 20, 3, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate import alias 'module_a'.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(4, 20, 4, 28),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate import alias 'module_a'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
-    }
-
-    TEST_CASE("Validates that a import module exists", "[Validation][Import]")
-    {
-        std::string_view const input = R"(module Test;
-
-import my.module_a as my_module;
-)";
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-            h::compiler::Diagnostic
-            {
-                .range = create_source_range(3, 8, 3, 19),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Cannot find module 'my.module_a'.",
-                .related_information = {},
-            }
-        };
-
-        test_validate_module(input, {}, expected_diagnostics);
-    }
-
-
     TEST_CASE("Validates that enum member names are different from each other", "[Validation][Enum]")
     {
         std::string_view const input = R"(module Test;
@@ -236,17 +229,10 @@ enum My_enum
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 5, 6, 6),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_enum.b'.",
-                .related_information = {},
-            },
-            {
                 .range = create_source_range(7, 5, 7, 6),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Duplicate member name 'My_enum.b'.",
+                .message = "Duplicate enum value name 'My_enum.b'.",
                 .related_information = {},
             }
         };
@@ -273,14 +259,14 @@ enum My_enum
                 .range = create_source_range(6, 9, 6, 13),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The enum value assigned to 'My_enum.b' must be a Int32 type.",
+                .message = "Enum value 'My_enum.b' must be a Int32 type.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(7, 9, 7, 15),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "The enum value assigned to 'My_enum.c' must be a Int32 type.",
+                .message = "Enum value 'My_enum.c' must be a Int32 type.",
                 .related_information = {},
             }
         };
