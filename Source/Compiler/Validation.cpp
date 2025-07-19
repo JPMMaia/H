@@ -70,6 +70,12 @@ namespace h::compiler
         if (is_null_pointer_type(first.value()) && is_pointer(second.value()))
             return true;
 
+        if (is_function_pointer(first.value()) && is_null_pointer_type(second.value()))
+            return true;
+
+        if (is_null_pointer_type(first.value()) && is_function_pointer(second.value()))
+            return true;
+
         return first == second;
     }
 
@@ -2679,6 +2685,10 @@ namespace h::compiler
             if (!is_rhs_compile_time)
                 return false;
 
+            return true;
+        }
+        else if (std::holds_alternative<h::Cast_expression>(expression.data))
+        {
             return true;
         }
         else if (std::holds_alternative<h::Constant_expression>(expression.data))

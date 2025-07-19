@@ -2548,6 +2548,23 @@ function run(value: Int32) -> (result: Int32)
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that null can be assigned to function pointer types in structs", "[Validation][Null_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: function<() -> ()> = null;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
     {
