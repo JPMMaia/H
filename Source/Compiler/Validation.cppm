@@ -98,6 +98,15 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_statements(
+        h::Module const& core_module,
+        Function_declaration const* const function_declaration,
+        Scope const& scope,
+        std::span<h::Statement const> const statements,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
         Function_declaration const* const function_declaration,
@@ -237,6 +246,7 @@ namespace h::compiler
 
     std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
         h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         std::optional<h::Type_reference> const expected_statement_type,
@@ -318,11 +328,6 @@ namespace h::compiler
     std::optional<h::Source_range> create_source_range_from_source_position(
         std::optional<h::Source_position> const& source_position,
         std::uint32_t const count
-    );
-
-    std::optional<h::Type_reference> get_type_to_instantiate(
-        Validate_expression_parameters const& parameters,
-        h::Instantiate_expression const& expression
     );
 
     struct Declaration_member_info

@@ -111,6 +111,7 @@ namespace h::compiler
 
     export std::optional<h::Type_reference> get_expression_type(
         h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         std::optional<h::Type_reference> const& expected_statement_type,
@@ -119,6 +120,7 @@ namespace h::compiler
 
     export std::optional<h::Type_reference> get_expression_type(
         h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         h::Expression const& expression,

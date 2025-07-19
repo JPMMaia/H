@@ -548,6 +548,7 @@ namespace h::compiler
 
                 std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
                     core_module,
+                    nullptr,
                     scope,
                     statement,
                     std::nullopt,
@@ -577,6 +578,7 @@ namespace h::compiler
 
                 std::optional<Type_reference> const type = get_expression_type(
                     core_module,
+                    nullptr,
                     scope,
                     statement,
                     std::nullopt,
@@ -616,6 +618,7 @@ namespace h::compiler
     {
         std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
             core_module,
+            nullptr,
             {},
             declaration.initial_value,
             declaration.type,
@@ -709,6 +712,7 @@ namespace h::compiler
 
             std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
                 core_module,
+                nullptr,
                 {},
                 member_default_value,
                 member_type,
@@ -812,6 +816,8 @@ namespace h::compiler
     {
         std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
 
+        // TODO validate parameters
+
         {
             Scope scope
             {
@@ -853,6 +859,31 @@ namespace h::compiler
                 diagnostics.insert(diagnostics.end(), post_condition_diagnostics.begin(), post_condition_diagnostics.end());
         }
 
+        if (definition != nullptr)
+        {
+            Scope scope
+            {
+                .variables{temporaries_allocator}
+            };
+
+            add_function_parameters_to_scope(
+                scope,
+                declaration.input_parameter_names,
+                declaration.type.input_parameter_types
+            );
+
+            std::pmr::vector<h::compiler::Diagnostic> const definition_diagnostics = validate_statements(
+                core_module,
+                &declaration,
+                scope,
+                definition->statements,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!definition_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), definition_diagnostics.begin(), definition_diagnostics.end());
+        }
+
         return diagnostics;
     }
 
@@ -886,6 +917,7 @@ namespace h::compiler
 
             std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
                 core_module,
+                &function_declaration,
                 scope,
                 function_condition.condition,
                 std::nullopt,
@@ -935,6 +967,84 @@ namespace h::compiler
         return diagnostics;
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_statements(
+        h::Module const& core_module,
+        Function_declaration const* const function_declaration,
+        Scope const& scope,
+        std::span<h::Statement const> const statements,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::compiler::Diagnostic> diagnostics{temporaries_allocator};
+
+        Scope new_scope = scope;
+
+        for (std::size_t statement_index = 0; statement_index < statements.size(); ++statement_index)
+        {
+            h::Statement const& statement = statements[statement_index];
+
+            std::pmr::vector<h::compiler::Diagnostic> const statement_diagnostics = validate_statement(
+                core_module,
+                function_declaration,
+                new_scope,
+                statement,
+                std::nullopt,
+                declaration_database,
+                temporaries_allocator
+            );
+            if (!statement_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), statement_diagnostics.begin(), statement_diagnostics.end());
+
+            if (!statement.expressions.empty())
+            {
+                h::Expression const& expression = statement.expressions[0];
+                
+                if (std::holds_alternative<h::Variable_declaration_expression>(expression.data))
+                {
+                    h::Variable_declaration_expression const& variable_declaration = std::get<h::Variable_declaration_expression>(expression.data);
+
+                    std::optional<h::Type_reference> variable_type = get_expression_type(
+                        core_module,
+                        function_declaration,
+                        new_scope,
+                        statement,
+                        statement.expressions[variable_declaration.right_hand_side.expression_index],
+                        std::nullopt,
+                        declaration_database
+                    );
+
+                    if (variable_type.has_value())
+                    {
+                        new_scope.variables.push_back(
+                            Variable
+                            {
+                                .name = variable_declaration.name,
+                                .type = std::move(variable_type.value()),
+                                .is_compile_time = false,
+                            }
+                        );
+                    }
+                }
+                else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
+                {
+                    h::Variable_declaration_with_type_expression const& variable_declaration_with_type = std::get<h::Variable_declaration_with_type_expression>(expression.data);
+
+                    new_scope.variables.push_back(
+                        Variable
+                        {
+                            .name = variable_declaration_with_type.name,
+                            .type = variable_declaration_with_type.type,
+                            .is_compile_time = false,
+                        }
+                    );
+                }
+            }
+        }
+
+        return diagnostics;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_statement(
         h::Module const& core_module,
         Function_declaration const* const function_declaration,
@@ -947,6 +1057,7 @@ namespace h::compiler
     {
         std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
             core_module,
+            function_declaration,
             scope,
             statement,
             expected_statement_type,
@@ -1275,6 +1386,7 @@ namespace h::compiler
     {
         std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
             parameters.core_module,
+            parameters.function_declaration,
             parameters.scope,
             expression.statement,
             std::nullopt,
@@ -1718,6 +1830,7 @@ namespace h::compiler
 
         std::optional<h::Type_reference> const range_end_type_optional = get_expression_type(
             parameters.core_module,
+            parameters.function_declaration,
             parameters.scope,
             expression.range_end,
             std::nullopt,
@@ -1786,6 +1899,7 @@ namespace h::compiler
 
             std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
                 parameters.core_module,
+                parameters.function_declaration,
                 parameters.scope,
                 pair.condition.value(),
                 std::nullopt,
@@ -1847,7 +1961,7 @@ namespace h::compiler
             }
         }
 
-        std::optional<h::Type_reference> const type_to_instantiate = get_type_to_instantiate(parameters, expression);
+        std::optional<h::Type_reference> const type_to_instantiate = parameters.expression_types[parameters.expression_index];
         if (!type_to_instantiate.has_value())
         {
             return
@@ -1915,6 +2029,7 @@ namespace h::compiler
 
             std::optional<h::Type_reference> const assigned_value_type = get_expression_type(
                 parameters.core_module,
+                parameters.function_declaration,
                 parameters.scope,
                 pair.value,
                 member_type,
@@ -2180,6 +2295,7 @@ namespace h::compiler
 
         std::optional<h::Type_reference> const then_type_optional = get_expression_type(
             parameters.core_module,
+            parameters.function_declaration,
             parameters.scope,
             expression.then_statement,
             std::nullopt,
@@ -2188,6 +2304,7 @@ namespace h::compiler
 
         std::optional<h::Type_reference> const else_type_optional = get_expression_type(
             parameters.core_module,
+            parameters.function_declaration,
             parameters.scope,
             expression.else_statement,
             std::nullopt,
@@ -2446,6 +2563,7 @@ namespace h::compiler
         {
             std::optional<h::Type_reference> const& right_hand_side_type = get_expression_type(
                 parameters.core_module,
+                parameters.function_declaration,
                 parameters.scope,
                 parameters.statement,
                 right_hand_side,
@@ -2522,6 +2640,7 @@ namespace h::compiler
     {
         std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
             parameters.core_module,
+            parameters.function_declaration,
             parameters.scope,
             expression.condition,
             std::nullopt,
@@ -2550,6 +2669,7 @@ namespace h::compiler
 
     std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
         h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
         Scope const& scope,
         h::Statement const& statement,
         std::optional<h::Type_reference> const expected_statement_type,
@@ -2566,6 +2686,7 @@ namespace h::compiler
             
             expression_types[expression_index] = get_expression_type(
                 core_module,
+                function_declaration,
                 scope,
                 statement,
                 expression,
@@ -2908,56 +3029,6 @@ namespace h::compiler
                 .column = source_position->column + count
             }
         };
-    }
-
-    std::optional<h::Type_reference> get_type_to_instantiate(
-        Validate_expression_parameters const& parameters,
-        h::Instantiate_expression const& expression
-    )
-    {
-        if (parameters.statement.expressions.size() <= 1 && parameters.expected_statement_type.has_value())
-            return parameters.expected_statement_type;
-
-        for (std::size_t index = 0; index < parameters.statement.expressions.size(); ++index)
-        {
-            h::Expression const& current_expression = parameters.statement.expressions[index];
-            
-            if (std::holds_alternative<h::Call_expression>(current_expression.data))
-            {
-                h::Call_expression const& call_expression = std::get<h::Call_expression>(current_expression.data);
-
-                for (std::size_t argument_index = 0; argument_index < call_expression.arguments.size(); ++argument_index)
-                {
-                    h::Expression_index const& argument_expression = call_expression.arguments[argument_index];
-                    if (argument_expression.expression_index == parameters.expression_index)
-                    {
-                        if (parameters.function_declaration != nullptr && argument_index < parameters.function_declaration->type.input_parameter_types.size())
-                            return parameters.function_declaration->type.input_parameter_types[argument_index];
-                        else
-                            return std::nullopt;
-                    }
-                }
-            }
-            else if (std::holds_alternative<h::Return_expression>(current_expression.data))
-            {
-                h::Return_expression const& return_expression = std::get<h::Return_expression>(current_expression.data);
-                if (return_expression.expression.has_value() && return_expression.expression->expression_index == parameters.expression_index)
-                {
-                    if (parameters.function_declaration != nullptr && !parameters.function_declaration->type.output_parameter_types.empty())
-                        return parameters.function_declaration->type.output_parameter_types[0];
-                    else
-                        return std::nullopt;
-                }
-            }
-            else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(current_expression.data))
-            {
-                h::Variable_declaration_with_type_expression const& declaration_expression = std::get<h::Variable_declaration_with_type_expression>(current_expression.data);
-                if (declaration_expression.right_hand_side.expression_index == parameters.expression_index)
-                    return declaration_expression.type;
-            }
-        }
-
-        return std::nullopt;
     }
 
     std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
