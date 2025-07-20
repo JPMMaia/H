@@ -3320,7 +3320,7 @@ namespace h::compiler
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = core_type;
         
-        Value_and_type const right_hand_side = create_expression_value(
+        Value_and_type const right_hand_side = create_loaded_expression_value(
             expression.right_hand_side.expression_index,
             statement,
             new_parameters
