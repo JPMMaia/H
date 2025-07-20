@@ -7,7 +7,7 @@ function do_defer(value: Int32) -> ()
 function run(condition: Bool, value: Int32) -> ()
 {
     defer do_defer(0);
-    var value = 0;
+    var value_2 = 0;
     defer do_defer(1);
     return;
 }

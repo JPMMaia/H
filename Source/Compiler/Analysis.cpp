@@ -710,7 +710,7 @@ namespace h::compiler
 
                     // Try enum
                     {
-                        std::optional<Declaration> const declaration_optional = find_declaration(
+                        std::optional<Declaration> const declaration_optional = find_underlying_declaration(
                             declaration_database,
                             core_module.name,
                             variable_expression.name
@@ -878,7 +878,25 @@ namespace h::compiler
         else if (std::holds_alternative<h::Dereference_and_access_expression>(expression.data))
         {
             Dereference_and_access_expression const& data = std::get<h::Dereference_and_access_expression>(expression.data);
-            return std::nullopt; // TODO
+
+            std::optional<Type_reference> const left_side_type = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
+            if (!left_side_type.has_value() || !is_non_void_pointer(left_side_type.value()))
+                return std::nullopt;
+
+            std::optional<Type_reference> const left_side_value_type = remove_pointer(left_side_type.value());
+            if (!left_side_value_type.has_value())
+                return std::nullopt;
+
+            std::optional<Declaration> const declaration = find_declaration(declaration_database, left_side_value_type.value());
+            if (!declaration.has_value())
+                return std::nullopt;
+
+            std::optional<h::Type_reference> const member_type = get_declaration_member_type(
+                declaration.value(),
+                data.member_name
+            );
+
+            return member_type;
         }
         else if (std::holds_alternative<h::Instance_call_expression>(expression.data))
         {

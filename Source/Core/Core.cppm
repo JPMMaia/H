@@ -515,6 +515,7 @@ namespace h
         Has
     };
 
+    export bool is_bit_shift_binary_operation(h::Binary_operation const operation);
     export bool is_bitwise_binary_operation(h::Binary_operation const operation);
     export bool is_equality_binary_operation(h::Binary_operation const operation);
     export bool is_comparison_binary_operation(h::Binary_operation const operation);

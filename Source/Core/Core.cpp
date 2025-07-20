@@ -108,6 +108,18 @@ namespace h
     }
 
     
+    bool is_bit_shift_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Bit_shift_left:
+            case h::Binary_operation::Bit_shift_right:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
     bool is_bitwise_binary_operation(h::Binary_operation const operation)
     {
         switch (operation)
@@ -115,8 +127,6 @@ namespace h
             case h::Binary_operation::Bitwise_and:
             case h::Binary_operation::Bitwise_or:
             case h::Binary_operation::Bitwise_xor:
-            case h::Binary_operation::Bit_shift_left:
-            case h::Binary_operation::Bit_shift_right:
                 return true;
             default:
                 return false;

@@ -2205,14 +2205,14 @@ define private void @Defer_expressions_with_debug_information_run(i8 noundef zer
 entry:
   %condition = alloca i1, align 1
   %value = alloca i32, align 4
-  %value1 = alloca i32, align 4, !dbg !18
+  %value_2 = alloca i32, align 4, !dbg !18
   %0 = trunc i8 %"arguments[0].condition" to i1
   store i1 %0, ptr %condition, align 1
   call void @llvm.dbg.declare(metadata ptr %condition, metadata !16, metadata !DIExpression()), !dbg !19
   store i32 %"arguments[1].value", ptr %value, align 4
   call void @llvm.dbg.declare(metadata ptr %value, metadata !17, metadata !DIExpression()), !dbg !20
-  call void @llvm.dbg.declare(metadata ptr %value1, metadata !21, metadata !DIExpression()), !dbg !18
-  store i32 0, ptr %value1, align 4, !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %value_2, metadata !21, metadata !DIExpression()), !dbg !18
+  store i32 0, ptr %value_2, align 4, !dbg !18
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 1), !dbg !22
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 0), !dbg !23
   ret void, !dbg !24
@@ -2248,7 +2248,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !18 = !DILocation(line: 10, column: 5, scope: !11)
 !19 = !DILocation(line: 7, column: 14, scope: !11)
 !20 = !DILocation(line: 7, column: 31, scope: !11)
-!21 = !DILocalVariable(name: "value", scope: !11, file: !2, line: 10, type: !6)
+!21 = !DILocalVariable(name: "value_2", scope: !11, file: !2, line: 10, type: !6)
 !22 = !DILocation(line: 11, column: 11, scope: !11)
 !23 = !DILocation(line: 9, column: 11, scope: !11)
 !24 = !DILocation(line: 12, column: 5, scope: !11)
@@ -4783,11 +4783,11 @@ entry:
 define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca i8, align 1
-  %first = alloca i1, align 1
+  %first = alloca i8, align 1
   %result = alloca i8, align 1
   %0 = zext i1 %"arguments[0].parameter" to i8
   store i8 %0, ptr %parameter, align 1
-  store i1 true, ptr %first, align 1
+  store i8 1, ptr %first, align 1
   %1 = load i8, ptr %first, align 1
   %2 = trunc i8 %1 to i1
   %3 = load i8, ptr %parameter, align 1
@@ -4823,11 +4823,11 @@ entry:
 define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca i8, align 1
-  %first = alloca i1, align 1
+  %first = alloca i8, align 1
   %result = alloca i8, align 1
   %0 = zext i1 %"arguments[0].parameter" to i8
   store i8 %0, ptr %parameter, align 1
-  store i1 true, ptr %first, align 1
+  store i8 1, ptr %first, align 1
   %1 = load i8, ptr %first, align 1
   %2 = trunc i8 %1 to i1
   %3 = load i8, ptr %parameter, align 1

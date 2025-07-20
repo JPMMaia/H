@@ -1259,14 +1259,21 @@ function run(value: Int32) -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
-    TEST_CASE("Validates that in bitwise operations both types must be integers or bytes", "[Validation][Binary_expression]")
+    TEST_CASE("Validates that in bitwise operations both types must be integers, bytes or enums", "[Validation][Binary_expression]")
     {
         std::string_view const input = R"(module Test;
+
+enum My_enum
+{
+    A,
+    B,
+}
 
 function run(value: Int32) -> ()
 {
     var a = value & 1;
     var b = 1.0f32 & 2.0f32;
+    var c = My_enum.A & My_enum.B;
 }
 )";
 
@@ -1274,10 +1281,10 @@ function run(value: Int32) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 13, 6, 28),
+                .range = create_source_range(12, 13, 12, 28),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Binary operation '&' can only be applied to integers or bytes.",
+                .message = "Binary operation '&' can only be applied to integers, bytes or enums.",
                 .related_information = {},
             },
         };

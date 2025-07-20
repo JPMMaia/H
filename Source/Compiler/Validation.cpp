@@ -1433,7 +1433,7 @@ namespace h::compiler
         
         h::Type_reference const& type = type_optional.value();
 
-        if (is_bitwise_binary_operation(operation))
+        if (is_bit_shift_binary_operation(operation))
         {
             if (!is_integer(type) && !is_byte(type))
             {
@@ -1444,6 +1444,23 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to integers or bytes.",
+                            h::parser::binary_operation_symbol_to_string(operation)
+                        )
+                    )
+                };
+            }
+        }
+        else if (is_bitwise_binary_operation(operation))
+        {
+            if (!is_integer(type) && !is_byte(type) && !is_enum_type(parameters.declaration_database, type))
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Binary operation '{}' can only be applied to integers, bytes or enums.",
                             h::parser::binary_operation_symbol_to_string(operation)
                         )
                     )
@@ -1761,11 +1778,11 @@ namespace h::compiler
 
         bool const is_source_numeric = 
             underlying_source_type.has_value() && 
-            (is_number_or_c_number(underlying_source_type.value()) || is_enum_type(parameters.declaration_database, underlying_source_type.value()));
+            (is_number_or_c_number(underlying_source_type.value()) || is_enum_type(parameters.declaration_database, underlying_source_type.value()) || is_bool(underlying_destination_type.value()) || is_c_bool(underlying_destination_type.value()));
         
         bool const is_destination_numeric =
             underlying_destination_type.has_value() &&
-            (is_number_or_c_number(underlying_destination_type.value()) || is_enum_type(parameters.declaration_database, underlying_destination_type.value()));
+            (is_number_or_c_number(underlying_destination_type.value()) || is_enum_type(parameters.declaration_database, underlying_destination_type.value()) || is_bool(underlying_destination_type.value()) || is_c_bool(underlying_destination_type.value()));
 
         if (!is_source_numeric || !is_destination_numeric)
         {
