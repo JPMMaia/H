@@ -1152,6 +1152,11 @@ namespace h::compiler
             h::Binary_expression const& value = std::get<h::Binary_expression>(expression.data);
             return validate_binary_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Block_expression>(expression.data))
+        {
+            h::Block_expression const& value = std::get<h::Block_expression>(expression.data);
+            return validate_block_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Call_expression>(expression.data))
         {
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
@@ -1687,6 +1692,22 @@ namespace h::compiler
             expression.right_hand_side,
             expression.operation,
             source_range
+        );
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_block_expression(
+        Validate_expression_parameters const& parameters,
+        h::Block_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        return validate_statements(
+            parameters.core_module,
+            parameters.function_declaration,
+            parameters.scope,
+            expression.statements,
+            parameters.declaration_database,
+            parameters.temporaries_allocator
         );
     }
 
@@ -2373,6 +2394,19 @@ namespace h::compiler
                         "Switch case expression must be computable at compile-time, and evaluate to an integer or an enum value."
                     )
                 );
+            }
+
+            {
+                std::pmr::vector<h::compiler::Diagnostic> const statements_diagnostics = validate_statements(
+                    parameters.core_module,
+                    parameters.function_declaration,
+                    parameters.scope,
+                    pair.statements,
+                    parameters.declaration_database,
+                    parameters.temporaries_allocator
+                );
+                if (!statements_diagnostics.empty())
+                    diagnostics.insert(diagnostics.end(), statements_diagnostics.begin(), statements_diagnostics.end());
             }
         }
 

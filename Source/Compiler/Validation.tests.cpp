@@ -2923,6 +2923,37 @@ function run(enum_value: My_enum) -> (result: Int32)
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that statements inside switch are validated", "[Validation][Switch_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(int_value: Int32) -> ()
+{
+    switch int_value
+    {
+        case 0:
+        {
+            var x = value;
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(9, 21, 9, 26),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that the expression type of the condition expression is a boolean", "[Validation][Ternary_expression]")
     {
