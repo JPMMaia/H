@@ -47,6 +47,13 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_integer_type(
+        h::Module const& core_module,
+        h::Type_reference const& type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export std::pmr::vector<h::compiler::Diagnostic> validate_declarations(
         h::Module const& core_module,
         Declaration_database const& declaration_database,

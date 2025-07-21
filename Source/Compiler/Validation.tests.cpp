@@ -2197,6 +2197,59 @@ function run(value: Int32) -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that statements inside for loop are validated", "[Validation][For_loop_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    for index in value to 2*value step_by value
+    {
+    }
+
+    for index in 0 to 2
+    {
+        var x = value;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 18, 5, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(5, 29, 5, 34),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(5, 43, 5, 48),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 17, 11, 22),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that if condition expression type is boolean", "[Validation][If_expression]")
     {
@@ -2936,6 +2989,38 @@ function run(condition: Bool) -> (result: Int32)
 
         test_validate_module(input, {}, expected_diagnostics);
     }
+    
+    TEST_CASE("Validates that statements inside ternary condition are validated", "[Validation][Ternary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(condition: Bool) -> (result: Int32)
+{
+    var result_0 = condition ? value_1 : value_2;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 32, 5, 39),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value_1' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(5, 42, 5, 49),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value_2' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
 
 
     TEST_CASE("Validates that numeric unary operations can only be applied to numbers", "[Validation][Unary_expression]")
@@ -3360,13 +3445,52 @@ function run(value: Int32) -> ()
 
         test_validate_module(input, {}, expected_diagnostics);
     }
-    
-    
-    TEST_CASE("Validates that number of bits cannot be larger than 64", "[Validation][Integer]")
+
+    TEST_CASE("Validates that statements inside while loop are validated", "[Validation][While_loop_expression]")
     {
         std::string_view const input = R"(module Test;
 
-using My_int = Int65;
+function run() -> ()
+{
+    while value == 0
+    {
+    }
+
+    while true
+    {
+        var x = value;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 11, 5, 16),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(11, 17, 11, 22),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Variable 'value' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+    
+    
+    TEST_CASE("Validates that integer type is valid", "[Validation][Integer]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_int = Int31;
 using My_uint = Uint65;
 )";
 
@@ -3377,14 +3501,14 @@ using My_uint = Uint65;
                 .range = create_source_range(3, 16, 3, 21),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Number of bits of integer cannot be larger than 64.",
+                .message = "Type 'Int31' does not exist.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(4, 17, 4, 23),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Number of bits of integer cannot be larger than 64.",
+                .message = "Type 'Uint65' does not exist.",
                 .related_information = {},
             }
         };

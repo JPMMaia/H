@@ -213,10 +213,7 @@ namespace h::compiler
             );
 
             if (!current_diagnostics.empty())
-            {
                 diagnostics.insert(diagnostics.end(), current_diagnostics.begin(), current_diagnostics.end());
-                return true;
-            }
 
             return false;
         };
@@ -242,6 +239,15 @@ namespace h::compiler
                 temporaries_allocator
             );
         }
+        else if (std::holds_alternative<h::Integer_type>(type.data))
+        {
+            return validate_integer_type(
+                core_module,
+                type,
+                declaration_database,
+                temporaries_allocator
+            );
+        }
 
         return {};
     }
@@ -259,6 +265,32 @@ namespace h::compiler
         );
 
         if (!declaration.has_value())
+        {
+            std::pmr::string const type_name = h::parser::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
+
+            return
+            {
+                create_error_diagnostic(
+                    core_module.source_file_path,
+                    type.source_range,
+                    std::format("Type '{}' does not exist.", type_name)
+                )
+            };
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_integer_type(
+        h::Module const& core_module,
+        h::Type_reference const& type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        h::Integer_type const& integer_type = std::get<h::Integer_type>(type.data);
+
+        if (integer_type.number_of_bits != 8 && integer_type.number_of_bits != 16 && integer_type.number_of_bits != 32 && integer_type.number_of_bits != 64)
         {
             std::pmr::string const type_name = h::parser::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
 
@@ -1488,7 +1520,7 @@ namespace h::compiler
                     };
                 }
             }
-            else if (!is_integer(type) && !is_floating_point(type) && !is_byte(type) && !is_bool(type) && !is_c_bool(type))
+            else if (!is_integer(type) && !is_floating_point(type) && !is_byte(type) && !is_bool(type) && !is_c_bool(type) && !is_enum_type(parameters.declaration_database, type))
             {
                 return
                 {
@@ -1496,7 +1528,7 @@ namespace h::compiler
                         parameters.core_module.source_file_path,
                         source_range,
                         std::format(
-                            "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
+                            "Binary operation '{}' can only be applied to numbers, bytes, booleans or enums.",
                             h::parser::binary_operation_symbol_to_string(operation)
                         )
                     )
@@ -1911,32 +1943,58 @@ namespace h::compiler
 
         for (Condition_statement_pair const& pair : expression.series)
         {
-            if (!pair.condition.has_value())
-                continue;
-
-            std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
-                parameters.core_module,
-                parameters.function_declaration,
-                parameters.scope,
-                pair.condition.value(),
-                std::nullopt,
-                parameters.declaration_database
-            );
-
-            if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+            if (pair.condition.has_value())
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-
-                diagnostics.push_back(
-                    create_error_diagnostic(
-                        parameters.core_module.source_file_path,
-                        get_statement_source_range(pair.condition.value()),
-                        std::format(
-                            "Expression type '{}' does not match expected type 'Bool'.",
-                            provided_type_name
-                        )
-                    )
+                std::pmr::vector<h::compiler::Diagnostic> const condition_diagnostics = validate_statement(
+                    parameters.core_module,
+                    parameters.function_declaration,
+                    parameters.scope,
+                    pair.condition.value(),
+                    std::nullopt,
+                    parameters.declaration_database,
+                    parameters.temporaries_allocator
                 );
+                if (!condition_diagnostics.empty())
+                    diagnostics.insert(diagnostics.end(), condition_diagnostics.begin(), condition_diagnostics.end());
+
+                if (condition_diagnostics.empty())
+                {
+                    std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
+                        parameters.core_module,
+                        parameters.function_declaration,
+                        parameters.scope,
+                        pair.condition.value(),
+                        std::nullopt,
+                        parameters.declaration_database
+                    );
+
+                    if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
+                    {
+                        std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                        diagnostics.push_back(
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                get_statement_source_range(pair.condition.value()),
+                                std::format(
+                                    "Expression type '{}' does not match expected type 'Bool'.",
+                                    provided_type_name
+                                )
+                            )
+                        );
+                    }
+                }
+
+                std::pmr::vector<h::compiler::Diagnostic> const then_diagnostics = validate_statements(
+                    parameters.core_module,
+                    parameters.function_declaration,
+                    parameters.scope,
+                    pair.then_statements,
+                    parameters.declaration_database,
+                    parameters.temporaries_allocator
+                );
+                if (!then_diagnostics.empty())
+                    diagnostics.insert(diagnostics.end(), then_diagnostics.begin(), then_diagnostics.end());
             }
         }
 
