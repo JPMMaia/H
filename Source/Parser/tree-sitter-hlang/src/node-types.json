@@ -623,6 +623,10 @@
           "named": true
         },
         {
+          "type": "Expression_binary",
+          "named": true
+        },
+        {
           "type": "Expression_call",
           "named": true
         },

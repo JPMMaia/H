@@ -2466,6 +2466,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "Expression_binary"
+        },
+        {
+          "type": "SYMBOL",
           "name": "Expression_call"
         },
         {
