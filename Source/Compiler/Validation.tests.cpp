@@ -2203,7 +2203,7 @@ function run(value: Int32) -> ()
 
 function run() -> ()
 {
-    for index in value to 2*value step_by value
+    for index in 0 to 2*value
     {
     }
 
@@ -2218,21 +2218,7 @@ function run() -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(5, 18, 5, 23),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'value' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(5, 29, 5, 34),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "Variable 'value' does not exist.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(5, 43, 5, 48),
+                .range = create_source_range(5, 25, 5, 30),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'value' does not exist.",

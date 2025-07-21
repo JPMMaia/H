@@ -1877,10 +1877,34 @@ namespace h::compiler
             };
         }
 
+        Scope new_scope = parameters.scope;
+        new_scope.variables.push_back(
+            Variable
+            {
+                .name = expression.variable_name,
+                .type = range_begin_type_optional.value(),
+                .is_compile_time = false,
+            }
+        );
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const range_end_statement_diagnostics = validate_statement(
+                parameters.core_module,
+                parameters.function_declaration,
+                new_scope,
+                expression.range_end,
+                std::nullopt,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!range_end_statement_diagnostics.empty())
+                return range_end_statement_diagnostics;
+        }
+
         std::optional<h::Type_reference> const range_end_type_optional = get_expression_type(
             parameters.core_module,
             parameters.function_declaration,
-            parameters.scope,
+            new_scope,
             expression.range_end,
             std::nullopt,
             parameters.declaration_database
@@ -1928,6 +1952,19 @@ namespace h::compiler
                     )
                 };
             }
+        }
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const statements_diagnostics = validate_statements(
+                parameters.core_module,
+                parameters.function_declaration,
+                new_scope,
+                expression.then_statements,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!statements_diagnostics.empty())
+                return statements_diagnostics;
         }
 
         return {};
@@ -2368,6 +2405,37 @@ namespace h::compiler
             };
         }
 
+        {
+            std::pmr::vector<h::compiler::Diagnostic> diagnostics{parameters.temporaries_allocator};
+
+            std::pmr::vector<h::compiler::Diagnostic> const then_statement_diagnostics = validate_statement(
+                parameters.core_module,
+                parameters.function_declaration,
+                parameters.scope,
+                expression.then_statement,
+                std::nullopt,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!then_statement_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), then_statement_diagnostics.begin(), then_statement_diagnostics.end());
+
+            std::pmr::vector<h::compiler::Diagnostic> const else_statement_diagnostics = validate_statement(
+                parameters.core_module,
+                parameters.function_declaration,
+                parameters.scope,
+                expression.else_statement,
+                std::nullopt,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!else_statement_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), else_statement_diagnostics.begin(), else_statement_diagnostics.end());
+
+            if (!diagnostics.empty())
+                return diagnostics;
+        }
+
         std::optional<h::Type_reference> const then_type_optional = get_expression_type(
             parameters.core_module,
             parameters.function_declaration,
@@ -2713,6 +2781,20 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const condition_statement_diagnostics = validate_statement(
+                parameters.core_module,
+                parameters.function_declaration,
+                parameters.scope,
+                expression.condition,
+                std::nullopt,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!condition_statement_diagnostics.empty())
+                return condition_statement_diagnostics;
+        }
+
         std::optional<h::Type_reference> const condition_type_optional = get_expression_type(
             parameters.core_module,
             parameters.function_declaration,
@@ -2737,6 +2819,19 @@ namespace h::compiler
                     )
                 )
             };
+        }
+
+        {
+            std::pmr::vector<h::compiler::Diagnostic> const statements_diagnostics = validate_statements(
+                parameters.core_module,
+                parameters.function_declaration,
+                parameters.scope,
+                expression.then_statements,
+                parameters.declaration_database,
+                parameters.temporaries_allocator
+            );
+            if (!statements_diagnostics.empty())
+                return statements_diagnostics;
         }
 
         return {};
