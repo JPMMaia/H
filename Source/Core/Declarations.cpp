@@ -70,42 +70,42 @@ namespace h
 
         for (Alias_type_declaration const& declaration : alias_type_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Enum_declaration const& declaration : enum_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Function_constructor const& declaration : function_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Function_declaration const& declaration : function_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Global_variable_declaration const& declaration : global_variable_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Struct_declaration const& declaration : struct_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Type_constructor const& declaration : type_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
 
         for (Union_declaration const& declaration : union_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = module_name }));
         }
     }
 
@@ -191,31 +191,33 @@ namespace h
             if (declaration_location == database.instances.end())
                 return std::nullopt;
 
+            std::string_view const declaration_module_name = type_instance.type_constructor.module_reference.name;
+
             Declaration_instance_storage const& instance_storage = declaration_location->second;
             if (std::holds_alternative<Alias_type_declaration>(instance_storage.data))
             {
                 Alias_type_declaration const& declaration = std::get<Alias_type_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = declaration_module_name };
             }
             else if (std::holds_alternative<Enum_declaration>(instance_storage.data))
             {
                 Enum_declaration const& declaration = std::get<Enum_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = declaration_module_name };
             }
             else if (std::holds_alternative<Function_declaration>(instance_storage.data))
             {
                 Function_declaration const& declaration = std::get<Function_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = declaration_module_name };
             }
             else if (std::holds_alternative<Struct_declaration>(instance_storage.data))
             {
                 Struct_declaration const& declaration = std::get<Struct_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = declaration_module_name };
             }
             else if (std::holds_alternative<Union_declaration>(instance_storage.data))
             {
                 Union_declaration const& declaration = std::get<Union_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = declaration_module_name };
             }
         }
 

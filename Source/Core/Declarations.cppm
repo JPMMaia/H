@@ -29,6 +29,7 @@ namespace h
         >;
 
         Data_type data;
+        std::string_view module_name;
     };
 
     export struct Declaration_instance_storage
