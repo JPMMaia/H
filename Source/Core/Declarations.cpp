@@ -392,6 +392,11 @@ namespace h
                     }
                 }
             }
+            else if (std::holds_alternative<Type_instance>(type_reference.value().data))
+            {
+                std::optional<Declaration> const underlying_declaration = find_declaration(declaration_database, type_reference.value());
+                return underlying_declaration;
+            }
         }
 
         return std::nullopt;

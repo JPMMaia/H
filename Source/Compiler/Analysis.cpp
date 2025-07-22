@@ -946,7 +946,7 @@ namespace h::compiler
             if (!type_to_instantiate.has_value())
                 return std::nullopt;
 
-            std::optional<Declaration> const declaration = find_declaration(
+            std::optional<Declaration> const declaration = find_underlying_declaration(
                 declaration_database,
                 type_to_instantiate.value()
             );
