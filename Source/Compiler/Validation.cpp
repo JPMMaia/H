@@ -1244,91 +1244,32 @@ namespace h::compiler
             {
                 Declaration const& declaration = declaration_optional.value();
 
-                if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
-                {
-                    h::Enum_declaration const& enum_declaration = *std::get<h::Enum_declaration const*>(declaration.data);
+                std::pmr::vector<Declaration_member_info> const member_infos = get_declaration_member_infos(
+                    declaration,
+                    parameters.temporaries_allocator
+                );
 
-                    auto const location = std::find_if(
-                        enum_declaration.values.begin(),
-                        enum_declaration.values.end(),
-                        [&](h::Enum_value const& enum_value) -> bool { return enum_value.name == access_expression.member_name; }
-                    );
-                    if (location == enum_declaration.values.end())
+                auto const member_location = std::find_if(
+                    member_infos.begin(),
+                    member_infos.end(),
+                    [&](Declaration_member_info const& member_info) -> bool { return member_info.member_name == access_expression.member_name; }
+                );
+                if (member_location == member_infos.end())
+                {
+                    std::pmr::string const type_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                    return
                     {
-                        std::pmr::string const enum_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
-
-                        return
-                        {
-                            create_error_diagnostic(
-                                parameters.core_module.source_file_path,
-                                source_range,
-                                std::format(
-                                    "Member '{}' does not exist in the type '{}'.",
-                                    access_expression.member_name,
-                                    enum_full_name
-                                )
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            std::format(
+                                "Member '{}' does not exist in the type '{}'.",
+                                access_expression.member_name,
+                                type_full_name
                             )
-                        };
-                    }
-                }
-                else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
-                {
-                    h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
-                    
-                    auto const location = std::find(
-                        struct_declaration.member_names.begin(),
-                        struct_declaration.member_names.end(),
-                        access_expression.member_name
-                    );
-                    if (location == struct_declaration.member_names.end())
-                    {
-                        std::pmr::string const struct_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
-
-                        return
-                        {
-                            create_error_diagnostic(
-                                parameters.core_module.source_file_path,
-                                source_range,
-                                std::format(
-                                    "Member '{}' does not exist in the type '{}'.",
-                                    access_expression.member_name,
-                                    struct_full_name
-                                )
-                            )
-                        };
-                    }
-                }
-                else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
-                {
-                    h::Union_declaration const& union_declaration = *std::get<h::Union_declaration const*>(declaration.data);
-                    
-                    auto const location = std::find(
-                        union_declaration.member_names.begin(),
-                        union_declaration.member_names.end(),
-                        access_expression.member_name
-                    );
-                    if (location == union_declaration.member_names.end())
-                    {
-                        std::pmr::string const union_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
-
-                        return
-                        {
-                            create_error_diagnostic(
-                                parameters.core_module.source_file_path,
-                                source_range,
-                                std::format(
-                                    "Member '{}' does not exist in the type '{}'.",
-                                    access_expression.member_name,
-                                    union_full_name
-                                )
-                            )
-                        };
-                    }
-                }
-                else
-                {
-                    // TODO error
-                    // TODO what about function constructors and struct constructors?
+                        )
+                    };
                 }
             }
         }
@@ -3242,7 +3183,24 @@ namespace h::compiler
     {
         std::pmr::vector<Declaration_member_info> members{output_allocator};
 
-        if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+        if (std::holds_alternative<Enum_declaration const*>(declaration.data))
+        {
+            Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration.data);
+
+            members.reserve(enum_declaration.values.size());
+
+            for (std::size_t member_index = 0; member_index < enum_declaration.values.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = enum_declaration.values[member_index].name,
+                    .member_type = create_custom_type_reference(declaration.module_name, enum_declaration.name),
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
         {
             Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
 
