@@ -735,10 +735,28 @@ namespace h::compiler
                 if (!declaration.has_value())
                     return std::nullopt;
 
-                return get_declaration_member_type(
+                std::optional<Type_reference> const member_type = get_declaration_member_type(
                     declaration.value(),
                     data.member_name
                 );
+                if (member_type.has_value())
+                    return member_type;
+
+                std::optional<Declaration> const implicit_declaration = find_underlying_declaration(
+                    declaration_database,
+                    declaration->module_name,
+                    data.member_name
+                );
+                if (!implicit_declaration.has_value())
+                    return std::nullopt;
+
+                if (std::holds_alternative<h::Function_declaration const*>(implicit_declaration->data))
+                {
+                    h::Function_declaration const& implicit_function_declaration = *std::get<h::Function_declaration const*>(implicit_declaration->data);
+                    return create_function_type_type_reference(implicit_function_declaration.type, implicit_function_declaration.input_parameter_names, implicit_function_declaration.output_parameter_names);
+                }
+
+                return std::nullopt;
             }
             else if (std::holds_alternative<h::Type_instance>(type_reference.value().data))
             {

@@ -1256,20 +1256,28 @@ namespace h::compiler
                 );
                 if (member_location == member_infos.end())
                 {
-                    std::pmr::string const type_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
-
-                    return
+                    std::optional<Declaration> const function_declaration = find_underlying_declaration(
+                        parameters.declaration_database,
+                        declaration.module_name,
+                        access_expression.member_name
+                    );
+                    if (!function_declaration.has_value() || !std::holds_alternative<h::Function_declaration const*>(function_declaration->data))
                     {
-                        create_error_diagnostic(
-                            parameters.core_module.source_file_path,
-                            source_range,
-                            std::format(
-                                "Member '{}' does not exist in the type '{}'.",
-                                access_expression.member_name,
-                                type_full_name
+                        std::pmr::string const type_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                source_range,
+                                std::format(
+                                    "Member '{}' does not exist in the type '{}'.",
+                                    access_expression.member_name,
+                                    type_full_name
+                                )
                             )
-                        )
-                    };
+                        };
+                    }
                 }
             }
         }
@@ -1674,9 +1682,17 @@ namespace h::compiler
 
         h::Function_pointer_type const& function_pointer_type = std::get<h::Function_pointer_type>(callable_type_optional->data);
 
+        std::pmr::vector<Expression_index> const call_arguments = get_implicit_call_aguments(
+            parameters.statement,
+            expression,
+            parameters.scope,
+            parameters.declaration_database,
+            parameters.temporaries_allocator
+        );
+
         if (function_pointer_type.type.is_variadic)
         {
-            if (expression.arguments.size() < function_pointer_type.type.input_parameter_types.size())
+            if (call_arguments.size() < function_pointer_type.type.input_parameter_types.size())
             {
                 return
                 {
@@ -1686,13 +1702,13 @@ namespace h::compiler
                         std::format(
                             "Function expects at least {} arguments, but {} were provided.",
                             function_pointer_type.type.input_parameter_types.size(),
-                            expression.arguments.size()
+                            call_arguments.size()
                         )
                     )
                 };  
             }
         }
-        else if (expression.arguments.size() != function_pointer_type.type.input_parameter_types.size())
+        else if (call_arguments.size() != function_pointer_type.type.input_parameter_types.size())
         {
             return
             {
@@ -1702,7 +1718,7 @@ namespace h::compiler
                     std::format(
                         "Function expects {} arguments, but {} were provided.",
                         function_pointer_type.type.input_parameter_types.size(),
-                        expression.arguments.size()
+                        call_arguments.size()
                     )
                 )
             };
@@ -1712,7 +1728,7 @@ namespace h::compiler
 
         for (std::size_t argument_index = 0; argument_index < function_pointer_type.type.input_parameter_types.size(); ++argument_index)
         {
-            std::uint64_t const expression_index = expression.arguments[argument_index].expression_index;
+            std::uint64_t const expression_index = call_arguments[argument_index].expression_index;
             std::optional<h::Type_reference> const& argument_type_optional = parameters.expression_types[expression_index];
             
             h::Type_reference const& parameter_type = function_pointer_type.type.input_parameter_types[argument_index];
@@ -3271,5 +3287,85 @@ namespace h::compiler
                 }
             );
         }
+    }
+
+    std::optional<Expression_index> get_implicit_first_call_argument(
+        h::Statement const& statement,
+        h::Call_expression const& expression,
+        Scope const& scope,
+        Declaration_database const& declaration_database
+    )
+    {
+        h::Expression const& left_side_expression = statement.expressions[expression.expression.expression_index];
+
+        if (std::holds_alternative<h::Access_expression>(left_side_expression.data))
+        {
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(left_side_expression.data);
+
+            h::Expression const& left_side_access_expression = statement.expressions[access_expression.expression.expression_index];
+
+            if (std::holds_alternative<h::Variable_expression>(left_side_access_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_side_access_expression.data);
+
+                Variable const* const variable = find_variable_from_scope(
+                    scope,
+                    variable_expression.name
+                );
+                if (variable != nullptr)
+                {
+                    std::optional<Declaration> const declaration = find_underlying_declaration(
+                        declaration_database,
+                        variable->type
+                    );
+                    if (declaration.has_value())
+                    {
+                        if (std::holds_alternative<Struct_declaration const*>(declaration->data))
+                        {
+                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration->data);
+
+                            auto const member_location = std::find(
+                                struct_declaration.member_names.begin(),
+                                struct_declaration.member_names.end(),
+                                access_expression.member_name
+                            );
+
+                            if (member_location != struct_declaration.member_names.end())
+                                return std::nullopt;
+                        }
+                    }
+
+                    return access_expression.expression;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::pmr::vector<Expression_index> get_implicit_call_aguments(
+        h::Statement const& statement,
+        h::Call_expression const& expression,
+        Scope const& scope,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::optional<Expression_index> const implicit_first_argument = get_implicit_first_call_argument(
+            statement,
+            expression,
+            scope,
+            declaration_database
+        );
+        if (!implicit_first_argument.has_value())
+            return std::pmr::vector<Expression_index>{expression.arguments, output_allocator};
+
+        std::pmr::vector<Expression_index> output{output_allocator};
+        output.reserve(1 + expression.arguments.size());
+
+        output.push_back(implicit_first_argument.value());
+        output.insert(output.end(), expression.arguments.begin(), expression.arguments.end());
+
+        return output;
     }
 }

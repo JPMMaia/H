@@ -364,4 +364,19 @@ namespace h::compiler
         std::span<std::pmr::string const> const parameter_names,
         std::span<Type_reference const> const parameter_types
     );
+
+    std::optional<Expression_index> get_implicit_first_call_argument(
+        h::Statement const& statement,
+        h::Call_expression const& expression,
+        Scope const& scope,
+        Declaration_database const& declaration_database
+    );
+
+    std::pmr::vector<Expression_index> get_implicit_call_aguments(
+        h::Statement const& statement,
+        h::Call_expression const& expression,
+        Scope const& scope,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
 }

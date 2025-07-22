@@ -90,7 +90,7 @@ namespace h::compiler
     }
 
 
-        TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
+    TEST_CASE("Validates that a import alias is a not a duplicate", "[Validation][Import]")
     {
         std::string_view const input = R"(module Test;
 
@@ -1011,6 +1011,59 @@ export union My_union
                 .message = "Member 'c' does not exist in the type 'My_module.My_union'.",
                 .related_information = {},
             },
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function that is on the same module as the instance exists", "[Validation][Access_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+import module_a as module_a;
+
+struct Struct_with_function_pointer
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+}
+
+function run() -> ()
+{
+    var a: module_a.My_int = explicit {
+        value: 0
+    };
+    
+    var b: module_a.My_int = explicit {
+        value: 0
+    };
+
+    var c = a.add(b);
+
+    var d: Struct_with_function_pointer = {};
+    d.a(1, 2);
+}
+)";
+
+        std::string_view const module_a_input = R"(module module_a;
+                
+struct My_int
+{
+    value: Int32 = 0;
+}
+
+export function add(a: My_int, b: My_int) -> (result: My_int)
+{
+    var result: My_int = explicit {
+        value: a.value + b.value
+    };
+    return result;
+}
+)";
+        
+        std::pmr::vector<std::string_view> const dependencies = { module_a_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
         };
 
         test_validate_module(input, dependencies, expected_diagnostics);
