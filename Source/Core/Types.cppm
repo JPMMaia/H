@@ -58,6 +58,8 @@ namespace h
 
     export std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type);
 
+    export std::optional<std::string_view> get_type_module_name(Type_reference const& type);
+
     export template <typename Value_t, typename Function_t>
         bool visit_type_references_recursively(
             Value_t const& value,

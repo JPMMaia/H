@@ -460,4 +460,20 @@ namespace h
 
         return std::nullopt;
     }
+
+    std::optional<std::string_view> get_type_module_name(Type_reference const& type)
+    {
+        if (std::holds_alternative<h::Custom_type_reference>(type.data))
+        {
+            h::Custom_type_reference const& data = std::get<h::Custom_type_reference>(type.data);
+            return data.module_reference.name;
+        }
+        else if (std::holds_alternative<h::Type_instance>(type.data))
+        {
+            h::Type_instance const& data = std::get<h::Type_instance>(type.data);
+            return data.type_constructor.module_reference.name;
+        }
+
+        return std::nullopt;
+    }
 }
