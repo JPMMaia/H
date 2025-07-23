@@ -1261,7 +1261,7 @@ namespace h::compiler
                         declaration.module_name,
                         access_expression.member_name
                     );
-                    if (!function_declaration.has_value() || !std::holds_alternative<h::Function_declaration const*>(function_declaration->data))
+                    if (!function_declaration.has_value() || (!std::holds_alternative<h::Function_declaration const*>(function_declaration->data) && !std::holds_alternative<h::Function_constructor const*>(function_declaration->data)))
                     {
                         std::pmr::string const type_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
 
@@ -1663,13 +1663,52 @@ namespace h::compiler
     h::Function_constructor const* find_function_constructor_using_call_expression(
         std::string_view const current_module_name,
         Declaration_database const& declaration_database,
+        Scope const& scope,
         h::Statement const& statement,
         h::Call_expression const& expression
     )
     {
         h::Expression const& left_side_expression = statement.expressions[expression.expression.expression_index];
 
-        if (std::holds_alternative<h::Variable_expression>(left_side_expression.data))
+        if (std::holds_alternative<h::Access_expression>(left_side_expression.data))
+        {
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(left_side_expression.data);
+
+            h::Expression const& access_left_side_expression = statement.expressions[access_expression.expression.expression_index];
+
+            if (std::holds_alternative<h::Variable_expression>(access_left_side_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(access_left_side_expression.data);
+                // Left side can be a module alias or a variable name
+
+                Variable const* const variable = find_variable_from_scope(
+                    scope,
+                    variable_expression.name
+                );
+                if (variable != nullptr)
+                {
+                    std::optional<std::string_view> const module_name = get_type_module_name(variable->type);
+                    if (module_name.has_value())
+                    {
+                        std::optional<Declaration> const declaration = find_underlying_declaration(
+                            declaration_database,
+                            module_name.value(),
+                            access_expression.member_name
+                        );
+                        if (declaration.has_value())
+                        {
+                            if (std::holds_alternative<h::Function_constructor const*>(declaration->data))
+                                return std::get<h::Function_constructor const*>(declaration->data);
+                        }
+                    }
+
+                    return nullptr;
+                }
+
+                // TODO import alias
+            }
+        }
+        else if (std::holds_alternative<h::Variable_expression>(left_side_expression.data))
         {
             h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_side_expression.data);
 
@@ -1695,6 +1734,7 @@ namespace h::compiler
         Function_constructor const* const function_constructor = find_function_constructor_using_call_expression(
             parameters.core_module.name,
             parameters.declaration_database,
+            parameters.scope,
             parameters.statement,
             expression
         );
