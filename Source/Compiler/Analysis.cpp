@@ -281,7 +281,7 @@ namespace h::compiler
         {
             h::Call_expression& data = std::get<h::Call_expression>(expression.data);
 
-            std::optional<std::pmr::vector<Statement>> const instance_call_arguments = deduce_instance_call_arguments(
+            std::optional<Deduced_instance_call> const deduced_instance_call = deduce_instance_call_arguments(
                 declaration_database,
                 core_module,
                 scope,
@@ -290,12 +290,27 @@ namespace h::compiler
                 temporaries_allocator
             );
 
-            if (instance_call_arguments.has_value())
+            if (deduced_instance_call.has_value())
             {
+                Instance_call_key key = {
+                    .module_name = deduced_instance_call->custom_type_reference.module_reference.name,
+                    .function_constructor_name = deduced_instance_call->custom_type_reference.name,
+                    .arguments = deduced_instance_call->arguments
+                };
+
+                Function_expression call_instance = create_instance_call_expression_value(
+                    deduced_instance_call->function_constructor,
+                    deduced_instance_call->arguments,
+                    key
+                );
+
+                add_instantiated_type_instances(declaration_database, call_instance);
+                declaration_database.call_instances.emplace(std::move(key), std::move(call_instance));
+
                 h::Instance_call_expression instance_call_expression =
                 {
                     .left_hand_side = { data.expression.expression_index },
-                    .arguments = instance_call_arguments.value()
+                    .arguments = deduced_instance_call->arguments
                 };
 
                 data.expression.expression_index = statement.expressions.size();
@@ -1229,8 +1244,8 @@ namespace h::compiler
         }
     }
 
-    std::optional<std::pmr::vector<Statement>> deduce_instance_call_arguments(
-        h::Declaration_database& declaration_database,
+    std::optional<Deduced_instance_call> deduce_instance_call_arguments(
+        h::Declaration_database const& declaration_database,
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
@@ -1345,29 +1360,12 @@ namespace h::compiler
                         temporaries_allocator
                     );
 
-                    Instance_call_key key = {
-                        .module_name = custom_type_reference->module_reference.name,
-                        .function_constructor_name = custom_type_reference->name,
-                        .arguments = deduced_parameter_statements
+                    return Deduced_instance_call
+                    {
+                        .custom_type_reference = std::move(custom_type_reference.value()),
+                        .function_constructor = *function_constructor,
+                        .arguments = std::move(deduced_parameter_statements),
                     };
-
-                    Function_expression call_instance = create_instance_call_expression_value(
-                        *function_constructor,
-                        deduced_parameter_statements,
-                        key
-                    );
-
-                    bool const success = true; // TODO for now we either succeed or throw exception. We should change this so that if it fails we continue trying.
-                    if (success)
-                    {
-                        add_instantiated_type_instances(declaration_database, call_instance);
-                        declaration_database.call_instances.emplace(std::move(key), std::move(call_instance));
-                        return deduced_parameter_statements;
-                    }
-                    else
-                    {
-                        index = function_expression->declaration.type.input_parameter_types.size();
-                    }
                 }
             }
         }

@@ -128,8 +128,15 @@ namespace h::compiler
         Declaration_database const& declaration_database
     );
 
-    std::optional<std::pmr::vector<Statement>> deduce_instance_call_arguments(
-        h::Declaration_database& declaration_database,
+    export struct Deduced_instance_call
+    {
+        h::Custom_type_reference custom_type_reference;
+        h::Function_constructor const& function_constructor;
+        std::pmr::vector<Statement> arguments;
+    };
+
+    export std::optional<Deduced_instance_call> deduce_instance_call_arguments(
+        h::Declaration_database const& declaration_database,
         h::Module const& core_module,
         Scope const& scope,
         h::Statement const& statement,
