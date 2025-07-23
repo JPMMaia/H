@@ -307,14 +307,24 @@ namespace h::compiler
                 add_instantiated_type_instances(declaration_database, call_instance);
                 declaration_database.call_instances.emplace(std::move(key), std::move(call_instance));
 
-                h::Instance_call_expression instance_call_expression =
-                {
-                    .left_hand_side = { data.expression.expression_index },
-                    .arguments = deduced_instance_call->arguments
-                };
+                h::Expression& left_side_expression = statement.expressions[data.expression.expression_index];
 
-                data.expression.expression_index = statement.expressions.size();
-                statement.expressions.push_back(h::Expression{.data = instance_call_expression, .source_range = expression.source_range});
+                if (std::holds_alternative<h::Instance_call_expression>(left_side_expression.data))
+                {
+                    h::Instance_call_expression& original_expression = std::get<h::Instance_call_expression>(left_side_expression.data);
+                    original_expression.arguments = deduced_instance_call->arguments;
+                }
+                else
+                {
+                    h::Instance_call_expression instance_call_expression =
+                    {
+                        .left_hand_side = { data.expression.expression_index },
+                        .arguments = deduced_instance_call->arguments
+                    };
+
+                    data.expression.expression_index = statement.expressions.size();
+                    statement.expressions.push_back(h::Expression{.data = instance_call_expression, .source_range = expression.source_range});
+                }
             }
         }
         else if (std::holds_alternative<h::Constant_array_expression>(expression.data))
@@ -866,7 +876,35 @@ namespace h::compiler
 
             std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
             if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
+            {
+                std::optional<Deduced_instance_call> const deduced_instance_call = deduce_instance_call_arguments(
+                    declaration_database,
+                    core_module,
+                    scope,
+                    statement,
+                    data,
+                    {}
+                );
+                if (deduced_instance_call.has_value())
+                {
+                    Instance_call_key const key = {
+                        .module_name = deduced_instance_call->custom_type_reference.module_reference.name,
+                        .function_constructor_name = deduced_instance_call->custom_type_reference.name,
+                        .arguments = deduced_instance_call->arguments
+                    };
+
+                    Function_expression const call_instance = create_instance_call_expression_value(
+                        deduced_instance_call->function_constructor,
+                        deduced_instance_call->arguments,
+                        key
+                    );
+
+                    if (!call_instance.declaration.type.output_parameter_types.empty())
+                        return call_instance.declaration.type.output_parameter_types[0];
+                }
+
                 return std::nullopt;
+            }
 
             h::Function_pointer_type const& function_pointer_type = std::get<h::Function_pointer_type>(type_reference.value().data);
 

@@ -1660,6 +1660,30 @@ namespace h::compiler
         );
     }
 
+    h::Function_constructor const* find_function_constructor_using_call_expression(
+        std::string_view const current_module_name,
+        Declaration_database const& declaration_database,
+        h::Statement const& statement,
+        h::Call_expression const& expression
+    )
+    {
+        h::Expression const& left_side_expression = statement.expressions[expression.expression.expression_index];
+
+        if (std::holds_alternative<h::Variable_expression>(left_side_expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_side_expression.data);
+
+            std::optional<Declaration> const declaration = find_underlying_declaration(declaration_database, current_module_name, variable_expression.name);
+            if (declaration.has_value())
+            {
+                if (std::holds_alternative<h::Function_constructor const*>(declaration->data))
+                    return std::get<h::Function_constructor const*>(declaration->data);
+            }
+        }
+
+        return nullptr;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
         Validate_expression_parameters const& parameters,
         h::Call_expression const& expression,
@@ -1667,6 +1691,42 @@ namespace h::compiler
     )
     {
         std::optional<h::Type_reference> const& callable_type_optional = parameters.expression_types[expression.expression.expression_index];
+
+        Function_constructor const* const function_constructor = find_function_constructor_using_call_expression(
+            parameters.core_module.name,
+            parameters.declaration_database,
+            parameters.statement,
+            expression
+        );
+
+        if (function_constructor != nullptr)
+        {
+            std::optional<Deduced_instance_call> const deduced_instance_call = deduce_instance_call_arguments(
+                parameters.declaration_database,
+                parameters.core_module,
+                parameters.scope,
+                parameters.statement,
+                expression,
+                parameters.temporaries_allocator
+            );
+
+            if (!deduced_instance_call.has_value())
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Cannot deduce arguments of implicit call of function constructor '{}'.",
+                            function_constructor->name
+                        )
+                    )
+                };
+            }
+
+            return {};
+        }
 
         if (!callable_type_optional.has_value() || !is_function_pointer(callable_type_optional.value()))
         {

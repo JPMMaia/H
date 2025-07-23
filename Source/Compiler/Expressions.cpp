@@ -2633,7 +2633,7 @@ namespace h::compiler
 
         Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(left_hand_side_value.type.value().data);
 
-        Function_constructor const* function_constructor = get_function_constructor(
+        Function_constructor const* const function_constructor = get_function_constructor(
             parameters.declaration_database,
             custom_type_reference
         );
