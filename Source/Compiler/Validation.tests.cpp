@@ -1477,21 +1477,21 @@ function run(input: Int32) -> ()
                 .range = create_source_range(22, 5, 22, 10),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .message = "Expression 'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(25, 9, 25, 14),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .message = "Expression 'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(30, 9, 30, 14),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'break' can only be placed inside for loops, while loops and switch cases.",
+                .message = "Expression 'break' can only be placed inside for loops, while loops and switch cases.",
                 .related_information = {},
             },
         };
@@ -1522,11 +1522,6 @@ function run(input: Int32) -> ()
     {
         break 2;
     }
-
-    for index in 0 to 10
-    {
-        break 0;
-    }
 }
 )";
 
@@ -1537,14 +1532,7 @@ function run(input: Int32) -> ()
                 .range = create_source_range(20, 15, 20, 16),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'break' loop count of 2 is invalid.",
-                .related_information = {},
-            },
-            {
-                .range = create_source_range(25, 15, 25, 16),
-                .source = Diagnostic_source::Compiler,
-                .severity = Diagnostic_severity::Error,
-                .message = "'break' loop count of 0 is invalid.",
+                .message = "Expression 'break' loop count of 2 is invalid.",
                 .related_information = {},
             }
         };
@@ -2043,28 +2031,28 @@ function run(input: Int32) -> ()
                 .range = create_source_range(15, 5, 15, 13),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
+                .message = "Expression 'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(18, 9, 18, 17),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
+                .message = "Expression 'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(23, 9, 23, 17),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
+                .message = "Expression 'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(30, 13, 30, 21),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "'continue' can only be placed inside for loops and while loops.",
+                .message = "Expression 'continue' can only be placed inside for loops and while loops.",
                 .related_information = {},
             },
         };

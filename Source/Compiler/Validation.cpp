@@ -1157,6 +1157,11 @@ namespace h::compiler
             h::Block_expression const& value = std::get<h::Block_expression>(expression.data);
             return validate_block_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Break_expression>(expression.data))
+        {
+            h::Break_expression const& value = std::get<h::Break_expression>(expression.data);
+            return validate_break_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Call_expression>(expression.data))
         {
             h::Call_expression const& value = std::get<h::Call_expression>(expression.data);
@@ -1166,6 +1171,11 @@ namespace h::compiler
         {
             h::Cast_expression const& value = std::get<h::Cast_expression>(expression.data);
             return validate_cast_expression(parameters, value, expression.source_range);
+        }
+        else if (std::holds_alternative<h::Continue_expression>(expression.data))
+        {
+            h::Continue_expression const& value = std::get<h::Continue_expression>(expression.data);
+            return validate_continue_expression(parameters, value, expression.source_range);
         }
         else if (std::holds_alternative<h::For_loop_expression>(expression.data))
         {
@@ -1660,6 +1670,44 @@ namespace h::compiler
         );
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_break_expression(
+        Validate_expression_parameters const& parameters,
+        h::Break_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        std::size_t const block_count = parameters.scope.blocks.size();
+        if (block_count == 0)
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Expression 'break' can only be placed inside for loops, while loops and switch cases."
+                )
+            };
+        }
+
+        if (block_count < expression.loop_count)
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    create_sub_source_range(source_range, 6, 1),
+                    std::format(
+                        "Expression 'break' loop count of {} is invalid.",
+                        expression.loop_count
+                    )
+                )
+            };
+        }
+
+
+        return {};
+    }
+
     h::Function_constructor const* find_function_constructor_using_call_expression(
         std::string_view const current_module_name,
         Declaration_database const& declaration_database,
@@ -1929,6 +1977,37 @@ namespace h::compiler
         return {};
     }
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_continue_expression(
+        Validate_expression_parameters const& parameters,
+        h::Continue_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        auto const is_loop_block = [](Block_expression_variant const& block) -> bool {
+            return std::holds_alternative<h::For_loop_expression const*>(block) ||
+                   std::holds_alternative<h::While_loop_expression const*>(block);
+        };
+
+        auto const location = std::find_if(
+            parameters.scope.blocks.begin(),
+            parameters.scope.blocks.end(),
+            is_loop_block
+        );
+        if (location == parameters.scope.blocks.end())
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Expression 'continue' can only be placed inside for loops and while loops."
+                )
+            };
+        }
+
+        return {};
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_for_loop_expression(
         Validate_expression_parameters const& parameters,
         h::For_loop_expression const& expression,
@@ -1964,6 +2043,7 @@ namespace h::compiler
                 .is_compile_time = false,
             }
         );
+        new_scope.blocks.push_back(&expression);
 
         {
             std::pmr::vector<h::compiler::Diagnostic> const range_end_statement_diagnostics = validate_statement(
@@ -2401,6 +2481,9 @@ namespace h::compiler
 
         std::size_t default_case_count = 0;
 
+        Scope new_scope = parameters.scope;
+        new_scope.blocks.push_back(&expression);
+
         for (Switch_case_expression_pair const& pair : expression.cases)
         {
             if (!pair.case_value.has_value())
@@ -2457,7 +2540,7 @@ namespace h::compiler
                 std::pmr::vector<h::compiler::Diagnostic> const statements_diagnostics = validate_statements(
                     parameters.core_module,
                     parameters.function_declaration,
-                    parameters.scope,
+                    new_scope,
                     pair.statements,
                     parameters.declaration_database,
                     parameters.temporaries_allocator
@@ -2913,10 +2996,13 @@ namespace h::compiler
         }
 
         {
+            Scope new_scope = parameters.scope;
+            new_scope.blocks.push_back(&expression);
+
             std::pmr::vector<h::compiler::Diagnostic> const statements_diagnostics = validate_statements(
                 parameters.core_module,
                 parameters.function_declaration,
-                parameters.scope,
+                new_scope,
                 expression.then_statements,
                 parameters.declaration_database,
                 parameters.temporaries_allocator

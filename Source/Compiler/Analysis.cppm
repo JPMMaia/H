@@ -4,6 +4,7 @@ module;
 #include <optional>
 #include <span>
 #include <string>
+#include <variant>
 #include <vector>
 
 export module h.compiler.analysis;
@@ -21,9 +22,16 @@ namespace h::compiler
         bool is_compile_time;
     };
 
+    export using Block_expression_variant = std::variant<
+        For_loop_expression const*,
+        Switch_expression const*,
+        While_loop_expression const*
+    >;
+
     export struct Scope
     {
         std::pmr::vector<Variable> variables;
+        std::pmr::vector<Block_expression_variant> blocks;
     };
 
     export struct Analysis_result

@@ -179,6 +179,12 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_break_expression(
+        Validate_expression_parameters const& parameters,
+        h::Break_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
         Validate_expression_parameters const& parameters,
         h::Call_expression const& expression,
@@ -188,6 +194,12 @@ namespace h::compiler
     std::pmr::vector<h::compiler::Diagnostic> validate_cast_expression(
         Validate_expression_parameters const& parameters,
         h::Cast_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_continue_expression(
+        Validate_expression_parameters const& parameters,
+        h::Continue_expression const& expression,
         std::optional<h::Source_range> const& source_range
     );
 
