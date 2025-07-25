@@ -568,6 +568,25 @@ namespace h::language_server
         return report;
     }
 
+    lsp::DocumentDiagnosticReport compute_document_diagnostics(
+        Server& server,
+        lsp::DocumentDiagnosticParams const& parameters
+    )
+    {
+        if (parameters.previousResultId.has_value())
+        {
+            lsp::RelatedUnchangedDocumentDiagnosticReport output = {};
+            output.resultId = parameters.previousResultId.value();
+            return output;
+        }
+        else
+        {
+            lsp::RelatedUnchangedDocumentDiagnosticReport output = {};
+            output.resultId = "1";
+            return output;
+        }
+    }
+
     std::filesystem::path to_filesystem_path(
         h::compiler::Target const& target,
         lsp::Uri const& uri

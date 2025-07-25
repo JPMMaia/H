@@ -124,17 +124,18 @@
 				"cwd": "${workspaceFolder}/../MythologyEngine",
 			},
 			{
-				"name": "hlang build-artifact MythologyEngine",
-				"type": "lldb-dap",
+				"name": "hlang build-artifact rts-game",
+				"type": "cppvsdbg",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
 					"build-artifact",
-					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
-					"--build-directory=${workspaceFolder}/../MythologyEngine/build",
+					"--artifact-file=${workspaceFolder}/../rts-game/source/game/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/../rts-game/build",
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
-					"--repository=${workspaceFolder}/../H/Libraries/hlang_repository.json",
-					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json"
+					"--repository=${workspaceFolder}/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json",
+					"--repository=${workspaceFolder}/../rts-game/source/hlang_repository.json"
 				],
 				"cwd": "${workspaceFolder}/../MythologyEngine",
 			},
@@ -200,7 +201,7 @@
 				"name": "Run Language Server",
 				"type": "cppvsdbg",
 				"request": "launch",
-				"program": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe",
+				"program": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe",
 				"args": [],
 				"cwd": "${workspaceFolder}/build"
 			},
@@ -208,7 +209,7 @@
 				"name": "Attach to Language Server",
 				"type": "lldb-dap",
 				"request": "attach",
-				"program": "${workspaceFolder}/build/Source/Language_server/H_language_server"
+				"program": "${workspaceFolder}/build/Source/Language_server/hlang_language_server"
 			},
 			{
 				"name": "Run Language Client",
@@ -226,7 +227,7 @@
 				"autoAttachChildProcesses": true,
 				"env": {
 					"mode": "debug",
-					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe"
+					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe"
 				}
 			},
 			{
@@ -248,7 +249,7 @@
 				"preLaunchTask": "Build Language Client and Server",
 				"env": {
 					"mode": "debug",
-					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/H_language_server.exe"
+					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe"
 				}
 			},
 			{
@@ -325,14 +326,17 @@
 			},
 			{
 				"label": "Build Language Server",
-				"type": "cmake",
-				"command": "build",
-				"targets": [
+				"command": "cmake",
+				"args": [
+					"--build",
+					"${workspaceFolder}/build",
+					"--target",
 					"H_language_server_app"
 				],
-				"group": "build",
-				"problemMatcher": []
-			}
+				"problemMatcher": [
+					"$msCompile"
+				]
+			},
 			{
 				"label": "Build Language Client",
 				"command": "npm",
@@ -352,7 +356,10 @@
 			},
 			{
 				"label": "Build Language Client and Server",
-				"dependsOn": ["Build Language Client", "Build Language Server"]
+				"dependsOn": [
+					"Build Language Client",
+					"Build Language Server"
+				]
 			},
 			{
 				"label": "Install Debug Hlang",
@@ -363,7 +370,7 @@
 					"install_hlang",
 					"${workspaceFolder}/../Hlang_install",
 					"--configuration",
-					"debug",
+					"debug"
 				],
 				"presentation": {
 					"reveal": "always"

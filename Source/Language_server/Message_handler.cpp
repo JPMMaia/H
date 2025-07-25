@@ -143,7 +143,7 @@ namespace h::language_server
         message_handler.add<lsp::requests::TextDocument_Diagnostic>(
             [&](lsp::requests::TextDocument_Diagnostic::Params&& parameters) -> lsp::requests::TextDocument_Diagnostic::Result
             {
-                return lsp::RelatedFullDocumentDiagnosticReport{};
+                return compute_document_diagnostics(server, parameters);
             }
         );
 

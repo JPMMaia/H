@@ -87,6 +87,11 @@ namespace h::language_server
         lsp::WorkspaceDiagnosticParams const& parameters
     );
 
+    export lsp::DocumentDiagnosticReport compute_document_diagnostics(
+        Server& server,
+        lsp::DocumentDiagnosticParams const& parameters
+    );
+
     std::filesystem::path to_filesystem_path(
         h::compiler::Target const& target,
         lsp::Uri const& uri
