@@ -41,11 +41,9 @@ root_directory = Path(__file__).resolve().parent.parent
 examples_directory = root_directory.joinpath("Examples")
 extension_directory = root_directory.joinpath("Tools/vscode/H-editor")
 parser_directory = root_directory.joinpath("Source/Parser/tree-sitter-hlang")
-parser_app_file_path = extension_directory.joinpath("dist/parser.js")
 core_package_directory = extension_directory.joinpath("packages/core")
 
 def build_and_test() -> bool:
-    build_parser()
     if not run_command(parser_directory.as_posix(), "npm run test_tree_sitter"):
         return False
     
@@ -53,7 +51,6 @@ def build_and_test() -> bool:
         return False
     
     build_compiler("debug")
-    copy_parser(root_directory.joinpath("build/Source/Compiler/Debug"))
     generate_builtin()
     generate_examples()
     if not run_command(root_directory.joinpath("build").as_posix(), "ctest -j 8"):
@@ -78,27 +75,6 @@ def test_language_server() -> bool:
 def build_compiler(configuration: str) -> None:
     run_command(root_directory.as_posix(), "cmake -S . -B build")
 
-def build_parser() -> None:
-    run_command(parser_directory.as_posix(), "npm run generate")
-    run_command(parser_directory.as_posix(), "npm run prebuild")
-    run_command(parser_directory.as_posix(), "npm pack")
-    run_command(core_package_directory.as_posix(), "npm install " + parser_directory.joinpath("tree-sitter-hlang-0.1.0.tgz").as_posix())
-    run_command(extension_directory.as_posix(), "npm run webpack:parser")
-
-def copy_parser(destination_directory: Path) -> None:
-    copy_file(parser_app_file_path, destination_directory)
-
-    dependencies = [
-        "node-gyp-build",
-        "tree-sitter",
-        "tree-sitter-hlang"
-    ]
-    
-    for dependency in dependencies:
-        source_directory = extension_directory.joinpath("node_modules").joinpath(dependency)
-        destination_dependency_directory = destination_directory.joinpath("node_modules").joinpath(dependency)
-        copy_folder(source_directory, destination_dependency_directory)
-
 def parse_file(directory: Path, source: Path, destination: Path) -> None:
     run_command(directory.as_posix(), "node " + parser_app_file_path.as_posix() + " write " + destination.as_posix() + " --input " + source.as_posix())
 
@@ -118,7 +94,6 @@ def generate_examples() -> None:
 
 def install_hlang(configuration: str, destination_directory: Path) -> None:
     run_command(root_directory.as_posix(), "cmake --install build --config " + configuration + " --prefix " + destination_directory.as_posix())
-    copy_parser(destination_directory.joinpath("bin"))
         
 # Execute commands
 def main() -> None:
@@ -129,9 +104,6 @@ def main() -> None:
     build_and_test_command = subparsers.add_parser("build_and_test", help="Build and test all")
 
     build_parser_command = subparsers.add_parser("build_parser", help="Build parser")
-    
-    copy_parser_command = subparsers.add_parser("copy_parser", help="Copy parser")
-    copy_parser_command.add_argument("destination_directory")
 
     generate_builtin_command = subparsers.add_parser("generate_builtin", help="Generate builtin")
     
@@ -147,10 +119,6 @@ def main() -> None:
 
     if args.command == "build_and_test":
         build_and_test()
-    if args.command == "build_parser":
-        build_parser()
-    elif args.command == "copy_parser":
-        copy_parser(Path(args.destination_directory))
     elif args.command == "generate_builtin":
         generate_builtin()
     elif args.command == "generate_examples":

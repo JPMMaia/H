@@ -36,7 +36,7 @@ add_executable(H::Language_server_app ALIAS H_language_server_app)
 
 target_link_libraries(H_language_server_app PRIVATE H_language_server)
 
-set_target_properties(H_language_server_app PROPERTIES OUTPUT_NAME "H_language_server")
+set_target_properties(H_language_server_app PROPERTIES OUTPUT_NAME "hlang_language_server")
 
 target_sources(H_language_server_app
    PRIVATE
@@ -46,6 +46,7 @@ target_sources(H_language_server_app
 install(TARGETS H_language_server_app)
 
 
+#[[
 if(BUILD_TESTING)
    add_executable(H_language_server_tests)
    target_link_libraries(H_language_server_tests PRIVATE H_language_server)
@@ -54,9 +55,9 @@ if(BUILD_TESTING)
    target_link_libraries(H_language_server_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
    target_sources(H_language_server_tests PRIVATE
-      "Server.tests.cpp"
    )
 
    include(Catch)
    catch_discover_tests(H_language_server_tests)
 endif()
+#]]

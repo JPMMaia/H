@@ -1,3 +1,4 @@
+import * as child_process from 'child_process';
 import * as path from 'path';
 import * as net from 'net';
 import * as vscode from 'vscode';
@@ -58,15 +59,31 @@ function create_server_options_to_attach(
 	return server_options;
 }
 
+function launch_server(): void {
+	
+	const options: child_process.ExecSyncOptions = {
+		stdio: "ignore"
+	};
+
+	const language_server_process = child_process.exec("hlang_language_server", options);
+
+	process.on("exit", () => {
+		if (!language_server_process.killed) {
+			language_server_process.kill();
+		}
+	});
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<LanguageClient> {
 
 	const mode: string | undefined = process.env.mode;
 	const attach_to_server = mode === "debug";
 
-	const server_options = 
-		attach_to_server ?
-		create_server_options_to_attach("127.0.0.1", 12345) :
-		create_server_options_to_create(process.env.hlang_language_server);
+	if (!attach_to_server) {
+		launch_server();
+	}
+
+	const server_options = create_server_options_to_attach("127.0.0.1", 12345);
 
 	// Options to control the language client
 	const client_options: LanguageClientOptions = {
@@ -93,7 +110,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 
 	const workspace_initialized_promise = wait_for_workspace_initialized_notification(client);
 
-	// Start the client. This will also launch the server
 	await client.start();
 
 	await workspace_initialized_promise;

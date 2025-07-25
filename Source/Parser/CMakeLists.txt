@@ -1,17 +1,3 @@
-set(VSCODE_EXTENSION_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor")
-set(PARSER_SOURCE_PATH "${CMAKE_SOURCE_DIR}/Tools/vscode/H-editor/packages")
-
-set(PARSER_JAVASCRIPT_DIRECTORY_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist")
-set(PARSER_JAVASCRIPT_LOCATION "${VSCODE_EXTENSION_SOURCE_PATH}/dist/parser.js")
-
-set_property(GLOBAL PROPERTY parser_javascript_location "${PARSER_JAVASCRIPT_LOCATION}")
-
-install(
-    FILES "${PARSER_JAVASCRIPT_LOCATION}"
-    TYPE BIN
-    RENAME "parser.js"
-)
-
 add_subdirectory("tree-sitter-hlang")
 
 add_library(H_parser)
