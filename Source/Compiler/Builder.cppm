@@ -99,6 +99,7 @@ namespace h::compiler
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
+        bool const use_objects,
         Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     );
@@ -106,6 +107,7 @@ namespace h::compiler
     void link_artifacts(
         Builder const& builder,
         std::span<Artifact const> const artifacts,
+        bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

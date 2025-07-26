@@ -145,11 +145,14 @@ namespace h::compiler
             temporaries_allocator
         );
 
+        bool const use_objects = builder.target.operating_system == "windows" && compilation_options.debug;
+
         compile_and_write_to_bitcode_files(
             builder,
             core_modules,
             module_name_to_file_path_map,
             llvm_data,
+            use_objects,
             compilation_database,
             compilation_options
         );
@@ -157,6 +160,7 @@ namespace h::compiler
         link_artifacts(
             builder,
             artifacts,
+            use_objects,
             compilation_options,
             temporaries_allocator
         );
@@ -491,17 +495,20 @@ namespace h::compiler
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
+        bool const use_objects,
         Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     )
     {
         // TODO to paralelize, llvm_data and compilation_database should be const
 
+        std::string_view const extension = use_objects ? "obj" : "bc";
+
         for (std::size_t index = 0; index < core_modules.size(); ++index)
         {
             h::Module const& core_module = core_modules[index];
 
-            std::filesystem::path const output_assembly_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", core_module.name);
+            std::filesystem::path const output_assembly_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.{}", core_module.name, extension);
 
             if (std::filesystem::exists(output_assembly_file))
             {
@@ -521,13 +528,17 @@ namespace h::compiler
                 compilation_options
             );
 
-            h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
+            if (use_objects)
+                h::compiler::write_object_file(llvm_data, *llvm_module, output_assembly_file);
+            else
+                h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
         }
     }
 
     std::pmr::vector<std::filesystem::path> get_artifact_bitcode_files(
         Builder const& builder,
         Artifact const& artifact,
+        bool const use_objects,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -538,13 +549,15 @@ namespace h::compiler
             temporaries_allocator
         );
 
+        std::string_view const extension = use_objects ? "obj" : "bc";
+
         for (std::filesystem::path const& source_file_path : source_files)
         {
             std::optional<std::pmr::string> const module_name = h::parser::read_module_name(source_file_path);
             if (!module_name.has_value())
                 h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
 
-            std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.bc", module_name.value());
+            std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.{}", module_name.value(), extension);
             bitcode_files.push_back(std::move(bitcode_file));
         }        
 
@@ -638,6 +651,7 @@ namespace h::compiler
     void link_artifacts(
         Builder const& builder,
         std::span<Artifact const> const artifacts,
+        bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -652,6 +666,7 @@ namespace h::compiler
             std::pmr::vector<std::filesystem::path> const bitcode_files = get_artifact_bitcode_files(
                 builder,
                 artifact,
+                use_objects,
                 temporaries_allocator
             );
             if (bitcode_files.empty())
