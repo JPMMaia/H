@@ -1940,6 +1940,37 @@ function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
         test_validate_module(input, dependencies, expected_diagnostics);
     }
 
+    TEST_CASE("Validates cast from imported global variable to imported enum", "[Validation][Cast_expression]")
+    {
+        std::string_view const dependency = R"(module Dependency;
+
+var my_global = 0ci;
+
+enum My_enum
+{
+    Value = 0,
+}
+)";
+
+        std::string_view const input = R"(module Test;
+
+import Dependency as dependency;
+
+function run() -> ()
+{
+    var value_0 = dependency.my_global as dependency.My_enum;
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { dependency };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that continue can only be placed inside for loops and while loops", "[Validation][Continue_expression]")
     {

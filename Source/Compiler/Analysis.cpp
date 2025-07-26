@@ -721,6 +721,14 @@ namespace h::compiler
                                     Function_declaration const& function_declaration = *std::get<Function_declaration const*>(declaration.data);
                                     return create_function_type_type_reference(function_declaration.type, function_declaration.input_parameter_names, function_declaration.output_parameter_names);
                                 }
+                                else if (std::holds_alternative<Global_variable_declaration const*>(declaration.data))
+                                {
+                                    Global_variable_declaration const& global_variable_declaration = *std::get<Global_variable_declaration const*>(declaration.data);
+                                    if (global_variable_declaration.type.has_value())
+                                        return global_variable_declaration.type.value();
+
+                                    return get_expression_type(core_module, nullptr, scope, global_variable_declaration.initial_value, std::nullopt, declaration_database);
+                                }
 
                                 Import_module_with_alias const* import_alias = find_import_module_with_alias(
                                     core_module,
