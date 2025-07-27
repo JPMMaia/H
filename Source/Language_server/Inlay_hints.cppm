@@ -23,6 +23,7 @@ namespace h::language_server
 
     std::vector<lsp::InlayHintLabelPart> create_inlay_hint_variable_type_label(
         h::Module const& core_module,
+        h::Declaration_database const& declaration_database,
         h::Type_reference const& type,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

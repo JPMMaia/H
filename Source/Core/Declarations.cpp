@@ -727,4 +727,30 @@ namespace h
             instantiate_all
         );
     }
+
+    std::string_view get_declaration_name(
+        Declaration const& declaration
+    )
+    {
+        std::string_view name;
+
+        std::visit([&](auto const& data) -> void {
+            name = data->name;
+        }, declaration.data);
+
+        return name;
+    }
+
+    std::optional<h::Source_location> get_declaration_source_location(
+        Declaration const& declaration
+    )
+    {
+       std::optional<h::Source_location> source_location;
+
+        std::visit([&](auto const& data) -> void {
+            source_location = data->source_location;
+        }, declaration.data);
+
+        return source_location;
+    }
 }

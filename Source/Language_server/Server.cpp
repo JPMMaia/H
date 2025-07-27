@@ -398,6 +398,17 @@ namespace h::language_server
                 temporaries_allocator
             );
 
+            std::pmr::vector<h::Module const*> const sorted_core_modules = h::compiler::sort_core_modules(
+                core_modules,
+                temporaries_allocator,
+                temporaries_allocator
+            );
+
+            h::Declaration_database declaration_database = h::compiler::create_declaration_database_and_add_modules(
+                header_modules,
+                sorted_core_modules
+            );
+
             Workspace_data workspace_data
             {
                 .builder = std::move(builder),
@@ -409,6 +420,7 @@ namespace h::language_server
                 .core_module_diagnostic_dirty_flags = std::move(core_module_diagnostic_dirty_flags),
                 .core_module_parse_trees = std::move(core_module_parse_trees),
                 .core_modules = std::move(core_modules),
+                .declaration_database = std::move(declaration_database),
             };
 
             server.workspaces_data.push_back(std::move(workspace_data));

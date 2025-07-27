@@ -78,6 +78,7 @@ namespace h::language_server
 
                 std::vector<lsp::InlayHintLabelPart> label = create_inlay_hint_variable_type_label(
                     core_module,
+                    declaration_database,
                     variable_type.value(),
                     temporaries_allocator
                 );
@@ -109,6 +110,7 @@ namespace h::language_server
 
     std::vector<lsp::InlayHintLabelPart> create_inlay_hint_variable_type_label(
         h::Module const& core_module,
+        h::Declaration_database const& declaration_database,
         h::Type_reference const& type,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -130,15 +132,34 @@ namespace h::language_server
             .value = type_name.data(),
         };
 
-        if (type.source_range.has_value())
+        if (h::is_custom_type_reference(type))
         {
-            second_part.location = {
-                .uri = lsp::DocumentUri::fromPath(core_module.source_file_path->generic_string()),
-                .range = to_lsp_range(type.source_range.value()),
-            };
+            std::optional<Declaration> const declaration = find_declaration(declaration_database, type);
+            if (declaration.has_value())
+            {
+                std::optional<h::Source_location> const declaration_source_location = get_declaration_source_location(
+                    declaration.value()
+                );
+                if (declaration_source_location.has_value() && declaration_source_location->file_path.has_value())
+                {
+                    second_part.location =
+                    {
+                        .uri = lsp::DocumentUri::fromPath(declaration_source_location->file_path->generic_string()),
+                        .range = {
+                            .start = {
+                                .line = declaration_source_location->line - 1,
+                                .character = declaration_source_location->column - 1,
+                            },
+                            .end = {
+                                .line = declaration_source_location->line -1,
+                                .character = declaration_source_location->column -1,
+                            }
+                        },
+                    };
+                }
+            }
         }
-
-        if (!h::is_custom_type_reference(type))
+        else
         {
             second_part.tooltip = std::format("Built-in type: {}", type_name);
         }

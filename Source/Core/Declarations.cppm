@@ -218,4 +218,12 @@ namespace h
         Declaration_database& declaration_database,
         h::Module const& core_module
     );
+
+    export std::string_view get_declaration_name(
+        Declaration const& declaration
+    );
+
+    export std::optional<h::Source_location> get_declaration_source_location(
+        Declaration const& declaration
+    );
 }
