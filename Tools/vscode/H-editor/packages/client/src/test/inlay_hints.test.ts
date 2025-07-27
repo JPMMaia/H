@@ -5,7 +5,7 @@ import { get_document_uri, activate } from './helper.js';
 suite("Should get inlay hints", () => {
 
 	test("Creates hint for variable declaration expression", async () => {
-		const document_uri = get_document_uri("inlay_hints_0.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_0.hltxt");
 		await test_inlay_hints(document_uri, to_range(4, 4, 4, 14), [
 			{
 				label: [
@@ -24,7 +24,7 @@ suite("Should get inlay hints", () => {
 	});
 
 	test("Creates hint for variable declaration of a struct", async () => {
-		const document_uri = get_document_uri("inlay_hints_1.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_1.hltxt");
 
 		await test_inlay_hints(document_uri, to_range(17, 4, 17, 35), [
 			{
@@ -93,7 +93,7 @@ suite("Should get inlay hints", () => {
 	});
 
 	test("Creates hint for function input parameter", async () => {
-		const document_uri = get_document_uri("inlay_hints_2.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_2.hltxt");
 
 		const lhs_tooltip = new vscode.MarkdownString(
 			[
