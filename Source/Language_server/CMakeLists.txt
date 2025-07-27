@@ -21,11 +21,13 @@ target_sources(H_language_server
             "Breakpoint.cppm"
             "Core.cppm"
             "Diagnostics.cppm"
+            "Inlay_hints.cppm"
             "Message_handler.cppm"
             "Server.cppm"
    PRIVATE
       "Core.cpp"
       "Diagnostics.cpp"
+      "Inlay_hints.cpp"
       "Message_handler.cpp"
       "Server.cpp"
 )

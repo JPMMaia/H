@@ -19,8 +19,10 @@ import h.compiler.builder;
 import h.compiler.diagnostic;
 import h.compiler.target;
 import h.core;
+import h.core.declarations;
 import h.language_server.core;
 import h.language_server.diagnostics;
+import h.language_server.inlay_hints;
 import h.parser.convertor;
 import h.parser.parse_tree;
 import h.parser.parser;
@@ -85,11 +87,17 @@ namespace h::language_server
             }
         };
 
+        lsp::InlayHintOptions const inlay_hint_options
+        {
+            .resolveProvider = false,
+        };
+
         lsp::InitializeResult result
         {
             .capabilities =
             {
                 .textDocumentSync = text_document_sync_server_capabilities,
+                .inlayHintProvider = inlay_hint_options,
                 .diagnosticProvider = diagnostic_options,
                 .workspace = workspace_server_capabilities,
             },
@@ -518,7 +526,20 @@ namespace h::language_server
                 temporaries_allocator
             );
             if (core_module.has_value())
+            {
                 workspace_data.core_modules[core_module_index] = core_module.value();
+
+                std::pmr::vector<h::Module const*> const sorted_core_modules = h::compiler::sort_core_modules(
+                    workspace_data.core_modules,
+                    temporaries_allocator,
+                    temporaries_allocator
+                );
+
+                workspace_data.declaration_database = h::compiler::create_declaration_database_and_add_modules(
+                    workspace_data.header_modules,
+                    sorted_core_modules
+                );
+            }
 
             workspace_data.core_module_diagnostic_dirty_flags[core_module_index] = true;
         }
@@ -585,6 +606,56 @@ namespace h::language_server
             output.resultId = "1";
             return output;
         }
+    }
+
+    lsp::TextDocument_InlayHintResult compute_document_inlay_hints(
+        Server& server,
+        lsp::InlayHintParams const& parameters
+    )
+    {
+        std::optional<std::pair<Workspace_data&, std::size_t>> const workspace_core_module_pair = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!workspace_core_module_pair.has_value())
+            return nullptr;
+        
+        std::pmr::polymorphic_allocator<> const temporaries_allocator;
+
+        Workspace_data const& workspace_data = workspace_core_module_pair->first;
+        std::size_t const core_module_index = workspace_core_module_pair->second;
+
+        Declaration_database const& declaration_database = workspace_data.declaration_database;
+        h::Module const& core_module = workspace_data.core_modules[core_module_index];
+        if (core_module.name.empty())
+            return nullptr;
+
+        std::vector<lsp::InlayHint> inlay_hints;
+
+        auto const process_function = [&](h::Function_declaration const& function_declaration) -> void {
+            std::optional<Function_definition const*> const function_definition = find_function_definition(core_module, function_declaration.name);
+            if (function_definition.has_value())
+            {
+                std::pmr::vector<lsp::InlayHint> const function_inlay_hints = create_function_inlay_hints(
+                    core_module,
+                    function_declaration,
+                    *function_definition.value(),
+                    declaration_database,
+                    temporaries_allocator,
+                    temporaries_allocator
+                );
+
+                if (!function_inlay_hints.empty())
+                    inlay_hints.insert(inlay_hints.end(), function_inlay_hints.begin(), function_inlay_hints.end());
+            }
+        };
+
+        for (h::Function_declaration const& function_declaration : core_module.export_declarations.function_declarations)
+            process_function(function_declaration);
+        for (h::Function_declaration const& function_declaration : core_module.internal_declarations.function_declarations)
+            process_function(function_declaration);
+
+        return inlay_hints;
     }
 
     std::filesystem::path to_filesystem_path(

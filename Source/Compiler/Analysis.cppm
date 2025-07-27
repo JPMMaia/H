@@ -167,4 +167,101 @@ namespace h::compiler
         Declaration const& declaration,
         std::string_view const member_name
     );
+
+    export void add_parameters_to_scope(
+        Scope& scope,
+        std::span<std::pmr::string const> const parameter_names,
+        std::span<h::Type_reference const> const parameter_types
+    );
+
+    export template <typename Function>
+    void visit_statements_using_scope(
+        h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
+        Scope& scope,
+        std::span<h::Statement const> const statements,
+        h::Declaration_database const& declaration_database,
+        Function&& callback
+    )
+    {
+        std::size_t const initial_variable_count = scope.variables.size();
+
+        for (h::Statement const& statement : statements)
+        {
+            callback(statement, scope);
+
+            if (!statement.expressions.empty())
+            {
+                h::Expression const& expression = statement.expressions[0];
+
+                if (std::holds_alternative<h::If_expression>(expression.data))
+                {
+                    h::If_expression const& if_expression = std::get<h::If_expression>(expression.data);
+
+                    for (h::Condition_statement_pair const& pair : if_expression.series)
+                    {
+                        if (pair.condition.has_value())
+                            callback(pair.condition.value(), scope);
+
+                        visit_statements_using_scope(core_module, function_declaration, scope, pair.then_statements, declaration_database, callback);
+                    }
+                }
+                else if (std::holds_alternative<h::For_loop_expression>(expression.data))
+                {
+                    h::For_loop_expression const& for_loop_expression = std::get<h::For_loop_expression>(expression.data);
+
+                    std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[for_loop_expression.range_begin.expression_index], std::nullopt, declaration_database);
+                    if (type_reference.has_value())
+                    {
+                        scope.variables.push_back(
+                            {
+                                .name = for_loop_expression.variable_name, .type = type_reference.value(), .is_compile_time = false
+                            }
+                        );
+                    }
+
+                    callback(for_loop_expression.range_end, scope);
+                    visit_statements_using_scope(core_module, function_declaration, scope, for_loop_expression.then_statements, declaration_database, callback);
+
+                    if (type_reference.has_value())
+                        scope.variables.pop_back();
+                }
+                else if (std::holds_alternative<h::Ternary_condition_expression>(expression.data))
+                {
+                    h::Ternary_condition_expression const& ternary_condition_expression = std::get<h::Ternary_condition_expression>(expression.data);
+
+                    callback(ternary_condition_expression.then_statement, scope);
+                    callback(ternary_condition_expression.else_statement, scope);
+                }
+                else if (std::holds_alternative<h::Switch_expression>(expression.data))
+                {
+                    h::Switch_expression const& switch_expression = std::get<h::Switch_expression>(expression.data);
+
+                    for (h::Switch_case_expression_pair const& pair : switch_expression.cases)
+                        visit_statements_using_scope(core_module, function_declaration, scope, pair.statements, declaration_database, callback);
+                }
+                else if (std::holds_alternative<h::Variable_declaration_expression>(expression.data))
+                {
+                    h::Variable_declaration_expression const& data = std::get<h::Variable_declaration_expression>(expression.data);
+                    std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.right_hand_side.expression_index], std::nullopt, declaration_database);
+                    if (type_reference.has_value())
+                        scope.variables.push_back({.name = data.name, .type = type_reference.value(), .is_compile_time = false});
+                }
+                else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
+                {
+                    h::Variable_declaration_with_type_expression const& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
+                    scope.variables.push_back({.name = data.name, .type = data.type, .is_compile_time = false});
+                }
+                else if (std::holds_alternative<h::While_loop_expression>(expression.data))
+                {
+                    h::While_loop_expression const& while_loop_expression = std::get<h::While_loop_expression>(expression.data);
+
+                    visit_statements_using_scope(core_module, function_declaration, scope, while_loop_expression.then_statements, declaration_database, callback);
+                }
+            }
+        }
+
+        if (initial_variable_count < scope.variables.size())
+            scope.variables.erase(scope.variables.begin() + initial_variable_count, scope.variables.end());
+    }
 }

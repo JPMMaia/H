@@ -9,6 +9,7 @@ export module h.language_server.server;
 import h.compiler.artifact;
 import h.compiler.builder;
 import h.core;
+import h.core.declarations;
 import h.parser.parse_tree;
 import h.parser.parser;
 
@@ -25,6 +26,7 @@ namespace h::language_server
         std::pmr::vector<bool> core_module_diagnostic_dirty_flags;
         std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;
         std::pmr::vector<h::Module> core_modules;
+        h::Declaration_database declaration_database;
     };
     
     export struct Server
@@ -90,6 +92,11 @@ namespace h::language_server
     export lsp::DocumentDiagnosticReport compute_document_diagnostics(
         Server& server,
         lsp::DocumentDiagnosticParams const& parameters
+    );
+
+    export lsp::TextDocument_InlayHintResult compute_document_inlay_hints(
+        Server& server,
+        lsp::InlayHintParams const& parameters
     );
 
     std::filesystem::path to_filesystem_path(

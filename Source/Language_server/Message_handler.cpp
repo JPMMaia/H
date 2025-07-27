@@ -147,6 +147,15 @@ namespace h::language_server
             }
         );
 
+        message_handler.add<lsp::requests::TextDocument_InlayHint>(
+            [&](lsp::requests::TextDocument_InlayHint::Params&& parameters) -> lsp::requests::TextDocument_InlayHint::Result
+            {
+                return compute_document_inlay_hints(server, parameters);
+            }
+        );
+
+        
+
         message_handler.add<lsp::requests::Workspace_Diagnostic>(
             [&](lsp::requests::Workspace_Diagnostic::Params&& parameters) -> lsp::requests::Workspace_Diagnostic::Result
             {
