@@ -29,12 +29,13 @@ namespace h::parser
     }
 
     Source_location source_position_to_source_location(
+        std::optional<std::filesystem::path> const& source_file_path,
         Source_position const& source_position
     )
     {
         return
         {
-            .file_path = {},
+            .file_path = source_file_path,
             .line = source_position.line,
             .column = source_position.column,
         };
@@ -285,6 +286,7 @@ namespace h::parser
         Module_info const module_info =
         {
             .module_name = output.name,
+            .source_file_path = source_file_path,
             .alias_imports = output.dependencies.alias_imports
         };
 
@@ -855,7 +857,7 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
 
         if (comment.has_value())
@@ -895,7 +897,7 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
 
         if (comment.has_value())
@@ -920,7 +922,7 @@ namespace h::parser
                 if (value_name_node.has_value())
                 {
                     enum_value.name = create_string(get_node_value(tree, value_name_node.value()), output_allocator);
-                    enum_value.source_location = source_position_to_source_location(get_node_start_source_position(value_name_node.value()));
+                    enum_value.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(value_name_node.value()));
                 }
 
                 std::optional<Parse_node> const value_value_node = get_child_node(tree, value_node, "Generic_expression");
@@ -973,7 +975,7 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
 
         if (comment.has_value())
@@ -1096,11 +1098,11 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
         else
         {
-            output.source_location = source_position_to_source_location(get_node_start_source_position(node));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
         }
 
         if (unique_name.has_value())
@@ -1188,7 +1190,7 @@ namespace h::parser
                 temporaries_allocator
             );
 
-            output.source_location = source_position_to_source_location(get_node_start_source_position(block_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(block_node.value()));
         }
 
         return output;
@@ -1209,11 +1211,11 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
         else
         {
-            output.source_location = source_position_to_source_location(get_node_start_source_position(node));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
         }
 
         if (comment.has_value())
@@ -1288,8 +1290,8 @@ namespace h::parser
 
         output.source_location = 
             name_node.has_value() ?
-            source_position_to_source_location(get_node_start_source_position(name_node.value())) :
-            source_position_to_source_location(get_node_start_source_position(node));
+            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value())) :
+            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
 
         if (comment.has_value())
         {
@@ -1403,11 +1405,11 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(get_node_start_source_position(name_node.value()));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
         else
         {
-            output.source_location = source_position_to_source_location(get_node_start_source_position(node));
+            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
         }
 
         if (comment.has_value())
@@ -1480,8 +1482,8 @@ namespace h::parser
 
         output.source_location = 
             name_node.has_value() ?
-            source_position_to_source_location(get_node_start_source_position(name_node.value())) :
-            source_position_to_source_location(get_node_start_source_position(node));
+            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value())) :
+            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
 
         if (comment.has_value())
         {

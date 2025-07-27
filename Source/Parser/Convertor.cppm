@@ -16,6 +16,7 @@ namespace h::parser
     struct Module_info
     {
         std::string_view module_name;
+        std::optional<std::filesystem::path> source_file_path;
         std::span<Import_module_with_alias const> alias_imports;
     };
 
