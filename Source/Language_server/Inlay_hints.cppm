@@ -21,6 +21,14 @@ namespace h::language_server
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
+    void create_inlay_hint_variable_type_label_aux(
+        std::vector<lsp::InlayHintLabelPart>& parts,
+        h::Module const& core_module,
+        h::Declaration_database const& declaration_database,
+        std::optional<h::Type_reference> const& type_optional,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     std::vector<lsp::InlayHintLabelPart> create_inlay_hint_variable_type_label(
         h::Module const& core_module,
         h::Declaration_database const& declaration_database,
