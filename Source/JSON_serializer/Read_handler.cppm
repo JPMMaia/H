@@ -56,6 +56,7 @@ namespace h::json
         std::cout << std::format("{} {}", message, to_string(stack));
         if (new_line)
             std::cout << "\n";
+        std::cout.flush();
     }
 
     bool is_vector_element(std::pmr::vector<Stack_state>& stack)
@@ -190,6 +191,7 @@ namespace h::json
 
             handle_vector_state(this->state_stack, this->array_indices);
 
+            this->state_stack.pop_back();
             return true;
         }
 
@@ -274,6 +276,11 @@ namespace h::json
             {
                 Stack_state const& parent_state = this->state_stack[state_stack.size() - 2];
                 parent_state.set_vector_size(&parent_state, number);
+            }
+            else if (current_state.type.starts_with("std::optional<std::uint32_t"))
+            {
+                std::optional<std::uint32_t>* pointer = static_cast<std::optional<std::uint32_t>*>(current_state.pointer);
+                *pointer = number;
             }
             else
             {

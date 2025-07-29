@@ -1,36 +1,89 @@
+import * as child_process from 'child_process';
 import * as path from 'path';
+import * as net from 'net';
 import * as vscode from 'vscode';
 
 import {
+	Executable,
 	LanguageClient,
 	LanguageClientOptions,
+	NodeModule,
 	ServerOptions,
+	StreamInfo,
 	TransportKind
 } from 'vscode-languageclient/node.js';
 
 let client: LanguageClient = undefined;
 
+function create_server_options_to_create(
+	hlang_language_server_path: string
+): ServerOptions {
+
+	const executable: Executable = {
+		command: hlang_language_server_path,
+		args: [],
+		transport: {
+			kind: TransportKind.socket,
+			port: 12345
+		}
+	};
+
+	const server_options: ServerOptions = {
+		run: executable,
+		debug: executable
+	};
+
+	return server_options;
+}
+
+function create_server_options_to_attach(
+	server_host: string,
+	server_port: number
+): ServerOptions {
+	 
+	const server_options = () => {
+        return new Promise<StreamInfo>((resolve, reject) => {
+            const socket = net.connect(server_port, server_host, () => {
+                resolve({
+                    reader: socket,
+                    writer: socket
+                });
+            });
+
+            socket.on('error', (err) => {
+                reject(err);
+            });
+        });
+    };
+
+	return server_options;
+}
+
+function launch_server(): void {
+	
+	const options: child_process.ExecSyncOptions = {
+		stdio: "ignore"
+	};
+
+	const language_server_process = child_process.exec("hlang_language_server", options);
+
+	process.on("exit", () => {
+		if (!language_server_process.killed) {
+			language_server_process.kill();
+		}
+	});
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<LanguageClient> {
 
 	const mode: string | undefined = process.env.mode;
-	const use_webpack_server = mode !== "debug";
+	const attach_to_server = mode === "debug";
 
-	// The server is implemented in node
-	const server_module = context.asAbsolutePath(
-		use_webpack_server ?
-			path.join("dist", "server.js") :
-			path.join("out", "packages", "server", "src", "server.js")
-	);
+	if (!attach_to_server) {
+		launch_server();
+	}
 
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	const server_options: ServerOptions = {
-		run: { module: server_module, transport: TransportKind.ipc },
-		debug: {
-			module: server_module,
-			transport: TransportKind.ipc
-		}
-	};
+	const server_options = create_server_options_to_attach("127.0.0.1", 12345);
 
 	// Options to control the language client
 	const client_options: LanguageClientOptions = {
@@ -55,10 +108,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 	client.middleware.provideCompletionItem = provide_completion_item;
 	client.middleware.provideInlayHints = provide_inlay_hints;
 
-	// Start the client. This will also launch the server
+	const workspace_initialized_promise = wait_for_workspace_initialized_notification(client);
+
 	await client.start();
 
+	await workspace_initialized_promise;
+
 	return client;
+}
+
+async function wait_for_workspace_initialized_notification(
+	client: LanguageClient
+): Promise<void> {
+	return new Promise( resolve => {
+		client.onNotification("hlang/workspaceInitialized", () => {
+			resolve();
+		});
+	});
 }
 
 export function deactivate(): Thenable<void> | undefined {

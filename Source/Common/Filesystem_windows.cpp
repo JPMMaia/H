@@ -24,12 +24,12 @@ namespace h::common
         return executable_path.parent_path();
     }
 
-    static std::filesystem::path find_default_windows_kit_library_path(
-        std::string_view const architecture
+    static std::filesystem::path find_default_windows_kit_subdirectory_path(
+        std::string_view const subdirectory
     )
     {
         std::filesystem::path const windows_kit_root = "C:/Program Files (x86)/Windows Kits/10";
-        std::filesystem::path const library_path = windows_kit_root / "Lib";
+        std::filesystem::path const library_path = windows_kit_root / subdirectory;
 
         if (!std::filesystem::exists(library_path))
             h::common::print_message_and_exit(std::format("{} does not exist! Is Windows 10 Kit installed?", library_path.generic_string()));
@@ -51,14 +51,26 @@ namespace h::common
         if (!best_match)
             h::common::print_message_and_exit(std::format("Could not find an Windows 10 Kit version in {}! Is Windows 10 Kit installed?", library_path.generic_string()));
 
-        return *best_match / "ucrt" / architecture;
+        return *best_match / "ucrt";
+    }
+
+    std::pmr::vector<std::filesystem::path> get_default_header_search_directories()
+    {
+        std::filesystem::path const windows_kit_library_path = find_default_windows_kit_subdirectory_path("Include");
+
+        std::pmr::vector<std::filesystem::path> include_directories
+        {
+            windows_kit_library_path
+        };
+
+        return include_directories;
     }
 
     std::pmr::vector<std::filesystem::path> get_default_library_directories()
     {
         std::pmr::vector<std::filesystem::path> library_directories
         {
-            find_default_windows_kit_library_path("x64")
+            find_default_windows_kit_subdirectory_path("Lib") / "x64"
         };
 
         return library_directories;

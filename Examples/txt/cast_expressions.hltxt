@@ -2,8 +2,11 @@ module Cast_expressions;
 
 using My_uint = Uint32;
 
-export function run(first: My_uint) -> ()
+export function run(first: My_uint, second: Int32, third: C_int) -> ()
 {
     var a = 1u32;
     var b = a == (first as Uint32);
+    var c = second as My_uint;
+    var d = a as C_int;
+    var e = third as Int32;
 }

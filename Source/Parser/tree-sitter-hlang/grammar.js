@@ -24,7 +24,7 @@ module.exports = grammar({
     Import: $ => seq("import", $.Import_name, "as", $.Import_alias, ";"),
     Import_name: $ => $.Identifier_with_dots,
     Import_alias: $ => $.Identifier,
-    Declaration: $ => seq(optional($.Comment), optional("export"), choice(
+    Declaration: $ => seq(optional($.Comment), repeat($.Declaration_attribute), optional("export"), choice(
       $.Alias,
       $.Enum,
       $.Global_variable,
@@ -34,6 +34,7 @@ module.exports = grammar({
       $.Type_constructor,
       $.Function_constructor
     )),
+    Declaration_attribute: $ => seq($.Reflection_identifier, "(", optional(seq($.Generic_expression, repeat(seq(",", $.Generic_expression)))), ")"),
     Type: $ => choice(
       $.Type_name,
       $.Module_type,
@@ -68,7 +69,7 @@ module.exports = grammar({
     Struct: $ => seq("struct", $.Struct_name, $.Struct_members),
     Struct_name: $ => $.Identifier,
     Struct_members: $ => seq("{", repeat($.Struct_member), "}"),
-    Struct_member: $ => seq(optional($.Comment), $.Struct_member_name, ":", $.Struct_member_type, "=", $.Generic_expression_or_instantiate, ";"),
+    Struct_member: $ => seq(optional($.Comment), $.Struct_member_name, ":", $.Struct_member_type, optional(seq(":", $.Integer_without_suffix)), "=", $.Generic_expression_or_instantiate, ";"),
     Struct_member_name: $ => $.Identifier,
     Struct_member_type: $ => $.Type,
     Union: $ => seq("union", $.Union_name, $.Union_members),
@@ -189,6 +190,7 @@ module.exports = grammar({
     Expression_for_loop_reverse: $ => "reverse",
     Expression_for_loop_number_expression: $ => choice(
       $.Expression_access,
+      $.Expression_binary,
       $.Expression_call,
       $.Expression_constant,
       $.Expression_unary,
@@ -247,6 +249,7 @@ module.exports = grammar({
     Identifier_with_dots: $ => seq($.Identifier, repeat(seq(".", $.Identifier))),
     Reflection_identifier: $ => /@[a-zA-Z_][a-zA-Z_0-9]*/,
     Boolean: $ => choice("true", "false"),
+    Integer_without_suffix: $ => /\d+/,
     Number: $ => /\d+([.]\d+)?[a-z0-9]*/,
     String: $ => /".*"[a-z0-9]*/,
     Comment: $ => prec.left(0, repeat1(token(seq("//", /.*/)))),

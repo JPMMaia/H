@@ -1,26 +1,27 @@
 {
-    "name": "h",
-    "version-string": "0.1.0",
-    "dependencies": [
-        "argparse",
-        "catch2",
-        "nlohmann-json",
-        "rapidjson",
-        "tree-sitter",
-        "xxhash",
-        "zlib",
-        {
-            "name": "llvm",
-            "features": [
-                "clang",
-                "enable-bindings",
-                "enable-terminfo",
-                "enable-zlib",
-                "enable-eh",
-                "lld",
-                "target-x86"
-            ],
-            "default-features": false
-        }
-    ]
+  "name": "h",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "argparse",
+    "catch2",
+    "nlohmann-json",
+    "rapidjson",
+    "tree-sitter",
+    "xxhash",
+    "zlib",
+    {
+      "name": "llvm",
+      "features": [
+        "clang",
+        "enable-bindings",
+        "enable-terminfo",
+        "enable-zlib",
+        "enable-eh",
+        "lld",
+        "target-x86"
+      ],
+      "default-features": false
+    }
+  ],
+  "builtin-baseline": "8f63c9ed5897d7367a92a442a79f91721e0fd38f"
 }

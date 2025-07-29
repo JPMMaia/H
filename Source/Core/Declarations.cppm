@@ -29,6 +29,7 @@ namespace h
         >;
 
         Data_type data;
+        std::pmr::string module_name;
     };
 
     export struct Declaration_instance_storage
@@ -46,6 +47,16 @@ namespace h
 
     using Module_name = std::pmr::string;
     using Declaration_map = std::pmr::unordered_map<std::pmr::string, Declaration, String_hash, String_equal>;
+
+    /*bool are_type_instances_equivalent(Type_instance const& lhs, Type_instance const& rhs);
+
+    struct Are_type_instances_equivalent
+    {
+        bool operator()(Type_instance const& lhs, Type_instance const& rhs) const
+        {
+            return are_type_instances_equivalent(lhs, rhs);
+        }
+    };*/
 
     export struct Declaration_database
     {
@@ -91,32 +102,49 @@ namespace h
         Type_reference const& type_reference
     );
 
-    export std::optional<Type_reference> get_underlying_type(
-        Declaration_database const& declaration_database,
-        Type_reference const& type_reference,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+    export std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::string_view const declaration_name
+    );
+
+    export std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        Type_reference const& type_reference
+    );
+
+    export std::optional<Declaration> find_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    );
+
+    export std::optional<Declaration> find_underlying_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
     );
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Type_reference const& type_reference
+    );
+
+    export std::optional<Type_reference> get_underlying_type(
+        Declaration_database const& declaration_database,
+        Alias_type_declaration const& declaration
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Declaration const& declaration
     );
 
     export std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     );
 
     Declaration_instance_storage instantiate_type_instance(
@@ -189,5 +217,13 @@ namespace h
     export void add_instance_call_expression_values(
         Declaration_database& declaration_database,
         h::Module const& core_module
+    );
+
+    export std::string_view get_declaration_name(
+        Declaration const& declaration
+    );
+
+    export std::optional<h::Source_location> get_declaration_source_location(
+        Declaration const& declaration
     );
 }

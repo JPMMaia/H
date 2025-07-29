@@ -52,7 +52,6 @@ namespace h::compiler
     {
         std::filesystem::path source;
         std::pmr::string entry_point;
-        std::pmr::vector<std::pmr::string> include;
     };
 
     export struct Library_info
@@ -69,6 +68,7 @@ namespace h::compiler
         Version version;
         Artifact_type type;
         std::pmr::vector<Dependency> dependencies;
+        std::pmr::vector<std::pmr::string> include;
         std::optional<std::variant<Executable_info, Library_info>> info;
     };
 
@@ -77,6 +77,8 @@ namespace h::compiler
     export void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path);
 
     export std::span<C_header const> get_c_headers(Artifact const& artifact);
+
+    export C_header_options const* get_c_header_options(Library_info const& library_info, C_header const& c_header);
 
     export C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name);
     export C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name);
@@ -95,6 +97,11 @@ namespace h::compiler
     export bool visit_included_files(
         Artifact const& artifact,
         std::function<bool(std::filesystem::path)> const& predicate
+    );
+
+    export std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
     export std::pmr::vector<std::filesystem::path> find_included_files(

@@ -28,14 +28,18 @@ namespace h::compiler
         arguments_storage.push_back("");
         arguments_storage.push_back("-flavor");
         arguments_storage.push_back("link");
-        arguments_storage.push_back(std::format("/entry:{}", options.entry_point));
-        arguments_storage.push_back(std::format("/out:{}", output.generic_string()));
-        arguments_storage.push_back("/subsystem:console");
+
+        if (options.link_type == Link_type::Executable)
+        {
+            arguments_storage.push_back(std::format("/entry:{}", options.entry_point.value_or(std::string_view{"main"})));
+            arguments_storage.push_back(std::format("/out:{}.exe", output.generic_string()));
+            arguments_storage.push_back("/subsystem:console");
+        }
 
         arguments_storage.push_back(std::format("/defaultlib:{}", options.debug ? "msvcrtd.lib" : "msvcrt.lib"));
 
         if (options.debug)
-            arguments_storage.push_back("/debug:dwarf");
+            arguments_storage.push_back("/debug:full");
 
         for (std::string_view const library : libraries)
         {

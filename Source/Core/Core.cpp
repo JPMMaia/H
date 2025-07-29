@@ -21,6 +21,7 @@ import h.common;
 
 namespace h
 {
+#if HACK_SPACESHIP_OPERATOR
     template<typename... Ts>
     std::strong_ordering operator<=>(std::variant<Ts...> const& lhs, std::variant<Ts...> const& rhs)
     {
@@ -67,6 +68,123 @@ namespace h
     bool operator==(Type_reference const& lhs, Type_reference const& rhs)
     {
         return false; // TODo
+    }
+#endif
+
+    bool operator==(Expression const& lhs, Expression const& rhs)
+    {
+        return lhs.data == rhs.data;
+    }
+
+    bool operator==(Type_reference const& lhs, Type_reference const& rhs)
+    {
+        return lhs.data == rhs.data;
+    }
+
+    bool operator==(Import_module_with_alias const& lhs, Import_module_with_alias const& rhs)
+    {
+        return lhs.module_name == rhs.module_name &&
+               lhs.alias == rhs.alias;
+    }
+
+    bool operator==(Function_condition const& lhs, Function_condition const& rhs)
+    {
+        return lhs.description == rhs.description &&
+               lhs.condition == rhs.condition;
+    }
+
+    Source_range create_source_range(
+        std::uint32_t const start_line,
+        std::uint32_t const start_column,
+        std::uint32_t const end_line,
+        std::uint32_t const end_column
+    )
+    {
+        return Source_range
+        {
+            .start = { start_line, start_column },
+            .end = { end_line, end_column }
+        };
+    }
+
+    
+    bool is_bit_shift_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Bit_shift_left:
+            case h::Binary_operation::Bit_shift_right:
+                return true;
+            default:
+                return false;
+        }
+    }
+    
+    bool is_bitwise_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Bitwise_and:
+            case h::Binary_operation::Bitwise_or:
+            case h::Binary_operation::Bitwise_xor:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_equality_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Equal:
+            case h::Binary_operation::Not_equal:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_comparison_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Less_than:
+            case h::Binary_operation::Less_than_or_equal_to:
+            case h::Binary_operation::Greater_than:
+            case h::Binary_operation::Greater_than_or_equal_to:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    bool is_logical_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Logical_and:
+            case h::Binary_operation::Logical_or:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    
+    bool is_numeric_binary_operation(h::Binary_operation const operation)
+    {
+        switch (operation)
+        {
+            case h::Binary_operation::Add:
+            case h::Binary_operation::Subtract:
+            case h::Binary_operation::Multiply:
+            case h::Binary_operation::Divide:
+            case h::Binary_operation::Modulus:
+                return true;
+            default:
+                return false;
+        }
     }
 
     h::Module const& find_module(
@@ -172,6 +290,11 @@ namespace h
         return get_value(name, module.export_declarations.function_declarations, module.internal_declarations.function_declarations);
     }
 
+    std::optional<Function_definition const*> find_function_definition(Module const& module, std::string_view name)
+    {
+        return get_value(name, module.definitions.function_definitions, {});
+    }
+
     std::optional<Struct_declaration const*> find_struct_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.struct_declarations, module.internal_declarations.struct_declarations);
@@ -180,5 +303,21 @@ namespace h
     std::optional<Union_declaration const*> find_union_declaration(h::Module const& module, std::string_view const name)
     {
         return get_value(name, module.export_declarations.union_declarations, module.internal_declarations.union_declarations);
+    }
+
+    Import_module_with_alias const* find_import_module_with_alias(
+        h::Module const& core_module,
+        std::string_view const alias_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
     }
 }

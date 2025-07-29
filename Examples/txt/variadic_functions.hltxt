@@ -1,0 +1,5 @@
+module Variadic_functions;
+
+function foo(first: Int32, ...) -> ()
+{
+}

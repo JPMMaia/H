@@ -11,5 +11,5 @@ export function run(x: Int32) -> (result: Int32)
         return 64;
     }
 
-    return x*x;
+    return x * x;
 }

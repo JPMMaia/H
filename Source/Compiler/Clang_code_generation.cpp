@@ -3,6 +3,7 @@ module;
 #include <clang/AST/ASTContext.h>
 #include <clang/AST/Decl.h>
 #include <clang/AST/DeclBase.h>
+#include <clang/AST/DeclCXX.h>
 #include <clang/AST/Type.h>
 #include <clang/Basic/Builtins.h>
 #include <clang/Basic/CodeGenOptions.h>
@@ -16,6 +17,9 @@ module;
 #include <clang/CodeGen/CGFunctionInfo.h>
 #include <clang/CodeGen/ModuleBuilder.h>
 #include <clang/Frontend/CompilerInstance.h>
+#include <clang/lib/CodeGen/CodeGenModule.h>
+#include <clang/lib/CodeGen/CodeGenTypes.h>
+#include <clang/lib/CodeGen/CGRecordLayout.h>
 #include <llvm/ADT/APSInt.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -26,6 +30,7 @@ module;
 #include <cassert>
 #include <compare>
 #include <exception>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -33,6 +38,7 @@ module;
 
 module h.compiler.clang_code_generation;
 
+import h.common;
 import h.compiler.analysis;
 import h.compiler.common;
 import h.compiler.debug_info;
@@ -98,7 +104,7 @@ namespace h::compiler
                 return false;
             };
 
-            h::visit_type_references(
+            h::visit_type_references_recursively(
                 alias_type_declaration.type[0],
                 add_underlying_alias
             );
@@ -205,13 +211,18 @@ namespace h::compiler
         {
             std::string_view const member_name = struct_declaration.member_names[member_index];
             h::Type_reference const& member_type = struct_declaration.member_types[member_index];
+            std::optional<std::uint32_t> const member_bit_field = struct_declaration.member_bit_fields[member_index];
 
-            clang::QualType const member_clang_type = *create_type(
+            std::optional<clang::QualType> const member_clang_type_optional = create_type(
                 clang_ast_context,
                 member_type,
                 declaration_database,
                 clang_declaration_database
             );
+            if (!member_clang_type_optional.has_value())
+                h::common::print_message_and_exit(std::format("Could not create clang type for '{}.{}'.", struct_declaration.name, member_name));
+
+            clang::QualType const& member_clang_type = member_clang_type_optional.value();
 
             clang::IdentifierInfo* field_name = &clang_ast_context.Idents.get(member_name);
             clang::FieldDecl* field = clang::FieldDecl::Create(
@@ -226,6 +237,23 @@ namespace h::compiler
                 false,
                 clang::ICIS_NoInit
             );
+
+            if (member_bit_field.has_value())
+            {
+                std::uint32_t const bits = member_bit_field.value();
+
+                llvm::APInt const width{32, bits};
+                clang::QualType const bit_width_type = clang_ast_context.getIntTypeForBitwidth(32, 0);
+
+                clang::IntegerLiteral* const bit_width_expression = clang::IntegerLiteral::Create(
+                    clang_ast_context,
+                    width,
+                    bit_width_type,
+                    {}
+                );
+
+                field->setBitWidth(bit_width_expression);    
+            }
 
             record_declaration.addDecl(field);
         }
@@ -502,8 +530,9 @@ namespace h::compiler
     Clang_module_data create_clang_module_data(
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
+        std::string_view const module_name,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const* const> const core_modules,
         Declaration_database const& declaration_database
     )
     {
@@ -513,7 +542,7 @@ namespace h::compiler
         {
             clang::CreateLLVMCodeGen(
                 clang_data.compiler_instance->getDiagnostics(),
-                core_module.name.data(),
+                module_name.data(),
                 &clang_data.compiler_instance->getVirtualFileSystem(),
                 clang_data.compiler_instance->getHeaderSearchOpts(),
                 clang_data.compiler_instance->getPreprocessorOpts(),
@@ -526,7 +555,7 @@ namespace h::compiler
 
         Clang_declaration_database clang_declaration_database;
 
-        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        for (std::pair<Type_instance const, Declaration_instance_storage> const& pair : declaration_database.instances)
         {
             Type_instance const& type_instance = pair.first;
             Declaration_instance_storage const& storage = pair.second;
@@ -544,11 +573,12 @@ namespace h::compiler
             }
         }
 
-        for (Module const* module_dependency : sorted_core_module_dependencies)
-            add_clang_declarations(clang_declaration_database, clang_ast_context, *module_dependency, declaration_database);
-        add_clang_declarations(clang_declaration_database, clang_ast_context, core_module, declaration_database);
+        for (Module const& header_module : header_modules)
+            add_clang_declarations(clang_declaration_database, clang_ast_context, header_module, declaration_database);
+        for (Module const* core_module : core_modules)
+            add_clang_declarations(clang_declaration_database, clang_ast_context, *core_module, declaration_database);
 
-        for (std::pair<Type_instance, Declaration_instance_storage const> const& pair : declaration_database.instances)
+        for (std::pair<Type_instance const, Declaration_instance_storage> const& pair : declaration_database.instances)
         {
             Type_instance const& type_instance = pair.first;
             Declaration_instance_storage const& storage = pair.second;
@@ -565,7 +595,7 @@ namespace h::compiler
             }
         }
 
-        for (std::pair<Instance_call_key, Function_expression const> const& pair : declaration_database.call_instances)
+        for (std::pair<Instance_call_key const, Function_expression> const& pair : declaration_database.call_instances)
         {
             Instance_call_key const& key = pair.first;
             Function_expression const& function_expression = pair.second;
@@ -603,11 +633,15 @@ namespace h::compiler
 
     llvm::FunctionType* create_llvm_function_type(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
+        std::string_view const module_name,
         std::string_view const function_name
     )
     {
-        Clang_module_declarations const& module_declarations = clang_module_data.declaration_database.map.at(core_module.name);
+        auto const module_declarations_location = clang_module_data.declaration_database.map.find(module_name);
+        if (module_declarations_location == clang_module_data.declaration_database.map.end())
+            throw std::runtime_error{std::format("Module '{}' not found in Clang module data!", module_name)};
+        Clang_module_declarations const& module_declarations = module_declarations_location->second;
+
         clang::FunctionDecl* const clang_function_declaration = module_declarations.function_declarations.at(function_name.data());
         return clang::CodeGen::convertFreeFunctionType(clang_module_data.code_generator->CGM(), clang_function_declaration);
     }
@@ -762,8 +796,7 @@ namespace h::compiler
                     // Pass return type as argument pointer
 
                     h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                    llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
-                    llvm::Align const original_return_alignment = llvm_data_layout.getABITypeAlign(original_return_llvm_type);
+                    llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
                     
                     llvm::AllocaInst* const alloca_instruction = create_alloca_instruction(llvm_builder, llvm_data_layout, llvm_parent_function, original_return_llvm_type);
 
@@ -800,7 +833,7 @@ namespace h::compiler
                         llvm::Value* const original_argument = original_arguments[argument_index];
 
                         h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
                         llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
 
                         for (unsigned new_element_index = 0; new_element_index < new_elements.size(); ++new_element_index)
@@ -824,7 +857,7 @@ namespace h::compiler
                     {
                         llvm::Value* const original_argument = original_arguments[argument_index];
                         h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                        llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
 
                         llvm::Value* transformed_argument = read_from_type(
                             llvm_context,
@@ -860,7 +893,7 @@ namespace h::compiler
                 case clang::CodeGen::ABIArgInfo::Indirect: {
 
                     h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
-                    llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_argument_type, type_database);
+                    llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
                     std::uint64_t const original_argument_size_in_bits = llvm_data_layout.getTypeAllocSize(original_argument_llvm_type);
                     llvm::Align const original_argument_alignment = llvm_data_layout.getABITypeAlign(original_argument_llvm_type);
                     
@@ -1042,7 +1075,6 @@ namespace h::compiler
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info->llvm_builder,
             llvm_data_layout,
-            core_module,
             core_type,
             debug_info->type_database
         );
@@ -1105,7 +1137,7 @@ namespace h::compiler
                 case clang::CodeGen::ABIArgInfo::Direct:
                 case clang::CodeGen::ABIArgInfo::Extend: {
 
-                    llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, restored_argument_type, type_database);
+                    llvm::Type* const restored_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, restored_argument_type, type_database);
                     llvm::Align const restored_argument_alignment = llvm_data_layout.getABITypeAlign(restored_argument_llvm_type);
 
                     llvm::Type* const function_argument_type = argument_info.info.getCoerceToType();
@@ -1255,7 +1287,7 @@ namespace h::compiler
             case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
 
                 llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
 
@@ -1283,7 +1315,7 @@ namespace h::compiler
                 llvm::Argument* const return_argument = llvm_function.getArg(0);
 
                 h::Type_reference const& return_type = function_type.output_parameter_types[0];
-                llvm::Type* const return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, return_type, type_database);
+                llvm::Type* const return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, return_type, type_database);
                 std::uint64_t const return_size_in_bits = llvm_data_layout.getTypeAllocSize(return_llvm_type);
                 llvm::Align const return_alignment = llvm_data_layout.getABITypeAlign(return_llvm_type);
 
@@ -1525,7 +1557,7 @@ namespace h::compiler
             case clang::CodeGen::ABIArgInfo::Extend: {
 
                 h::Type_reference const& original_return_type = function_type.output_parameter_types[0];
-                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_module, original_return_type, type_database);
+                llvm::Type* const original_return_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_return_type, type_database);
 
                 llvm::Type* const new_return_llvm_type = return_info.getCoerceToType();
 
@@ -1637,6 +1669,382 @@ namespace h::compiler
             clang_module_data,
             clang_function_declaration
         );
+    }
+
+    clang::RecordDecl* get_record_declaration(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        std::optional<h::Type_instance> const& type_instance,
+        Clang_declaration_database const& clang_declaration_database
+    )
+    {
+        if (type_instance.has_value())
+        {
+            auto const location = clang_declaration_database.instances.find(type_instance.value());
+            if (location != clang_declaration_database.instances.end())
+            {
+                clang::RecordDecl* const record_declaration = location->second;
+                return record_declaration;
+            }
+            else
+            {
+                return nullptr;
+            }
+        }
+
+        {
+            auto const clang_declarations_location = clang_declaration_database.map.find(module_name);
+            if (clang_declarations_location != clang_declaration_database.map.end())
+            {
+                Clang_module_declarations const& clang_declarations = clang_declarations_location->second;
+
+                auto const location = clang_declarations.struct_declarations.find(declaration_name);
+                if (location != clang_declarations.struct_declarations.end())
+                {
+                    clang::RecordDecl* const record_declaration = location->second;
+                    return record_declaration;
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    static h::Type_reference create_type_reference(
+        std::string_view const module_name,
+        std::string_view const declaration_name,
+        std::optional<h::Type_instance> const& type_instance
+    )
+    {
+        if (type_instance.has_value())
+        {
+            return h::Type_reference
+            {
+                .data = type_instance.value()
+            };
+        }
+        else
+        {
+            return h::Type_reference
+            {
+                .data = h::Custom_type_reference
+                {
+                    .module_reference = {
+                        .name = std::pmr::string{module_name}
+                    },
+                    .name = std::pmr::string{declaration_name}
+                }
+            };
+        }
+    }
+
+    std::pmr::vector<Clang_struct_member_info> get_clang_struct_member_infos(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<Clang_struct_member_info> output{output_allocator};
+        output.reserve(struct_declaration.member_names.size());
+
+        clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
+        clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
+
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
+            throw std::runtime_error{ "Cannot find struct record." };
+
+        auto field_location = record_declaration->field_begin();
+
+        for (std::size_t member_index = 0; member_index < struct_declaration.member_names.size(); ++member_index)
+        {
+            clang::FieldDecl* const field_declaration = *field_location;
+
+            unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+            if (field_declaration->isBitField())
+            {
+                clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
+                clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
+
+                unsigned const bit_field_offset_in_bits = bit_field_info.Offset;
+                unsigned const bit_field_size_in_bits = bit_field_info.Size;
+
+                Clang_struct_member_info const member_info =
+                {
+                    .llvm_struct_member_index = llvm_struct_member_index,
+                    .bit_field_info = Clang_struct_member_bit_field_info
+                    {
+                        .bit_field_offset_in_bits = static_cast<std::uint32_t>(bit_field_offset_in_bits),
+                        .bit_field_size_in_bits = static_cast<std::uint32_t>(bit_field_size_in_bits),
+                    },
+                };
+                
+                output.push_back(member_info);
+            }
+            else
+            {
+                unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+                Clang_struct_member_info const member_info =
+                {
+                    .llvm_struct_member_index = llvm_struct_member_index,
+                };
+                
+                output.push_back(member_info);
+            }
+
+            ++field_location;
+        }
+
+        return output;
+    }
+
+    Value_and_type generate_load_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Type_database const& type_database
+    )
+    {
+        auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), access_member_name);
+        if (member_location == struct_declaration.member_names.end())
+            throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", access_member_name, struct_declaration.name) };
+
+        unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+
+        Type_reference const& member_type = struct_declaration.member_types[member_index];
+        llvm::Type* const member_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, member_type, type_database);
+
+        clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
+        clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
+        
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
+            throw std::runtime_error{ "Cannot find struct record." };
+
+        auto field_location = record_declaration->field_begin();
+        for (std::uint32_t index = 0; index < member_index; ++index)
+            ++field_location;    
+        clang::FieldDecl* const field_declaration = *field_location;
+        
+        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+            llvm_context,
+            llvm_data_layout,
+            create_type_reference(module_name, struct_declaration.name, type_instance),
+            type_database
+        );
+        if (struct_llvm_type == nullptr)
+            throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
+
+        unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+        
+        if (field_declaration->isBitField())
+        {
+            clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
+            clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
+
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+
+            std::uint64_t const storage_size_in_bits = 8*llvm_data_layout.getTypeAllocSize(member_llvm_type);
+            llvm::Type* const member_storage_llvm_type = member_llvm_type;
+            llvm::Value* const loaded_value = llvm_builder.CreateLoad(member_storage_llvm_type, get_element_pointer_instruction);
+
+            unsigned const bit_field_offset = bit_field_info.Offset;
+            unsigned const bit_field_size = bit_field_info.Size;
+            bool const is_signed = bit_field_info.IsSigned == 1;
+
+            if (is_signed)
+            {
+                std::uint64_t const bits_to_shift_left = storage_size_in_bits - (bit_field_offset + bit_field_size);
+                llvm::Value* const shift_left_value = llvm::ConstantInt::get(member_storage_llvm_type, bits_to_shift_left, is_signed);
+                llvm::Value* const left_shifted_value = llvm_builder.CreateShl(loaded_value, shift_left_value);
+
+                std::uint64_t const bits_to_shift_right = bit_field_offset + bits_to_shift_left;
+                llvm::Value* const shift_right_value = llvm::ConstantInt::get(member_storage_llvm_type, bits_to_shift_right, is_signed);
+                llvm::Value* const right_shifted_value = llvm_builder.CreateAShr(left_shifted_value, shift_right_value);
+
+                return
+                {
+                    .name = "",
+                    .value = right_shifted_value,
+                    .type = member_type
+                };
+            }
+            else
+            {
+                std::uint64_t const bits_to_shift_right = bit_field_offset;
+                llvm::Value* const shift_right_value = llvm::ConstantInt::get(member_storage_llvm_type, bits_to_shift_right, is_signed);
+                llvm::Value* const right_shifted_value = llvm_builder.CreateLShr(loaded_value, shift_right_value);
+
+                std::uint64_t const bit_mask = (1 << bit_field_size) - 1;
+                llvm::Value* const mask_value = llvm::ConstantInt::get(member_storage_llvm_type, bit_mask, is_signed);
+                llvm::Value* const masked_value = llvm_builder.CreateAnd(right_shifted_value, mask_value);
+
+                return
+                {
+                    .name = "",
+                    .value = masked_value,
+                    .type = member_type
+                };
+            }
+        }
+        else
+        {
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+            
+            return
+            {
+                .name = "",
+                .value = get_element_pointer_instruction,
+                .type = member_type
+            };
+        }
+    }
+
+    Value_and_type generate_store_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Value_and_type const& value_to_store,
+        Type_database const& type_database
+    )
+    {
+        auto const member_location = std::find(struct_declaration.member_names.begin(), struct_declaration.member_names.end(), access_member_name);
+        if (member_location == struct_declaration.member_names.end())
+            throw std::runtime_error{ std::format("'{}' does not exist in struct type '{}'.", access_member_name, struct_declaration.name) };
+
+        unsigned const member_index = static_cast<unsigned>(std::distance(struct_declaration.member_names.begin(), member_location));
+
+        Type_reference const& member_type = struct_declaration.member_types[member_index];
+        llvm::Type* const member_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, member_type, type_database);
+
+        clang::CodeGen::CodeGenModule& code_gen_module = clang_module_data.code_generator->CGM();
+        clang::CodeGen::CodeGenTypes& code_gen_types = code_gen_module.getTypes();
+        
+        clang::RecordDecl* const record_declaration = get_record_declaration(
+            module_name,
+            struct_declaration.name,
+            type_instance,
+            clang_module_data.declaration_database
+        );
+        if (record_declaration == nullptr)
+            throw std::runtime_error{ "Cannot find struct record." };
+
+        auto field_location = record_declaration->field_begin();
+        for (std::uint32_t index = 0; index < member_index; ++index)
+            ++field_location;    
+        clang::FieldDecl* const field_declaration = *field_location;
+        
+        llvm::Type* const struct_llvm_type = type_reference_to_llvm_type(
+            llvm_context,
+            llvm_data_layout,
+            create_type_reference(module_name, struct_declaration.name, type_instance),
+            type_database
+        );
+        if (struct_llvm_type == nullptr)
+            throw std::runtime_error{ std::format("Cannot find llvm struct type for '{}'.", struct_declaration.name) };
+
+        unsigned const llvm_struct_member_index = clang::CodeGen::getLLVMFieldNumber(code_gen_module, record_declaration, field_declaration);
+
+        if (field_declaration->isBitField())
+        {
+            clang::CodeGen::CGRecordLayout const& record_layout = code_gen_types.getCGRecordLayout(record_declaration);
+            clang::CodeGen::CGBitFieldInfo const& bit_field_info = record_layout.getBitFieldInfo(field_declaration);
+
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+
+            llvm::Type* const member_storage_llvm_type = member_llvm_type;
+
+            llvm::Value* const loaded_value = llvm_builder.CreateLoad(member_storage_llvm_type, get_element_pointer_instruction);
+
+            unsigned const bit_field_offset = bit_field_info.Offset;
+            unsigned const bit_field_size = bit_field_info.Size;
+            bool const is_signed = bit_field_info.IsSigned == 1;
+
+            std::uint64_t const bit_mask = ((1 << bit_field_size) - 1) << bit_field_offset;
+            std::uint64_t const reset_bit_mask = ~bit_mask;
+            llvm::Value* const reset_mask_value = llvm::ConstantInt::get(member_storage_llvm_type, reset_bit_mask, is_signed);
+            llvm::Value* const reset_loaded_value = llvm_builder.CreateAnd(loaded_value, reset_mask_value);
+
+            std::uint64_t const bits_to_shift_left = bit_field_offset;
+            llvm::Value* const shift_left_value = llvm::ConstantInt::get(member_storage_llvm_type, bits_to_shift_left, is_signed);
+            llvm::Value* const left_shifted_value = llvm_builder.CreateShl(value_to_store.value, shift_left_value);
+
+            llvm::Value* const mask_value = llvm::ConstantInt::get(member_storage_llvm_type, bit_mask, is_signed);
+            llvm::Value* const masked_value = llvm_builder.CreateAnd(left_shifted_value, mask_value);
+
+            llvm::Value* const new_value_to_store = llvm_builder.CreateOr(reset_loaded_value, masked_value);
+            
+            llvm::Value* const store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, new_value_to_store, get_element_pointer_instruction);
+
+            return
+            {
+                .name = "",
+                .value = store_instruction,
+                .type = std::nullopt
+            };
+        }
+        else
+        {
+            std::array<llvm::Value*, 2> const indices
+            {
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), 0),
+                llvm::ConstantInt::get(llvm::Type::getInt32Ty(llvm_context), llvm_struct_member_index),
+            };
+
+            llvm::Value* const get_element_pointer_instruction = llvm_builder.CreateGEP(struct_llvm_type, struct_alloca, indices, "", true);
+            llvm::Value* const store_instruction = create_store_instruction(llvm_builder, llvm_data_layout, value_to_store.value, get_element_pointer_instruction);
+            
+            return
+            {
+                .name = "",
+                .value = store_instruction,
+                .type = std::nullopt
+            };
+        }
     }
 
     std::optional<clang::QualType> create_type(
@@ -1758,7 +2166,20 @@ namespace h::compiler
         else if (std::holds_alternative<h::Integer_type>(type_reference.data))
         {
             h::Integer_type const integer_type = std::get<h::Integer_type>(type_reference.data);
-            return clang_ast_context.getIntTypeForBitwidth(static_cast<unsigned>(integer_type.number_of_bits), integer_type.is_signed ? 1 : 0);
+
+            /*auto const get_number_of_bits = [](h::Integer_type const& integer_type) -> unsigned int
+            {
+                if (integer_type.number_of_bits == 8 || integer_type.number_of_bits == 16 || integer_type.number_of_bits == 32 || integer_type.number_of_bits == 64)
+                    return integer_type.number_of_bits;
+                else if (integer_type.number_of_bits <= 32) // TODO we assume that bitfields are always packed into 32-bit integers (except when number of bits is greater than 32)
+                    return 32;
+                else
+                    return 64;
+            };
+
+            unsigned int const number_of_bits = get_number_of_bits(integer_type);*/
+
+            return clang_ast_context.getIntTypeForBitwidth(integer_type.number_of_bits, integer_type.is_signed ? 1 : 0);
         }
         else if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
         {
@@ -1788,8 +2209,11 @@ namespace h::compiler
                 else if (std::holds_alternative<h::Struct_declaration const*>(declaration->data))
                 {
                     Clang_module_declarations const& clang_declarations = clang_declaration_database.map.at(custom_type_reference.module_reference.name);
-                    clang::RecordDecl* const record_declaration = clang_declarations.struct_declarations.at(custom_type_reference.name);
-
+                    auto const location = clang_declarations.struct_declarations.find(custom_type_reference.name);
+                    if (location == clang_declarations.struct_declarations.end())
+                        return std::nullopt;
+                    
+                    clang::RecordDecl* const record_declaration = location->second;
                     return clang_ast_context.getRecordType(record_declaration);
                 }
                 else if (std::holds_alternative<h::Union_declaration const*>(declaration->data))

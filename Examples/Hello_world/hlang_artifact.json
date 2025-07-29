@@ -1,0 +1,17 @@
+{
+    "name": "Hello_world",
+    "version": "0.1.0",
+    "type": "executable",
+    "dependencies": [
+        {
+            "name": "C_standard_library"
+        }
+    ],
+    "include": [
+        "./**/*.hltxt"
+    ],
+    "executable": {
+        "source": "hello_world.hltxt",
+        "entry_point": "hello_world_main"
+    }
+}

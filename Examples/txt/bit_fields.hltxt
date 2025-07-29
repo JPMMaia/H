@@ -1,0 +1,39 @@
+module bit_fields;
+
+using My_uint = Uint32;
+
+struct My_struct
+{
+    a: Uint32 : 24 = 0u32;
+    b: My_uint : 8 = 0u32 as My_uint;
+    c: Uint32 : 12 = 0u32;
+    d: Uint32 : 8 = 0u32;
+    e: Uint32 : 12 = 0u32;
+}
+
+function run(parameter: My_struct) -> (result: My_struct)
+{
+    var a = parameter.a;
+    var b = parameter.b;
+    var c = parameter.c;
+    var d = parameter.d;
+    var e = parameter.e;
+
+    parameter.a = 1u32;
+    parameter.b = 2u32 as My_uint;
+    parameter.c = 3u32;
+
+    var instance: My_struct = explicit {
+        a: 1u32,
+        b: 2u32 as My_uint,
+        c: 3u32,
+        d: 4u32,
+        e: 5u32
+    };
+
+    var instance_2: My_struct = {
+        a: 1u32
+    };
+
+    return instance;
+}

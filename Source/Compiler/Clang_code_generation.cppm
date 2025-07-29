@@ -42,7 +42,7 @@ namespace h::compiler
 {
     export llvm::FunctionType* create_llvm_function_type(
         Clang_module_data& clang_module_data,
-        h::Module const& core_module,
+        std::string_view const module_name,
         std::string_view const function_name
     );
 
@@ -163,6 +163,53 @@ namespace h::compiler
         Instance_call_key const& key
     );
 
+    export struct Clang_struct_member_bit_field_info
+    {
+        std::uint32_t bit_field_offset_in_bits;
+        std::uint32_t bit_field_size_in_bits;
+    };
+
+    export struct Clang_struct_member_info
+    {
+        std::uint32_t llvm_struct_member_index;
+        std::optional<Clang_struct_member_bit_field_info> bit_field_info;
+    };
+
+    export std::pmr::vector<Clang_struct_member_info> get_clang_struct_member_infos(
+        Clang_module_data const& clang_module_data,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export Value_and_type generate_load_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Type_database const& type_database
+    );
+
+    export Value_and_type generate_store_struct_member_instructions(
+        Clang_module_data const& clang_module_data,
+        llvm::LLVMContext& llvm_context,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* const struct_alloca,
+        std::string_view const access_member_name,
+        std::string_view const module_name,
+        Struct_declaration const& struct_declaration,
+        std::optional<h::Type_instance> const& type_instance,
+        Value_and_type const& value_to_store,
+        Type_database const& type_database
+    );
+
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,
@@ -202,11 +249,19 @@ namespace h::compiler
         unsigned int const optimization_level
     );
 
+    export Clang_declaration_database create_clang_declaration_database(
+        llvm::LLVMContext& llvm_context,
+        Clang_data const& clang_data,
+        std::span<h::Module const* const> const core_modules,
+        Declaration_database const& declaration_database
+    );
+
     export Clang_module_data create_clang_module_data(
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
-        h::Module const& core_module,
-        std::span<h::Module const* const> const sorted_core_module_dependencies,
+        std::string_view const module_name,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const* const> const core_modules,
         Declaration_database const& declaration_database
     );
 }

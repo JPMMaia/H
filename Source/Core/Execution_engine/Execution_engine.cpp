@@ -191,7 +191,7 @@ namespace h::execution_engine
             return false;
         };
 
-        visit_type_references(value, process_type);
+        visit_type_references_recursively(value, process_type);
     }
 
     std::optional<h::Type_expression> find_type_expression_from_function_constructor_arguments(
@@ -279,7 +279,7 @@ namespace h::execution_engine
             return false;
         };
 
-        visit_type_references(value, process_type);
+        visit_type_references_recursively(value, process_type);
     }
 
     std::pair<std::optional<Value_storage>, bool> make_pair(

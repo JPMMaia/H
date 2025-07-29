@@ -2,7 +2,7 @@ module Binary_expressions_operator_precedence;
 
 function other_function() -> (result: Int32)
 {
-    return 1i32;
+    return 1;
 }
 
 export function foo(
@@ -21,7 +21,7 @@ export function foo(
     var pointer_a = &case_0;
     var pointer_b = &case_1;
     var case_7 = *pointer_a * *pointer_b;
-    
+
     var case_8 = (a + b) * c;
     var case_9 = a * (b + c);
 

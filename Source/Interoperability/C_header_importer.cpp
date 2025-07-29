@@ -370,6 +370,11 @@ namespace h::c
             
             return create_type_reference(declarations, initializer_cursor, result_type);
         }
+        case CXType_Complex:
+        {
+            std::cerr << "Warning: ignoring _Complex type\n";
+            return std::nullopt;
+        }
         case CXType_IncompleteArray:
         case CXType_Pointer:
         {
@@ -521,6 +526,11 @@ namespace h::c
             {
                 .data = std::move(reference)
             };
+        }
+        case CXType_Float128:
+        {
+            std::cerr << "Warning: ignoring Float128 type\n";
+            return std::nullopt;
         }
         default:
         {
@@ -1131,48 +1141,6 @@ namespace h::c
         };
     }
 
-    h::Type_reference create_type_reference_from_bit_field(CXCursor const cursor, CXType const type)
-    {
-        CXType const canonical_type = clang_getCanonicalType(type);
-
-        std::uint32_t const bit_field_width = static_cast<std::uint32_t>(clang_getFieldDeclBitWidth(cursor));
-
-        switch (canonical_type.kind)
-        {
-        case CXType_Int:
-            return h::Type_reference
-            {
-                .data = h::Integer_type
-                {
-                    .number_of_bits = bit_field_width,
-                    .is_signed = true
-                }
-            };
-        case CXType_UInt:
-            return h::Type_reference
-            {
-                .data = h::Integer_type
-                {
-                    .number_of_bits = bit_field_width,
-                    .is_signed = false
-                }
-            };
-        case CXType_Bool:
-            if (bit_field_width != 1)
-            {
-                throw std::runtime_error{ "Bit field width of bool must be 1!" };
-            }
-
-            return h::Type_reference
-            {
-                .data = h::Fundamental_type::Bool
-            };
-
-        default:
-            throw std::runtime_error{ "Data type does not support bit field!" };
-        }
-    }
-
     bool is_unnamed_type(CXType const type)
     {
         if (type.kind == CXType_Elaborated)
@@ -1310,10 +1278,13 @@ namespace h::c
                 }
                 else if (clang_Cursor_isBitField(current_cursor))
                 {
-                    h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
+                    std::optional<h::Type_reference> member_type_reference = create_type_reference(*data->declarations, current_cursor, member_type);
+
+                    std::uint32_t const bit_field_width = static_cast<std::uint32_t>(clang_getFieldDeclBitWidth(current_cursor));
 
                     data->struct_declaration->member_names.push_back(std::pmr::string{ member_name });
-                    data->struct_declaration->member_types.push_back(std::move(member_type_reference));
+                    data->struct_declaration->member_types.push_back(std::move(member_type_reference.value()));
+                    data->struct_declaration->member_bit_fields.push_back(bit_field_width);
                 }
                 else
                 {
@@ -1326,6 +1297,7 @@ namespace h::c
 
                     data->struct_declaration->member_names.push_back(std::pmr::string{ member_name });
                     data->struct_declaration->member_types.push_back(std::move(*member_type_reference));
+                    data->struct_declaration->member_bit_fields.push_back(std::nullopt);
                 }
 
                 {
@@ -1357,6 +1329,7 @@ namespace h::c
                     .name = nested_struct_declaration.name
                 };
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
+                data->struct_declaration->member_bit_fields.push_back(std::nullopt);
 
                 data->declarations->struct_declarations.push_back(std::move(nested_struct_declaration));
             }
@@ -1379,6 +1352,7 @@ namespace h::c
                     .name = nested_union_declaration.name
                 };
                 data->struct_declaration->member_types.push_back({ .data = std::move(reference) });
+                data->struct_declaration->member_bit_fields.push_back(std::nullopt);
     
                 data->declarations->union_declarations.push_back(std::move(nested_union_declaration));
             }
@@ -1396,6 +1370,7 @@ namespace h::c
             .unique_name = struct_name,
             .member_types = {},
             .member_names = {},
+            .member_bit_fields = {},
             .member_default_values = {},
             .is_packed = false,
             .is_literal = false,
@@ -1416,6 +1391,7 @@ namespace h::c
         );
 
         assert(struct_declaration.member_names.size() == struct_declaration.member_types.size());
+        assert(struct_declaration.member_names.size() == struct_declaration.member_bit_fields.size());
 
         return struct_declaration;
     }
@@ -1446,13 +1422,6 @@ namespace h::c
                 if (is_unnamed_type(member_type))
                 {
                     data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
-                }
-                else if (clang_Cursor_isBitField(current_cursor))
-                {
-                    h::Type_reference member_type_reference = create_type_reference_from_bit_field(current_cursor, member_type);
-
-                    data->union_declaration->member_names.push_back(std::pmr::string{ member_name });
-                    data->union_declaration->member_types.push_back(std::move(member_type_reference));
                 }
                 else
                 {
@@ -1875,7 +1844,7 @@ namespace h::c
                     if (alias_type_declaration->type.empty())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
-                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, alias_type_declaration->type[0], core_module, {});
+                    std::optional<Type_reference> const underlying_type_optional = h::get_underlying_type(declaration_database, alias_type_declaration->type[0]);
                     if (!underlying_type_optional.has_value())
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
@@ -2205,7 +2174,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2216,7 +2185,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2227,7 +2196,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2238,7 +2207,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2249,7 +2218,7 @@ namespace h::c
                 return predicate(declaration.name, type_reference);
             };
 
-            if (h::visit_type_references(declaration, predicate_with_name))
+            if (h::visit_type_references_recursively(declaration, predicate_with_name))
                 return true;
         }
 
@@ -2549,9 +2518,9 @@ namespace h::c
         return header_module;
     }
 
-    void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
+    h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
-        std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
+        /*std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
 
         if (current_header_hash.has_value() && std::filesystem::exists(output_path))
         {
@@ -2565,11 +2534,13 @@ namespace h::c
                         return;
                 }
             }
-        }
+        }*/
 
         h::Module header_module = import_header(header_name, header_path, options);
-        header_module.content_hash = current_header_hash;
+        //header_module.content_hash = current_header_hash;
         h::json::write<h::Module>(output_path, header_module);
+
+        return header_module;
     }
 
     h::Struct_layout calculate_struct_layout(

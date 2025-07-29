@@ -81,14 +81,14 @@
     "test:scripts": "mocha",
     "clean": "rimraf out",
     "webpack:development": "npm run compile && npm run webpack:client-dev && npm run webpack:server-dev && npm run webpack:parser-dev",
-    "webpack:client-dev": "webpack --mode development --config ./packages/client/webpack.config.js",
+    "webpack:client-dev": "tsc -b && tsc -b ./packages/client/src/test && webpack --mode development --config ./packages/client/webpack.config.js",
     "webpack:server-dev": "webpack --mode development --config ./packages/server/webpack.config.js",
     "webpack:parser-dev": "webpack --mode development --config ./packages/parser/webpack.config.js",
     "webpack:production": "npm run compile && npm run webpack:client && npm run webpack:server && npm run webpack:parser",
     "webpack:client": "webpack --mode production --config ./packages/client/webpack.config.js --devtool hidden-source-map",
     "webpack:server": "webpack --mode production --config ./packages/server/webpack.config.js --devtool hidden-source-map",
     "webpack:parser": "webpack --mode production --config ./packages/parser/webpack.config.js --devtool hidden-source-map",
-    "vscode:prepublish": "npm run webpack",
+    "vscode:prepublish": "npm run webpack:client",
     "webpack": "npm run compile && npm run webpack:client && npm run webpack:server",
     "package": "vsce package",
     "prebuild": "cpy dist/tree-sitter-hlang.wasm out/packages/core/src/"
@@ -112,14 +112,12 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@vscode/vsce": "^3.3.2",
+    "@vscode/vsce": "^3.6.0",
     "fast-array-diff": "^1.1.0",
     "object-hash": "^3.0.0"
   },
   "private": true,
   "workspaces": [
-    "packages/core",
-    "packages/client",
-    "packages/server"
+    "packages/client"
   ]
 }

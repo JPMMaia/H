@@ -15,6 +15,9 @@ namespace h::common
     export std::optional<std::pmr::string> get_file_contents(char const* const path);
     export std::optional<std::pmr::string> get_file_contents(std::filesystem::path const& path);
 
+    export std::optional<std::pmr::u8string> get_file_utf8_contents(char const* const path);
+    export std::optional<std::pmr::u8string> get_file_utf8_contents(std::filesystem::path const& path);
+
     export void write_to_file(char const* const path, std::string_view const content);
     export void write_to_file(std::filesystem::path const& path, std::string_view const content);
 }

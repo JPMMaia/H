@@ -51,7 +51,7 @@ namespace h::c
 
     export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);
 
-    export void import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options);
+    export h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options);
 
     export std::optional<std::uint64_t> calculate_header_file_hash(std::filesystem::path const& header_path, Options const& options);
 

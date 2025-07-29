@@ -4,7 +4,10 @@
 #include <iostream>
 #include <string>
 
-import h.parser;
+import h.core;
+import h.json_serializer;
+import h.parser.convertor;
+import h.parser.parser;
 
 int main(int const argc, char const* const* argv)
 {
@@ -33,7 +36,16 @@ int main(int const argc, char const* const* argv)
     std::filesystem::path const output_file_path = program.get<std::string>("output_file");
 
     h::parser::Parser const parser = h::parser::create_parser();
-    h::parser::parse(parser, source_file_path, output_file_path);
+
+    std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+        source_file_path,
+        {},
+        {}
+    );
+    if (!core_module.has_value())
+        return -1;
+    
+    h::json::write<h::Module>(output_file_path, core_module.value());
 
     return 0;
 }

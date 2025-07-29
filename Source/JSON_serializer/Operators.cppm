@@ -51,23 +51,6 @@ namespace h::json::operators
         return output_stream;
     }
 
-    export std::istream& operator>>(std::istream& input_stream, Access_type& value)
-    {
-        std::pmr::string string;
-        input_stream >> string;
-
-        value = h::json::read_enum<Access_type>(string);
-
-        return input_stream;
-    }
-
-    export std::ostream& operator<<(std::ostream& output_stream, Access_type const value)
-    {
-        output_stream << h::json::write_enum(value);
-
-        return output_stream;
-    }
-
     export std::istream& operator>>(std::istream& input_stream, Binary_operation& value)
     {
         std::pmr::string string;
@@ -174,6 +157,29 @@ namespace h::json::operators
     }
 
     export std::ostream& operator<<(std::ostream& output_stream, Source_position const& value)
+    {
+        rapidjson::OStreamWrapper stream_wrapper{ output_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return output_stream;
+    }
+
+    export std::istream& operator>>(std::istream& input_stream, Source_range& value)
+    {
+        rapidjson::Reader reader;
+        rapidjson::IStreamWrapper stream_wrapper{ input_stream };
+        std::optional<Source_range> const output = h::json::read<Source_range>(reader, stream_wrapper);
+
+        if (output)
+        {
+            value = std::move(*output);
+        }
+
+        return input_stream;
+    }
+
+    export std::ostream& operator<<(std::ostream& output_stream, Source_range const& value)
     {
         rapidjson::OStreamWrapper stream_wrapper{ output_stream };
         rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };

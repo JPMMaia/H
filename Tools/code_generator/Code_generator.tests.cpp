@@ -282,4 +282,34 @@ namespace h::tools::code_generator
         CHECK(struct_type.members[2].type.name == "std::uint64_t");
         CHECK(struct_type.members[2].name == "member_2");
     }
+
+    TEST_CASE("Parse struct with #if defs")
+    {
+        std::stringstream string_stream;
+        string_stream << "struct Foo\n";
+        string_stream << "{\n";
+        string_stream << "    std::string member_0 = {};\n";
+        string_stream << "    std::uint64_t member_1;\n";
+        string_stream << "    std::uint64_t member_2;\n";
+        string_stream << "    \n";
+        string_stream << "#if HACK_SPACESHIP_OPERATOR\n";
+        string_stream << "    auto operator<=>(Foo const&, Foo const&) = default;\n";
+        string_stream << "#else\n";
+        string_stream << "    friend auto operator<=>(Foo const&, Foo const&) = default;\n";
+        string_stream << "#endif\n";
+        string_stream << "};\n";
+
+        File_types const file_types = identify_file_types(string_stream);
+        REQUIRE(file_types.structs.size() == 1);
+
+        Struct const struct_type = file_types.structs[0];
+        CHECK(struct_type.name == "Foo");
+        REQUIRE(struct_type.members.size() == 3);
+        CHECK(struct_type.members[0].type.name == "std::string");
+        CHECK(struct_type.members[0].name == "member_0");
+        CHECK(struct_type.members[1].type.name == "std::uint64_t");
+        CHECK(struct_type.members[1].name == "member_1");
+        CHECK(struct_type.members[2].type.name == "std::uint64_t");
+        CHECK(struct_type.members[2].name == "member_2");
+    }
 }

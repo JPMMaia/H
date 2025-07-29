@@ -6,8 +6,8 @@ target_compile_features(H_compiler PRIVATE cxx_std_23)
 target_link_libraries(H_compiler PRIVATE H::Core H::Common H::C_header_importer H::JSON_serializer H::Parser)
 
 # TODO find a way to not hardcode this when installing
-set(BUILTIN_HL_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/Builtin/Builtin.hl")
-target_compile_definitions(H_compiler PRIVATE BUILTIN_HL_FILE_PATH="${BUILTIN_HL_FILE_PATH}")
+set(BUILTIN_SOURCE_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/Builtin/Builtin.hltxt")
+target_compile_definitions(H_compiler PRIVATE BUILTIN_SOURCE_FILE_PATH="${BUILTIN_SOURCE_FILE_PATH}")
 
 ## LLVM ##
 
@@ -49,7 +49,6 @@ if (WIN32)
    target_link_libraries(H_compiler PUBLIC ${lldCOFF})
 endif()
 
-
 find_library(lldCommon lldCommon REQUIRED)
 target_link_libraries(H_compiler PUBLIC ${lldCommon})
 
@@ -79,11 +78,16 @@ if(WIN32)
       libclang
    )
 else()
-   target_link_libraries(
-      H_compiler
-      PRIVATE
-      libclang
-   )
+
+   find_library(clang_library clang REQUIRED)
+   target_link_libraries(H_compiler PRIVATE ${clang_library})
+
+   find_library(clang_cpp_library clang-cpp REQUIRED)
+   target_link_libraries(H_compiler PRIVATE ${clang_cpp_library})
+
+   find_library(llvm_library LLVM REQUIRED)
+   target_link_libraries(H_compiler PUBLIC ${llvm_library})
+
 endif()
 
 if (WIN32)
@@ -111,16 +115,20 @@ target_sources(H_compiler
    PUBLIC FILE_SET modules TYPE CXX_MODULES
       FILES
          "Analysis.cppm"
+         "Builder.cppm"
          "Clang_code_generation.cppm"
          "Clang_data.cppm"
          "Common.cppm"
          "Compiler.cppm"
          "Debug_info.cppm"
+         "Diagnostic.cppm"
          "Expressions.cppm"
          "Instructions.cppm"
          "Linker.cppm"
+         "Profiler.cppm"
          "Recompilation.cppm"
          "Types.cppm"
+         "Validation.cppm"
          "JIT/Core_module_layer.cppm"
          "JIT/File_watcher.cppm"
          "JIT/JIT_compiler.cppm"
@@ -131,15 +139,17 @@ target_sources(H_compiler
          "Project/Target.cppm"
    PRIVATE
       "Analysis.cpp"
+      "Builder.cpp"
       "Clang_code_generation.cpp"
       "Common.cpp"
       "Compiler.cpp"
       "Debug_info.cpp"
+      "Diagnostic.cpp"
       "Expressions.cpp"
       "Instructions.cpp"
-      "Linker.cpp"
       "Recompilation.cpp"
       "Types.cpp"
+      "Validation.cpp"
       "JIT/Core_module_layer.cpp"
       "JIT/File_watcher.cpp"
       "JIT/JIT_compiler.cpp"
@@ -151,41 +161,42 @@ target_sources(H_compiler
 
 if(WIN32)
    target_sources(H_compiler PRIVATE
+      "Linker_coff.cpp"
       "Project/Target_windows.cpp"
+   )
+else()
+   target_sources(H_compiler PRIVATE
+      "Linker_elf.cpp"
+      "Project/Target_linux.cpp"
    )
 endif()
 
 if(BUILD_TESTING)
    add_executable(H_compiler_tests)
-   target_link_libraries(H_compiler_tests PRIVATE H::C_header_importer H::Compiler H::JSON_serializer)
+   target_link_libraries(H_compiler_tests PRIVATE H::C_header_importer H::Compiler H::JSON_serializer H::Parser)
 
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_compiler_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
-   find_file(
-      stdio_location
-      "stdio.h"
-      REQUIRED
-   )
-   get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-
    target_compile_definitions(
       H_compiler_tests
       PRIVATE
-         TEST_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/hl"
+         EXAMPLES_DIRECTORY="${CMAKE_SOURCE_DIR}/Examples"
          TEST_SOURCE_FILES_PATH="${CMAKE_SOURCE_DIR}/Examples/txt"
+         TESTS_OUTPUT_DIRECTORY_PATH="${CMAKE_BINARY_DIR}/Temp/Tests/Compiler"
          C_STANDARD_LIBRARY_PATH="${CMAKE_BINARY_DIR}/C_standard_library"
          STANDARD_REPOSITORY_FILE_PATH="${CMAKE_SOURCE_DIR}/Libraries/hlang_repository.json"
-         C_HEADERS_LOCATION="${c_headers_location}"
    )
 
    target_sources(H_compiler_tests PRIVATE
+      "Builder.tests.cpp"
       "Compiler.tests.cpp"
       "Recompilation.tests.cpp"
+      "Validation.tests.cpp"
       "JIT/JIT_runner.tests.cpp"
    )
 
-   add_dependencies(H_compiler_tests C_standard_library)
+   # add_dependencies(H_compiler_tests C_standard_library)
 
    include(Catch)
    catch_discover_tests(H_compiler_tests)

@@ -9,7 +9,7 @@ export function unary_operations(
     var bitwise_not_variable = ~my_integer;
     var minus_variable = -my_integer;
 
-    mutable my_mutable_integer = 1i32;
+    mutable my_mutable_integer = 1;
     var address_of_variable = &my_mutable_integer;
     var indirection_variable = *address_of_variable;
 }

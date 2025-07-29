@@ -9,10 +9,12 @@ target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_seria
 
 find_package(Clang CONFIG REQUIRED)
 target_include_directories(H_C_header_importer PRIVATE ${CLANG_INCLUDE_DIRS})
-target_link_libraries(H_C_header_importer PRIVATE libclang)
 
 if(WIN32)
-   target_link_libraries(H_C_header_importer PRIVATE clangTooling)
+   target_link_libraries(H_C_header_importer PRIVATE clangBasic clangTooling libclang)
+else()
+   find_library(clang_cpp_library clang-cpp REQUIRED)
+   target_link_libraries(H_C_header_importer PRIVATE ${clang_cpp_library})
 endif()
 
 ## End LLVM ##
@@ -40,15 +42,6 @@ target_sources(H_C_header_importer
 )
 
 if(BUILD_TESTING)
-   find_file(
-      stdio_location
-      "stdio.h"
-      REQUIRED
-   )
-   message(STATUS "stdio_location is ${stdio_location}")
-   get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-   message(STATUS "c_headers_location is ${c_headers_location}")
-
    find_package(Vulkan REQUIRED)
    set(vulkan_headers_location "${Vulkan_INCLUDE_DIRS}")
    message(STATUS "vulkan_headers_location is ${vulkan_headers_location}")
@@ -59,10 +52,11 @@ if(BUILD_TESTING)
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_C_header_importer_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
 
+   target_link_libraries(H_C_header_importer_tests PRIVATE clangTooling)
+
    target_compile_definitions(
       H_C_header_importer_tests
       PRIVATE
-         C_HEADERS_LOCATION="${c_headers_location}"
          VULKAN_HEADERS_LOCATION="${vulkan_headers_location}"
    )
 
@@ -76,12 +70,32 @@ add_executable(C_header_importer_tool)
 target_link_libraries(C_header_importer_tool PRIVATE H::Core H::C_header_importer H::JSON_serializer)
 target_sources(C_header_importer_tool PRIVATE "main.cpp")
 
+find_package(argparse CONFIG REQUIRED)
+target_link_libraries(C_header_importer_tool PRIVATE argparse::argparse)
+
 macro(Import_c_header)
 
    set(options)
    set(oneValueArgs TARGET OUTPUT_DIRECTORY)
    set(multiValueArgs HEADERS)
    cmake_parse_arguments(ARGUMENT "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
+
+   set(additional_include_directories "")
+   if(UNIX)
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "/usr/include")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "/usr/include/linux")
+
+      file(GLOB_RECURSE IOSTREAM_PATH "/usr/include/c++/*/iostream")
+      get_filename_component(CPP_LIBRARY_INCLUDE_DIRECTORY "${IOSTREAM_PATH}" DIRECTORY)
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}/tr1")
+      list(APPEND additional_include_directories "--include-directory")
+      list(APPEND additional_include_directories "${CPP_LIBRARY_INCLUDE_DIRECTORY}/x86_64-pc-linux-gnu")
+   endif()
 
    foreach(header IN LISTS ARGUMENT_HEADERS)
       cmake_path(GET header STEM header_without_extension)
@@ -92,7 +106,7 @@ macro(Import_c_header)
       add_custom_command(
          OUTPUT "${output_path}"
          COMMAND C_header_importer_tool
-            ARGS "C.${header_without_extension}" "${header}" "${output_path}"
+            ARGS "C.${header_without_extension}" "${header}" "${output_path}" ${additional_include_directories}
          DEPENDS "${header}"
          COMMENT "Generating ${output_path}"
       )
@@ -105,17 +119,3 @@ macro(Import_c_header)
    )
 
 endmacro()
-
-find_file(
-   stdio_location
-   "stdio.h"
-   REQUIRED
-)
-get_filename_component(c_headers_location ${stdio_location} DIRECTORY)
-
-Import_c_header(
-   TARGET C_standard_library
-   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/C_standard_library"
-   HEADERS
-      "${c_headers_location}/stdio.h"
-)

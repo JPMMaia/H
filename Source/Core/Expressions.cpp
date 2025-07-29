@@ -54,7 +54,6 @@ namespace h
                         .expression_index = 1
                     },
                     .member_name = std::pmr::string{ member_name },
-                    .access_type = h::Access_type::Read
                 }
             },
             h::Expression
@@ -62,7 +61,6 @@ namespace h
                 .data = h::Variable_expression
                 {
                     .name = std::pmr::string{ enum_name },
-                    .access_type = h::Access_type::Read
                 }
             }
         };

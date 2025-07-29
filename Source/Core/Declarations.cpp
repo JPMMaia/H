@@ -19,6 +19,35 @@ import h.core.types;
 
 namespace h
 {
+    bool are_type_instances_equivalent(Type_instance const& lhs, Type_instance const& rhs)
+    {
+        if (lhs.type_constructor != rhs.type_constructor)
+            return false;
+
+        if (lhs.arguments.size() != rhs.arguments.size())
+            return false;
+
+        for (std::size_t argument_index = 0; argument_index < lhs.arguments.size(); ++argument_index)
+        {
+            Statement const& lhs_statement = lhs.arguments[argument_index];
+            Statement const& rhs_statement = rhs.arguments[argument_index];
+
+            if (lhs_statement.expressions.size() != rhs_statement.expressions.size())
+                return false;
+            
+            for (std::size_t expression_index = 0; expression_index < lhs_statement.expressions.size(); ++expression_index)
+            {
+                Expression const& lhs_expression = lhs_statement.expressions[expression_index];
+                Expression const& rhs_expression = rhs_statement.expressions[expression_index];
+
+                if (lhs_expression.data != rhs_expression.data)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
     Declaration_database create_declaration_database()
     {
         return {};
@@ -41,42 +70,42 @@ namespace h
 
         for (Alias_type_declaration const& declaration : alias_type_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Enum_declaration const& declaration : enum_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Function_constructor const& declaration : function_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Function_declaration const& declaration : function_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Global_variable_declaration const& declaration : global_variable_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Struct_declaration const& declaration : struct_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Type_constructor const& declaration : type_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
 
         for (Union_declaration const& declaration : union_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration }));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
         }
     }
 
@@ -103,12 +132,12 @@ namespace h
             core_module.name,
             core_module.internal_declarations.alias_type_declarations,
             core_module.internal_declarations.enum_declarations,
-            core_module.export_declarations.global_variable_declarations,
+            core_module.internal_declarations.global_variable_declarations,
             core_module.internal_declarations.struct_declarations,
             core_module.internal_declarations.union_declarations,
             core_module.internal_declarations.function_declarations,
-            core_module.export_declarations.function_constructors,
-            core_module.export_declarations.type_constructors
+            core_module.internal_declarations.function_constructors,
+            core_module.internal_declarations.type_constructors
         );
 
         add_instantiated_type_instances(database, core_module);
@@ -162,48 +191,130 @@ namespace h
             if (declaration_location == database.instances.end())
                 return std::nullopt;
 
+            std::string_view const declaration_module_name = type_instance.type_constructor.module_reference.name;
+
             Declaration_instance_storage const& instance_storage = declaration_location->second;
             if (std::holds_alternative<Alias_type_declaration>(instance_storage.data))
             {
                 Alias_type_declaration const& declaration = std::get<Alias_type_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
             }
             else if (std::holds_alternative<Enum_declaration>(instance_storage.data))
             {
                 Enum_declaration const& declaration = std::get<Enum_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
             }
             else if (std::holds_alternative<Function_declaration>(instance_storage.data))
             {
                 Function_declaration const& declaration = std::get<Function_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
             }
             else if (std::holds_alternative<Struct_declaration>(instance_storage.data))
             {
                 Struct_declaration const& declaration = std::get<Struct_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
             }
             else if (std::holds_alternative<Union_declaration>(instance_storage.data))
             {
                 Union_declaration const& declaration = std::get<Union_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
             }
         }
 
         return std::nullopt;
     }
 
+    std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::string_view const declaration_name
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration(
+            database,
+            module_name,
+            declaration_name
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
+        );
+    }
+
+    std::optional<Declaration> find_underlying_declaration(
+        Declaration_database const& database,
+        Type_reference const& type_reference
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration(
+            database,
+            type_reference
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
+        );
+    }
+
+    std::optional<Declaration> find_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [import_alias_name](Import_module_with_alias const& alias_import) -> bool { return alias_import.alias == import_alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return std::nullopt;
+
+        return find_declaration(
+            database,
+            location->module_name,
+            declaration_name
+        );
+    }
+
+    std::optional<Declaration> find_underlying_declaration_using_import_alias(
+        Declaration_database const& database,
+        h::Module const& core_module,
+        std::string_view const import_alias_name,
+        std::string_view const declaration_name
+    )
+    {
+        std::optional<Declaration> optional_declaration = find_declaration_using_import_alias(
+            database,
+            core_module,
+            import_alias_name,
+            declaration_name
+        );
+        if (!optional_declaration.has_value())
+            return std::nullopt;
+
+        return get_underlying_declaration(
+            database,
+            optional_declaration.value()
+        );
+    }
+
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Type_reference const& type_reference,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Type_reference const& type_reference
     )
     {
         if (std::holds_alternative<Custom_type_reference>(type_reference.data))
         {
             Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.data);
-            std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+            std::string_view const module_name = data.module_reference.name;
 
             std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, data.name);
 
@@ -211,8 +322,7 @@ namespace h
             {
                 Alias_type_declaration const* alias_declaration = std::get<Alias_type_declaration const*>(declaration->data);
 
-                Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
-                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration, found_module, core_module_dependencies);
+                std::optional<Type_reference> alias_type = get_underlying_type(declaration_database, *alias_declaration);
                 return alias_type;
             }
             else
@@ -228,31 +338,46 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Alias_type_declaration const& declaration
     )
     {
         if (declaration.type.empty())
             return std::nullopt;
 
-        return get_underlying_type(declaration_database, declaration.type[0], current_core_module, core_module_dependencies);
+        return get_underlying_type(declaration_database, declaration.type[0]);
     }
 
     std::optional<Declaration> get_underlying_declaration(
         Declaration_database const& declaration_database,
-        Alias_type_declaration const& declaration,
-        Module const& current_core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies
+        Declaration const& declaration
     )
     {
-        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration, current_core_module, core_module_dependencies);
+        if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+        {
+            Alias_type_declaration const& alias_type_declaration = *std::get<Alias_type_declaration const*>(declaration.data);
+            return get_underlying_declaration(
+                declaration_database,
+                alias_type_declaration
+            );
+        }
+        else
+        {
+            return declaration;
+        }
+    }
+
+    std::optional<Declaration> get_underlying_declaration(
+        Declaration_database const& declaration_database,
+        Alias_type_declaration const& declaration
+    )
+    {
+        std::optional<Type_reference> const type_reference = get_underlying_type(declaration_database, declaration);
         if (type_reference.has_value())
         {
             if (std::holds_alternative<Custom_type_reference>(type_reference.value().data))
             {
                 Custom_type_reference const& data = std::get<Custom_type_reference>(type_reference.value().data);
-                std::string_view const module_name = find_module_name(current_core_module, data.module_reference);
+                std::string_view const module_name = data.module_reference.name;
 
                 std::optional<Declaration> const underlying_declaration = find_declaration(declaration_database, module_name, data.name);
                 if (underlying_declaration.has_value())
@@ -261,15 +386,18 @@ namespace h
                     if (std::holds_alternative<Alias_type_declaration const*>(underlying_declaration_value.data))
                     {
                         Alias_type_declaration const* underlying_alias = std::get<Alias_type_declaration const*>(underlying_declaration_value.data);
-
-                        Module const& found_module = find_module(current_core_module, core_module_dependencies, module_name);
-                        return get_underlying_declaration(declaration_database, *underlying_alias, found_module, core_module_dependencies);
+                        return get_underlying_declaration(declaration_database, *underlying_alias);
                     }
                     else
                     {
                         return underlying_declaration;
                     }
                 }
+            }
+            else if (std::holds_alternative<Type_instance>(type_reference.value().data))
+            {
+                std::optional<Declaration> const underlying_declaration = find_declaration(declaration_database, type_reference.value());
+                return underlying_declaration;
             }
         }
 
@@ -332,14 +460,17 @@ namespace h
             if (std::holds_alternative<Type_instance>(type_reference.data))
             {
                 Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
-                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
-                declaration_database.instances.emplace(type_instance, std::move(storage));
+                if (!declaration_database.instances.contains(type_instance))
+                {
+                    Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                    declaration_database.instances.emplace(type_instance, std::move(storage));   
+                }
             }
 
             return false;
         };
 
-        h::visit_type_references(
+        h::visit_type_references_recursively_with_declaration_name(
             core_module,
             instantiate_all
         );
@@ -355,19 +486,22 @@ namespace h
             if (std::holds_alternative<Type_instance>(type_reference.data))
             {
                 Type_instance const& type_instance = std::get<Type_instance>(type_reference.data);
-                Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
-                declaration_database.instances.emplace(type_instance, std::move(storage));
+                if (!declaration_database.instances.contains(type_instance))
+                {
+                    Declaration_instance_storage storage = instantiate_type_instance(declaration_database, type_instance);
+                    declaration_database.instances.emplace(type_instance, std::move(storage));
+                }
             }
 
             return false;
         };
 
-        h::visit_type_references(
+        h::visit_type_references_recursively(
             function_expression.declaration,
             instantiate_all
         );
 
-        h::visit_type_references(
+        h::visit_type_references_recursively(
             function_expression.definition,
             instantiate_all
         );
@@ -411,6 +545,17 @@ namespace h
                 .name = access_expression.member_name
             };
         }
+        else if (std::holds_alternative<h::Instance_call_expression>(expression.data))
+        {
+            Instance_call_expression const& data = std::get<h::Instance_call_expression>(expression.data);
+
+            return get_function_constructor_type_reference(
+                declaration_database,
+                statement.expressions[data.left_hand_side.expression_index],
+                statement,
+                current_module_name
+            );
+        }
 
         return std::nullopt;
     }
@@ -433,7 +578,7 @@ namespace h
 
         return Instance_call_key
         {
-            .module_name = custom_type_reference->module_reference.name,
+            .module_name = std::pmr::string{ custom_type_reference->module_reference.name },
             .function_constructor_name = custom_type_reference->name,
             .arguments = expression.arguments
         };
@@ -558,6 +703,8 @@ namespace h
             if (std::holds_alternative<Instance_call_expression>(expression.data))
             {
                 Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+
+                // TODO can optimize by checking for the existence of the key first
                 std::pair<Instance_call_key, Function_expression> const pair = create_instance_call_expression_value(
                     declaration_database,
                     instance_call_expression,
@@ -565,8 +712,11 @@ namespace h
                     core_module.name
                 );
 
-                add_instantiated_type_instances(declaration_database, pair.second);
-                declaration_database.call_instances.emplace(std::move(pair));
+                if (!declaration_database.call_instances.contains(pair.first))
+                {
+                    add_instantiated_type_instances(declaration_database, pair.second);
+                    declaration_database.call_instances.emplace(std::move(pair));
+                }
             }
 
             return false;
@@ -576,5 +726,31 @@ namespace h
             core_module,
             instantiate_all
         );
+    }
+
+    std::string_view get_declaration_name(
+        Declaration const& declaration
+    )
+    {
+        std::string_view name;
+
+        std::visit([&](auto const& data) -> void {
+            name = data->name;
+        }, declaration.data);
+
+        return name;
+    }
+
+    std::optional<h::Source_location> get_declaration_source_location(
+        Declaration const& declaration
+    )
+    {
+       std::optional<h::Source_location> source_location;
+
+        std::visit([&](auto const& data) -> void {
+            source_location = data->source_location;
+        }, declaration.data);
+
+        return source_location;
     }
 }

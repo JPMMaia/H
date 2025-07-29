@@ -46,6 +46,18 @@ namespace h
     }
 
 
+    Type_reference create_builtin_type_reference(std::pmr::string value)
+    {
+        return Type_reference
+        {
+            .data = Builtin_type_reference
+            {
+                .value = std::move(value),
+            }
+        }; 
+    }
+
+
     Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size)
     {
         return Type_reference
@@ -129,7 +141,7 @@ namespace h
             return false;
         };
 
-        visit_type_references(core_module, process_type_reference);
+        visit_type_references_recursively_with_declaration_name(core_module, process_type_reference);
     }
 
 
@@ -185,6 +197,17 @@ namespace h
         {
             .data = value
         };
+    }
+
+    bool is_byte(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Byte);
+        }
+
+        return false;
     }
 
     bool is_floating_point(Type_reference const& type)
@@ -318,6 +341,43 @@ namespace h
         return !is_signed_integer(type);
     }
 
+    bool is_number_or_c_number(Type_reference const& type)
+    {
+        if (is_integer(type))
+            return true;
+        
+        if (is_floating_point(type))
+            return true;
+
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            switch (data)
+            {
+                case Fundamental_type::Float16:
+                case Fundamental_type::Float32:
+                case Fundamental_type::Float64:
+                case Fundamental_type::C_char:
+                case Fundamental_type::C_schar:
+                case Fundamental_type::C_uchar:
+                case Fundamental_type::C_short:
+                case Fundamental_type::C_ushort:
+                case Fundamental_type::C_int:
+                case Fundamental_type::C_uint:
+                case Fundamental_type::C_long:
+                case Fundamental_type::C_ulong:
+                case Fundamental_type::C_longlong:
+                case Fundamental_type::C_ulonglong:
+                case Fundamental_type::C_longdouble:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+
     Type_reference create_null_pointer_type_type_reference()
     {
         Null_pointer_type pointer_type
@@ -396,6 +456,22 @@ namespace h
                 return std::nullopt;
 
             return pointer_type.element_type.front();
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<std::string_view> get_type_module_name(Type_reference const& type)
+    {
+        if (std::holds_alternative<h::Custom_type_reference>(type.data))
+        {
+            h::Custom_type_reference const& data = std::get<h::Custom_type_reference>(type.data);
+            return data.module_reference.name;
+        }
+        else if (std::holds_alternative<h::Type_instance>(type.data))
+        {
+            h::Type_instance const& data = std::get<h::Type_instance>(type.data);
+            return data.type_constructor.module_reference.name;
         }
 
         return std::nullopt;

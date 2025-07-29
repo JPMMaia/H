@@ -1,0 +1,6 @@
+module Unique_name;
+
+@unique_name("my_unique_name")
+export function my_function() -> ()
+{
+}

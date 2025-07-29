@@ -1,0 +1,5 @@
+module Comment_global_variables;
+
+// A global variable comment
+// Another line
+export var My_global_variable = 1.0f32;

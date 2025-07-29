@@ -2,11 +2,11 @@ module c_interoperability;
 
 function initialize(first: C_bool, second: C_bool) -> (result: C_bool)
 {
-    return true;
+    return 1cb;
 }
 
 function run(parameter: C_bool) -> ()
 {
-    var first = true;
+    var first = 1cb;
     var result = initialize(first, parameter);
 }

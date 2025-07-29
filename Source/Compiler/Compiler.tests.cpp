@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <memory_resource>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -18,7 +19,10 @@ import h.core;
 import h.core.declarations;
 import h.core.struct_layout;
 import h.common;
+import h.common.filesystem;
 import h.compiler;
+import h.compiler.artifact;
+import h.compiler.clang_code_generation;
 import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.expressions;
@@ -26,6 +30,9 @@ import h.compiler.types;
 import h.json_serializer;
 import h.json_serializer.operators;
 import h.c_header_converter;
+import h.parser.convertor;
+import h.parser.parse_tree;
+import h.parser.parser;
 
 using h::json::operators::operator<<;
 
@@ -33,9 +40,65 @@ using h::json::operators::operator<<;
 
 namespace h
 {
-  static std::filesystem::path const g_test_files_path = std::filesystem::path{ TEST_FILES_PATH };
   static std::filesystem::path const g_test_source_files_path = std::filesystem::path{ TEST_SOURCE_FILES_PATH };
   static std::filesystem::path const g_standard_library_path = std::filesystem::path{ C_STANDARD_LIBRARY_PATH };
+  static std::filesystem::path const g_tests_output_directory_path = std::filesystem::path{ TESTS_OUTPUT_DIRECTORY_PATH };
+
+  std::filesystem::path find_c_header_path(std::string_view const filename)
+  {
+    std::pmr::vector<std::filesystem::path> header_search_directories = h::common::get_default_header_search_directories();
+    std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(filename, header_search_directories);
+    REQUIRE(header_path.has_value());
+    return header_path.value();
+  }
+
+  std::filesystem::path import_c_header_and_get_file_path(
+    std::string_view const header_name,
+    std::string_view const filename
+  )
+  {
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock{mutex};
+
+    std::filesystem::path const input_file_path = find_c_header_path(filename);
+    std::filesystem::path const output_file_path = (g_standard_library_path / filename).replace_extension(".hl");
+
+    if (std::filesystem::exists(output_file_path))
+      return output_file_path;
+
+    if (!std::filesystem::exists(output_file_path.parent_path()))
+      std::filesystem::create_directories(output_file_path.parent_path());
+
+    h::c::Options const options = {};
+    h::c::import_header_and_write_to_file(
+      header_name,
+      input_file_path,
+      output_file_path,
+      options
+    );
+
+    return output_file_path;
+  }
+
+  std::filesystem::path parse_and_get_file_path(
+    std::filesystem::path const& source_file_path
+  )
+  {
+    std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+        source_file_path,
+        {},
+        {}
+    );
+    REQUIRE(core_module.has_value());
+
+    std::filesystem::path const output_file_path = g_tests_output_directory_path / std::format("{}.hl", core_module.value().name);
+    if (!std::filesystem::exists(output_file_path.parent_path()))
+      std::filesystem::create_directories(output_file_path.parent_path());
+
+    h::json::write<h::Module>(output_file_path, core_module.value());
+
+    return output_file_path;
+  }
 
   std::string_view exclude_header(std::string_view const llvm_ir)
   {
@@ -63,7 +126,23 @@ namespace h
     Test_options const test_options = {}
   )
   {
-    std::optional<h::Module> core_module = h::compiler::read_core_module(g_test_files_path / input_file);
+    std::filesystem::path const input_file_path = g_test_source_files_path / input_file;
+    std::optional<std::pmr::u8string> input_content = h::common::get_file_utf8_contents(input_file_path);
+    REQUIRE(input_content.has_value());
+
+    h::parser::Parser parser = h::parser::create_parser();
+
+    h::parser::Parse_tree parse_tree = h::parser::parse(parser, std::move(input_content.value()));
+
+    h::parser::Parse_node const root = get_root_node(parse_tree);
+
+    std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+      parse_tree,
+      root,
+      input_file_path,
+      {},
+      {}
+    );
     REQUIRE(core_module.has_value());
 
     h::compiler::Compilation_options const compilation_options
@@ -82,11 +161,14 @@ namespace h
     std::string_view const llvm_ir_body = exclude_header(llvm_ir);
 
     CHECK(llvm_ir_body == expected_llvm_ir);
+
+    h::parser::destroy_tree(std::move(parse_tree));
+    h::parser::destroy_parser(std::move(parser));
   }
 
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
   {
-    char const* const input_file = "assert_expressions.hl";
+    char const* const input_file = "assert_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -136,7 +218,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Assignments", "[LLVM_IR]")
   {
-    char const* const input_file = "assignment_expressions.hl";
+    char const* const input_file = "assignment_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -218,7 +300,7 @@ entry:
   %my_float = alloca float, align 4
   store float %"arguments[0].other_float", ptr %other_float, align 4
   store float 1.000000e+00, ptr %my_float, align 4
-  store i32 2, ptr %my_float, align 4
+  store float 2.000000e+00, ptr %my_float, align 4
   %0 = load float, ptr %my_float, align 4
   %1 = load float, ptr %other_float, align 4
   %2 = fadd float %0, %1
@@ -250,7 +332,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Binary Expressions Precedence", "[LLVM_IR]")
   {
-    char const* const input_file = "binary_expressions_precedence.hl";
+    char const* const input_file = "binary_expressions_precedence.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -384,7 +466,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Binary Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "binary_expressions.hl";
+    char const* const input_file = "binary_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -624,9 +706,153 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
   }
 
 
+  TEST_CASE("Compile Bit Fields", "[LLVM_IR]")
+  {
+    char const* const input_file = "bit_fields.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.bit_fields_My_struct = type { i64 }
+
+; Function Attrs: convergent
+define private i64 @bit_fields_run(i64 noundef %"arguments[0].parameter") #0 {
+entry:
+  %0 = alloca %struct.bit_fields_My_struct, align 8
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
+  %1 = alloca %struct.bit_fields_My_struct, align 8
+  %instance = alloca %struct.bit_fields_My_struct, align 8
+  %2 = alloca %struct.bit_fields_My_struct, align 8
+  %instance_2 = alloca %struct.bit_fields_My_struct, align 8
+  %3 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[0].parameter", ptr %3, align 8
+  %4 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  %6 = lshr i32 %5, 0
+  %7 = and i32 %6, 16777215
+  store i32 %7, ptr %a, align 4
+  %8 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %9 = load i32, ptr %8, align 4
+  %10 = lshr i32 %9, 24
+  %11 = and i32 %10, 255
+  store i32 %11, ptr %b, align 4
+  %12 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %13 = load i32, ptr %12, align 4
+  %14 = lshr i32 %13, 32
+  %15 = and i32 %14, 4095
+  store i32 %15, ptr %c, align 4
+  %16 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %17 = load i32, ptr %16, align 4
+  %18 = lshr i32 %17, 44
+  %19 = and i32 %18, 255
+  store i32 %19, ptr %d, align 4
+  %20 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %21 = load i32, ptr %20, align 4
+  %22 = lshr i32 %21, 52
+  %23 = and i32 %22, 4095
+  store i32 %23, ptr %e, align 4
+  %24 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %25 = load i32, ptr %24, align 4
+  %26 = lshr i32 %25, 0
+  %27 = and i32 %26, 16777215
+  %28 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %29 = load i32, ptr %28, align 4
+  %30 = and i32 %29, -16777216
+  %31 = or i32 %30, 1
+  store i32 %31, ptr %28, align 4
+  %32 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %33 = load i32, ptr %32, align 4
+  %34 = lshr i32 %33, 24
+  %35 = and i32 %34, 255
+  %36 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %37 = load i32, ptr %36, align 4
+  %38 = and i32 %37, 16777215
+  %39 = or i32 %38, 33554432
+  store i32 %39, ptr %36, align 4
+  %40 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %41 = load i32, ptr %40, align 4
+  %42 = lshr i32 %41, 32
+  %43 = and i32 %42, 4095
+  %44 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %45 = load i32, ptr %44, align 4
+  %46 = and i32 %45, -4096
+  %47 = or i32 %46, poison
+  store i32 %47, ptr %44, align 4
+  %48 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %49 = load i32, ptr %48, align 4
+  %50 = and i32 %49, -16777216
+  %51 = or i32 %50, 1
+  store i32 %51, ptr %48, align 4
+  %52 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %53 = load i32, ptr %52, align 4
+  %54 = and i32 %53, 16777215
+  %55 = or i32 %54, 33554432
+  store i32 %55, ptr %52, align 4
+  %56 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %57 = load i32, ptr %56, align 4
+  %58 = and i32 %57, -4096
+  %59 = or i32 %58, poison
+  store i32 %59, ptr %56, align 4
+  %60 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %61 = load i32, ptr %60, align 4
+  %62 = and i32 %61, -1044481
+  %63 = or i32 %62, poison
+  store i32 %63, ptr %60, align 4
+  %64 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %65 = load i32, ptr %64, align 4
+  %66 = and i32 %65, 1048575
+  %67 = or i32 %66, poison
+  store i32 %67, ptr %64, align 4
+  %68 = load %struct.bit_fields_My_struct, ptr %1, align 8
+  store %struct.bit_fields_My_struct %68, ptr %instance, align 8
+  %69 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %70 = load i32, ptr %69, align 4
+  %71 = and i32 %70, -16777216
+  %72 = or i32 %71, 1
+  store i32 %72, ptr %69, align 4
+  %73 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %74 = load i32, ptr %73, align 4
+  %75 = and i32 %74, 16777215
+  %76 = or i32 %75, 0
+  store i32 %76, ptr %73, align 4
+  %77 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %78 = load i32, ptr %77, align 4
+  %79 = and i32 %78, -4096
+  %80 = or i32 %79, poison
+  store i32 %80, ptr %77, align 4
+  %81 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %82 = load i32, ptr %81, align 4
+  %83 = and i32 %82, -1044481
+  %84 = or i32 %83, poison
+  store i32 %84, ptr %81, align 4
+  %85 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %86 = load i32, ptr %85, align 4
+  %87 = and i32 %86, 1048575
+  %88 = or i32 %87, poison
+  store i32 %88, ptr %85, align 4
+  %89 = load %struct.bit_fields_My_struct, ptr %2, align 8
+  store %struct.bit_fields_My_struct %89, ptr %instance_2, align 8
+  %90 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
+  %91 = load i64, ptr %90, align 8
+  ret i64 %91
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
   TEST_CASE("Compile Block Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "block_expressions.hl";
+    char const* const input_file = "block_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -655,7 +881,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Booleans", "[LLVM_IR]")
   {
-    char const* const input_file = "booleans.hl";
+    char const* const input_file = "booleans.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -680,11 +906,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Break Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "break_expressions.hl";
+    char const* const input_file = "break_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -846,7 +1072,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Cast Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "cast_expressions.hl";
+    char const* const input_file = "cast_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -854,17 +1080,30 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     char const* const expected_llvm_ir = R"(
 ; Function Attrs: convergent
-define void @Cast_expressions_run(i32 noundef %"arguments[0].first") #0 {
+define void @Cast_expressions_run(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second", i32 noundef %"arguments[2].third") #0 {
 entry:
   %first = alloca i32, align 4
+  %second = alloca i32, align 4
+  %third = alloca i32, align 4
   %a = alloca i32, align 4
   %b = alloca i1, align 1
+  %c = alloca i32, align 4
+  %d = alloca i32, align 4
+  %e = alloca i32, align 4
   store i32 %"arguments[0].first", ptr %first, align 4
+  store i32 %"arguments[1].second", ptr %second, align 4
+  store i32 %"arguments[2].third", ptr %third, align 4
   store i32 1, ptr %a, align 4
   %0 = load i32, ptr %a, align 4
   %1 = load i32, ptr %first, align 4
   %2 = icmp eq i32 %0, %1
   store i1 %2, ptr %b, align 1
+  %3 = load i32, ptr %second, align 4
+  store i32 %3, ptr %c, align 4
+  %4 = load i32, ptr %a, align 4
+  store i32 %4, ptr %d, align 4
+  %5 = load i32, ptr %third, align 4
+  store i32 %5, ptr %e, align 4
   ret void
 }
 
@@ -876,7 +1115,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Comment Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "comment_expressions.hl";
+    char const* const input_file = "comment_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -931,7 +1170,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Constant Arrays", "[LLVM_IR]")
   {
-    char const* const input_file = "constant_array_expressions.hl";
+    char const* const input_file = "constant_array_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -948,6 +1187,7 @@ entry:
   %array = alloca [4 x i32], i64 4, align 4
   %c = alloca [4 x i32], align 4
   %d = alloca i32, align 4
+  %0 = alloca %struct.Constant_array_expressions_My_struct, align 4
   %array7 = alloca [4 x i32], i64 4, align 4
   %instance = alloca %struct.Constant_array_expressions_My_struct, align 4
   %e = alloca i32, align 4
@@ -959,15 +1199,15 @@ entry:
   store i32 2, ptr %array_element_pointer2, align 4
   %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
   store i32 3, ptr %array_element_pointer3, align 4
-  %0 = load [4 x i32], ptr %array, align 4
-  store [4 x i32] %0, ptr %c, align 4
+  %1 = load [4 x i32], ptr %array, align 4
+  store [4 x i32] %1, ptr %c, align 4
   %array_element_pointer4 = getelementptr [4 x i32], ptr %c, i32 0, i32 0
   store i32 0, ptr %array_element_pointer4, align 4
   %array_element_pointer5 = getelementptr [4 x i32], ptr %c, i32 0, i32 1
   store i32 1, ptr %array_element_pointer5, align 4
   %array_element_pointer6 = getelementptr [4 x i32], ptr %c, i32 0, i32 3
-  %1 = load i32, ptr %array_element_pointer6, align 4
-  store i32 %1, ptr %d, align 4
+  %2 = load i32, ptr %array_element_pointer6, align 4
+  store i32 %2, ptr %d, align 4
   %array_element_pointer8 = getelementptr [4 x i32], ptr %array7, i32 0, i32 0
   store i32 0, ptr %array_element_pointer8, align 4
   %array_element_pointer9 = getelementptr [4 x i32], ptr %array7, i32 0, i32 1
@@ -976,13 +1216,15 @@ entry:
   store i32 4, ptr %array_element_pointer10, align 4
   %array_element_pointer11 = getelementptr [4 x i32], ptr %array7, i32 0, i32 3
   store i32 6, ptr %array_element_pointer11, align 4
-  %2 = load [4 x i32], ptr %array7, align 4
-  %3 = insertvalue %struct.Constant_array_expressions_My_struct undef, [4 x i32] %2, 0
-  store %struct.Constant_array_expressions_My_struct %3, ptr %instance, align 4
-  %4 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
-  %array_element_pointer12 = getelementptr [4 x i32], ptr %4, i32 0, i32 0
-  %5 = load i32, ptr %array_element_pointer12, align 4
-  store i32 %5, ptr %e, align 4
+  %3 = load [4 x i32], ptr %array7, align 4
+  %4 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %0, i32 0, i32 0
+  store [4 x i32] %3, ptr %4, align 4
+  %5 = load %struct.Constant_array_expressions_My_struct, ptr %0, align 4
+  store %struct.Constant_array_expressions_My_struct %5, ptr %instance, align 4
+  %6 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
+  %array_element_pointer12 = getelementptr [4 x i32], ptr %6, i32 0, i32 0
+  %7 = load i32, ptr %array_element_pointer12, align 4
+  store i32 %7, ptr %e, align 4
   ret void
 }
 
@@ -994,7 +1236,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Debug Information C Headers", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_c_headers.hl";
+    char const* const input_file = "debug_information_c_headers.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "debug_information_c_headers";
     std::filesystem::create_directories(root_directory_path);
@@ -1012,7 +1254,7 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
     std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hltxt";
     h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -1026,30 +1268,42 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
 ; Function Attrs: convergent
 define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
-  %a = alloca %struct.Vector2i, align 4, !dbg !8
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !9, metadata !DIExpression()), !dbg !8
-  %b = alloca %struct.Vector2i, align 4, !dbg !15
-  %0 = alloca %struct.Vector2i, align 4, !dbg !16
-  %c = alloca %struct.Vector2i, align 4, !dbg !17
-  store %struct.Vector2i {{ i32 1, i32 -1 }}, ptr %a, align 4, !dbg !8
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !18, metadata !DIExpression()), !dbg !15
-  store %struct.Vector2i {{ i32 2, i32 -2 }}, ptr %b, align 4, !dbg !15
-  %1 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !16
-  %2 = load i64, ptr %1, align 4, !dbg !16
-  %3 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !16
-  %4 = load i64, ptr %3, align 4, !dbg !16
-  %5 = call i64 @add(i64 noundef %2, i64 noundef %4), !dbg !16
-  %6 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !16
-  store i64 %5, ptr %6, align 4, !dbg !16
-  %7 = load %struct.Vector2i, ptr %0, align 4, !dbg !16
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !19, metadata !DIExpression()), !dbg !17
-  store %struct.Vector2i %7, ptr %c, align 4, !dbg !17
-  %8 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !17
-  %9 = load i32, ptr %8, align 4, !dbg !20
-  %10 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !20
-  %11 = load i32, ptr %10, align 4, !dbg !21
-  %12 = add i32 %9, %11, !dbg !20
-  ret i32 %12, !dbg !22
+  %0 = alloca %struct.Vector2i, align 4, !dbg !8
+  %a = alloca %struct.Vector2i, align 4, !dbg !9
+  %1 = alloca %struct.Vector2i, align 4, !dbg !9
+  %b = alloca %struct.Vector2i, align 4, !dbg !10
+  %2 = alloca %struct.Vector2i, align 4, !dbg !11
+  %c = alloca %struct.Vector2i, align 4, !dbg !12
+  %3 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !8
+  store i32 1, ptr %3, align 4, !dbg !8
+  %4 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 1, !dbg !8
+  store i32 -1, ptr %4, align 4, !dbg !8
+  %5 = load %struct.Vector2i, ptr %0, align 4, !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !14, metadata !DIExpression()), !dbg !9
+  store %struct.Vector2i %5, ptr %a, align 4, !dbg !9
+  %6 = getelementptr inbounds %struct.Vector2i, ptr %1, i32 0, i32 0, !dbg !9
+  store i32 2, ptr %6, align 4, !dbg !9
+  %7 = getelementptr inbounds %struct.Vector2i, ptr %1, i32 0, i32 1, !dbg !9
+  store i32 -2, ptr %7, align 4, !dbg !9
+  %8 = load %struct.Vector2i, ptr %1, align 4, !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !21, metadata !DIExpression()), !dbg !10
+  store %struct.Vector2i %8, ptr %b, align 4, !dbg !10
+  %9 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !11
+  %10 = load i64, ptr %9, align 4, !dbg !11
+  %11 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !11
+  %12 = load i64, ptr %11, align 4, !dbg !11
+  %13 = call i64 @add(i64 noundef %10, i64 noundef %12), !dbg !11
+  %14 = getelementptr inbounds %struct.Vector2i, ptr %2, i32 0, i32 0, !dbg !11
+  store i64 %13, ptr %14, align 4, !dbg !11
+  %15 = load %struct.Vector2i, ptr %2, align 4, !dbg !11
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !22, metadata !DIExpression()), !dbg !12
+  store %struct.Vector2i %15, ptr %c, align 4, !dbg !12
+  %16 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !12
+  %17 = load i32, ptr %16, align 4, !dbg !23
+  %18 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !23
+  %19 = load i32, ptr %18, align 4, !dbg !24
+  %20 = add i32 %17, %19, !dbg !23
+  ret i32 %20, !dbg !25
 }}
 
 ; Function Attrs: convergent
@@ -1072,29 +1326,100 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !5 = !{{!6}}
 !6 = !DIBasicType(name: "c_int", size: 32, encoding: DW_ATE_signed)
 !7 = !{{}}
-!8 = !DILocation(line: 7, column: 5, scope: !3)
-!9 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !10)
-!10 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !11, line: 2, size: 64, align: 8, elements: !12)
-!11 = !DIFile(filename: "vector2i.h", directory: "{}")
-!12 = !{{!13, !14}}
-!13 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !11, line: 4, baseType: !6, size: 32, align: 32)
-!14 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !11, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
-!15 = !DILocation(line: 8, column: 5, scope: !3)
-!16 = !DILocation(line: 9, column: 13, scope: !3)
-!17 = !DILocation(line: 9, column: 5, scope: !3)
-!18 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !10)
-!19 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !10)
-!20 = !DILocation(line: 10, column: 12, scope: !3)
-!21 = !DILocation(line: 10, column: 18, scope: !3)
-!22 = !DILocation(line: 10, column: 5, scope: !3)
+!8 = !DILocation(line: 6, column: 1, scope: !3)
+!9 = !DILocation(line: 7, column: 5, scope: !3)
+!10 = !DILocation(line: 8, column: 5, scope: !3)
+!11 = !DILocation(line: 9, column: 13, scope: !3)
+!12 = !DILocation(line: 9, column: 5, scope: !3)
+!13 = !DILocation(line: 7, column: 32, scope: !3)
+!14 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !15)
+!15 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !16, line: 2, size: 64, align: 8, elements: !17)
+!16 = !DIFile(filename: "vector2i.h", directory: "{}")
+!17 = !{{!18, !19}}
+!18 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !16, line: 4, baseType: !6, size: 32, align: 32)
+!19 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !16, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
+!20 = !DILocation(line: 8, column: 32, scope: !3)
+!21 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !15)
+!22 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !15)
+!23 = !DILocation(line: 10, column: 12, scope: !3)
+!24 = !DILocation(line: 10, column: 18, scope: !3)
+!25 = !DILocation(line: 10, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
+  }
+
+  TEST_CASE("Compile Debug Information Bit Fields", "[LLVM_IR]")
+  {
+    char const* const input_file = "debug_information_bit_fields.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%struct.Debug_information_My_struct = type {{ i32, i32 }}
+
+; Function Attrs: convergent
+define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
+entry:
+  %0 = alloca %struct.Debug_information_My_struct, align 4, !dbg !13
+  %instance = alloca %struct.Debug_information_My_struct, align 4, !dbg !14
+  %1 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 0, !dbg !13
+  store i32 1, ptr %1, align 4, !dbg !13
+  %2 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
+  %3 = load i32, ptr %2, align 4, !dbg !13
+  %4 = and i32 %3, -16777216, !dbg !13
+  %5 = or i32 %4, 1, !dbg !13
+  store i32 %5, ptr %2, align 4, !dbg !13
+  %6 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
+  %7 = load i32, ptr %6, align 4, !dbg !13
+  %8 = and i32 %7, 16777215, !dbg !13
+  %9 = or i32 %8, 33554432, !dbg !13
+  store i32 %9, ptr %6, align 4, !dbg !13
+  %10 = load %struct.Debug_information_My_struct, ptr %0, align 4, !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !16, metadata !DIExpression()), !dbg !14
+  store %struct.Debug_information_My_struct %10, ptr %instance, align 4, !dbg !14
+  %11 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !17
+  %12 = load i64, ptr %11, align 4, !dbg !17
+  ret i64 %12, !dbg !17
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
+
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_bit_fields.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "instantiate", linkageName: "Debug_information_instantiate", scope: null, file: !2, line: 10, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !12)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{!6}}
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Debug_information_My_struct", file: !2, line: 3, size: 64, align: 8, elements: !7)
+!7 = !{{!8, !10, !11}}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "a", file: !2, line: 5, baseType: !9, size: 32, align: 32)
+!9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!10 = !DIDerivedType(tag: DW_TAG_member, name: "b", file: !2, line: 6, baseType: !9, size: 24, align: 32, offset: 32, flags: DIFlagBitField)
+!11 = !DIDerivedType(tag: DW_TAG_member, name: "c", file: !2, line: 7, baseType: !9, size: 8, align: 32, offset: 56, flags: DIFlagBitField)
+!12 = !{{}}
+!13 = !DILocation(line: 11, column: 1, scope: !3)
+!14 = !DILocation(line: 12, column: 5, scope: !3)
+!15 = !DILocation(line: 12, column: 31, scope: !3)
+!16 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 12, type: !6)
+!17 = !DILocation(line: 13, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Debug Information For Loop", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_for_loop.hl";
+    char const* const input_file = "debug_information_for_loop.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1167,7 +1492,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Function Call", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_function_call.hl";
+    char const* const input_file = "debug_information_function_call.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1239,7 +1564,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information If", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_if.hl";
+    char const* const input_file = "debug_information_if.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1305,7 +1630,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Struct", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_structs.hl";
+    char const* const input_file = "debug_information_structs.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1317,12 +1642,18 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
-  %instance = alloca %struct.Debug_information_Vector2i, align 4, !dbg !12
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !12
-  store %struct.Debug_information_Vector2i {{ i32 1, i32 2 }}, ptr %instance, align 4, !dbg !12
-  %0 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !14
-  %1 = load i64, ptr %0, align 4, !dbg !14
-  ret i64 %1, !dbg !14
+  %0 = alloca %struct.Debug_information_Vector2i, align 4, !dbg !12
+  %instance = alloca %struct.Debug_information_Vector2i, align 4, !dbg !13
+  %1 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %0, i32 0, i32 0, !dbg !12
+  store i32 1, ptr %1, align 4, !dbg !12
+  %2 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %0, i32 0, i32 1, !dbg !12
+  store i32 2, ptr %2, align 4, !dbg !12
+  %3 = load %struct.Debug_information_Vector2i, ptr %0, align 4, !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !15, metadata !DIExpression()), !dbg !13
+  store %struct.Debug_information_Vector2i %3, ptr %instance, align 4, !dbg !13
+  %4 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !16
+  %5 = load i64, ptr %4, align 4, !dbg !16
+  ret i64 %5, !dbg !16
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1346,9 +1677,11 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
 !10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 32, offset: 32)
 !11 = !{{}}
-!12 = !DILocation(line: 11, column: 5, scope: !3)
-!13 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
-!14 = !DILocation(line: 12, column: 5, scope: !3)
+!12 = !DILocation(line: 10, column: 1, scope: !3)
+!13 = !DILocation(line: 11, column: 5, scope: !3)
+!14 = !DILocation(line: 11, column: 30, scope: !3)
+!15 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!16 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1356,7 +1689,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Switch", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_switch.hl";
+    char const* const input_file = "debug_information_switch.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1420,7 +1753,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Union", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_unions.hl";
+    char const* const input_file = "debug_information_unions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1476,7 +1809,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_variables.hl";
+    char const* const input_file = "debug_information_variables.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1522,7 +1855,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Debug Information While Loop", "[LLVM_IR]")
   {
-    char const* const input_file = "debug_information_while_loop.hl";
+    char const* const input_file = "debug_information_while_loop.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1594,7 +1927,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Defer Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "defer_expressions.hl";
+    char const* const input_file = "defer_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1816,7 +2149,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Dereference and Access Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "dereference_and_access_expressions.hl";
+    char const* const input_file = "dereference_and_access_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1828,14 +2161,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define void @Dereference_and_access_run() #0 {
 entry:
+  %0 = alloca %struct.Dereference_and_access_My_struct, align 4
   %instance = alloca %struct.Dereference_and_access_My_struct, align 4
   %pointer = alloca ptr, align 8
   %a = alloca i32, align 4
-  store %struct.Dereference_and_access_My_struct zeroinitializer, ptr %instance, align 4
+  %1 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = load %struct.Dereference_and_access_My_struct, ptr %0, align 4
+  store %struct.Dereference_and_access_My_struct %2, ptr %instance, align 4
   store ptr %instance, ptr %pointer, align 8
-  %0 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %pointer, i32 0, i32 0
-  %1 = load i32, ptr %0, align 4
-  store i32 %1, ptr %a, align 4
+  %3 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %pointer, i32 0, i32 0
+  %4 = load i32, ptr %3, align 4
+  store i32 %4, ptr %a, align 4
   ret void
 }
 
@@ -1847,7 +2184,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Defer Expressions with Debug Information", "[LLVM_IR]")
   {
-    char const* const input_file = "defer_expressions_with_debug_information.hl";
+    char const* const input_file = "defer_expressions_with_debug_information.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1868,14 +2205,14 @@ define private void @Defer_expressions_with_debug_information_run(i8 noundef zer
 entry:
   %condition = alloca i1, align 1
   %value = alloca i32, align 4
-  %value1 = alloca i32, align 4, !dbg !18
+  %value_2 = alloca i32, align 4, !dbg !18
   %0 = trunc i8 %"arguments[0].condition" to i1
   store i1 %0, ptr %condition, align 1
   call void @llvm.dbg.declare(metadata ptr %condition, metadata !16, metadata !DIExpression()), !dbg !19
   store i32 %"arguments[1].value", ptr %value, align 4
   call void @llvm.dbg.declare(metadata ptr %value, metadata !17, metadata !DIExpression()), !dbg !20
-  call void @llvm.dbg.declare(metadata ptr %value1, metadata !21, metadata !DIExpression()), !dbg !18
-  store i32 0, ptr %value1, align 4, !dbg !18
+  call void @llvm.dbg.declare(metadata ptr %value_2, metadata !21, metadata !DIExpression()), !dbg !18
+  store i32 0, ptr %value_2, align 4, !dbg !18
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 1), !dbg !22
   call void @Defer_expressions_with_debug_information_do_defer(i32 noundef 0), !dbg !23
   ret void, !dbg !24
@@ -1911,7 +2248,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !18 = !DILocation(line: 10, column: 5, scope: !11)
 !19 = !DILocation(line: 7, column: 14, scope: !11)
 !20 = !DILocation(line: 7, column: 31, scope: !11)
-!21 = !DILocalVariable(name: "value", scope: !11, file: !2, line: 10, type: !6)
+!21 = !DILocalVariable(name: "value_2", scope: !11, file: !2, line: 10, type: !6)
 !22 = !DILocation(line: 11, column: 11, scope: !11)
 !23 = !DILocation(line: 9, column: 11, scope: !11)
 !24 = !DILocation(line: 12, column: 5, scope: !11)
@@ -1922,7 +2259,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Dynamic Array", "[LLVM_IR]")
   {
-    char const* const input_file = "dynamic_array.hl";
+    char const* const input_file = "dynamic_array.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -1935,11 +2272,11 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
   TEST_CASE("Compile Dynamic Array Usage", "[LLVM_IR]")
   {
-    char const* const input_file = "dynamic_array_usage.hl";
+    char const* const input_file = "dynamic_array_usage.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "dynamic_array", g_test_files_path / "dynamic_array.hl" }
+      { "dynamic_array", parse_and_get_file_path(g_test_source_files_path / "dynamic_array.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -1956,21 +2293,27 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private void @dynamic_array_usage_run() #0 {
 entry:
+  %0 = alloca %struct.dynamic_array_Allocator, align 8
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %0 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %1 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
   %instance = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
   %element = alloca i32, align 4
-  store %struct.dynamic_array_Allocator zeroinitializer, ptr %allocator, align 8
-  %1 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
-  %2 = load ptr, ptr %1, align 8
-  %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
-  %4 = load ptr, ptr %3, align 8
-  call void @"dynamic_array_create@17667569505855402249"(ptr noundef %0, ptr %2, ptr %4)
-  %5 = load %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %0, align 8
-  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %5, ptr %instance, align 8
+  %2 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %0, i32 0, i32 0
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = load %struct.dynamic_array_Allocator, ptr %0, align 8
+  store %struct.dynamic_array_Allocator %4, ptr %allocator, align 8
+  %5 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  %6 = load ptr, ptr %5, align 8
+  %7 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  call void @"dynamic_array_create@17667569505855402249"(ptr noundef %1, ptr %6, ptr %8)
+  %9 = load %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, align 8
+  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %9, ptr %instance, align 8
   call void @"dynamic_array_push_back@10381242744536279270"(ptr noundef %instance, i32 noundef 1)
-  %6 = call i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %instance, i64 noundef 0)
-  store i32 %6, ptr %element, align 4
+  %10 = call i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %instance, i64 noundef 0)
+  store i32 %10, ptr %element, align 4
   ret void
 }
 
@@ -1978,32 +2321,40 @@ entry:
 define private void @"dynamic_array_create@17667569505855402249"(ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1", ptr %0) #0 {
 entry:
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %1 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
-  store ptr %"arguments[0].allocator_0", ptr %1, align 8
-  %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
-  store ptr %"arguments[0].allocator_1", ptr %2, align 8
-  %3 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
-  %4 = icmp ne ptr %3, null
-  br i1 %4, label %condition_success, label %condition_fail
+  %1 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  store ptr %"arguments[0].allocator_0", ptr %2, align 8
+  %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
+  store ptr %"arguments[0].allocator_1", ptr %3, align 8
+  %4 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
+  %5 = icmp ne ptr %4, null
+  br i1 %5, label %condition_success, label %condition_fail
 
 condition_success:                                ; preds = %entry
-  %5 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
-  %6 = icmp ne ptr %5, null
-  br i1 %6, label %condition_success1, label %condition_fail2
+  %6 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
+  %7 = icmp ne ptr %6, null
+  br i1 %7, label %condition_success1, label %condition_fail2
 
 condition_fail:                                   ; preds = %entry
-  %7 = call i32 @puts(ptr @function_contract_error_string)
+  %8 = call i32 @puts(ptr @function_contract_error_string)
   call void @abort()
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %8 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
-  %9 = insertvalue %"struct.dynamic_array_Dynamic_array@12163040539293411600" { ptr null, i64 0, i64 0, %struct.dynamic_array_Allocator undef }, %struct.dynamic_array_Allocator %8, 3
-  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %9, ptr %"arguments[0].allocator_0", align 8
+  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 0
+  store ptr null, ptr %9, align 8
+  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 1
+  store i64 0, ptr %10, align 8
+  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 2
+  store i64 0, ptr %11, align 8
+  %12 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
+  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 3
+  store %struct.dynamic_array_Allocator %12, ptr %13, align 8
+  call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"arguments[0].allocator_0", ptr align 8 %1, i64 40, i1 false)
   ret void
 
 condition_fail2:                                  ; preds = %condition_success
-  %10 = call i32 @puts(ptr @function_contract_error_string.1)
+  %14 = call i32 @puts(ptr @function_contract_error_string.1)
   call void @abort()
   unreachable
 }
@@ -2121,7 +2472,11 @@ declare i32 @puts(ptr)
 
 declare void @abort()
 
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
+
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
@@ -2129,7 +2484,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Empty Return Expression", "[LLVM_IR]")
   {
-    char const* const input_file = "empty_return_expression.hl";
+    char const* const input_file = "empty_return_expression.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2150,11 +2505,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile For Loop Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "for_loop_expressions.hl";
+    char const* const input_file = "for_loop_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+      { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2270,7 +2625,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Function Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "function_pointers.hl";
+    char const* const input_file = "function_pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2284,15 +2639,21 @@ define void @Function_pointers_run() #0 {
 entry:
   %a = alloca ptr, align 8
   %r0 = alloca i32, align 4
+  %0 = alloca %struct.Function_pointers_My_struct, align 8
   %b = alloca %struct.Function_pointers_My_struct, align 8
   %r1 = alloca i32, align 4
   store ptr @Function_pointers_add, ptr %a, align 8
-  %0 = call i32 %a(i32 noundef 1, i32 noundef 2)
-  store i32 %0, ptr %r0, align 4
-  store %struct.Function_pointers_My_struct { ptr @Function_pointers_add, ptr null }, ptr %b, align 8
-  %1 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
-  %2 = call i32 %1(i32 noundef 3, i32 noundef 4)
-  store i32 %2, ptr %r1, align 4
+  %1 = call i32 %a(i32 noundef 1, i32 noundef 2)
+  store i32 %1, ptr %r0, align 4
+  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %0, i32 0, i32 0
+  store ptr @Function_pointers_add, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = load %struct.Function_pointers_My_struct, ptr %0, align 8
+  store %struct.Function_pointers_My_struct %4, ptr %b, align 8
+  %5 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  %6 = call i32 %5(i32 noundef 3, i32 noundef 4)
+  store i32 %6, ptr %r1, align 4
   ret void
 }
 
@@ -2317,11 +2678,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile hello world!", "[LLVM_IR]")
   {
-    char const* const input_file = "hello_world.hl";
+    char const* const input_file = "hello_world.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2345,11 +2706,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile If Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "if_expressions.hl";
+    char const* const input_file = "if_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2465,7 +2826,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile If Return Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "if_return_expressions.hl";
+    char const* const input_file = "if_return_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2496,7 +2857,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
-    char const* const input_file = "module_with_dots.hl";
+    char const* const input_file = "module_with_dots.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2529,12 +2890,12 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Multiple Modules", "[LLVM_IR]")
   {
-    char const* const input_file = "multiple_modules_a.hl";
+    char const* const input_file = "multiple_modules_a.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-      { "MB", g_test_files_path / "multiple_modules_b.hl" },
-      { "MC", g_test_files_path / "multiple_modules_c.hl" },
+      { "MB", parse_and_get_file_path(g_test_source_files_path / "multiple_modules_b.hltxt") },
+      { "MC", parse_and_get_file_path(g_test_source_files_path / "multiple_modules_c.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -2571,7 +2932,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Null Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "null_pointers.hl";
+    char const* const input_file = "null_pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2608,7 +2969,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Numbers", "[LLVM_IR]")
   {
-    char const* const input_file = "numbers.hl";
+    char const* const input_file = "numbers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2629,6 +2990,16 @@ entry:
   %my_float16 = alloca half, align 2
   %my_float32 = alloca float, align 4
   %my_float64 = alloca double, align 8
+  %my_c_char = alloca i8, align 1
+  %my_c_short = alloca i16, align 2
+  %my_c_int = alloca i32, align 4
+  %my_c_long = alloca i32, align 4
+  %my_c_long_long = alloca i64, align 8
+  %my_c_unsigned_char = alloca i8, align 1
+  %my_c_unsigned_short = alloca i16, align 2
+  %my_c_unsigned_int = alloca i32, align 4
+  %my_c_unsigned_long = alloca i32, align 4
+  %my_c_unsigned_long_long = alloca i64, align 8
   store i8 1, ptr %my_int8, align 1
   store i16 1, ptr %my_int16, align 2
   store i32 1, ptr %my_int32, align 4
@@ -2640,6 +3011,16 @@ entry:
   store half 0xH3C00, ptr %my_float16, align 2
   store float 1.000000e+00, ptr %my_float32, align 4
   store double 1.000000e+00, ptr %my_float64, align 8
+  store i8 1, ptr %my_c_char, align 1
+  store i16 1, ptr %my_c_short, align 2
+  store i32 1, ptr %my_c_int, align 4
+  store i32 1, ptr %my_c_long, align 4
+  store i64 1, ptr %my_c_long_long, align 8
+  store i8 1, ptr %my_c_unsigned_char, align 1
+  store i16 1, ptr %my_c_unsigned_short, align 2
+  store i32 1, ptr %my_c_unsigned_int, align 4
+  store i32 1, ptr %my_c_unsigned_long, align 4
+  store i64 1, ptr %my_c_unsigned_long_long, align 8
   ret i32 0
 }
 
@@ -2651,7 +3032,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Numeric_casts", "[LLVM_IR]")
   {
-    char const* const input_file = "numeric_casts.hl";
+    char const* const input_file = "numeric_casts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2750,7 +3131,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Pointers", "[LLVM_IR]")
   {
-    char const* const input_file = "pointers.hl";
+    char const* const input_file = "pointers.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2779,7 +3160,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Switch Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "switch_expressions.hl";
+    char const* const input_file = "switch_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -2854,7 +3235,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Ternary Condition Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "ternary_condition_expressions.hl";
+    char const* const input_file = "ternary_condition_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3005,7 +3386,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Unary Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "unary_expressions.hl";
+    char const* const input_file = "unary_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3049,13 +3430,34 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
-  TEST_CASE("Compile Using Alias From Modules", "[LLVM_IR]")
+  TEST_CASE("Compile Unique Name", "[LLVM_IR]")
   {
-    char const* const input_file = "using_alias_from_modules.hl";
+    char const* const input_file = "unique_name.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Alias", g_test_files_path / "using_alias.hl" }
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define void @my_unique_name() #0 {
+entry:
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Using Alias From Modules", "[LLVM_IR]")
+  {
+    char const* const input_file = "using_alias_from_modules.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "Alias", parse_and_get_file_path(g_test_source_files_path / "using_alias.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3077,7 +3479,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Alias", "[LLVM_IR]")
   {
-    char const* const input_file = "using_alias.hl";
+    char const* const input_file = "using_alias.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3104,7 +3506,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enum Flags", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enum_flags.hl";
+    char const* const input_file = "using_enum_flags.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3182,11 +3584,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enums From Modules", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enums_from_modules.hl";
+    char const* const input_file = "using_enums_from_modules.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "Enums", g_test_files_path / "using_enums.hl" }
+        { "Enums", parse_and_get_file_path(g_test_source_files_path / "using_enums.hltxt") },
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3206,7 +3608,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Enums", "[LLVM_IR]")
   {
-    char const* const input_file = "using_enums.hl";
+    char const* const input_file = "using_enums.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3260,7 +3662,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Function Constructors", "[LLVM_IR]")
   {
-    char const* const input_file = "using_function_constructors.hl";
+    char const* const input_file = "using_function_constructors.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3329,7 +3731,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Global Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "using_global_variables.hl";
+    char const* const input_file = "using_global_variables.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "using_global_variables";
     std::filesystem::create_directories(root_directory_path);
@@ -3342,7 +3744,7 @@ float my_global = 0.0f;
     std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -3383,7 +3785,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Structs", "[LLVM_IR]")
   {
-    char const* const input_file = "using_structs.hl";
+    char const* const input_file = "using_structs.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3392,55 +3794,146 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     char const* const expected_llvm_ir = R"(
 %struct.Structs_My_struct = type { i32, i32 }
 %struct.Structs_My_struct_2 = type { %struct.Structs_My_struct, %struct.Structs_My_struct, %struct.Structs_My_struct }
-%union.Structs_My_Union = type { %struct.Structs_My_struct_2 }
 %struct.Structs_My_struct_3 = type { i32, %union.Structs_My_Union }
+%union.Structs_My_Union = type { %struct.Structs_My_struct_2 }
 
 ; Function Attrs: convergent
 define void @Structs_use_structs(i64 noundef %"arguments[0].my_struct") #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
   %a = alloca i32, align 4
+  %1 = alloca %struct.Structs_My_struct, align 4
   %instance_0 = alloca %struct.Structs_My_struct, align 4
+  %2 = alloca %struct.Structs_My_struct, align 4
   %instance_1 = alloca %struct.Structs_My_struct, align 4
+  %3 = alloca %struct.Structs_My_struct_2, align 4
+  %4 = alloca %struct.Structs_My_struct, align 4
+  %5 = alloca %struct.Structs_My_struct, align 4
+  %6 = alloca %struct.Structs_My_struct, align 4
   %instance_2 = alloca %struct.Structs_My_struct_2, align 4
+  %7 = alloca %struct.Structs_My_struct_2, align 4
+  %8 = alloca %struct.Structs_My_struct, align 4
+  %9 = alloca %struct.Structs_My_struct, align 4
+  %10 = alloca %struct.Structs_My_struct, align 4
   %instance_3 = alloca %struct.Structs_My_struct_2, align 4
   %nested_b_a = alloca i32, align 4
+  %11 = alloca %struct.Structs_My_struct, align 4
   %instance_4 = alloca %struct.Structs_My_struct, align 4
-  %1 = alloca %struct.Structs_My_struct, align 4
-  %2 = alloca %struct.Structs_My_struct, align 4
+  %12 = alloca %struct.Structs_My_struct, align 4
+  %13 = alloca %struct.Structs_My_struct, align 4
+  %14 = alloca %struct.Structs_My_struct, align 4
   %instance_5 = alloca %struct.Structs_My_struct, align 4
-  %3 = alloca %union.Structs_My_Union, align 4
+  %15 = alloca %struct.Structs_My_struct_3, align 4
+  %16 = alloca %struct.Structs_My_struct, align 4
+  %17 = alloca %union.Structs_My_Union, align 4
   %instance_6 = alloca %struct.Structs_My_struct_3, align 4
-  %4 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
-  store i64 %"arguments[0].my_struct", ptr %4, align 4
-  %5 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
-  %6 = load i32, ptr %5, align 4
-  store i32 %6, ptr %a, align 4
-  store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %instance_0, align 4
-  store %struct.Structs_My_struct { i32 1, i32 3 }, ptr %instance_1, align 4
-  store %struct.Structs_My_struct_2 { %struct.Structs_My_struct { i32 1, i32 2 }, %struct.Structs_My_struct { i32 2, i32 2 }, %struct.Structs_My_struct { i32 3, i32 4 } }, ptr %instance_2, align 4
-  store %struct.Structs_My_struct_2 { %struct.Structs_My_struct { i32 1, i32 2 }, %struct.Structs_My_struct { i32 1, i32 2 }, %struct.Structs_My_struct { i32 0, i32 1 } }, ptr %instance_3, align 4
-  %7 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
-  %8 = getelementptr inbounds %struct.Structs_My_struct, ptr %7, i32 0, i32 0
-  %9 = load i32, ptr %8, align 4
-  store i32 %9, ptr %nested_b_a, align 4
-  store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %instance_4, align 4
-  store %struct.Structs_My_struct { i32 10, i32 11 }, ptr %instance_4, align 4
-  %10 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
-  store i32 0, ptr %10, align 4
-  store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %1, align 4
-  %11 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 0
-  %12 = load i64, ptr %11, align 4
-  call void @Structs_pass_struct(i64 noundef %12)
-  %13 = call i64 @Structs_return_struct()
-  %14 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 0
-  store i64 %13, ptr %14, align 4
-  %15 = load %struct.Structs_My_struct, ptr %2, align 4
-  store %struct.Structs_My_struct %15, ptr %instance_5, align 4
-  store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %3, align 4
-  %16 = load %union.Structs_My_Union, ptr %3, align 4
-  %17 = insertvalue %struct.Structs_My_struct_3 { i32 4, %union.Structs_My_Union undef }, %union.Structs_My_Union %16, 1
-  store %struct.Structs_My_struct_3 %17, ptr %instance_6, align 4
+  %18 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[0].my_struct", ptr %18, align 4
+  %19 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
+  %20 = load i32, ptr %19, align 4
+  store i32 %20, ptr %a, align 4
+  %21 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 0
+  store i32 1, ptr %21, align 4
+  %22 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 1
+  store i32 2, ptr %22, align 4
+  %23 = load %struct.Structs_My_struct, ptr %1, align 4
+  store %struct.Structs_My_struct %23, ptr %instance_0, align 4
+  %24 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 0
+  store i32 1, ptr %24, align 4
+  %25 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 1
+  store i32 3, ptr %25, align 4
+  %26 = load %struct.Structs_My_struct, ptr %2, align 4
+  store %struct.Structs_My_struct %26, ptr %instance_1, align 4
+  %27 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 0
+  store i32 1, ptr %27, align 4
+  %28 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 1
+  store i32 2, ptr %28, align 4
+  %29 = load %struct.Structs_My_struct, ptr %4, align 4
+  %30 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 0
+  store %struct.Structs_My_struct %29, ptr %30, align 4
+  %31 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 0
+  store i32 2, ptr %31, align 4
+  %32 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 1
+  store i32 2, ptr %32, align 4
+  %33 = load %struct.Structs_My_struct, ptr %5, align 4
+  %34 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 1
+  store %struct.Structs_My_struct %33, ptr %34, align 4
+  %35 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 0
+  store i32 3, ptr %35, align 4
+  %36 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 1
+  store i32 4, ptr %36, align 4
+  %37 = load %struct.Structs_My_struct, ptr %6, align 4
+  %38 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 2
+  store %struct.Structs_My_struct %37, ptr %38, align 4
+  %39 = load %struct.Structs_My_struct_2, ptr %3, align 4
+  store %struct.Structs_My_struct_2 %39, ptr %instance_2, align 4
+  %40 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 0
+  store i32 1, ptr %40, align 4
+  %41 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 1
+  store i32 2, ptr %41, align 4
+  %42 = load %struct.Structs_My_struct, ptr %8, align 4
+  %43 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 0
+  store %struct.Structs_My_struct %42, ptr %43, align 4
+  %44 = getelementptr inbounds %struct.Structs_My_struct, ptr %9, i32 0, i32 0
+  store i32 1, ptr %44, align 4
+  %45 = getelementptr inbounds %struct.Structs_My_struct, ptr %9, i32 0, i32 1
+  store i32 2, ptr %45, align 4
+  %46 = load %struct.Structs_My_struct, ptr %9, align 4
+  %47 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 1
+  store %struct.Structs_My_struct %46, ptr %47, align 4
+  %48 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 0
+  store i32 0, ptr %48, align 4
+  %49 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 1
+  store i32 1, ptr %49, align 4
+  %50 = load %struct.Structs_My_struct, ptr %10, align 4
+  %51 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 2
+  store %struct.Structs_My_struct %50, ptr %51, align 4
+  %52 = load %struct.Structs_My_struct_2, ptr %7, align 4
+  store %struct.Structs_My_struct_2 %52, ptr %instance_3, align 4
+  %53 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
+  %54 = getelementptr inbounds %struct.Structs_My_struct, ptr %53, i32 0, i32 0
+  %55 = load i32, ptr %54, align 4
+  store i32 %55, ptr %nested_b_a, align 4
+  %56 = getelementptr inbounds %struct.Structs_My_struct, ptr %11, i32 0, i32 0
+  store i32 1, ptr %56, align 4
+  %57 = getelementptr inbounds %struct.Structs_My_struct, ptr %11, i32 0, i32 1
+  store i32 2, ptr %57, align 4
+  %58 = load %struct.Structs_My_struct, ptr %11, align 4
+  store %struct.Structs_My_struct %58, ptr %instance_4, align 4
+  %59 = getelementptr inbounds %struct.Structs_My_struct, ptr %12, i32 0, i32 0
+  store i32 10, ptr %59, align 4
+  %60 = getelementptr inbounds %struct.Structs_My_struct, ptr %12, i32 0, i32 1
+  store i32 11, ptr %60, align 4
+  %61 = load %struct.Structs_My_struct, ptr %12, align 4
+  store %struct.Structs_My_struct %61, ptr %instance_4, align 4
+  %62 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
+  %63 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
+  store i32 0, ptr %63, align 4
+  %64 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 0
+  store i32 1, ptr %64, align 4
+  %65 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 1
+  store i32 2, ptr %65, align 4
+  %66 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 0
+  %67 = load i64, ptr %66, align 4
+  call void @Structs_pass_struct(i64 noundef %67)
+  %68 = call i64 @Structs_return_struct()
+  %69 = getelementptr inbounds %struct.Structs_My_struct, ptr %14, i32 0, i32 0
+  store i64 %68, ptr %69, align 4
+  %70 = load %struct.Structs_My_struct, ptr %14, align 4
+  store %struct.Structs_My_struct %70, ptr %instance_5, align 4
+  %71 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %15, i32 0, i32 0
+  store i32 4, ptr %71, align 4
+  %72 = getelementptr inbounds %struct.Structs_My_struct, ptr %16, i32 0, i32 0
+  store i32 1, ptr %72, align 4
+  %73 = getelementptr inbounds %struct.Structs_My_struct, ptr %16, i32 0, i32 1
+  store i32 2, ptr %73, align 4
+  %74 = load %struct.Structs_My_struct, ptr %16, align 4
+  store %struct.Structs_My_struct %74, ptr %17, align 4
+  %75 = load %union.Structs_My_Union, ptr %17, align 4
+  %76 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %15, i32 0, i32 1
+  store %union.Structs_My_Union %75, ptr %76, align 4
+  %77 = load %struct.Structs_My_struct_3, ptr %15, align 4
+  store %struct.Structs_My_struct_3 %77, ptr %instance_6, align 4
   ret void
 }
 
@@ -3457,10 +3950,13 @@ entry:
 define private i64 @Structs_return_struct() #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
-  store %struct.Structs_My_struct { i32 1, i32 2 }, ptr %0, align 4
   %1 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
-  %2 = load i64, ptr %1, align 4
-  ret i64 %2
+  store i32 1, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 1
+  store i32 2, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
+  %4 = load i64, ptr %3, align 4
+  ret i64 %4
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
@@ -3471,7 +3967,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Type Constructors", "[LLVM_IR]")
   {
-    char const* const input_file = "using_type_constructors.hl";
+    char const* const input_file = "using_type_constructors.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3488,16 +3984,38 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define private void @Type_constructor_run(ptr %"arguments[0].instance_0_0", i64 %"arguments[0].instance_0_1") #0 {
 entry:
   %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@9994574774750473214", align 8
+  %0 = alloca %"struct.Type_constructor_Dynamic_array@2641373668420072849", align 8
   %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@2641373668420072849", align 8
+  %1 = alloca %struct.Type_constructor_My_struct, align 8
+  %2 = alloca %"struct.Type_constructor_Dynamic_array@3001456960366960646", align 8
   %instance_2 = alloca %struct.Type_constructor_My_struct, align 8
+  %3 = alloca %"struct.Type_constructor_Dynamic_array@8855203584689900883", align 8
   %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@8855203584689900883", align 8
-  %0 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
-  store ptr %"arguments[0].instance_0_0", ptr %0, align 8
-  %1 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
-  store i64 %"arguments[0].instance_0_1", ptr %1, align 8
-  store %"struct.Type_constructor_Dynamic_array@2641373668420072849" zeroinitializer, ptr %instance_1, align 8
-  store %struct.Type_constructor_My_struct zeroinitializer, ptr %instance_2, align 8
-  store %"struct.Type_constructor_Dynamic_array@8855203584689900883" zeroinitializer, ptr %instance_3, align 8
+  %4 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
+  store ptr %"arguments[0].instance_0_0", ptr %4, align 8
+  %5 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
+  store i64 %"arguments[0].instance_0_1", ptr %5, align 8
+  %6 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, i32 0, i32 0
+  store ptr null, ptr %6, align 8
+  %7 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, i32 0, i32 1
+  store i64 0, ptr %7, align 8
+  %8 = load %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, align 8
+  store %"struct.Type_constructor_Dynamic_array@2641373668420072849" %8, ptr %instance_1, align 8
+  %9 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, i32 0, i32 0
+  store ptr null, ptr %9, align 8
+  %10 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, i32 0, i32 1
+  store i64 0, ptr %10, align 8
+  %11 = load %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, align 8
+  %12 = getelementptr inbounds %struct.Type_constructor_My_struct, ptr %1, i32 0, i32 0
+  store %"struct.Type_constructor_Dynamic_array@3001456960366960646" %11, ptr %12, align 8
+  %13 = load %struct.Type_constructor_My_struct, ptr %1, align 8
+  store %struct.Type_constructor_My_struct %13, ptr %instance_2, align 8
+  %14 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, i32 0, i32 0
+  store ptr null, ptr %14, align 8
+  %15 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, i32 0, i32 1
+  store i64 0, ptr %15, align 8
+  %16 = load %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, align 8
+  store %"struct.Type_constructor_Dynamic_array@8855203584689900883" %16, ptr %instance_3, align 8
   ret void
 }
 
@@ -3509,7 +4027,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Using Unions", "[LLVM_IR]")
   {
-    char const* const input_file = "using_unions.hl";
+    char const* const input_file = "using_unions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3538,87 +4056,95 @@ entry:
   %instance_3 = alloca %union.Unions_My_union_2, align 8
   %5 = alloca %union.Unions_My_union_3, align 8
   %instance_4 = alloca %union.Unions_My_union_3, align 8
-  %6 = alloca %union.Unions_My_union_3, align 8
-  %instance_5 = alloca %union.Unions_My_union_3, align 8
+  %6 = alloca %struct.Unions_My_struct, align 4
   %7 = alloca %union.Unions_My_union_3, align 8
+  %instance_5 = alloca %union.Unions_My_union_3, align 8
+  %8 = alloca %struct.Unions_My_struct, align 4
+  %9 = alloca %union.Unions_My_union_3, align 8
   %instance_6 = alloca %union.Unions_My_union_3, align 8
   %nested_b_a = alloca i32, align 4
-  %8 = alloca %union.Unions_My_union, align 4
-  %instance_7 = alloca %union.Unions_My_union, align 4
-  %9 = alloca %union.Unions_My_union, align 4
   %10 = alloca %union.Unions_My_union, align 4
+  %instance_7 = alloca %union.Unions_My_union, align 4
   %11 = alloca %union.Unions_My_union, align 4
-  %instance_8 = alloca %union.Unions_My_union, align 4
   %12 = alloca %union.Unions_My_union, align 4
+  %13 = alloca %union.Unions_My_union, align 4
+  %instance_8 = alloca %union.Unions_My_union, align 4
+  %14 = alloca %union.Unions_My_union, align 4
   %instance_9 = alloca %union.Unions_My_union, align 4
-  %13 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  store i32 %"arguments[0].my_union", ptr %13, align 4
+  %15 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  store i32 %"arguments[0].my_union", ptr %15, align 4
   store i32 %"arguments[1].my_union_tag", ptr %my_union_tag, align 4
-  %14 = load i32, ptr %my_union_tag, align 4
-  %15 = icmp eq i32 %14, 0
-  br i1 %15, label %if_s0_then, label %if_s1_else
+  %16 = load i32, ptr %my_union_tag, align 4
+  %17 = icmp eq i32 %16, 0
+  br i1 %17, label %if_s0_then, label %if_s1_else
 
 if_s0_then:                                       ; preds = %entry
-  %16 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  %17 = load i32, ptr %16, align 4
-  store i32 %17, ptr %a, align 4
+  %18 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  %19 = load i32, ptr %18, align 4
+  store i32 %19, ptr %a, align 4
   br label %if_s3_after
 
 if_s1_else:                                       ; preds = %entry
-  %18 = load i32, ptr %my_union_tag, align 4
-  %19 = icmp eq i32 %18, 1
-  br i1 %19, label %if_s2_then, label %if_s3_after
+  %20 = load i32, ptr %my_union_tag, align 4
+  %21 = icmp eq i32 %20, 1
+  br i1 %21, label %if_s2_then, label %if_s3_after
 
 if_s2_then:                                       ; preds = %if_s1_else
-  %20 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  %21 = load float, ptr %20, align 4
-  store float %21, ptr %b, align 4
+  %22 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  %23 = load float, ptr %22, align 4
+  store float %23, ptr %b, align 4
   br label %if_s3_after
 
 if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else, %if_s0_then
   store i32 2, ptr %1, align 4
-  %22 = load %union.Unions_My_union, ptr %1, align 4
-  store %union.Unions_My_union %22, ptr %instance_0, align 4
+  %24 = load %union.Unions_My_union, ptr %1, align 4
+  store %union.Unions_My_union %24, ptr %instance_0, align 4
   store float 3.000000e+00, ptr %2, align 4
-  %23 = load %union.Unions_My_union, ptr %2, align 4
-  store %union.Unions_My_union %23, ptr %instance_1, align 4
+  %25 = load %union.Unions_My_union, ptr %2, align 4
+  store %union.Unions_My_union %25, ptr %instance_1, align 4
   store i32 2, ptr %3, align 4
-  %24 = load %union.Unions_My_union_2, ptr %3, align 8
-  store %union.Unions_My_union_2 %24, ptr %instance_2, align 8
+  %26 = load %union.Unions_My_union_2, ptr %3, align 8
+  store %union.Unions_My_union_2 %26, ptr %instance_2, align 8
   store i64 3, ptr %4, align 8
-  %25 = load %union.Unions_My_union_2, ptr %4, align 8
-  store %union.Unions_My_union_2 %25, ptr %instance_3, align 8
+  %27 = load %union.Unions_My_union_2, ptr %4, align 8
+  store %union.Unions_My_union_2 %27, ptr %instance_3, align 8
   store i64 3, ptr %5, align 8
-  %26 = load %union.Unions_My_union_3, ptr %5, align 8
-  store %union.Unions_My_union_3 %26, ptr %instance_4, align 8
-  store %struct.Unions_My_struct { i32 1 }, ptr %6, align 4
-  %27 = load %union.Unions_My_union_3, ptr %6, align 8
-  store %union.Unions_My_union_3 %27, ptr %instance_5, align 8
-  store %struct.Unions_My_struct { i32 2 }, ptr %7, align 4
-  %28 = load %union.Unions_My_union_3, ptr %7, align 8
-  store %union.Unions_My_union_3 %28, ptr %instance_6, align 8
-  %29 = getelementptr inbounds %union.Unions_My_union_3, ptr %instance_6, i32 0, i32 0
-  %30 = getelementptr inbounds %struct.Unions_My_struct, ptr %29, i32 0, i32 0
-  %31 = load i32, ptr %30, align 4
-  store i32 %31, ptr %nested_b_a, align 4
-  store i32 1, ptr %8, align 4
-  %32 = load %union.Unions_My_union, ptr %8, align 4
-  store %union.Unions_My_union %32, ptr %instance_7, align 4
-  store i32 2, ptr %9, align 4
-  %33 = load %union.Unions_My_union, ptr %9, align 4
-  store %union.Unions_My_union %33, ptr %instance_7, align 4
-  store i32 4, ptr %10, align 4
-  %34 = getelementptr inbounds %union.Unions_My_union, ptr %10, i32 0, i32 0
-  %35 = load i32, ptr %34, align 4
-  call void @Unions_pass_union(i32 noundef %35)
-  %36 = call i32 @Unions_return_union()
-  %37 = getelementptr inbounds %union.Unions_My_union, ptr %11, i32 0, i32 0
-  store i32 %36, ptr %37, align 4
-  %38 = load %union.Unions_My_union, ptr %11, align 4
-  store %union.Unions_My_union %38, ptr %instance_8, align 4
-  call void @llvm.memset.p0.i64(ptr align 4 %12, i8 0, i64 4, i1 false)
-  %39 = load %union.Unions_My_union, ptr %12, align 4
-  store %union.Unions_My_union %39, ptr %instance_9, align 4
+  %28 = load %union.Unions_My_union_3, ptr %5, align 8
+  store %union.Unions_My_union_3 %28, ptr %instance_4, align 8
+  %29 = getelementptr inbounds %struct.Unions_My_struct, ptr %6, i32 0, i32 0
+  store i32 1, ptr %29, align 4
+  %30 = load %struct.Unions_My_struct, ptr %6, align 4
+  store %struct.Unions_My_struct %30, ptr %7, align 4
+  %31 = load %union.Unions_My_union_3, ptr %7, align 8
+  store %union.Unions_My_union_3 %31, ptr %instance_5, align 8
+  %32 = getelementptr inbounds %struct.Unions_My_struct, ptr %8, i32 0, i32 0
+  store i32 2, ptr %32, align 4
+  %33 = load %struct.Unions_My_struct, ptr %8, align 4
+  store %struct.Unions_My_struct %33, ptr %9, align 4
+  %34 = load %union.Unions_My_union_3, ptr %9, align 8
+  store %union.Unions_My_union_3 %34, ptr %instance_6, align 8
+  %35 = getelementptr inbounds %union.Unions_My_union_3, ptr %instance_6, i32 0, i32 0
+  %36 = getelementptr inbounds %struct.Unions_My_struct, ptr %35, i32 0, i32 0
+  %37 = load i32, ptr %36, align 4
+  store i32 %37, ptr %nested_b_a, align 4
+  store i32 1, ptr %10, align 4
+  %38 = load %union.Unions_My_union, ptr %10, align 4
+  store %union.Unions_My_union %38, ptr %instance_7, align 4
+  store i32 2, ptr %11, align 4
+  %39 = load %union.Unions_My_union, ptr %11, align 4
+  store %union.Unions_My_union %39, ptr %instance_7, align 4
+  store i32 4, ptr %12, align 4
+  %40 = getelementptr inbounds %union.Unions_My_union, ptr %12, i32 0, i32 0
+  %41 = load i32, ptr %40, align 4
+  call void @Unions_pass_union(i32 noundef %41)
+  %42 = call i32 @Unions_return_union()
+  %43 = getelementptr inbounds %union.Unions_My_union, ptr %13, i32 0, i32 0
+  store i32 %42, ptr %43, align 4
+  %44 = load %union.Unions_My_union, ptr %13, align 4
+  store %union.Unions_My_union %44, ptr %instance_8, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %14, i8 0, i64 4, i1 false)
+  %45 = load %union.Unions_My_union, ptr %14, align 4
+  store %union.Unions_My_union %45, ptr %instance_9, align 4
   ret void
 }
 
@@ -3653,7 +4179,7 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
 
   TEST_CASE("Compile Variables", "[LLVM_IR]")
   {
-    char const* const input_file = "variables.hl";
+    char const* const input_file = "variables.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3679,11 +4205,11 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile While Loop Expressions", "[LLVM_IR]")
   {
-    char const* const input_file = "while_loop_expressions.hl";
+    char const* const input_file = "while_loop_expressions.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
-        { "C.stdio", g_standard_library_path / "C_stdio.hl" }
+        { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
     };
 
     char const* const expected_llvm_ir = R"(
@@ -3786,7 +4312,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
   TEST_CASE("Compile Function Contracts", "[LLVM_IR]")
   {
-    char const* const input_file = "function_contracts.hl";
+    char const* const input_file = "function_contracts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3885,7 +4411,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     TEST_CASE("Compile Function Contracts with disable contracts", "[LLVM_IR]")
   {
-    char const* const input_file = "function_contracts.hl";
+    char const* const input_file = "function_contracts.hltxt";
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -3941,7 +4467,7 @@ struct My_struct
 
     h::Struct_layout const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
@@ -3952,11 +4478,13 @@ struct My_struct
     h::Declaration_database declaration_database = h::create_declaration_database();
     h::add_declarations(declaration_database, *core_module);
 
+    std::pmr::vector<h::Module const*> core_modules{ &core_module.value() };
     h::compiler::Clang_module_data clang_module_data = h::compiler::create_clang_module_data(
         *llvm_data.context,
         llvm_data.clang_data,
-        *core_module,
+        "Hl_clang_module",
         {},
+        core_modules,
         declaration_database
     );
 
@@ -3973,7 +4501,7 @@ struct My_struct
     std::string_view const expected_llvm_ir
   )
   {
-    char const* const input_file = "c_interoperability_call_function_with_struct.hl";
+    char const* const input_file = "c_interoperability_call_function_with_struct.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_call_function_with_struct";
     std::filesystem::create_directories(root_directory_path);
@@ -3993,7 +4521,7 @@ void foo(My_struct argument);
     std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
     h::common::write_to_file(header_file_path, header_content);
 
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hl";
+    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
     h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
@@ -4017,13 +4545,23 @@ void foo(My_struct argument);
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
+  %0 = alloca %struct.My_struct, align 4
   %instance = alloca %struct.My_struct, align 4
-  store %struct.My_struct zeroinitializer, ptr %instance, align 4
-  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
-  %1 = load i64, ptr %0, align 4
-  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %3 = load i64, ptr %2, align 4
-  call void @foo(i64 %1, i64 %3)
+  %1 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = load %struct.My_struct, ptr %0, align 4
+  store %struct.My_struct %5, ptr %instance, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %7 = load i64, ptr %6, align 4
+  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %9 = load i64, ptr %8, align 4
+  call void @foo(i64 %7, i64 %9)
   ret void
 }
 
@@ -4044,11 +4582,21 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %instance = alloca %struct.My_struct, align 4
   %0 = alloca %struct.My_struct, align 4
-  store %struct.My_struct zeroinitializer, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
-  call void @foo(ptr noundef %0)
+  %instance = alloca %struct.My_struct, align 4
+  %1 = alloca %struct.My_struct, align 4
+  %2 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = load %struct.My_struct, ptr %0, align 4
+  store %struct.My_struct %6, ptr %instance, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
+  call void @foo(ptr noundef %1)
   ret void
 }
 
@@ -4070,7 +4618,7 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
     std::string_view const expected_llvm_ir
   )
   {
-    char const* const input_file = "c_interoperability_define_function_with_struct.hl";
+    char const* const input_file = "c_interoperability_define_function_with_struct.hltxt";
 
     std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_interoperability_define_function_with_struct";
     std::filesystem::create_directories(root_directory_path);
@@ -4115,14 +4663,24 @@ entry:
 ; Function Attrs: convergent
 define private i32 @c_interoperability_run() #0 {
 entry:
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
-  %1 = load i64, ptr %0, align 4
-  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %3 = load i64, ptr %2, align 4
-  %4 = call i32 @c_interoperability_add_all(i64 %1, i64 %3)
-  ret i32 %4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %5, ptr %instance, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %7 = load i64, ptr %6, align 4
+  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %9 = load i64, ptr %8, align 4
+  %10 = call i32 @c_interoperability_add_all(i64 %7, i64 %9)
+  ret i32 %10
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
@@ -4158,12 +4716,22 @@ entry:
 ; Function Attrs: convergent
 define private i32 @c_interoperability_run() #0 {
 entry:
-  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
-  %1 = call i32 @c_interoperability_add_all(ptr noundef %0)
-  ret i32 %1
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %6, ptr %instance, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
+  %7 = call i32 @c_interoperability_add_all(ptr noundef %1)
+  ret i32 %7
 }
 
 ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -4215,11 +4783,11 @@ entry:
 define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca i8, align 1
-  %first = alloca i1, align 1
+  %first = alloca i8, align 1
   %result = alloca i8, align 1
   %0 = zext i1 %"arguments[0].parameter" to i8
   store i8 %0, ptr %parameter, align 1
-  store i1 true, ptr %first, align 1
+  store i8 1, ptr %first, align 1
   %1 = load i8, ptr %first, align 1
   %2 = trunc i8 %1 to i1
   %3 = load i8, ptr %parameter, align 1
@@ -4233,7 +4801,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - Call function that returns c bool x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4255,11 +4823,11 @@ entry:
 define private void @c_interoperability_run(i1 noundef zeroext %"arguments[0].parameter") #0 {
 entry:
   %parameter = alloca i8, align 1
-  %first = alloca i1, align 1
+  %first = alloca i8, align 1
   %result = alloca i8, align 1
   %0 = zext i1 %"arguments[0].parameter" to i8
   store i8 %0, ptr %parameter, align 1
-  store i1 true, ptr %first, align 1
+  store i8 1, ptr %first, align 1
   %1 = load i8, ptr %first, align 1
   %2 = trunc i8 %1 to i1
   %3 = load i8, ptr %parameter, align 1
@@ -4273,7 +4841,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4284,7 +4852,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_foo(ptr %0) #0 {
 entry:
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %0, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 20, i1 false)
   ret void
 }
 
@@ -4299,10 +4878,14 @@ entry:
   ret void
 }
 
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
+
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4313,7 +4896,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_foo(ptr %0) #0 {
 entry:
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %0, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 20, i1 false)
   ret void
 }
 
@@ -4328,18 +4922,25 @@ entry:
   ret void
 }
 
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
+
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_big_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
     char const* const expected_llvm_ir = R"(
+%struct.c_interoperability_My_struct = type {}
+
 ; Function Attrs: convergent
 define private void @c_interoperability_foo() #0 {
 entry:
+  %0 = alloca %struct.c_interoperability_My_struct, align 1
   ret void
 }
 
@@ -4353,7 +4954,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4365,7 +4966,6 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define private i32 @c_interoperability_foo() #0 {
 entry:
   %0 = alloca %struct.c_interoperability_My_struct, align 1
-  store %struct.c_interoperability_My_struct undef, ptr %0, align 1
   %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
   %2 = load i32, ptr %1, align 1
   ret i32 %2
@@ -4387,7 +4987,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_empty_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4411,7 +5011,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_int.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_int x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4435,7 +5035,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_int.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_int.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4459,7 +5059,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4483,7 +5083,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_pointer.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4495,9 +5095,16 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define private { i64, i64 } @c_interoperability_foo() #0 {
 entry:
   %0 = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %0, align 4
-  %1 = load { i64, i64 }, ptr %0, align 4
-  ret { i64, i64 } %1
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = load { i64, i64 }, ptr %0, align 4
+  ret { i64, i64 } %5
 }
 
 ; Function Attrs: convergent
@@ -4520,7 +5127,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_return_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4531,7 +5138,16 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_foo(ptr %0) #0 {
 entry:
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %0, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 16, i1 false)
   ret void
 }
 
@@ -4546,10 +5162,14 @@ entry:
   ret void
 }
 
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
+
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_return_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_return_small_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4568,11 +5188,23 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 20, i1 false)
-  call void @c_interoperability_foo(ptr noundef %0)
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  %7 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %7, ptr %instance, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
   ret void
 }
 
@@ -4583,7 +5215,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4602,11 +5234,23 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 20, i1 false)
-  call void @c_interoperability_foo(ptr noundef %0)
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
+  store i32 0, ptr %6, align 4
+  %7 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %7, ptr %instance, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
   ret void
 }
 
@@ -4617,7 +5261,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_big_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_big_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4634,8 +5278,10 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
+  %0 = alloca %struct.c_interoperability_My_struct, align 1
   %instance = alloca %struct.c_interoperability_My_struct, align 1
-  store %struct.c_interoperability_My_struct undef, ptr %instance, align 1
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 1
+  store %struct.c_interoperability_My_struct %1, ptr %instance, align 1
   call void @c_interoperability_foo()
   ret void
 }
@@ -4643,7 +5289,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_empty_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4663,18 +5309,20 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
+  %0 = alloca %struct.c_interoperability_My_struct, align 1
   %instance = alloca %struct.c_interoperability_My_struct, align 1
-  store %struct.c_interoperability_My_struct undef, ptr %instance, align 1
-  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
-  %1 = load i32, ptr %0, align 1
-  call void @c_interoperability_foo(i32 noundef %1)
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 1
+  store %struct.c_interoperability_My_struct %1, ptr %instance, align 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %3 = load i32, ptr %2, align 1
+  call void @c_interoperability_foo(i32 noundef %3)
   ret void
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_empty_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4700,7 +5348,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_int_arguments x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4726,7 +5374,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_int_arguments.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4750,7 +5398,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_pointer x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4774,7 +5422,7 @@ entry:
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_pointer.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_pointer.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
   
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
@@ -4796,20 +5444,30 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  %0 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
-  %1 = load i64, ptr %0, align 4
-  %2 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %3 = load i64, ptr %2, align 4
-  call void @c_interoperability_foo(i64 %1, i64 %3)
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %4, align 4
+  %5 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %5, ptr %instance, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %7 = load i64, ptr %6, align 4
+  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
+  %9 = load i64, ptr %8, align 4
+  call void @c_interoperability_foo(i64 %7, i64 %9)
   ret void
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-linux-gnu", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
   }
 
   TEST_CASE("C Interoperability - function_with_small_struct x86_64-pc-windows-msvc", "[LLVM_IR]")
@@ -4828,11 +5486,21 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %instance = alloca %struct.c_interoperability_My_struct, align 4
   %0 = alloca %struct.c_interoperability_My_struct, align 4
-  store %struct.c_interoperability_My_struct zeroinitializer, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
-  call void @c_interoperability_foo(ptr noundef %0)
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  store i32 0, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  store i32 0, ptr %4, align 4
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  store i32 0, ptr %5, align 4
+  %6 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %6, ptr %instance, align 4
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
+  call void @c_interoperability_foo(ptr noundef %1)
   ret void
 }
 
@@ -4843,6 +5511,6 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
-    test_c_interoperability_common("c_interoperability_function_with_small_struct.hl", "x86_64-pc-windows-msvc", expected_llvm_ir);
+    test_c_interoperability_common("c_interoperability_function_with_small_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
 }

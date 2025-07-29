@@ -19,4 +19,8 @@ if(WIN32)
    target_sources(H_common PRIVATE
       "Filesystem_windows.cpp"
    )
+else()
+   target_sources(H_common PRIVATE
+      "Filesystem_linux.cpp"
+   )
 endif()

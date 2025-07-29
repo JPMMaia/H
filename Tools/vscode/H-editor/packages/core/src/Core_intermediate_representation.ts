@@ -299,12 +299,6 @@ export enum Linkage {
     Private = "Private",
 }
 
-export enum Access_type {
-    Read = "Read",
-    Write = "Write",
-    Read_write = "Read_write",
-}
-
 export enum Binary_operation {
     Add = "Add",
     Subtract = "Subtract",
@@ -439,6 +433,25 @@ function intermediate_to_core_source_position(intermediate_value: Source_positio
     return {
         line: intermediate_value.line,
         column: intermediate_value.column,
+    };
+}
+
+export interface Source_range {
+    start: Source_position;
+    end: Source_position;
+}
+
+function core_to_intermediate_source_range(core_value: Core.Source_range): Source_range {
+    return {
+        start: core_to_intermediate_source_position(core_value.start),
+        end: core_to_intermediate_source_position(core_value.end),
+    };
+}
+
+function intermediate_to_core_source_range(intermediate_value: Source_range): Core.Source_range {
+    return {
+        start: intermediate_to_core_source_position(intermediate_value.start),
+        end: intermediate_to_core_source_position(intermediate_value.end),
     };
 }
 
@@ -966,6 +979,7 @@ export interface Struct_declaration {
     unique_name?: string;
     member_types: Type_reference[];
     member_names: string[];
+    member_bit_fields: number[];
     member_default_values: Statement[];
     is_packed: boolean;
     is_literal: boolean;
@@ -981,6 +995,7 @@ function core_to_intermediate_struct_declaration(core_value: Core.Struct_declara
         unique_name: core_value.unique_name,
         member_types: core_value.member_types.elements.map(value => core_to_intermediate_type_reference(value)),
         member_names: core_value.member_names.elements,
+        member_bit_fields: core_value.member_bit_fields.elements,
         member_default_values: core_value.member_default_values.elements.map(value => core_to_intermediate_statement(value)),
         is_packed: core_value.is_packed,
         is_literal: core_value.is_literal,
@@ -1002,6 +1017,10 @@ function intermediate_to_core_struct_declaration(intermediate_value: Struct_decl
         member_names: {
             size: intermediate_value.member_names.length,
             elements: intermediate_value.member_names,
+        },
+        member_bit_fields: {
+            size: intermediate_value.member_bit_fields.length,
+            elements: intermediate_value.member_bit_fields,
         },
         member_default_values: {
             size: intermediate_value.member_default_values.length,
@@ -1172,13 +1191,11 @@ function intermediate_to_core_function_definition(intermediate_value: Function_d
 
 export interface Variable_expression {
     name: string;
-    access_type: Access_type;
 }
 
 function core_to_intermediate_variable_expression(core_value: Core.Variable_expression, statement: Core.Statement): Variable_expression {
     return {
         name: core_value.name,
-        access_type: core_value.access_type,
     };
 }
 
@@ -1190,7 +1207,6 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
             type: Core.Expression_enum.Variable_expression,
             value: {
                 name: intermediate_value.name,
-                access_type: intermediate_value.access_type,
             }
         }
     };
@@ -1198,10 +1214,9 @@ function intermediate_to_core_variable_expression(intermediate_value: Variable_e
     expressions[index] = core_value;
 }
 
-export function create_variable_expression(name: string, access_type: Access_type): Expression {
+export function create_variable_expression(name: string): Expression {
     const variable_expression: Variable_expression = {
         name: name,
-        access_type: access_type,
     };
     return {
         data: {
@@ -1213,14 +1228,12 @@ export function create_variable_expression(name: string, access_type: Access_typ
 export interface Access_expression {
     expression: Expression;
     member_name: string;
-    access_type: Access_type;
 }
 
 function core_to_intermediate_access_expression(core_value: Core.Access_expression, statement: Core.Statement): Access_expression {
     return {
         expression: core_to_intermediate_expression(statement.expressions.elements[core_value.expression.expression_index], statement),
         member_name: core_value.member_name,
-        access_type: core_value.access_type,
     };
 }
 
@@ -1235,7 +1248,6 @@ function intermediate_to_core_access_expression(intermediate_value: Access_expre
                     expression_index: -1
                 },
                 member_name: intermediate_value.member_name,
-                access_type: intermediate_value.access_type,
             }
         }
     };
@@ -1246,11 +1258,10 @@ function intermediate_to_core_access_expression(intermediate_value: Access_expre
     intermediate_to_core_expression(intermediate_value.expression, expressions);
 }
 
-export function create_access_expression(expression: Expression, member_name: string, access_type: Access_type): Expression {
+export function create_access_expression(expression: Expression, member_name: string): Expression {
     const access_expression: Access_expression = {
         expression: expression,
         member_name: member_name,
-        access_type: access_type,
     };
     return {
         data: {
@@ -2837,7 +2848,7 @@ export function create_while_loop_expression(condition: Statement, then_statemen
 }
 export interface Expression {
     data: Variant<Expression_enum, Access_expression | Access_array_expression | Assert_expression | Assignment_expression | Binary_expression | Block_expression | Break_expression | Call_expression | Cast_expression | Comment_expression | Compile_time_expression | Constant_expression | Constant_array_expression | Continue_expression | Defer_expression | Dereference_and_access_expression | For_loop_expression | Function_expression | Instance_call_expression | If_expression | Instantiate_expression | Invalid_expression | Null_pointer_expression | Parenthesis_expression | Reflection_expression | Return_expression | Struct_expression | Switch_expression | Ternary_condition_expression | Type_expression | Unary_expression | Union_expression | Variable_declaration_expression | Variable_declaration_with_type_expression | Variable_expression | While_loop_expression>;
-    source_position?: Source_position;
+    source_range?: Source_range;
 }
 
 function core_to_intermediate_expression(core_value: Core.Expression, statement: Core.Statement): Expression {
@@ -3062,7 +3073,7 @@ function core_to_intermediate_expression(core_value: Core.Expression, statement:
                 }
             }
         })(),
-        source_position: core_value.source_position !== undefined ? core_to_intermediate_source_position(core_value.source_position) : undefined,
+        source_range: core_value.source_range !== undefined ? core_to_intermediate_source_range(core_value.source_range) : undefined,
     };
 }
 

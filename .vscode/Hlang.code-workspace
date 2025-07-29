@@ -9,7 +9,7 @@
 		"configurations": [
 			{
 				"name": "Generate read JSON",
-				"type": "cppvsdbg",
+				"type": "node",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
 				"args": [
@@ -20,14 +20,11 @@
 					"${workspaceFolder}/Source/Core/Core.cppm",
 					"${workspaceFolder}/Source/JSON_serializer/Read_json.cppm"
 				],
-				"stopAtEntry": false,
 				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "Generate write JSON",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
 				"args": [
@@ -38,14 +35,11 @@
 					"${workspaceFolder}/Source/Core/Core.cppm",
 					"${workspaceFolder}/Source/JSON_serializer/Write_json.cppm"
 				],
-				"stopAtEntry": false,
-				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
+				"cwd": "${fileDirname}"
 			},
 			{
 				"name": "Generate JSON operators",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
 				"args": [
@@ -56,10 +50,7 @@
 					"${workspaceFolder}/Source/Core/Core.cppm",
 					"${workspaceFolder}/Source/JSON_serializer/Operators.cppm"
 				],
-				"stopAtEntry": false,
-				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
+				"cwd": "${fileDirname}"
 			},
 			{
 				"name": "Replace Compiler Tests",
@@ -70,25 +61,19 @@
 					"${workspaceFolder}/build/Source/Compiler/Debug/H_compiler_tests.exe",
 					"${workspaceFolder}/Source/Compiler/Compiler.tests.cpp",
 				],
-				"stopAtEntry": false,
-				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
+				"cwd": "${fileDirname}"
 			},
 			{
 				"name": "C Header Importer tests",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Interoperability/Debug/H_c_header_importer_tests.exe",
 				"args": [],
-				"stopAtEntry": false,
 				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "Generate TypeScript interface",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
 				"args": [
@@ -96,14 +81,11 @@
 					"${workspaceFolder}/Source/Core/Core.cppm",
 					"${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_interface.ts"
 				],
-				"stopAtEntry": false,
 				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "Generate TypeScript intermediate representation",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Tools/code_generator/Debug/H_Tools_Generate_JSON.exe",
 				"args": [
@@ -111,14 +93,11 @@
 					"${workspaceFolder}/Source/Core/Core.cppm",
 					"${workspaceFolder}/Tools/vscode/H-editor/src/core/Core_intermediate_representation.ts"
 				],
-				"stopAtEntry": false,
 				"cwd": "${fileDirname}",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "hlang build-executable",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -128,14 +107,11 @@
 					"--output=${workspaceFolder}/build/tmp/hello_world.exe",
 					"--build-directory=${workspaceFolder}/build/tmp/build",
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build/tmp",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "hlang build-artifact",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -145,34 +121,27 @@
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
 					"--repository=${workspaceFolder}/Libraries/hlang_repository.json"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/../MythologyEngine",
-				"environment": [],
-				"console": "integratedTerminal",
-				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
 			},
 			{
-				"name": "hlang build-artifact MythologyEngine",
+				"name": "hlang build-artifact rts-game",
 				"type": "cppvsdbg",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
 					"build-artifact",
-					"--artifact-file=${workspaceFolder}/../MythologyEngine/Source/Application/hlang_artifact.json",
-					"--build-directory=${workspaceFolder}/../MythologyEngine/build",
+					"--artifact-file=${workspaceFolder}/../rts-game/source/game/hlang_artifact.json",
+					"--build-directory=${workspaceFolder}/../rts-game/build",
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
-					"--repository=${workspaceFolder}/../H/Libraries/hlang_repository.json",
-					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json"
+					"--repository=${workspaceFolder}/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json",
+					"--repository=${workspaceFolder}/../rts-game/source/hlang_repository.json"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/../MythologyEngine",
-				"environment": [],
-				"console": "integratedTerminal",
-				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
 			},
 			{
 				"name": "hlang run-with-jit",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -182,15 +151,11 @@
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
 					"--repository=${workspaceFolder}/Libraries/hlang_repository.json"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build/tmp",
-				"environment": [],
-				"console": "integratedTerminal",
-				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
 			},
 			{
 				"name": "hlang run-with-jit MythologyEngine",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -201,15 +166,11 @@
 					"--repository=${workspaceFolder}/../H/Libraries/hlang_repository.json",
 					"--repository=${workspaceFolder}/../HLang Local Repository/hlang_repository.json"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/../MythologyEngine",
-				"environment": [],
-				"console": "integratedTerminal",
-				"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
 			},
 			{
 				"name": "hlang import-c-header",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -222,14 +183,11 @@
 					"${workspaceFolder}/SDL3.hl",
 					"--header-search-path=${workspaceFolder}/../SDL/include"*/
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "hlang print-struct-layout",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
 				"args": [
@@ -237,37 +195,83 @@
 					"${workspaceFolder}/Tools/vscode/H-editor/packages/client/test_fixture/build/no_artifact/code_lens_0.generated.hl",
 					"My_struct"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build",
-				"environment": [],
-				"console": "integratedTerminal"
+			},
+			{
+				"name": "Run Language Server",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe",
+				"args": [],
+				"cwd": "${workspaceFolder}/build"
+			},
+			{
+				"name": "Attach to Language Server",
+				"type": "lldb-dap",
+				"request": "attach",
+				"program": "${workspaceFolder}/build/Source/Language_server/hlang_language_server"
+			},
+			{
+				"name": "Run Language Client",
+				"type": "extensionHost",
+				"request": "launch",
+				"runtimeExecutable": "${execPath}",
+				"args": [
+					"--extensionDevelopmentPath=${workspaceRoot}/Tools/vscode/H-editor",
+					"--trace-warnings"
+				],
+				"outFiles": [
+					"${workspaceRoot}/Tools/vscode/H-editor/out/**/*.js"
+				],
+				"sourceMaps": true,
+				"autoAttachChildProcesses": true,
+				"env": {
+					"mode": "debug",
+					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe"
+				}
+			},
+			{
+				"name": "Run Language Server Tests",
+				"type": "extensionHost",
+				"request": "launch",
+				"runtimeExecutable": "${execPath}",
+				"args": [
+					"--extensionDevelopmentPath=${workspaceRoot}/Tools/vscode/H-editor",
+					"--extensionTestsPath=${workspaceRoot}/Tools/vscode/H-editor/out/packages/client/src/test",
+					"${workspaceRoot}/Tools/vscode/H-editor/packages/client/test_fixture",
+					"--disable-extensions"
+				],
+				"outFiles": [
+					"${workspaceRoot}/Tools/vscode/H-editor/out/**/*.js"
+				],
+				"sourceMaps": true,
+				"autoAttachChildProcesses": true,
+				"preLaunchTask": "Build Language Client and Server",
+				"env": {
+					"mode": "debug",
+					"hlang_language_server": "${workspaceFolder}/build/Source/Language_server/Debug/hlang_language_server.exe"
+				}
 			},
 			{
 				"name": "Parser",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Parser/Debug/hlang_parser.exe",
 				"args": [
 					"${workspaceFolder}/Examples/txt/hello_world.hltxt",
 					"${workspaceFolder}/build/tmp/hello_world.hl",
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build/tmp",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "Compiler Tests",
-				"type": "cppvsdbg",
+				"type": "lldb-dap",
 				"request": "launch",
 				"program": "${workspaceFolder}/build/Source/Compiler/Debug/H_compiler_tests.exe",
 				"args": [
 					"[JIT]"
 				],
-				"stopAtEntry": false,
 				"cwd": "${workspaceFolder}/build/tmp",
-				"environment": [],
-				"console": "integratedTerminal"
 			},
 			{
 				"name": "Python build_utilities",
@@ -277,9 +281,28 @@
 				"args": [
 					"generate_examples"
 				],
-			}
+			},
 		],
-		"compounds": []
+		"compounds": [
+			{
+				"name": "Start Language Client and Server",
+				"configurations": [
+					"Run Language Server",
+					"Run Language Client"
+				],
+				"preLaunchTask": "Build Language Client and Server",
+				"stopAll": true
+			},
+			{
+				"name": "Test Language Server",
+				"configurations": [
+					"Run Language Server",
+					"Run Language Server Tests"
+				],
+				"preLaunchTask": "Build Language Client and Server",
+				"stopAll": true
+			}
+		]
 	},
 	"tasks": {
 		"version": "2.0.0",
@@ -302,6 +325,43 @@
 				"problemMatcher": []
 			},
 			{
+				"label": "Build Language Server",
+				"command": "cmake",
+				"args": [
+					"--build",
+					"${workspaceFolder}/build",
+					"--target",
+					"H_language_server_app"
+				],
+				"problemMatcher": [
+					"$msCompile"
+				]
+			},
+			{
+				"label": "Build Language Client",
+				"command": "npm",
+				"type": "shell",
+				"args": [
+					"run",
+					"webpack:client-dev"
+				],
+				"presentation": {
+					"reveal": "always"
+				},
+				"group": "none",
+				"options": {
+					"cwd": "${workspaceFolder}/Tools/vscode/H-editor"
+				},
+				"problemMatcher": []
+			},
+			{
+				"label": "Build Language Client and Server",
+				"dependsOn": [
+					"Build Language Client",
+					"Build Language Server"
+				]
+			},
+			{
 				"label": "Install Debug Hlang",
 				"type": "shell",
 				"command": "python",
@@ -310,7 +370,7 @@
 					"install_hlang",
 					"${workspaceFolder}/../Hlang_install",
 					"--configuration",
-					"debug",
+					"debug"
 				],
 				"presentation": {
 					"reveal": "always"
@@ -426,8 +486,10 @@
 		"cmake.configureArgs": [
 			//"--debug-find"
 		],
+		"cmake.buildArgs": [
+			//"--verbose"
+		],
 		"cmake.configureOnOpen": false,
-		"editor.defaultFormatter": "ms-vscode.cpptools",
 		"C_Cpp.formatting": "vcFormat",
 		"[json]": {
 			"editor.defaultFormatter": "vscode.json-language-features"
@@ -438,27 +500,14 @@
 		"C_Cpp.vcFormat.newLine.beforeOpenBrace.lambda": "newLine",
 		"C_Cpp.vcFormat.indent.lambdaBracesWhenParameter": false,
 		"testMate.cpp.debug.configTemplate": {
-			"type": "cppvsdbg",
-			"linux": {
-				"type": "cppdbg",
-				"MIMode": "gdb"
-			},
-			"darwin": {
-				"type": "cppdbg",
-				"MIMode": "lldb"
-			},
-			"win32": {
-				"type": "cppvsdbg"
-			},
+			"type": "lldb-dap",
 			"program": "${exec}",
 			"args": "${argsArray}",
 			"cwd": "${cwd}",
 			"env": "${envObj}",
 			"environment": "${envObjArray}",
 			"sourceFileMap": "${sourceFileMapObj}",
-			"visualizerFile": "${workspaceFolder}/../vcpkg/buildtrees/llvm/src/org-17.0.2-5fdca9a361.clean/llvm/utils/LLVMVisualizers/llvm.natvis",
 			"showDisplayString": true,
-			"console": "integratedTerminal"
 		},
 		"editor.formatOnSave": false
 	}

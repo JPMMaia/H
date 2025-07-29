@@ -124,6 +124,10 @@
           "named": true
         },
         {
+          "type": "Declaration_attribute",
+          "named": true
+        },
+        {
           "type": "Enum",
           "named": true
         },
@@ -149,6 +153,25 @@
         },
         {
           "type": "Union",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Declaration_attribute",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Generic_expression",
+          "named": true
+        },
+        {
+          "type": "Reflection_identifier",
           "named": true
         }
       ]
@@ -597,6 +620,10 @@
       "types": [
         {
           "type": "Expression_access",
+          "named": true
+        },
+        {
+          "type": "Expression_binary",
           "named": true
         },
         {
@@ -1997,6 +2024,10 @@
           "named": true
         },
         {
+          "type": "Integer_without_suffix",
+          "named": true
+        },
+        {
           "type": "Struct_member_name",
           "named": true
         },
@@ -2479,6 +2510,10 @@
   },
   {
     "type": "Identifier",
+    "named": true
+  },
+  {
+    "type": "Integer_without_suffix",
     "named": true
   },
   {

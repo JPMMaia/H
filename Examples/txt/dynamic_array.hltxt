@@ -40,7 +40,7 @@ export function_constructor push_back(element_type: Type)
         if instance->length == instance->capacity
         {
             var new_capacity = 2u64 * (instance->capacity + 1u64);
-            
+
             var allocation_size_in_bytes = new_capacity * @size_of(element_type);
             var allocation = instance->allocator.allocate(allocation_size_in_bytes, @alignment_of(element_type));
             assert "Allocation did not fail" { allocation != null };
@@ -59,7 +59,7 @@ export function_constructor get(element_type: Type)
 {
     return function (instance: *mutable Dynamic_array<element_type>, index: Uint64) -> (result: element_type)
         precondition "instance != null" { instance != null }
-        precondition "index < instance->length" { index < instance->length } 
+        precondition "index < instance->length" { index < instance->length }
     {
         return instance->data[index];
     };

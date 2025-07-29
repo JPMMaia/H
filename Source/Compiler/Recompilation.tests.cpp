@@ -12,7 +12,8 @@ import h.core.hash;
 import h.compiler.recompilation;
 import h.core;
 import h.json_serializer;
-import h.parser;
+import h.parser.convertor;
+import h.parser.parser;
 
 namespace h
 {
@@ -46,7 +47,16 @@ namespace h
     )
     {
         std::filesystem::path const parsed_file_path = build_directory / file_path.filename().replace_extension("hl");
-        h::parser::parse(parser, file_path, parsed_file_path);
+
+        std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+            file_path,
+            {},
+            {}
+        );
+        REQUIRE(core_module.has_value());
+        
+        h::json::write<h::Module>(parsed_file_path, core_module.value());
+
         return parsed_file_path;
     }
 

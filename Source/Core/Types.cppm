@@ -19,6 +19,8 @@ namespace h
     export bool is_bool(Type_reference const& type);
     export bool is_c_bool(Type_reference const& type);
 
+    export Type_reference create_builtin_type_reference(std::pmr::string value);
+
     export Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size);
 
     export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
@@ -33,6 +35,7 @@ namespace h
     export bool is_function_pointer(Type_reference const& type);
 
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
+    export bool is_byte(Type_reference const& type);
     export bool is_floating_point(Type_reference const& type);
     
     export Type_reference create_c_string_type_reference(bool const is_mutable);
@@ -43,6 +46,8 @@ namespace h
     export bool is_signed_integer(Type_reference const& type);
     export bool is_unsigned_integer(Type_reference const& type);
 
+    export bool is_number_or_c_number(Type_reference const& type);
+
     export Type_reference create_null_pointer_type_type_reference();
     export bool is_null_pointer_type(Type_reference const& type);
 
@@ -52,6 +57,14 @@ namespace h
     export bool is_non_void_pointer(Type_reference const& type);
 
     export std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type);
+
+    export std::optional<std::string_view> get_type_module_name(Type_reference const& type);
+
+    export template <typename Value_t, typename Function_t>
+        bool visit_type_references_recursively(
+            Value_t const& value,
+            Function_t predicate
+        );
 
     export template <typename Function_t>
         bool visit_expressions(
@@ -84,6 +97,15 @@ namespace h
             Function_t predicate
         )
     {
+        return predicate(type_reference);
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references_recursively(
+            Type_reference const& type_reference,
+            Function_t predicate
+        )
+    {
         bool const done = predicate(type_reference);
         if (done)
             return true;
@@ -97,7 +119,7 @@ namespace h
             Constant_array_type const& data = std::get<Constant_array_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.value_type)
             {
-                if (visit_type_references(nested_type_reference, predicate))
+                if (visit_type_references_recursively(nested_type_reference, predicate))
                     return true;
             }
 
@@ -116,12 +138,12 @@ namespace h
             Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.type.input_parameter_types)
             {
-                if (visit_type_references(nested_type_reference, predicate))
+                if (visit_type_references_recursively(nested_type_reference, predicate))
                     return true;
             }
             for (Type_reference const& nested_type_reference : data.type.output_parameter_types)
             {
-                if (visit_type_references(nested_type_reference, predicate))
+                if (visit_type_references_recursively(nested_type_reference, predicate))
                     return true;
             }
 
@@ -135,12 +157,16 @@ namespace h
         {
             return false;
         }
+        else if (std::holds_alternative<Parameter_type>(type_reference.data))
+        {
+            return false;
+        }
         else if (std::holds_alternative<Pointer_type>(type_reference.data))
         {
             Pointer_type const& data = std::get<Pointer_type>(type_reference.data);
             for (Type_reference const& nested_type_reference : data.element_type)
             {
-                if (visit_type_references(nested_type_reference, predicate))
+                if (visit_type_references_recursively(nested_type_reference, predicate))
                     return true;
             }
 
@@ -151,14 +177,14 @@ namespace h
             Type_instance const& data = std::get<Type_instance>(type_reference.data);
             
             Type_reference const type_constructor = create_custom_type_reference(data.type_constructor.module_reference.name, data.type_constructor.name);
-            if (visit_type_references(type_constructor, predicate))
+            if (visit_type_references_recursively(type_constructor, predicate))
                 return true;
 
-            return visit_type_references(data.arguments, predicate);
+            return visit_type_references_recursively(data.arguments, predicate);
         }
         else
         {
-            throw std::runtime_error{"visit_type_references: Did not handle type!"};
+            throw std::runtime_error{"visit_type_references_recursively: Did not handle type!"};
         }
     }
 
@@ -305,10 +331,27 @@ namespace h
                 Constant_expression const& data = std::get<Constant_expression>(expression.data);
                 return visit_type_references(data.type, predicate);
             }
+            else if (std::holds_alternative<Function_expression>(expression.data))
+            {
+                Function_expression const& data = std::get<Function_expression>(expression.data);
+                if (visit_type_references(data.declaration, predicate))
+                    return true;
+                return visit_type_references(data.definition, predicate);
+            }
             else if (std::holds_alternative<Type_expression>(expression.data))
             {
                 Type_expression const& data = std::get<Type_expression>(expression.data);
                 return visit_type_references(data.type, predicate);
+            }
+            else if (std::holds_alternative<Struct_expression>(expression.data))
+            {
+                Struct_expression const& data = std::get<Struct_expression>(expression.data);
+                return visit_type_references(data.declaration, predicate);
+            }
+            else if (std::holds_alternative<Union_expression>(expression.data))
+            {
+                Union_expression const& data = std::get<Union_expression>(expression.data);
+                return visit_type_references(data.declaration, predicate);
             }
             else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
             {
@@ -593,6 +636,59 @@ namespace h
         return false;
     }
 
+    export template <typename Value_t, typename Function_t>
+        bool visit_type_references_recursively(
+            Value_t const& value,
+            Function_t predicate
+        )
+    {
+        auto const call_recursive = [&](h::Type_reference const& type_reference) -> bool
+        {
+            return visit_type_references_recursively(type_reference, predicate);
+        };
+
+        return visit_type_references(value, call_recursive);
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references_recursively_with_declaration_name(
+            h::Module const& core_module,
+            std::string_view const declaration_name,
+            Function_t predicate
+        )
+    {
+        auto const call_recursive = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration_name, type_reference);
+            };
+
+            return visit_type_references_recursively(type_reference, predicate_with_name);
+        };
+
+        return visit_type_references(core_module, declaration_name, call_recursive);
+    }
+
+    export template <typename Value_t, typename Function_t>
+        bool visit_type_references_recursively_with_declaration_name(
+            Value_t const& value,
+            Function_t predicate
+        )
+    {
+        auto const call_recursive = [&](std::string_view const declaration_name, h::Type_reference const& type_reference) -> bool
+        {
+            auto const predicate_with_name = [&](h::Type_reference const& type_reference) -> bool
+            {
+                return predicate(declaration_name, type_reference);
+            };
+
+            return visit_type_references_recursively(type_reference, predicate_with_name);
+        };
+
+        return visit_type_references(value, call_recursive);
+    }
+
     export template <typename Function_t>
         bool visit_expressions(
             h::Expression const& expression,
@@ -664,11 +760,6 @@ namespace h
 
             if (visit_expressions(data.else_statement, predicate))
                 return true;
-        }
-        else if (std::holds_alternative<Variable_declaration_with_type_expression>(expression.data))
-        {
-            Variable_declaration_with_type_expression const& data = std::get<Variable_declaration_with_type_expression>(expression.data);
-            return visit_expressions(data.right_hand_side, predicate);
         }
         else if (std::holds_alternative<While_loop_expression>(expression.data))
         {

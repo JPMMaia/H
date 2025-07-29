@@ -1,6 +1,6 @@
 module Break_expressions;
 
-import C.stdio as stdio;
+import c.stdio as stdio;
 
 function print_integer(value: Int32) -> ()
 {

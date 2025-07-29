@@ -160,29 +160,6 @@ namespace h::json
     }
 
     export template<>
-        bool read_enum(Access_type& output, std::string_view const value)
-    {
-        if (value == "Read")
-        {
-            output = Access_type::Read;
-            return true;
-        }
-        else if (value == "Write")
-        {
-            output = Access_type::Write;
-            return true;
-        }
-        else if (value == "Read_write")
-        {
-            output = Access_type::Read_write;
-            return true;
-        }
-
-        std::cerr << std::format("Failed to read enum 'Access_type' with value '{}'\n", value);
-        return false;
-    }
-
-    export template<>
         bool read_enum(Binary_operation& output, std::string_view const value)
     {
         if (value == "Add")
@@ -390,13 +367,6 @@ namespace h::json
             return static_cast<int>(enum_value);
         }
 
-        if (type == "Access_type")
-        {
-            Access_type enum_value;
-            read_enum(enum_value, value);
-            return static_cast<int>(enum_value);
-        }
-
         if (type == "Binary_operation")
         {
             Binary_operation enum_value;
@@ -456,6 +426,7 @@ namespace h::json
 
     export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_source_position(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
@@ -594,6 +565,35 @@ namespace h::json
                 .pointer = &parent->column,
                 .type = "std::uint32_t",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key)
+    {
+        h::Source_range* parent = static_cast<h::Source_range*>(state->pointer);
+
+        if (key == "start")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->start,
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position,
+            };
+        }
+
+        if (key == "end")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->end,
+                .type = "Source_position",
+                .get_next_state = get_next_state_source_position,
             };
         }
 
@@ -1147,6 +1147,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_range")
+        {
+            parent->source_range = Source_range{};
+            return Stack_state
+            {
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
+            };
+        }
+
         return {};
     }
 
@@ -1574,6 +1585,31 @@ namespace h::json
             };
         }
 
+        if (key == "member_bit_fields")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<std::optional<std::uint32_t>>* parent = static_cast<std::pmr::vector<std::optional<std::uint32_t>>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<std::optional<std::uint32_t>>* parent = static_cast<std::pmr::vector<std::optional<std::uint32_t>>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->member_bit_fields,
+                .type = "std::pmr::vector<std::optional<std::uint32_t>>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = nullptr,
+            };
+        }
+
         if (key == "member_default_values")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
@@ -1873,6 +1909,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_range")
+        {
+            parent->source_range = Source_range{};
+            return Stack_state
+            {
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
+            };
+        }
+
         return {};
     }
 
@@ -2168,17 +2215,6 @@ namespace h::json
             };
         }
 
-        if (key == "access_type")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->access_type,
-                .type = "Access_type",
-                .get_next_state = nullptr,
-            };
-        }
-
         return {};
     }
 
@@ -2222,17 +2258,6 @@ namespace h::json
             {
                 .pointer = &parent->member_name,
                 .type = "std::pmr::string",
-                .get_next_state = nullptr,
-            };
-        }
-
-        if (key == "access_type")
-        {
-
-            return Stack_state
-            {
-                .pointer = &parent->access_type,
-                .type = "Access_type",
                 .get_next_state = nullptr,
             };
         }
@@ -2987,6 +3012,17 @@ namespace h::json
             };
         }
 
+        if (key == "source_range")
+        {
+            parent->source_range = Source_range{};
+            return Stack_state
+            {
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
+            };
+        }
+
         return {};
     }
 
@@ -3429,8 +3465,8 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->right_hand_side,
-                .type = "Statement",
-                .get_next_state = get_next_state_statement,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
             };
         }
 
@@ -3929,14 +3965,14 @@ namespace h::json
             };
         }
 
-        if (key == "source_position")
+        if (key == "source_range")
         {
-            parent->source_position = Source_position{};
+            parent->source_range = Source_range{};
             return Stack_state
             {
-                .pointer = &parent->source_position.value(),
-                .type = "Source_position",
-                .get_next_state = get_next_state_source_position
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 
@@ -4269,6 +4305,17 @@ namespace h::json
                 .set_vector_size = set_vector_size,
                 .get_element = get_element,
                 .get_next_state_element = nullptr
+            };
+        }
+
+        if (key == "source_range")
+        {
+            parent->source_range = Source_range{};
+            return Stack_state
+            {
+                .pointer = &parent->source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 
@@ -4672,6 +4719,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Source_position",
                 .get_next_state = get_next_state_source_position
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Source_range>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 

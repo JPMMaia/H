@@ -9,6 +9,11 @@ include(CTest)
 
 if (MSVC)
     add_compile_options("/EHsc")
+else ()
+    if (CMAKE_DEBUG_TYPE STREQUAL "Debug")
+        add_compile_options("-gdwarf-4")
+        add_compile_options("-fPIC")
+    endif ()
 endif ()
 
 add_subdirectory("External")
@@ -19,7 +24,6 @@ add_subdirectory("Source")
 add_custom_target(
     Generate_code_after_core_update DEPENDS
         Generate_json_serializer_code
-        Generate_h_core_reflection_json
         Generate_h_core_typescript_interface
         Generate_h_core_typescript_intermediate_representation
 )

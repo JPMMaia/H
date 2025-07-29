@@ -24,7 +24,7 @@ import h.compiler.jit_compiler;
 import h.compiler.repository;
 import h.compiler.target;
 import h.core;
-import h.parser;
+import h.parser.parser;
 
 namespace h::compiler
 {

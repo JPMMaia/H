@@ -1,0 +1,13 @@
+module Comment_unions;
+
+// Union comment
+// Another line
+union My_union
+{
+    // This is a int
+    a: Int32;
+    b: Int32;
+    // Another int
+    // Another line
+    c: Int32;
+}

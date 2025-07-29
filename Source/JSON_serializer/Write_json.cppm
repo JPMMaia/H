@@ -114,24 +114,6 @@ namespace h::json
         throw std::runtime_error{ "Failed to write enum 'Linkage'!\n" };
     }
 
-    export std::string_view write_enum(Access_type const value)
-    {
-        if (value == Access_type::Read)
-        {
-            return "Read";
-        }
-        else if (value == Access_type::Write)
-        {
-            return "Write";
-        }
-        else if (value == Access_type::Read_write)
-        {
-            return "Read_write";
-        }
-
-        throw std::runtime_error{ "Failed to write enum 'Access_type'!\n" };
-    }
-
     export std::string_view write_enum(Binary_operation const value)
     {
         if (value == Binary_operation::Add)
@@ -294,6 +276,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Source_position const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Source_range const& input
         );
 
     export template<typename Writer_type>
@@ -897,6 +885,20 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Source_range const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("start");
+        write_object(writer, output.start);
+        writer.Key("end");
+        write_object(writer, output.end);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Integer_type const& output
         )
     {
@@ -1137,6 +1139,7 @@ namespace h::json
         }
         writer.EndObject();
 
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 
@@ -1249,6 +1252,8 @@ namespace h::json
         write_object(writer, output.member_types);
         writer.Key("member_names");
         write_object(writer, output.member_names);
+        writer.Key("member_bit_fields");
+        write_object(writer, output.member_bit_fields);
         writer.Key("member_default_values");
         write_object(writer, output.member_default_values);
         writer.Key("is_packed");
@@ -1296,6 +1301,7 @@ namespace h::json
         writer.String(output.description.data(), output.description.size());
         writer.Key("condition");
         write_object(writer, output.condition);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 
@@ -1355,11 +1361,6 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
-        writer.Key("access_type");
-        {
-            std::string_view const enum_value_string = write_enum(output.access_type);
-            writer.String(enum_value_string.data(), enum_value_string.size());
-        }
         writer.EndObject();
     }
 
@@ -1386,11 +1387,6 @@ namespace h::json
         write_object(writer, output.expression);
         writer.Key("member_name");
         writer.String(output.member_name.data(), output.member_name.size());
-        writer.Key("access_type");
-        {
-            std::string_view const enum_value_string = write_enum(output.access_type);
-            writer.String(enum_value_string.data(), enum_value_string.size());
-        }
         writer.EndObject();
     }
 
@@ -1703,6 +1699,7 @@ namespace h::json
         writer.String(output.member_name.data(), output.member_name.size());
         writer.Key("value");
         write_object(writer, output.value);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 
@@ -2226,7 +2223,7 @@ namespace h::json
         }
         writer.EndObject();
 
-        write_optional_object(writer, "source_position", output.source_position);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 
@@ -2323,6 +2320,7 @@ namespace h::json
         writer.String(output.alias.data(), output.alias.size());
         writer.Key("usages");
         write_object(writer, output.usages);
+        write_optional_object(writer, "source_range", output.source_range);
         writer.EndObject();
     }
 

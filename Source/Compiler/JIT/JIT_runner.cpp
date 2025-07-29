@@ -49,7 +49,8 @@ import h.compiler.target;
 import h.core;
 import h.c_header_converter;
 import h.json_serializer;
-import h.parser;
+import h.parser.convertor;
+import h.parser.parser;
 
 namespace h::compiler
 {
@@ -251,7 +252,15 @@ namespace h::compiler
 
         if (module_source_file_path->extension() == ".hltxt")
         {
-            h::parser::parse(unprotected_data.parser, *module_source_file_path, parsed_file_path);
+            std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+                *module_source_file_path,
+                {},
+                {}
+            );
+            if (!core_module.has_value())
+                return std::nullopt;
+            
+            h::json::write<h::Module>(parsed_file_path, core_module.value());
 
             return Parsed_module_info
             {
@@ -373,7 +382,7 @@ namespace h::compiler
     {
         std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
 
-        for (std::pair<std::pmr::string, h::Module> const& core_module : core_modules)
+        for (std::pair<std::pmr::string const, h::Module> const& core_module : core_modules)
         {
             insert_symbol_to_module_name_entries(core_module.second, mangle, protected_data.symbol_to_module_name_map);
         }
@@ -414,7 +423,7 @@ namespace h::compiler
 
             // TODO remove all entries where pair.second == core_module->name
 
-            for (std::pair<std::pmr::string, h::Module> const& core_module_dependency : *core_module_dependencies)
+            for (std::pair<std::pmr::string const, h::Module> const& core_module_dependency : *core_module_dependencies)
             {
                 protected_data.module_name_to_reverse_dependencies.insert(std::make_pair(core_module_dependency.first, core_module->name));
             }
@@ -551,7 +560,14 @@ namespace h::compiler
                 std::filesystem::path const source_file_path = artifact.file_path.parent_path() / executable_info.source;
 
                 std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
-                h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
+
+                std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+                    source_file_path,
+                    {},
+                    {}
+                );
+                if (core_module.has_value())
+                    h::json::write<h::Module>(parsed_file_path, core_module.value());
 
                 {
                     std::optional<std::pmr::string> const module_name = read_module_name(source_file_path);
@@ -747,7 +763,13 @@ namespace h::compiler
                 std::chrono::high_resolution_clock::time_point const begin_parsing = std::chrono::high_resolution_clock::now();
 
                 std::filesystem::path const parsed_file_path = unprotected_data.build_directory_path / source_file_path.filename().replace_extension("hl");
-                h::parser::parse(unprotected_data.parser, source_file_path, parsed_file_path);
+                std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(
+                    source_file_path,
+                    {},
+                    {}
+                );
+                if (core_module.has_value())
+                    h::json::write<h::Module>(parsed_file_path, core_module.value());
 
                 {
                     std::optional<std::pmr::string> const module_name = read_module_name(source_file_path);

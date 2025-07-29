@@ -5,7 +5,7 @@ import { get_document_uri, activate } from './helper.js';
 suite("Should get inlay hints", () => {
 
 	test("Creates hint for variable declaration expression", async () => {
-		const document_uri = get_document_uri("inlay_hints_0.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_0.hltxt");
 		await test_inlay_hints(document_uri, to_range(4, 4, 4, 14), [
 			{
 				label: [
@@ -15,7 +15,7 @@ suite("Should get inlay hints", () => {
 					},
 					{
 						value: "Int32",
-						tooltip: "Built-in type: Int32"
+						tooltip: undefined,
 					}
 				],
 				position: new vscode.Position(4, 9)
@@ -24,7 +24,7 @@ suite("Should get inlay hints", () => {
 	});
 
 	test("Creates hint for variable declaration of a struct", async () => {
-		const document_uri = get_document_uri("inlay_hints_1.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_1.hltxt");
 
 		await test_inlay_hints(document_uri, to_range(17, 4, 17, 35), [
 			{
@@ -38,7 +38,7 @@ suite("Should get inlay hints", () => {
 						tooltip: undefined,
 						location: {
 							uri: document_uri,
-							range: to_range(4, 7, 4, 14)
+							range: to_range(4, 7, 4, 7)
 						}
 					}
 				],
@@ -49,7 +49,7 @@ suite("Should get inlay hints", () => {
 
 	test("Creates hint for variable declaration of a struct of a different module", async () => {
 		const document_uri = get_document_uri("projects/project_1/inlay_hints_0.hltxt");
-		const imported_module_document_uri = get_document_uri("build/Complex/c.complex.generated.hltxt");
+		const imported_module_document_uri = get_document_uri("projects/complex/complex.h");
 
 		const module_tooltip = new vscode.MarkdownString(
 			[
@@ -67,23 +67,11 @@ suite("Should get inlay hints", () => {
 						tooltip: undefined
 					},
 					{
-						value: "c.complex",
-						tooltip: module_tooltip,
-						location: {
-							uri: imported_module_document_uri,
-							range: to_range(0, 0, 0, 0)
-						}
-					},
-					{
-						value: ".",
-						tooltip: undefined
-					},
-					{
-						value: "Complex",
+						value: "complex.Complex",
 						tooltip: undefined,
 						location: {
 							uri: imported_module_document_uri,
-							range: to_range(13, 14, 13, 21)
+							range: to_range(0, 15, 0, 15)
 						}
 					}
 				],
@@ -93,7 +81,7 @@ suite("Should get inlay hints", () => {
 	});
 
 	test("Creates hint for function input parameter", async () => {
-		const document_uri = get_document_uri("inlay_hints_2.hltxt");
+		const document_uri = get_document_uri("projects/other/inlay_hints_2.hltxt");
 
 		const lhs_tooltip = new vscode.MarkdownString(
 			[
@@ -208,7 +196,7 @@ async function test_inlay_hints(document_uri: vscode.Uri, range: vscode.Range, e
 				assert.equal(actual_label_part.location, undefined);
 			}
 			else {
-				assert.equal(actual_label_part.location.uri.toString(), expected_label_part.location.uri.toString());
+				assert.equal(actual_label_part.location.uri.fsPath, expected_label_part.location.uri.fsPath);
 				assert.deepEqual(actual_label_part.location.range, expected_label_part.location.range);
 			}
 		}

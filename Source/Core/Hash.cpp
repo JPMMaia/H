@@ -200,7 +200,6 @@ namespace h
             h::Access_expression const& data = std::get<h::Access_expression>(expression.data);
             update_hash(state, statement, data.expression);
             update_hash(state, data.member_name);
-            update_hash(state, &data.access_type, sizeof(data.access_type));
         }
         else if (std::holds_alternative<h::Binary_expression>(expression.data))
         {
@@ -267,7 +266,6 @@ namespace h
         {
             h::Variable_expression const& data = std::get<h::Variable_expression>(expression.data);
             update_hash(state, data.name);
-            update_hash(state, &data.access_type, sizeof(data.access_type));
         }
         else
         {
