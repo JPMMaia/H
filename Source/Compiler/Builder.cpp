@@ -18,6 +18,7 @@ import h.common;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.linker;
+import h.compiler.profiler;
 import h.compiler.repository;
 import h.compiler.target;
 import h.c_header_converter;
@@ -50,6 +51,11 @@ namespace h::compiler
         }
     }
 
+    Profiler* get_profiler(Builder& builder)
+    {
+        return builder.use_profiler ? &builder.profiler : nullptr;
+    }
+
     Builder create_builder(
         h::compiler::Target const& target,
         std::filesystem::path const& build_directory_path,
@@ -65,7 +71,9 @@ namespace h::compiler
             .build_directory_path = build_directory_path,
             .header_search_paths = std::pmr::vector<std::filesystem::path>{header_search_paths.begin(), header_search_paths.end(), output_allocator},
             .repositories = get_repositories(repository_paths),
-            .compilation_options = compilation_options
+            .compilation_options = compilation_options,
+            .profiler = {},
+            .use_profiler = true,
         };
     }
 
@@ -74,6 +82,8 @@ namespace h::compiler
         std::filesystem::path const& artifact_file_path
     )
     {
+        start_timer(get_profiler(builder), "build_artifact");
+
         std::pmr::polymorphic_allocator<> output_allocator;
         std::pmr::polymorphic_allocator<> temporaries_allocator;
 
@@ -128,6 +138,8 @@ namespace h::compiler
             compilation_options
         );
 
+        start_timer(get_profiler(builder), "process_modules_and_create_compilation_database");
+
         // TODO make const
         Compilation_database compilation_database = process_modules_and_create_compilation_database(
             llvm_data,
@@ -136,6 +148,8 @@ namespace h::compiler
             output_allocator,
             temporaries_allocator
         );
+
+        end_timer(get_profiler(builder), "process_modules_and_create_compilation_database");
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map = create_module_name_to_file_path_map(
             builder,
@@ -173,6 +187,10 @@ namespace h::compiler
                 temporaries_allocator
             );
         }
+
+        end_timer(get_profiler(builder), "build_artifact");
+
+        print_profiler_timings(get_profiler(builder));
     }
 
     void add_artifact_dependencies(
@@ -313,12 +331,14 @@ namespace h::compiler
     }
 
     std::pmr::vector<h::Module> parse_c_headers_and_cache(
-        Builder const& builder,
+        Builder& builder,
         std::span<C_header_and_options const> const c_headers,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        start_timer(get_profiler(builder), "parse_c_headers_and_cache");
+
         std::pmr::vector<h::Module> header_modules{output_allocator};
         header_modules.resize(c_headers.size(), {});
 
@@ -376,6 +396,8 @@ namespace h::compiler
             header_modules[header_index] = std::move(header_module);
         }
 
+        end_timer(get_profiler(builder), "parse_c_headers_and_cache");
+
         return header_modules;
     }
 
@@ -395,12 +417,14 @@ namespace h::compiler
     }
 
     std::pmr::vector<h::Module> parse_source_files_and_cache(
-        Builder const& builder,
+        Builder& builder,
         std::span<std::filesystem::path const> const source_files_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        start_timer(get_profiler(builder), "parse_source_files_and_cache");
+
         std::pmr::vector<h::Module> core_modules{output_allocator};
         core_modules.resize(source_files_paths.size(), h::Module{});
 
@@ -459,6 +483,8 @@ namespace h::compiler
 
         h::parser::destroy_parser(std::move(parser));
 
+        end_timer(get_profiler(builder), "parse_source_files_and_cache");
+
         return core_modules;
     }
 
@@ -491,7 +517,7 @@ namespace h::compiler
     }
 
     void compile_and_write_to_bitcode_files(
-        Builder const& builder,
+        Builder& builder,
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
@@ -500,6 +526,8 @@ namespace h::compiler
         Compilation_options const& compilation_options
     )
     {
+        start_timer(get_profiler(builder), "compile_and_write_to_bitcode_files");
+
         // TODO to paralelize, llvm_data and compilation_database should be const
 
         std::string_view const extension = use_objects ? "obj" : "bc";
@@ -533,6 +561,8 @@ namespace h::compiler
             else
                 h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
         }
+
+        end_timer(get_profiler(builder), "compile_and_write_to_bitcode_files");
     }
 
     std::pmr::vector<std::filesystem::path> get_artifact_bitcode_files(
@@ -649,13 +679,15 @@ namespace h::compiler
     }
 
     void link_artifacts(
-        Builder const& builder,
+        Builder& builder,
         std::span<Artifact const> const artifacts,
         bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
+        start_timer(get_profiler(builder), "link_artifacts");
+
         for (std::size_t index = 0; index < artifacts.size(); ++index)
         {
             Artifact const& artifact = artifacts[index];
@@ -726,6 +758,8 @@ namespace h::compiler
                     h::common::print_message_and_exit(std::format("Failed to link executable '{}'.", artifact.name));
             }
         }
+
+        end_timer(get_profiler(builder), "link_artifacts");
     }
 
     void copy_dll(

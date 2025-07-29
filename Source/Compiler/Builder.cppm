@@ -12,6 +12,7 @@ export module h.compiler.builder;
 import h.core;
 import h.compiler;
 import h.compiler.artifact;
+import h.compiler.profiler;
 import h.compiler.repository;
 import h.compiler.target;
 
@@ -24,6 +25,8 @@ namespace h::compiler
         std::pmr::vector<std::filesystem::path> header_search_paths;
         std::pmr::vector<h::compiler::Repository> repositories;
         h::compiler::Compilation_options compilation_options;
+        Profiler profiler;
+        bool use_profiler;
     };
 
     export Builder create_builder(
@@ -67,7 +70,7 @@ namespace h::compiler
     );
 
     export std::pmr::vector<h::Module> parse_c_headers_and_cache(
-        Builder const& builder,
+        Builder& builder,
         std::span<C_header_and_options const> const c_headers,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -80,7 +83,7 @@ namespace h::compiler
     );
 
     export std::pmr::vector<h::Module> parse_source_files_and_cache(
-        Builder const& builder,
+        Builder& builder,
         std::span<std::filesystem::path const> const source_file_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -95,7 +98,7 @@ namespace h::compiler
     );
 
     void compile_and_write_to_bitcode_files(
-        Builder const& builder,
+        Builder& builder,
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
@@ -105,7 +108,7 @@ namespace h::compiler
     );
 
     void link_artifacts(
-        Builder const& builder,
+        Builder& builder,
         std::span<Artifact const> const artifacts,
         bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,

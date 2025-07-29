@@ -125,6 +125,7 @@ target_sources(H_compiler
          "Expressions.cppm"
          "Instructions.cppm"
          "Linker.cppm"
+         "Profiler.cppm"
          "Recompilation.cppm"
          "Types.cppm"
          "Validation.cppm"
