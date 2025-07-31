@@ -3,7 +3,7 @@ add_library(H::C_header_importer ALIAS H_C_header_importer)
 
 target_compile_features(H_C_header_importer PUBLIC cxx_std_23)
 
-target_link_libraries(H_C_header_importer PUBLIC H::Common H::Core H::JSON_serializer)
+target_link_libraries(H_C_header_importer PUBLIC H::Binary_serializer H::Common H::Core)
 
 ## LLVM ##
 
@@ -47,7 +47,7 @@ if(BUILD_TESTING)
    message(STATUS "vulkan_headers_location is ${vulkan_headers_location}")
 
    add_executable(H_C_header_importer_tests)
-   target_link_libraries(H_C_header_importer_tests PRIVATE H_C_header_importer)
+   target_link_libraries(H_C_header_importer_tests PRIVATE H::JSON_serializer H_C_header_importer)
 
    find_package(Catch2 CONFIG REQUIRED)
    target_link_libraries(H_C_header_importer_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)

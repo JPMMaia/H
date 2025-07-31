@@ -3,7 +3,7 @@ add_library(H::Compiler ALIAS H_compiler)
 
 target_compile_features(H_compiler PRIVATE cxx_std_23)
 
-target_link_libraries(H_compiler PRIVATE H::Core H::Common H::C_header_importer H::JSON_serializer H::Parser)
+target_link_libraries(H_compiler PRIVATE H::Binary_serializer H::Core H::Common H::C_header_importer H::JSON_serializer H::Parser)
 
 # TODO find a way to not hardcode this when installing
 set(BUILTIN_SOURCE_FILE_PATH "${CMAKE_CURRENT_LIST_DIR}/Builtin/Builtin.hltxt")

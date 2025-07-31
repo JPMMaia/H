@@ -23,11 +23,11 @@ module h.c_header_converter;
 
 import h.c_header_hash;
 
+import h.binary_serializer;
 import h.core;
 import h.core.declarations;
 import h.core.expressions;
 import h.core.types;
-import h.json_serializer;
 
 namespace h::c
 {
@@ -2538,7 +2538,7 @@ namespace h::c
 
         h::Module header_module = import_header(header_name, header_path, options);
         //header_module.content_hash = current_header_hash;
-        h::json::write<h::Module>(output_path, header_module);
+        h::binary_serializer::write_module_to_file(output_path, header_module, {});
 
         return header_module;
     }

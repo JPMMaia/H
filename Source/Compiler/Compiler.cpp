@@ -43,6 +43,7 @@ module;
 
 module h.compiler;
 
+import h.binary_serializer;
 import h.common;
 import h.core;
 import h.core.declarations;
@@ -56,7 +57,6 @@ import h.compiler.diagnostic;
 import h.compiler.expressions;
 import h.compiler.instructions;
 import h.compiler.types;
-import h.json_serializer;
 import h.parser.convertor;
 import h.parser.parse_tree;
 import h.parser.parser;
@@ -770,7 +770,7 @@ namespace h::compiler
 
             std::optional<Module> import_core_module = read_core_module(file_path);
             if (!import_core_module.has_value())
-                throw std::runtime_error{ std::format("Failed to read Module '{}' file '{}' as JSON.", alias_import.module_name, file_path.generic_string()) };
+                throw std::runtime_error{ std::format("Failed to read Module '{}' from binary file '{}' .", alias_import.module_name, file_path.generic_string()) };
 
             core_module_dependencies.insert(std::make_pair(alias_import.module_name, std::move(import_core_module.value())));
 
@@ -1206,7 +1206,7 @@ namespace h::compiler
         std::filesystem::path const& path
     )
     {
-        std::optional<Module> core_module = h::json::read_module(path);
+        std::optional<Module> core_module = h::binary_serializer::read_module_from_file(path);
         if (!core_module)
             return std::nullopt;
 

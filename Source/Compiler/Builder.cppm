@@ -26,7 +26,8 @@ namespace h::compiler
         std::pmr::vector<h::compiler::Repository> repositories;
         h::compiler::Compilation_options compilation_options;
         Profiler profiler;
-        bool use_profiler;
+        bool use_profiler = true;
+        bool output_module_json = false;
     };
 
     export Builder create_builder(

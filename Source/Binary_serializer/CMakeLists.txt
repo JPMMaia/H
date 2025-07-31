@@ -3,7 +3,7 @@ add_library(H::Binary_serializer ALIAS H_binary_serializer)
 
 target_compile_features(H_binary_serializer PUBLIC cxx_std_23)
 
-target_link_libraries(H_binary_serializer PUBLIC H::Core)
+target_link_libraries(H_binary_serializer PUBLIC H::Common H::Core)
 
 target_sources(H_binary_serializer
     PUBLIC FILE_SET modules TYPE CXX_MODULES

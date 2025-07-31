@@ -13,6 +13,7 @@ module;
 
 module h.compiler.builder;
 
+import h.binary_serializer;
 import h.core;
 import h.common;
 import h.compiler;
@@ -74,6 +75,7 @@ namespace h::compiler
             .compilation_options = compilation_options,
             .profiler = {},
             .use_profiler = true,
+            .output_module_json = false,
         };
     }
 
@@ -364,14 +366,15 @@ namespace h::compiler
             if (!header_path.has_value())
                 h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
 
-            std::filesystem::path const header_module_filename = std::format("{}.hl", header_module_name);
+            std::filesystem::path const header_module_filename = std::format("{}.hlb", header_module_name);
             std::filesystem::path const output_header_module_path = build_directory_path / header_module_filename;
 
             if (std::filesystem::exists(output_header_module_path))
             {
                 if (is_file_newer_than(output_header_module_path, header_path.value()))
                 {
-                    std::optional<Module> header_module = h::json::read_module(output_header_module_path);
+                    std::optional<Module> header_module = h::binary_serializer::read_module_from_file(output_header_module_path);
+
                     if (!header_module.has_value())
                         h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_header_module_path.generic_string()));
 
@@ -392,6 +395,13 @@ namespace h::compiler
             };
 
             h::Module header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+
+            if (builder.output_module_json)
+            {
+                std::filesystem::path const output_module_json_filename = std::format("{}.hlb.json", header_module_name);
+                std::filesystem::path const output_module_json_path = get_hl_build_directory(builder.build_directory_path) / output_module_json_filename;
+                h::json::write<h::Module>(output_module_json_path, header_module);
+            }
 
             header_modules[header_index] = std::move(header_module);
         }
@@ -438,14 +448,14 @@ namespace h::compiler
             if (!module_name.has_value())
                 h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
 
-            std::filesystem::path const output_module_filename = std::format("{}.hl", module_name.value());
+            std::filesystem::path const output_module_filename = std::format("{}.hlb", module_name.value());
             std::filesystem::path const output_module_path = get_hl_build_directory(builder.build_directory_path) / output_module_filename;
 
             if (std::filesystem::exists(output_module_path))
             {
                 if (is_file_newer_than(output_module_path, source_file_path))
                 {
-                    std::optional<Module> core_module = h::json::read_module(output_module_path);
+                    std::optional<Module> core_module = h::binary_serializer::read_module_from_file(output_module_path);
                     if (!core_module.has_value())
                         h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_module_path.generic_string()));
 
@@ -474,7 +484,14 @@ namespace h::compiler
             if (!core_module.has_value())
                 h::common::print_message_and_exit(std::format("Could not parse source file {}.", source_file_path.generic_string()));
 
-            h::json::write<h::Module>(output_module_path, core_module.value());
+            h::binary_serializer::write_module_to_file(output_module_path, core_module.value(), {});
+
+            if (builder.output_module_json)
+            {
+                std::filesystem::path const output_module_json_filename = std::format("{}.hlb.json", module_name.value());
+                std::filesystem::path const output_module_json_path = get_hl_build_directory(builder.build_directory_path) / output_module_json_filename;
+                h::json::write<h::Module>(output_module_json_path, core_module.value());
+            }
 
             core_modules[index] = std::move(core_module.value());
 
@@ -503,7 +520,7 @@ namespace h::compiler
             {
                 std::string_view const module_name = core_module.name;
 
-                std::filesystem::path const module_filename = std::format("{}.hl", module_name);
+                std::filesystem::path const module_filename = std::format("{}.hlb", module_name);
                 std::filesystem::path const output_module_path = get_hl_build_directory(builder.build_directory_path) / module_filename;
 
                 map.insert(std::make_pair(std::pmr::string{ module_name }, output_module_path));
