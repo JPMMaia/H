@@ -3120,4 +3120,88 @@ function intermediate_to_core_statement(intermediate_value: Statement): Core.Sta
             }
         }
     }
+
+    void generate_serialize_binary_code(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    )
+    {
+        File_types const file_types = identify_file_types(
+            input_stream
+        );
+
+        std::string_view const initial_code = R"(module;
+
+#include <compare>
+
+export module h.binary_serializer.generated;
+
+import h.binary_serializer.generics;
+import h.core;
+
+namespace h::binary_serializer
+{
+    export template <typename T>
+    void serialize(
+        Serializer& serializer,
+        T const& data
+    );
+
+    export template <typename T>
+    void deserialize(
+        Serializer& serializer,
+        T& data
+    );
+
+)";
+
+        output_stream << initial_code;
+
+        std::string_view const function_template = R"(    export template <>
+    void serialize(Serializer& serializer, {} const& value)
+    {{
+{}
+    }}
+
+    export template <>
+    void deserialize(Deserializer& deserializer, {}& value)
+    {{
+{}
+    }}
+
+)";
+
+        for (Struct const& struct_info : file_types.structs)
+        {
+            std::pmr::string serialize_body;
+
+            for (std::size_t member_index = 0; member_index < struct_info.members.size(); ++member_index)
+            {
+                Member const& member = struct_info.members[member_index];
+                serialize_body += std::format("        serialize(serializer, value.{});", member.name);
+
+                if (member_index + 1 < struct_info.members.size())
+                    serialize_body += '\n';
+            }
+
+            std::pmr::string deserialize_body;
+
+            for (std::size_t member_index = 0; member_index < struct_info.members.size(); ++member_index)
+            {
+                Member const& member = struct_info.members[member_index];
+                deserialize_body += std::format("        deserialize(deserializer, value.{});", member.name);
+
+                if (member_index + 1 < struct_info.members.size())
+                    deserialize_body += '\n';
+            }
+
+            std::string const output = std::vformat(function_template, std::make_format_args(struct_info.name, serialize_body, struct_info.name, deserialize_body));
+
+            output_stream << output;
+        }
+
+        output_stream << "}\n";
+
+        output_stream.flush();
+    }
 }
