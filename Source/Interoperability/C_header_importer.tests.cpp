@@ -1044,7 +1044,7 @@ Sint32 my_global_2 = 0;
             
             CHECK(declaration.type == create_custom_type_reference("c.My_data", "Sint32"));
             REQUIRE(declaration.type.has_value());
-            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(h::create_fundamental_type_type_reference(h::Fundamental_type::C_int), "0") }));
+            CHECK(declaration.initial_value == h::create_statement({ h::create_constant_expression(h::create_custom_type_reference("c.My_data", "Sint32"), "0") }));
 
             CHECK(*declaration.source_location == h::Source_location{ .file_path = header_file_path, .line = 9, .column = 8 });
         }
