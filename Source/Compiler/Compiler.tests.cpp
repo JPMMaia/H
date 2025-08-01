@@ -15,6 +15,7 @@
 #include <llvm/Passes/StandardInstrumentations.h>
 #include <llvm/Target/TargetMachine.h>
 
+import h.binary_serializer;
 import h.core;
 import h.core.declarations;
 import h.core.struct_layout;
@@ -27,7 +28,6 @@ import h.compiler.clang_data;
 import h.compiler.common;
 import h.compiler.expressions;
 import h.compiler.types;
-import h.json_serializer;
 import h.json_serializer.operators;
 import h.c_header_converter;
 import h.parser.convertor;
@@ -91,11 +91,11 @@ namespace h
     );
     REQUIRE(core_module.has_value());
 
-    std::filesystem::path const output_file_path = g_tests_output_directory_path / std::format("{}.hl", core_module.value().name);
+    std::filesystem::path const output_file_path = g_tests_output_directory_path / std::format("{}.hlb", core_module.value().name);
     if (!std::filesystem::exists(output_file_path.parent_path()))
       std::filesystem::create_directories(output_file_path.parent_path());
 
-    h::json::write<h::Module>(output_file_path, core_module.value());
+    h::binary_serializer::write_module_to_file(output_file_path, core_module.value(), {});
 
     return output_file_path;
   }

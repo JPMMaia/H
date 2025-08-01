@@ -6,6 +6,7 @@
 
 #include <catch2/catch_all.hpp>
 
+import h.binary_serializer;
 import h.common;
 import h.compiler;
 import h.core.hash;
@@ -55,7 +56,7 @@ namespace h
         );
         REQUIRE(core_module.has_value());
         
-        h::json::write<h::Module>(parsed_file_path, core_module.value());
+        h::binary_serializer::write_module_to_file(parsed_file_path, core_module.value(), {});
 
         return parsed_file_path;
     }

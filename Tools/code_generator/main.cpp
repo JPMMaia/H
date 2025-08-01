@@ -51,6 +51,19 @@ int main(int const argc, char const* const* const argv)
             output_stream
         );
     }
+    else if (operation == "serialize_binary_code")
+    {
+        char const* const input_filename = argv[2];
+        char const* const output_filename = argv[3];
+
+        std::ifstream input_stream{ input_filename };
+        std::ofstream output_stream{ output_filename };
+
+        h::tools::code_generator::generate_serialize_binary_code(
+            input_stream,
+            output_stream
+        );
+    }
     else
     {
         if (argc != 7)

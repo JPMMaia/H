@@ -23,11 +23,11 @@ module h.c_header_converter;
 
 import h.c_header_hash;
 
+import h.binary_serializer;
 import h.core;
 import h.core.declarations;
 import h.core.expressions;
 import h.core.types;
-import h.json_serializer;
 
 namespace h::c
 {
@@ -1032,7 +1032,7 @@ namespace h::c
         return macro;
     }
 
-    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor)
+    std::optional<h::Statement> get_global_variable_initial_value(CXCursor const cursor, h::Type_reference const& type)
     {
         CXCursor const initializer_cursor = clang_Cursor_getVarDeclInitializer(cursor);
 
@@ -1045,15 +1045,30 @@ namespace h::c
                 {
                 case CXEval_Int:
                 {
-                    int const value = clang_EvalResult_getAsInt(evaluation_result.value);
-                    return h::create_statement(
-                        {
-                            h::create_constant_expression(
-                                h::create_fundamental_type_type_reference(h::Fundamental_type::C_int),
-                                std::to_string(value)
-                            )
-                        }
-                    );
+                    if (clang_EvalResult_isUnsignedInt(evaluation_result.value) != 0)
+                    {
+                        unsigned long long const value = clang_EvalResult_getAsUnsigned(evaluation_result.value);
+                        return h::create_statement(
+                            {
+                                h::create_constant_expression(
+                                    type,
+                                    std::to_string(value)
+                                )
+                            }
+                        );
+                    }
+                    else
+                    {
+                        long long const value = clang_EvalResult_getAsLongLong(evaluation_result.value);
+                        return h::create_statement(
+                            {
+                                h::create_constant_expression(
+                                    type,
+                                    std::to_string(value)
+                                )
+                            }
+                        );
+                    }
                 }
                 case CXEval_Float:
                 {
@@ -1061,7 +1076,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                h::create_fundamental_type_type_reference(h::Fundamental_type::Float32),
+                                type,
                                 std::to_string(value)
                             )
                         }
@@ -1074,7 +1089,7 @@ namespace h::c
                     return h::create_statement(
                         {
                             h::create_constant_expression(
-                                h::create_c_string_type_reference(false),
+                                type,
                                 value
                             )
                         }
@@ -1127,7 +1142,7 @@ namespace h::c
             cursor
         );
 
-        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor);
+        std::optional<h::Statement> initial_value = get_global_variable_initial_value(cursor, type_reference.value());
 
         return h::Global_variable_declaration
         {
@@ -2538,7 +2553,7 @@ namespace h::c
 
         h::Module header_module = import_header(header_name, header_path, options);
         //header_module.content_hash = current_header_hash;
-        h::json::write<h::Module>(output_path, header_module);
+        h::binary_serializer::write_module_to_file(output_path, header_module, {});
 
         return header_module;
     }

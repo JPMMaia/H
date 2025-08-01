@@ -26,7 +26,8 @@ namespace h::compiler
         std::pmr::vector<h::compiler::Repository> repositories;
         h::compiler::Compilation_options compilation_options;
         Profiler profiler;
-        bool use_profiler;
+        bool use_profiler = true;
+        bool output_module_json = false;
     };
 
     export Builder create_builder(
@@ -102,7 +103,6 @@ namespace h::compiler
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
-        bool const use_objects,
         Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     );
@@ -110,7 +110,6 @@ namespace h::compiler
     void link_artifacts(
         Builder& builder,
         std::span<Artifact const> const artifacts,
-        bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

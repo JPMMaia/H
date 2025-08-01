@@ -107,4 +107,9 @@ namespace h::tools::code_generator
         std::istream& input_stream,
         std::ostream& output_stream
     );
+
+    export void generate_serialize_binary_code(
+        std::istream& input_stream,
+        std::ostream& output_stream
+    );
 }
