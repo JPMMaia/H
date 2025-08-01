@@ -45,12 +45,12 @@ if (WIN32)
    
    target_link_libraries(H_compiler PUBLIC ${llvm_libs})
 
-   find_library(lldCOFF lldCOFF REQUIRED)
-   target_link_libraries(H_compiler PUBLIC ${lldCOFF})
+   find_package(LLD REQUIRED CONFIG)
+   target_link_libraries(H_compiler PUBLIC lldCOFF)
 endif()
 
-find_library(lldCommon lldCommon REQUIRED)
-target_link_libraries(H_compiler PUBLIC ${lldCommon})
+find_package(LLD REQUIRED CONFIG)
+target_link_libraries(H_compiler PUBLIC lldCommon)
 
 if(WIN32)
    find_package(ZLIB REQUIRED)
