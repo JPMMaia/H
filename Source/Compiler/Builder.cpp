@@ -161,14 +161,11 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        bool const use_objects = builder.target.operating_system == "windows" && compilation_options.debug;
-
         compile_and_write_to_bitcode_files(
             builder,
             core_modules,
             module_name_to_file_path_map,
             llvm_data,
-            use_objects,
             compilation_database,
             compilation_options
         );
@@ -176,7 +173,6 @@ namespace h::compiler
         link_artifacts(
             builder,
             artifacts,
-            use_objects,
             compilation_options,
             temporaries_allocator
         );
@@ -538,7 +534,6 @@ namespace h::compiler
         std::span<h::Module const> const core_modules,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& module_name_to_file_path_map,
         LLVM_data& llvm_data,
-        bool const use_objects,
         Compilation_database& compilation_database,
         Compilation_options const& compilation_options
     )
@@ -547,6 +542,7 @@ namespace h::compiler
 
         // TODO to paralelize, llvm_data and compilation_database should be const
 
+        bool const use_objects = builder.compilation_options.output_debug_code_view;
         std::string_view const extension = use_objects ? "obj" : "bc";
 
         for (std::size_t index = 0; index < core_modules.size(); ++index)
@@ -585,7 +581,6 @@ namespace h::compiler
     std::pmr::vector<std::filesystem::path> get_artifact_bitcode_files(
         Builder const& builder,
         Artifact const& artifact,
-        bool const use_objects,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -596,6 +591,7 @@ namespace h::compiler
             temporaries_allocator
         );
 
+        bool const use_objects = builder.compilation_options.output_debug_code_view;
         std::string_view const extension = use_objects ? "obj" : "bc";
 
         for (std::filesystem::path const& source_file_path : source_files)
@@ -698,7 +694,6 @@ namespace h::compiler
     void link_artifacts(
         Builder& builder,
         std::span<Artifact const> const artifacts,
-        bool const use_objects,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -715,7 +710,6 @@ namespace h::compiler
             std::pmr::vector<std::filesystem::path> const bitcode_files = get_artifact_bitcode_files(
                 builder,
                 artifact,
-                use_objects,
                 temporaries_allocator
             );
             if (bitcode_files.empty())

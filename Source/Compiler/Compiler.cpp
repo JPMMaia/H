@@ -1048,11 +1048,14 @@ namespace h::compiler
             llvm::LLVMConstants::DEBUG_METADATA_VERSION
         );
 
-        llvm_module.addModuleFlag(
-            llvm::Module::Warning,
-            "CodeView",
-            1
-        );
+        if (compilation_options.output_debug_code_view)
+        {
+            llvm_module.addModuleFlag(
+                llvm::Module::Warning,
+                "CodeView",
+                1
+            );
+        }
 
         std::unique_ptr<llvm::DIBuilder> llvm_debug_builder = std::make_unique<llvm::DIBuilder>(llvm_module);
 

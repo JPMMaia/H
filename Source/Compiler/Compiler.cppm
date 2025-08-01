@@ -58,6 +58,7 @@ namespace h::compiler
         std::optional<std::string_view> target_triple;
         bool is_optimized = false;
         bool debug = true;
+        bool output_debug_code_view = false;
         Contract_options contract_options = Contract_options::Log_error_and_abort;
     };
 

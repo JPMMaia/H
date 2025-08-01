@@ -150,6 +150,26 @@ void print_arguments(int const argc, char const* const* argv)
     std::fflush(stdout);
 }
 
+h::compiler::Compilation_options create_compilation_options(
+    h::compiler::Target const& target,
+    bool const no_debug,
+    h::compiler::Contract_options const contract_options
+)
+{
+    bool const output_debug_code_view = !no_debug && target.operating_system == "windows";
+
+    h::compiler::Compilation_options const compilation_options =
+    {
+        .target_triple = std::nullopt, // TODO
+        .is_optimized = false, // TODO
+        .debug = !no_debug,
+        .output_debug_code_view = output_debug_code_view,
+        .contract_options = contract_options,
+    };
+
+    return compilation_options;
+}
+
 int main(int const argc, char const* const* argv)
 {
     argparse::ArgumentParser program("hlang");
@@ -247,13 +267,8 @@ int main(int const argc, char const* const* argv)
         // TODO create from --module-search-path
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
 
-        h::compiler::Compilation_options const compilation_options =
-        {
-            .target_triple = std::nullopt, // TODO
-            .is_optimized = false, // TODO
-            .debug = !no_debug,
-            .contract_options = contract_options,
-        };
+        h::compiler::Target const target = h::compiler::get_default_target();
+        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
 
         h::compiler::Linker_options const linker_options
         {
@@ -261,9 +276,7 @@ int main(int const argc, char const* const* argv)
             .debug = !no_debug
         };
 
-        h::compiler::Target const target = h::compiler::get_default_target();
         h::parser::Parser const parser = h::parser::create_parser();
-
         h::builder::build_executable(target, parser, file_paths, {}, build_directory_path, output_path, module_name_to_file_path_map, compilation_options, linker_options);
     }
     else if (program.is_subcommand_used("build-artifact"))
@@ -280,14 +293,7 @@ int main(int const argc, char const* const* argv)
         h::compiler::Contract_options const contract_options = get_function_contract_options_argument(subprogram);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-
-        h::compiler::Compilation_options const compilation_options =
-        {
-            .target_triple = std::nullopt, // TODO
-            .is_optimized = false, // TODO
-            .debug = !no_debug,
-            .contract_options = contract_options,
-        };
+        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
 
         h::compiler::Builder builder = h::compiler::create_builder(
             target,
@@ -324,14 +330,7 @@ int main(int const argc, char const* const* argv)
         h::compiler::Contract_options const contract_options = get_function_contract_options_argument(subprogram);
 
         h::compiler::Target const target = h::compiler::get_default_target();
-
-        h::compiler::Compilation_options const compilation_options =
-        {
-            .target_triple = std::nullopt, // TODO
-            .is_optimized = false, // TODO
-            .debug = !no_debug,
-            .contract_options = contract_options,
-        };
+        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
 
         std::unique_ptr<h::compiler::JIT_runner> const jit_runner = h::compiler::setup_jit_and_watch(artifact_file_path, repository_paths, build_directory_path, header_search_paths, target, compilation_options);
 
