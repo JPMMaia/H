@@ -350,6 +350,11 @@ namespace h::compiler
         std::uint32_t const count
     );
 
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_range_location> const& source_location,
+        std::uint32_t const count
+    );
+
     std::optional<h::Source_range> create_source_range_from_source_position(
         std::optional<h::Source_position> const& source_position,
         std::uint32_t const count

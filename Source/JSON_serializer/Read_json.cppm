@@ -427,6 +427,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_source_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_source_position(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_source_range_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
@@ -594,6 +595,35 @@ namespace h::json
                 .pointer = &parent->end,
                 .type = "Source_position",
                 .get_next_state = get_next_state_source_position,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_source_range_location(Stack_state* state, std::string_view const key)
+    {
+        h::Source_range_location* parent = static_cast<h::Source_range_location*>(state->pointer);
+
+        if (key == "file_path")
+        {
+            parent->file_path = std::filesystem::path{};
+            return Stack_state
+            {
+                .pointer = &parent->file_path.value(),
+                .type = "std::filesystem::path",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "range")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->range,
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range,
             };
         }
 
@@ -1294,12 +1324,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -1370,12 +1400,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -1497,12 +1527,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -1695,12 +1725,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -1846,12 +1876,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -2084,12 +2114,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -2188,12 +2218,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -4086,12 +4116,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -4205,12 +4235,12 @@ namespace h::json
 
         if (key == "source_location")
         {
-            parent->source_location = Source_location{};
+            parent->source_location = Source_range_location{};
             return Stack_state
             {
                 .pointer = &parent->source_location.value(),
-                .type = "Source_location",
-                .get_next_state = get_next_state_source_location
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 
@@ -4729,6 +4759,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Source_range",
                 .get_next_state = get_next_state_source_range
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Source_range_location>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
             };
         }
 

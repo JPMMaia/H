@@ -223,7 +223,7 @@ namespace h
         Declaration const& declaration
     );
 
-    export std::optional<h::Source_location> get_declaration_source_location(
+    export std::optional<h::Source_range_location> get_declaration_source_location(
         Declaration const& declaration
     );
 }

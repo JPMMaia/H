@@ -18,7 +18,7 @@ namespace h::c
     {
         std::pmr::string name;
         bool is_function_like = false;
-        h::Source_location source_location;
+        h::Source_range_location source_location;
     };
 
     export struct C_declarations

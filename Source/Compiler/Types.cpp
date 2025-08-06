@@ -113,7 +113,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIFile& llvm_debug_file,
         std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
-        std::optional<Source_location> const& source_location
+        std::optional<Source_range_location> const& source_location
     )
     {
         if (!source_location.has_value() || !source_location->file_path.has_value())
@@ -268,7 +268,7 @@ namespace h::compiler
             llvm_original_debug_type,
             alias_type_declaration.name.c_str(),
             declaration_llvm_debug_file,
-            alias_type_declaration.source_location.has_value() ? alias_type_declaration.source_location->line : 0,
+            alias_type_declaration.source_location.has_value() ? alias_type_declaration.source_location->range.start.line : 0,
             &llvm_debug_scope
         );
 
@@ -351,7 +351,7 @@ namespace h::compiler
                 &llvm_debug_scope,
                 enum_declaration.name.c_str(),
                 declaration_llvm_debug_file,
-                enum_declaration.source_location.has_value() ? enum_declaration.source_location->line : 0,
+                enum_declaration.source_location.has_value() ? enum_declaration.source_location->range.start.line : 0,
                 number_of_bits,
                 8,
                 llvm_debug_builder.getOrCreateArray(elements),
@@ -402,7 +402,7 @@ namespace h::compiler
                 mangled_name,
                 &llvm_debug_scope,
                 declaration_llvm_debug_file,
-                struct_declaration.source_location.has_value() ? struct_declaration.source_location->line : 0
+                struct_declaration.source_location.has_value() ? struct_declaration.source_location->range.start.line : 0
             );
 
             llvm_debug_type_map.insert(std::make_pair(struct_declaration.name, value));
@@ -439,7 +439,7 @@ namespace h::compiler
             std::pmr::vector<llvm::Metadata*> elements;
             elements.reserve(llvm_member_debug_types.size());
 
-            std::uint32_t const struct_line_number = struct_declaration.source_location.has_value() ? struct_declaration.source_location->line : 0;
+            std::uint32_t const struct_line_number = struct_declaration.source_location.has_value() ? struct_declaration.source_location->range.start.line : 0;
 
             std::pmr::vector<Clang_struct_member_info> const clang_struct_member_infos = get_clang_struct_member_infos(
                 clang_module_data,
@@ -564,7 +564,7 @@ namespace h::compiler
                 mangled_name,
                 &llvm_debug_scope,
                 declaration_llvm_debug_file,
-                union_declaration.source_location.has_value() ? union_declaration.source_location->line : 0
+                union_declaration.source_location.has_value() ? union_declaration.source_location->range.start.line : 0
             );
 
             llvm_debug_type_map.insert(std::make_pair(union_declaration.name, value));
@@ -599,7 +599,7 @@ namespace h::compiler
             std::pmr::vector<llvm::Metadata*> elements;
             elements.reserve(llvm_member_debug_types.size());
 
-            std::uint32_t const union_line_number = union_declaration.source_location.has_value() ? union_declaration.source_location->line : 0;
+            std::uint32_t const union_line_number = union_declaration.source_location.has_value() ? union_declaration.source_location->range.start.line : 0;
 
             for (std::size_t index = 0; index < llvm_member_debug_types.size(); ++index)
             {

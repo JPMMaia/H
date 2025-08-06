@@ -430,8 +430,8 @@ namespace h::compiler
             llvm::StringRef const function_name = function_declaration.name.c_str();
             llvm::StringRef const mangled_function_name = llvm_function.getName();
 
-            unsigned const line = function_declaration.source_location.has_value() ? function_declaration.source_location->line : 0;
-            unsigned const scope_line = function_definition.source_location.has_value() ? function_definition.source_location->line : line;
+            unsigned const line = function_declaration.source_location.has_value() ? function_declaration.source_location->range.start.line : 0;
+            unsigned const scope_line = function_definition.source_location.has_value() ? function_definition.source_location->range.start.line : line;
 
             llvm::DISubprogram* const subprogram = debug_info->llvm_builder->createFunction(
                 debug_info->main_llvm_compile_unit,
@@ -473,10 +473,10 @@ namespace h::compiler
             
             if (debug_info != nullptr)
             {
-                Source_location const function_declaration_source_location = function_declaration.source_location.value_or(Source_location{});
-                Source_location const function_definition_source_location = function_definition.source_location.value_or(function_declaration_source_location);
+                Source_range_location const function_declaration_source_location = function_declaration.source_location.value_or(Source_range_location{});
+                Source_range_location const function_definition_source_location = function_definition.source_location.value_or(function_declaration_source_location);
 
-                set_debug_location(llvm_builder, *debug_info, function_definition_source_location.line, function_definition_source_location.column);
+                set_debug_location(llvm_builder, *debug_info, function_definition_source_location.range.start.line, function_definition_source_location.range.start.column);
             }
 
             Expression_parameters const expression_parameters

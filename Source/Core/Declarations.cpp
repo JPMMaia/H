@@ -741,11 +741,11 @@ namespace h
         return name;
     }
 
-    std::optional<h::Source_location> get_declaration_source_location(
+    std::optional<h::Source_range_location> get_declaration_source_location(
         Declaration const& declaration
     )
     {
-       std::optional<h::Source_location> source_location;
+       std::optional<h::Source_range_location> source_location;
 
         std::visit([&](auto const& data) -> void {
             source_location = data->source_location;

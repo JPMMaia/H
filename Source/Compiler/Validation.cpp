@@ -321,7 +321,7 @@ namespace h::compiler
 
         auto const process_declaration_name = [&](
             std::string_view const name,
-            std::optional<Source_location> const& source_location
+            std::optional<Source_range_location> const& source_location
         ) -> void
         {
             if (all_names.contains(name))
@@ -3351,6 +3351,29 @@ namespace h::compiler
             {
                 .line = source_location->line,
                 .column = source_location->column + count
+            }
+        };
+    }
+
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_range_location> const& source_location,
+        std::uint32_t const count
+    )
+    {
+        if (!source_location.has_value())
+            return std::nullopt;
+
+        return h::Source_range
+        {
+            .start =
+            {
+                .line = source_location->range.start.line,
+                .column = source_location->range.start.column
+            },
+            .end = 
+            {
+                .line = source_location->range.start.line,
+                .column = source_location->range.start.column + count
             }
         };
     }

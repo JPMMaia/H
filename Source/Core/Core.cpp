@@ -107,6 +107,21 @@ namespace h
         };
     }
 
+    Source_range_location create_source_range_location(
+        std::optional<std::filesystem::path> const& file_path,
+        std::uint32_t const start_line,
+        std::uint32_t const start_column,
+        std::uint32_t const end_line,
+        std::uint32_t const end_column
+    )
+    {
+        return Source_range_location
+        {
+            .file_path = file_path,
+            .range = create_source_range(start_line, start_column, end_line, end_column),
+        };
+    }
+
     
     bool is_bit_shift_binary_operation(h::Binary_operation const operation)
     {

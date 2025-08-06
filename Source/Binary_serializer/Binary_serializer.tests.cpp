@@ -63,11 +63,19 @@ namespace h::binary_serializer
             .input_parameter_names = std::move(input_parameter_names),
             .output_parameter_names = std::move(output_parameter_names),
             .linkage = Linkage::External,
-            .source_location = Source_location
+            .source_location = Source_range_location
             {
                 .file_path = std::nullopt,
-                .line = 3,
-                .column = 0
+                .range = {
+                    .start = {
+                        .line = 2,
+                        .column = 6,
+                    },
+                    .end = {
+                        .line = 4,
+                        .column = 2,
+                    }
+                },
             },
             .input_parameter_source_positions = std::move(input_parameter_source_positions),
             .output_parameter_source_positions = std::move(output_parameter_source_positions)

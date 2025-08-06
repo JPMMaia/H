@@ -79,7 +79,7 @@ namespace h::c
     struct Header_source_location
     {
         CXFile file;
-        h::Source_location source_location;
+        h::Source_range_location source_location;
     };
 
     Header_source_location get_cursor_source_location(
@@ -106,18 +106,19 @@ namespace h::c
         return Header_source_location
         {
             .file = file,
-            .source_location =
-            {
-                .file_path = std::move(file_path),
-                .line = line,
-                .column = column,
-            },
+            .source_location = h::create_source_range_location(
+                std::move(file_path),
+                line,
+                column,
+                line,
+                column + 1
+            ),
         };
     }
 
     h::Source_position get_source_position(Header_source_location const& header_source_location)
     {
-        return {.line = header_source_location.source_location.line, .column = header_source_location.source_location.column };
+        return {.line = header_source_location.source_location.range.start.line, .column = header_source_location.source_location.range.start.column };
     }
 
     std::optional<h::Fundamental_type> to_fundamental_type(CXTypeKind const type_kind) noexcept
@@ -540,7 +541,7 @@ namespace h::c
             String const type_spelling = { clang_getTypeSpelling(type) };
             String const type_kind_spelling = { clang_getTypeKindSpelling(type.kind) };
 
-            std::cerr << std::format("{}: Line {} Column {} Did not recognize type.kind '{}'! Type name is '{}\n", file_path.string_view(), source_location.source_location.line, source_location.source_location.column, type_kind_spelling.string_view(), type_spelling.string_view());
+            std::cerr << std::format("{}: Line {} Column {} Did not recognize type.kind '{}'! Type name is '{}\n", file_path.string_view(), source_location.source_location.range.start.line, source_location.source_location.range.start.column, type_kind_spelling.string_view(), type_spelling.string_view());
             throw std::runtime_error{ "Did not recognize type.kind!" };
         }
         }

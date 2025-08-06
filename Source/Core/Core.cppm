@@ -66,6 +66,26 @@ namespace h
         std::uint32_t const end_column
     );
 
+    export struct Source_range_location
+    {
+        std::optional<std::filesystem::path> file_path;
+        Source_range range;
+
+#if HACK_SPACESHIP_OPERATOR
+        friend std::strong_ordering operator<=>(Source_range_location const& lhs, Source_range_location const& rhs) = default;
+#else
+        friend auto operator<=>(Source_range_location const& lhs, Source_range_location const& rhs) = default;
+#endif
+    };
+
+    export Source_range_location create_source_range_location(
+        std::optional<std::filesystem::path> const& file_path,
+        std::uint32_t const start_line,
+        std::uint32_t const start_column,
+        std::uint32_t const end_line,
+        std::uint32_t const end_column
+    );
+
     export struct Function_declaration;
     export struct Statement;
     export struct Type_reference;
@@ -317,7 +337,7 @@ namespace h
         Statement initial_value;
         bool is_mutable;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Global_variable_declaration const& lhs, Global_variable_declaration const& rhs) = default;
@@ -332,7 +352,7 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Type_reference> type;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Alias_type_declaration const& lhs, Alias_type_declaration const& rhs) = default;
@@ -361,7 +381,7 @@ namespace h
         std::optional<std::pmr::string> unique_name;
         std::pmr::vector<Enum_value> values;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
@@ -382,7 +402,7 @@ namespace h
         bool is_literal;
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
         std::optional<std::pmr::vector<Source_position>> member_source_positions;
 
 #if HACK_SPACESHIP_OPERATOR
@@ -400,7 +420,7 @@ namespace h
         std::pmr::vector<std::pmr::string> member_names;
         std::optional<std::pmr::string> comment;
         std::pmr::vector<Indexed_comment> member_comments;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
         std::optional<std::pmr::vector<Source_position>> member_source_positions;
 
 #if HACK_SPACESHIP_OPERATOR
@@ -441,7 +461,7 @@ namespace h
         std::pmr::vector<Function_condition> preconditions;
         std::pmr::vector<Function_condition> postconditions;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
         std::optional<std::pmr::vector<Source_position>> input_parameter_source_positions;
         std::optional<std::pmr::vector<Source_position>> output_parameter_source_positions;
 
@@ -456,7 +476,7 @@ namespace h
     {
         std::pmr::string name;
         std::pmr::vector<Statement> statements;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Function_definition const&, Function_definition const&) = default;
@@ -1085,7 +1105,7 @@ namespace h
         std::pmr::vector<Type_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Type_constructor const&, Type_constructor const&) = default;
@@ -1112,7 +1132,7 @@ namespace h
         std::pmr::vector<Function_constructor_parameter> parameters;
         std::pmr::vector<Statement> statements;
         std::optional<std::pmr::string> comment;
-        std::optional<Source_location> source_location;
+        std::optional<Source_range_location> source_location;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Function_constructor const&, Function_constructor const&) = default;

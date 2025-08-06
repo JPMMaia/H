@@ -1064,13 +1064,13 @@ namespace h::compiler
         std::pmr::string const& name = function_declaration.input_parameter_names[input_parameter_index];
         Type_reference const& core_type = function_declaration.type.input_parameter_types[input_parameter_index];
         
-        Source_location const function_declaration_source_location =
-            function_declaration.source_location.value_or(Source_location{});
+        Source_range_location const function_declaration_source_location =
+            function_declaration.source_location.value_or(Source_range_location{});
 
         Source_position const parameter_source_position =
             function_declaration.input_parameter_source_positions.has_value() ?
             function_declaration.input_parameter_source_positions.value()[input_parameter_index] :
-            Source_position{ .line = function_declaration_source_location.line, .column = function_declaration_source_location.column };
+            Source_position{ .line = function_declaration_source_location.range.start.line, .column = function_declaration_source_location.range.start.column };
 
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info->llvm_builder,
