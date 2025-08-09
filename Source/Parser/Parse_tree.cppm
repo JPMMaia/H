@@ -88,6 +88,14 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
+    export std::optional<Parse_node> get_node_next_sibling(
+        Parse_node const& node
+    );
+
+    export std::optional<Parse_node> get_node_previous_sibling(
+        Parse_node const& node
+    );
+
     export Source_position get_node_start_source_position(
         Parse_node const& node
     );
@@ -109,5 +117,10 @@ namespace h::parser
         Parse_node const& node,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export Parse_node get_smallest_node_that_contains_position(
+        Parse_node const& node,
+        h::Source_position const& position
     );
 }

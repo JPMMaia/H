@@ -172,6 +172,28 @@ namespace h::parser
         return get_child_nodes(tree, parent_node.value(), child_key, output_allocator);
     }
 
+    std::optional<Parse_node> get_node_next_sibling(
+        Parse_node const& node
+    )
+    {
+        TSNode const sibling = ts_node_next_sibling(node.ts_node);
+        if (ts_node_is_null(sibling))
+            return std::nullopt;
+
+        return Parse_node{ .ts_node = sibling };
+    }
+
+    std::optional<Parse_node> get_node_previous_sibling(
+        Parse_node const& node
+    )
+    {
+        TSNode const sibling = ts_node_prev_sibling(node.ts_node);
+        if (ts_node_is_null(sibling))
+            return std::nullopt;
+
+        return Parse_node{ .ts_node = sibling };
+    }
+
     Source_position get_node_start_source_position(
         Parse_node const& node
     )
@@ -283,5 +305,27 @@ namespace h::parser
         ts_tree_cursor_delete(&cursor);
 
         return std::pmr::vector<Parse_node>{std::move(output), output_allocator};
+    }
+
+    Parse_node get_smallest_node_that_contains_position(
+        Parse_node const& node,
+        h::Source_position const& position
+    )
+    {
+        TSPoint const start_point
+        {
+            .row = position.line - 1,
+            .column = position.column - 1,
+        };
+
+        TSPoint const end_point
+        {
+            .row = position.line - 1,
+            .column = position.column - 1,
+        };
+
+        TSNode descendant_node = ts_node_descendant_for_point_range(node.ts_node, start_point, end_point);
+
+        return { .ts_node = descendant_node };
     }
 }
