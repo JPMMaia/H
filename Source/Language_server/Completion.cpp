@@ -103,24 +103,35 @@ namespace h::language_server
     {
         h::Source_position const source_position = to_source_position(position);
 
-        std::optional<Declaration> const declaration = find_declaration_that_contains_source_position(
+        h::parser::Parse_node const smallest_node = h::parser::get_smallest_node_that_contains_position(
+            h::parser::get_root_node(parse_tree),
+            source_position
+        );
+        std::string_view const smallest_node_symbol = h::parser::get_node_symbol(smallest_node);
+        h::Source_range const smallest_node_range = h::parser::get_node_source_range(smallest_node);
+
+        std::optional<h::parser::Parse_node> const previous_sibling = h::parser::get_node_previous_sibling(smallest_node);
+        std::string_view const previous_sibling_value = previous_sibling.has_value() ? h::parser::get_node_value(parse_tree, previous_sibling.value()) : std::string_view{""};
+        h::Source_range const previous_sibling_range = previous_sibling.has_value() ? h::parser::get_node_source_range(previous_sibling.value()) : smallest_node_range;
+
+        std::optional<Declaration> const declaration_optional = find_declaration_that_contains_source_position(
             declaration_database,
             core_module.name,
             source_position
         );
 
-        if (declaration.has_value())
+        if (declaration_optional.has_value())
         {
-            // If function
+            Declaration const& declaration = declaration_optional.value();
+
+            if (std::holds_alternative<h::Function_declaration const*>(declaration.data))
             {
-                // If it is a parameter
+                h::Function_declaration const& function_declaration = *std::get<h::Function_declaration const*>(declaration.data);
+
+                bool const is_function_type_parameter = previous_sibling_value.ends_with(":") && (smallest_node_symbol == "," || smallest_node_symbol == ")");
+                if (is_function_type_parameter)
                 {
-
-                }
-
-                // If it is a statement
-                {
-
+                    
                 }
             }
         }
