@@ -753,4 +753,22 @@ namespace h
 
         return source_location;
     }
+
+    void visit_declarations(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::function<bool(Declaration const& declaration)> const& visitor
+    )
+    {
+        auto const location = database.map.find(module_name);
+        if (location == database.map.end())
+            return;
+
+        for (auto const& pair : location->second)
+        {
+            bool const done = visitor(pair.second);
+            if (done)
+                return;
+        }
+    }
 }
