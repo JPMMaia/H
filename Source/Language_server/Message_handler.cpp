@@ -140,6 +140,13 @@ namespace h::language_server
             }
         );
 
+        message_handler.add<lsp::requests::TextDocument_Completion>(
+            [&](lsp::requests::TextDocument_Completion::Params&& parameters) -> lsp::requests::TextDocument_Completion::Result
+            {
+                return compute_text_document_completion(server, parameters);
+            }
+        );
+
         message_handler.add<lsp::requests::TextDocument_Diagnostic>(
             [&](lsp::requests::TextDocument_Diagnostic::Params&& parameters) -> lsp::requests::TextDocument_Diagnostic::Result
             {

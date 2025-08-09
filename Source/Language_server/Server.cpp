@@ -20,6 +20,7 @@ import h.compiler.diagnostic;
 import h.compiler.target;
 import h.core;
 import h.core.declarations;
+import h.language_server.completion;
 import h.language_server.core;
 import h.language_server.diagnostics;
 import h.language_server.inlay_hints;
@@ -69,6 +70,14 @@ namespace h::language_server
             .identifier = std::nullopt,
         };
 
+        lsp::CompletionOptions const completion_options
+        {
+            .triggerCharacters = lsp::Array<lsp::String>{
+                ".",
+                " "
+            },
+        };
+
         lsp::TextDocumentSyncOptions const text_document_sync_server_capabilities
         {
             .openClose = true,
@@ -97,6 +106,7 @@ namespace h::language_server
             .capabilities =
             {
                 .textDocumentSync = text_document_sync_server_capabilities,
+                .completionProvider = completion_options,
                 .inlayHintProvider = inlay_hint_options,
                 .diagnosticProvider = diagnostic_options,
                 .workspace = workspace_server_capabilities,
@@ -249,20 +259,15 @@ namespace h::language_server
     {
         h::parser::Parse_node const& root_node = h::parser::get_root_node(parse_tree);
 
-        if (!h::parser::has_errors(root_node))
-        {
-            std::optional<h::Module> core_module = h::parser::parse_node_to_module(
-                parse_tree,
-                root_node,
-                source_file_path,
-                output_allocator,
-                temporaries_allocator
-            );
+        std::optional<h::Module> core_module = h::parser::parse_node_to_module(
+            parse_tree,
+            root_node,
+            source_file_path,
+            output_allocator,
+            temporaries_allocator
+        );
 
-            return core_module;
-        }
-
-        return std::nullopt;
+        return core_module;
     }
 
     static std::pmr::vector<h::Module> convert_to_core_modules(
@@ -555,6 +560,31 @@ namespace h::language_server
 
             workspace_data.core_module_diagnostic_dirty_flags[core_module_index] = true;
         }
+    }
+
+    lsp::TextDocument_CompletionResult compute_text_document_completion(
+        Server& server,
+        lsp::CompletionParams const& parameters
+    )
+    {
+        std::optional<std::pair<Workspace_data&, std::size_t>> const workspace_core_module_pair = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!workspace_core_module_pair.has_value())
+            return nullptr;
+
+        Workspace_data const& workspace_data = workspace_core_module_pair->first;
+        std::size_t const core_module_index = workspace_core_module_pair->second;
+
+        lsp::Position const& position = parameters.position;
+
+        return compute_completion(
+            workspace_data.declaration_database,
+            workspace_data.core_module_parse_trees[core_module_index],
+            workspace_data.core_modules[core_module_index],
+            position
+        );
     }
 
     lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
