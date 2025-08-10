@@ -55,6 +55,9 @@ namespace h::parser
     )
     {
         TSNode const child_node = ts_node_child(node.ts_node, child_index);
+        if (ts_node_is_null(child_node))
+            return std::nullopt;
+
         return Parse_node{ .ts_node = child_node };
     }
 

@@ -4,7 +4,7 @@ import { get_document_uri, activate } from './helper.js';
 
 suite("Should do completion", () => {
 	test("Completes 'module' at the beginning of file", async () => {
-		const document_uri = get_document_uri('completion_00.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_00.hltxt');
 		await test_completion(document_uri, new vscode.Position(0, 0), {
 			items: [
 				{ label: 'module', kind: vscode.CompletionItemKind.Keyword }
@@ -13,7 +13,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes after module declaration", async () => {
-		const document_uri = get_document_uri('completion_01.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_01.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 0), {
 			items: [
 				{ label: "enum", kind: vscode.CompletionItemKind.Keyword },
@@ -32,7 +32,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes return statement", async () => {
-		const document_uri = get_document_uri('completion_02.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_02.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 11), {
 			items: [
 				{ label: "add", kind: vscode.CompletionItemKind.Function },
@@ -51,7 +51,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes function parameter type", async () => {
-		const document_uri = get_document_uri('completion_03.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_03.hltxt');
 		await test_completion(document_uri, new vscode.Position(12, 18), {
 			items: [
 				{ label: "Any_type", kind: vscode.CompletionItemKind.Keyword },
@@ -266,7 +266,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes enum values", async () => {
-		const document_uri = get_document_uri('completion_enum_0.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 26), {
 			items: [
 				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
@@ -277,7 +277,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes enum values through alias", async () => {
-		const document_uri = get_document_uri('completion_enum_1.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(13, 28), {
 			items: [
 				{ label: "High", kind: vscode.CompletionItemKind.EnumMember },
@@ -310,7 +310,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes global variables", async () => {
-		const document_uri = get_document_uri('completion_global_variable_0.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_global_variable_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 16), {
 			items: [
 				{ label: "my_global_constant", kind: vscode.CompletionItemKind.Constant },
@@ -320,7 +320,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes struct members", async () => {
-		const document_uri = get_document_uri('completion_struct_0.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 10), {
 			items: [
 				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
@@ -340,7 +340,7 @@ suite("Should do completion", () => {
 	});
 
 	test("Completes union members", async () => {
-		const document_uri = get_document_uri('completion_union_0.hltxt');
+		const document_uri = get_document_uri('projects/other/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(14, 10), {
 			items: [
 				{ label: "float32", kind: vscode.CompletionItemKind.Property },

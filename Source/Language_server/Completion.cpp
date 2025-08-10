@@ -1,5 +1,9 @@
 module;
 
+#include <array>
+#include <string>
+#include <vector>
+
 #include <lsp/types.h>
 
 module h.language_server.completion;
@@ -94,6 +98,145 @@ namespace h::language_server
         return std::nullopt;
     }
 
+    static void add_builtin_type_items(
+        std::vector<lsp::CompletionItem>& items
+    )
+    {
+        static constexpr std::array<std::string_view, 28> builtin_types
+        {
+            "Any_type",
+            "Bool",
+            "Byte",
+            "C_bool",
+            "C_char",
+            "C_int",
+            "C_long",
+            "C_longdouble",
+            "C_longlong",
+            "C_schar",
+            "C_short",
+            "C_uchar",
+            "C_uint",
+            "C_ulong",
+            "C_ulonglong",
+            "C_ushort",
+            "Float16",
+            "Float32",
+            "Float64",
+            "Int16",
+            "Int32",
+            "Int64",
+            "Int8",
+            "String",
+            "Uint16",
+            "Uint32",
+            "Uint64",
+            "Uint8",
+        };
+
+        items.reserve(items.size() + builtin_types.size());
+
+        for (std::string_view const type_name : builtin_types)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{type_name},
+                    .kind = lsp::CompletionItemKind::Keyword,
+                }
+            );
+        }
+    }
+
+    static void add_import_alias_items(
+        std::vector<lsp::CompletionItem>& items,
+        h::Module const& core_module
+    )
+    {
+        items.reserve(items.size() + core_module.dependencies.alias_imports.size());
+
+        for (Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{import_module.alias},
+                    .kind = lsp::CompletionItemKind::Module,
+                }
+            );
+        }
+    }
+
+    static void add_declaration_type_items(
+        std::vector<lsp::CompletionItem>& items,
+        h::Module_declarations const& declarations
+    )
+    {
+        for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{declaration.name},
+                    .kind = lsp::CompletionItemKind::TypeParameter,
+                }
+            );
+        }
+
+        for (Enum_declaration const& declaration : declarations.enum_declarations)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{declaration.name},
+                    .kind = lsp::CompletionItemKind::Enum,
+                }
+            );
+        }
+
+        for (Struct_declaration const& declaration : declarations.struct_declarations)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{declaration.name},
+                    .kind = lsp::CompletionItemKind::Struct,
+                }
+            );
+        }
+
+        for (Union_declaration const& declaration : declarations.union_declarations)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{declaration.name},
+                    .kind = lsp::CompletionItemKind::Struct,
+                }
+            );
+        }
+
+        for (Type_constructor const& declaration : declarations.type_constructors)
+        {
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{declaration.name},
+                    .kind = lsp::CompletionItemKind::Struct,
+                }
+            );
+        }
+    }
+
+    static void add_declaration_type_items(
+        std::vector<lsp::CompletionItem>& items,
+        h::Module const& core_module
+    )
+    {
+        add_declaration_type_items(items, core_module.export_declarations);
+        add_declaration_type_items(items, core_module.internal_declarations);
+    }
+
     lsp::TextDocument_CompletionResult compute_completion(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -131,7 +274,17 @@ namespace h::language_server
                 bool const is_function_type_parameter = previous_sibling_value.ends_with(":") && (smallest_node_symbol == "," || smallest_node_symbol == ")");
                 if (is_function_type_parameter)
                 {
-                    
+                    std::vector<lsp::CompletionItem> items = {};
+                    add_builtin_type_items(items);
+                    add_import_alias_items(items, core_module);
+                    add_declaration_type_items(items, core_module);
+
+                    return lsp::CompletionList
+                    {
+                        .isIncomplete = false,
+                        .items = std::move(items),
+                        .itemDefaults = std::nullopt,
+                    };
                 }
             }
         }
@@ -146,12 +299,10 @@ namespace h::language_server
             
         }
 
-        std::vector<lsp::CompletionItem> items = {};
-
         return lsp::CompletionList
         {
             .isIncomplete = false,
-            .items = std::move(items),
+            .items = {},
             .itemDefaults = std::nullopt,
         };
     }
