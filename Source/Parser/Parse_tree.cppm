@@ -39,9 +39,12 @@ namespace h::parser
     );
 
     export std::optional<Parse_node> get_parent_node(
-        Parse_tree const& tree,
+        Parse_node const& node
+    );
+
+    export std::optional<Parse_node> get_ancestor_node(
         Parse_node const& node,
-        std::string_view const child_key
+        std::uint32_t const degree
     );
 
     export std::optional<Parse_node> get_child_node(
@@ -86,6 +89,10 @@ namespace h::parser
         std::string_view const parent_key,
         std::string_view const child_key,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::optional<std::uint32_t> get_child_node_index(
+        Parse_node const& node
     );
 
     export std::optional<Parse_node> get_node_next_sibling(

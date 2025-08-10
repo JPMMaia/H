@@ -1,6 +1,7 @@
 module;
 
 #include <array>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,7 @@ module h.language_server.completion;
 
 import h.core;
 import h.core.declarations;
+import h.core.types;
 import h.language_server.core;
 import h.parser.parse_tree;
 
@@ -169,72 +171,81 @@ namespace h::language_server
 
     static void add_declaration_type_items(
         std::vector<lsp::CompletionItem>& items,
-        h::Module_declarations const& declarations
+        Declaration_database const& declaration_database,
+        std::string_view const module_name
     )
     {
-        for (Alias_type_declaration const& declaration : declarations.alias_type_declarations)
-        {
-            items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{declaration.name},
-                    .kind = lsp::CompletionItemKind::TypeParameter,
-                }
-            );
-        }
+        auto const process_declaration = [&](Declaration const& declaration) -> bool {
 
-        for (Enum_declaration const& declaration : declarations.enum_declarations)
-        {
-            items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{declaration.name},
-                    .kind = lsp::CompletionItemKind::Enum,
-                }
-            );
-        }
+            if (std::holds_alternative<h::Alias_type_declaration const*>(declaration.data))
+            {
+                h::Alias_type_declaration const& data = *std::get<h::Alias_type_declaration const*>(declaration.data);
 
-        for (Struct_declaration const& declaration : declarations.struct_declarations)
-        {
-            items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{declaration.name},
-                    .kind = lsp::CompletionItemKind::Struct,
-                }
-            );
-        }
+                items.push_back(
+                    lsp::CompletionItem
+                    {
+                        .label = std::string{data.name},
+                        .kind = lsp::CompletionItemKind::TypeParameter,
+                    }
+                );
+            }
+            else if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
+            {
+                h::Enum_declaration const& data = *std::get<h::Enum_declaration const*>(declaration.data);
+                
+                items.push_back(
+                    lsp::CompletionItem
+                    {
+                        .label = std::string{data.name},
+                        .kind = lsp::CompletionItemKind::Enum,
+                    }
+                );
+            }
+            else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
+            {
+                h::Struct_declaration const& data = *std::get<h::Struct_declaration const*>(declaration.data);
 
-        for (Union_declaration const& declaration : declarations.union_declarations)
-        {
-            items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{declaration.name},
-                    .kind = lsp::CompletionItemKind::Struct,
-                }
-            );
-        }
+                items.push_back(
+                    lsp::CompletionItem
+                    {
+                        .label = std::string{data.name},
+                        .kind = lsp::CompletionItemKind::Struct,
+                    }
+                );
+            }
+            else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
+            {
+                h::Union_declaration const& data = *std::get<h::Union_declaration const*>(declaration.data);
 
-        for (Type_constructor const& declaration : declarations.type_constructors)
-        {
-            items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{declaration.name},
-                    .kind = lsp::CompletionItemKind::Struct,
-                }
-            );
-        }
-    }
+                items.push_back(
+                    lsp::CompletionItem
+                    {
+                        .label = std::string{data.name},
+                        .kind = lsp::CompletionItemKind::Struct,
+                    }
+                );
+            }
+            else if (std::holds_alternative<h::Type_constructor const*>(declaration.data))
+            {
+                h::Type_constructor const& data = *std::get<h::Type_constructor const*>(declaration.data);
 
-    static void add_declaration_type_items(
-        std::vector<lsp::CompletionItem>& items,
-        h::Module const& core_module
-    )
-    {
-        add_declaration_type_items(items, core_module.export_declarations);
-        add_declaration_type_items(items, core_module.internal_declarations);
+                items.push_back(
+                    lsp::CompletionItem
+                    {
+                        .label = std::string{data.name},
+                        .kind = lsp::CompletionItemKind::TypeParameter,
+                    }
+                );
+            }
+
+            return false;
+        };
+
+        visit_declarations(
+            declaration_database,
+            module_name,
+            process_declaration
+        );
     }
 
     lsp::TextDocument_CompletionResult compute_completion(
@@ -254,6 +265,7 @@ namespace h::language_server
         h::Source_range const smallest_node_range = h::parser::get_node_source_range(smallest_node);
 
         std::optional<h::parser::Parse_node> const previous_sibling = h::parser::get_node_previous_sibling(smallest_node);
+        std::string_view const previous_sibling_symbol = previous_sibling.has_value() ? h::parser::get_node_symbol(previous_sibling.value()) : std::string_view{""};
         std::string_view const previous_sibling_value = previous_sibling.has_value() ? h::parser::get_node_value(parse_tree, previous_sibling.value()) : std::string_view{""};
         h::Source_range const previous_sibling_range = previous_sibling.has_value() ? h::parser::get_node_source_range(previous_sibling.value()) : smallest_node_range;
 
@@ -271,13 +283,50 @@ namespace h::language_server
             {
                 h::Function_declaration const& function_declaration = *std::get<h::Function_declaration const*>(declaration.data);
 
-                bool const is_function_type_parameter = previous_sibling_value.ends_with(":") && (smallest_node_symbol == "," || smallest_node_symbol == ")");
+                bool const is_access_expression = previous_sibling_value.ends_with(".");
+                bool const is_function_type_parameter =
+                    (previous_sibling_value.ends_with(":") || is_access_expression) &&
+                    (smallest_node_symbol == "," || smallest_node_symbol == ")");
                 if (is_function_type_parameter)
                 {
                     std::vector<lsp::CompletionItem> items = {};
-                    add_builtin_type_items(items);
-                    add_import_alias_items(items, core_module);
-                    add_declaration_type_items(items, core_module);
+
+                    if (is_access_expression)
+                    {                    
+                        std::optional<std::uint32_t> const sibling_node_index = get_child_node_index(previous_sibling.value());
+                        if (sibling_node_index.has_value())
+                        {
+                            std::optional<h::parser::Parse_node> const parameters_array_node =
+                                h::parser::get_parent_node(previous_sibling.value());
+                            if (parameters_array_node.has_value())
+                            {
+                                std::string_view const parameters_array_symbol = get_node_symbol(parameters_array_node.value());
+                                bool const is_input_parameter = parameters_array_symbol == "Function_input_parameters";
+
+                                std::uint32_t const parameter_index = sibling_node_index.value() / 2;
+                                std::span<h::Type_reference const> const parameter_types =
+                                    is_input_parameter ?
+                                    function_declaration.type.input_parameter_types :
+                                    function_declaration.type.output_parameter_types;
+                                
+                                if (parameter_index < parameter_types.size())
+                                {
+                                    h::Type_reference const& parameter_type = parameter_types[parameter_index];
+                                    std::optional<std::string_view> const type_module_name = h::get_type_module_name(parameter_type);
+                                    if (type_module_name.has_value())
+                                    {
+                                        add_declaration_type_items(items, declaration_database, type_module_name.value());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        add_builtin_type_items(items);
+                        add_import_alias_items(items, core_module);
+                        add_declaration_type_items(items, declaration_database, core_module.name);
+                    }
 
                     return lsp::CompletionList
                     {

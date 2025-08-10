@@ -139,7 +139,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(4, 35), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
@@ -161,7 +161,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 23), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
@@ -183,7 +183,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
@@ -205,7 +205,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
@@ -227,7 +227,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(4, 27), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]
@@ -239,7 +239,7 @@ suite("Should do completion", () => {
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
 				{ label: "Complex", kind: vscode.CompletionItemKind.Struct },
-				{ label: "Number", kind: vscode.CompletionItemKind.TypeParameter },
+				{ label: "Number", kind: vscode.CompletionItemKind.Struct },
 				{ label: "Precision", kind: vscode.CompletionItemKind.Enum },
 				{ label: "Precision_t", kind: vscode.CompletionItemKind.TypeParameter },
 			]

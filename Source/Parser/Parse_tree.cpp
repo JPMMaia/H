@@ -39,13 +39,31 @@ namespace h::parser
     }
 
     std::optional<Parse_node> get_parent_node(
-        Parse_tree const& tree,
-        Parse_node const& node,
-        std::string_view const child_key
+        Parse_node const& node
     )
     {
         TSNode const parent_node = ts_node_parent(node.ts_node);
+        if (ts_node_is_null(parent_node))
+            return std::nullopt;
+
         return Parse_node{ .ts_node = parent_node };
+    }
+
+    std::optional<Parse_node> get_ancestor_node(
+        Parse_node const& node,
+        std::uint32_t const degree
+    )
+    {
+        TSNode current_node = node.ts_node;
+
+        for (std::uint32_t index = 0; index < degree; ++index)
+        {
+            current_node = ts_node_parent(current_node);
+            if (ts_node_is_null(current_node))
+                return std::nullopt;
+        }
+
+        return Parse_node{current_node};
     }
 
     std::optional<Parse_node> get_child_node(
@@ -173,6 +191,29 @@ namespace h::parser
             return std::pmr::vector<Parse_node>{output_allocator};
 
         return get_child_nodes(tree, parent_node.value(), child_key, output_allocator);
+    }
+
+    std::optional<std::uint32_t> get_child_node_index(
+        Parse_node const& node
+    )
+    {
+        std::optional<Parse_node> const parent = get_parent_node(
+            node
+        );
+        if (!parent.has_value())
+            return std::nullopt;
+
+        std::uint32_t const child_count = ts_node_child_count(parent->ts_node);
+
+        for (std::uint32_t child_index = 0; child_index < child_count; ++child_index)
+        {
+            TSNode const child_node = ts_node_child(parent->ts_node, child_index);
+
+            if (child_node.id == node.ts_node.id)
+                return child_index;
+        }
+
+        return std::nullopt;
     }
 
     std::optional<Parse_node> get_node_next_sibling(
