@@ -348,7 +348,32 @@ namespace h::language_server
         {
             Declaration const& declaration = declaration_optional.value();
 
-            if (std::holds_alternative<h::Function_declaration const*>(declaration.data))
+            if (std::holds_alternative<h::Alias_type_declaration const*>(declaration.data))
+            {
+                if (node_before_value == "=")
+                {
+                    return create_type_completion_list(declaration_database, core_module);
+                }
+                else if (node_before_value == ".")
+                {
+                    std::optional<lsp::CompletionList> module_type_completion_list = create_module_type_completion_list(
+                        declaration_database,
+                        parse_tree,
+                        core_module,
+                        node_before.value()
+                    );
+                    if (module_type_completion_list.has_value())
+                        return module_type_completion_list.value();
+                }
+                
+                return lsp::CompletionList
+                {
+                    .isIncomplete = false,
+                    .items = {},
+                    .itemDefaults = std::nullopt,
+                };
+            }
+            else if (std::holds_alternative<h::Function_declaration const*>(declaration.data))
             {
                 h::Function_declaration const& function_declaration = *std::get<h::Function_declaration const*>(declaration.data);
 
@@ -386,10 +411,8 @@ namespace h::language_server
                     }
                 }
             }
-            else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
+            else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data) || std::holds_alternative<h::Union_declaration const*>(declaration.data))
             {
-                h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
-
                 if (node_before_value == ":")
                 {
                     return create_type_completion_list(declaration_database, core_module);
