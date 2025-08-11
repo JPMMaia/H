@@ -250,6 +250,70 @@ namespace h::language_server
         );
     }
 
+    static lsp::CompletionList create_type_completion_list(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module
+    )
+    {
+        std::vector<lsp::CompletionItem> items = {};
+        add_builtin_type_items(items);
+        add_import_alias_items(items, core_module);
+        add_declaration_type_items(items, declaration_database, core_module.name);
+
+        return lsp::CompletionList
+        {
+            .isIncomplete = false,
+            .items = std::move(items),
+            .itemDefaults = std::nullopt,
+        };
+    }
+
+    static std::optional<lsp::CompletionList> create_module_type_completion_list(
+        Declaration_database const& declaration_database,
+        h::parser::Parse_tree const& parse_tree,
+        h::Module const& core_module,
+        h::parser::Parse_node const& node_before
+    )
+    {
+        std::optional<h::parser::Parse_node> const node_to_access = h::parser::get_node_previous_sibling(node_before);
+        if (!node_to_access.has_value())
+            return std::nullopt;
+
+        std::string_view const node_to_access_value = h::parser::get_node_value(parse_tree, node_to_access.value());
+        h::Import_module_with_alias const* import_module = find_import_module_with_alias(
+            core_module,
+            node_to_access_value
+        );
+        if (import_module != nullptr)
+        {
+            std::vector<lsp::CompletionItem> items = {};
+            add_declaration_type_items(items, declaration_database, import_module->module_name);
+
+            return lsp::CompletionList
+            {
+                .isIncomplete = false,
+                .items = std::move(items),
+                .itemDefaults = std::nullopt,
+            };
+        }
+
+        h::parser::Module_info const module_info = h::parser::create_module_info(core_module);
+
+        h::Statement statement_to_access = {};
+        h::parser::node_to_expression(statement_to_access, module_info, parse_tree, node_to_access.value(), {}, {});
+
+        if (!statement_to_access.expressions.empty())
+        {
+            h::Expression const& expression_to_access = statement_to_access.expressions[0];
+                
+            // TODO calculate scope
+            // TODO calculate expression type
+            // TODO try to access member
+        }
+
+        return std::nullopt;
+    }
+
     lsp::TextDocument_CompletionResult compute_completion(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -271,6 +335,9 @@ namespace h::language_server
         std::string_view const previous_sibling_value = previous_sibling.has_value() ? h::parser::get_node_value(parse_tree, previous_sibling.value()) : std::string_view{""};
         h::Source_range const previous_sibling_range = previous_sibling.has_value() ? h::parser::get_node_source_range(previous_sibling.value()) : smallest_node_range;
 
+        std::optional<h::parser::Parse_node> const node_before = h::parser::find_node_before_source_position(parse_tree, smallest_node, source_position);
+        std::string_view const node_before_value = node_before.has_value() ? h::parser::get_node_value(parse_tree, node_before.value()) : std::string_view{""};
+
         std::optional<Declaration> const declaration_optional = find_declaration_that_contains_source_position(
             declaration_database,
             core_module.name,
@@ -291,51 +358,52 @@ namespace h::language_server
                     (smallest_node_symbol == "," || smallest_node_symbol == ")");
                 if (is_function_type_parameter)
                 {
-                    std::vector<lsp::CompletionItem> items = {};
-
                     if (is_access_expression)
                     {
-                        std::optional<std::uint32_t> const sibling_node_index = get_child_node_index(previous_sibling.value());
-                        if (sibling_node_index.has_value())
+                        std::optional<lsp::CompletionList> module_type_completion_list = create_module_type_completion_list(
+                            declaration_database,
+                            parse_tree,
+                            core_module,
+                            node_before.value()
+                        );
+                        if (module_type_completion_list.has_value())
                         {
-                            std::optional<h::parser::Parse_node> const parameters_array_node =
-                                h::parser::get_parent_node(previous_sibling.value());
-                            if (parameters_array_node.has_value())
+                            return module_type_completion_list.value();
+                        }
+                        else
+                        {
+                            return lsp::CompletionList
                             {
-                                std::string_view const parameters_array_symbol = get_node_symbol(parameters_array_node.value());
-                                bool const is_input_parameter = parameters_array_symbol == "Function_input_parameters";
-
-                                std::uint32_t const parameter_index = sibling_node_index.value() / 2;
-                                std::span<h::Type_reference const> const parameter_types =
-                                    is_input_parameter ?
-                                    function_declaration.type.input_parameter_types :
-                                    function_declaration.type.output_parameter_types;
-                                
-                                if (parameter_index < parameter_types.size())
-                                {
-                                    h::Type_reference const& parameter_type = parameter_types[parameter_index];
-                                    std::optional<std::string_view> const type_module_name = h::get_type_module_name(parameter_type);
-                                    if (type_module_name.has_value())
-                                    {
-                                        add_declaration_type_items(items, declaration_database, type_module_name.value());
-                                    }
-                                }
-                            }
+                                .isIncomplete = false,
+                                .items = {},
+                                .itemDefaults = std::nullopt,
+                            };
                         }
                     }
                     else
                     {
-                        add_builtin_type_items(items);
-                        add_import_alias_items(items, core_module);
-                        add_declaration_type_items(items, declaration_database, core_module.name);
+                        return create_type_completion_list(declaration_database, core_module);
                     }
+                }
+            }
+            else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
+            {
+                h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
 
-                    return lsp::CompletionList
-                    {
-                        .isIncomplete = false,
-                        .items = std::move(items),
-                        .itemDefaults = std::nullopt,
-                    };
+                if (node_before_value == ":")
+                {
+                    return create_type_completion_list(declaration_database, core_module);
+                }
+                else if (node_before_value == ".")
+                {
+                    std::optional<lsp::CompletionList> module_type_completion_list = create_module_type_completion_list(
+                        declaration_database,
+                        parse_tree,
+                        core_module,
+                        node_before.value()
+                    );
+                    if (module_type_completion_list.has_value())
+                        return module_type_completion_list.value();
                 }
             }
         }
@@ -349,68 +417,21 @@ namespace h::language_server
         {
             std::vector<lsp::CompletionItem> items = {};
 
-            std::optional<h::parser::Parse_node> const node_before = h::parser::find_node_before_source_position(
-                parse_tree,
-                smallest_node,
-                smallest_node,
-                source_position
-            );
-            if (node_before.has_value())
+            if (node_before_value == ":" || node_before_value == "as")
             {
-                std::string_view const node_before_value = h::parser::get_node_value(parse_tree, node_before.value());
-                if (node_before_value == ":" || node_before_value == "as")
-                {
-                    // TODO : can also come in instantiate expressions
-
-                    add_builtin_type_items(items);
-                    add_import_alias_items(items, core_module);
-                    add_declaration_type_items(items, declaration_database, core_module.name);
-
-                    return lsp::CompletionList
-                    {
-                        .isIncomplete = false,
-                        .items = std::move(items),
-                        .itemDefaults = std::nullopt,
-                    };
-                }
-                else if (node_before_value == ".")
-                {
-                    std::optional<h::parser::Parse_node> const node_to_access = h::parser::get_node_previous_sibling(node_before.value());
-                    if (node_to_access.has_value())
-                    {
-                        std::string_view const node_to_access_value = h::parser::get_node_value(parse_tree, node_to_access.value());
-                        h::Import_module_with_alias const* import_module = find_import_module_with_alias(
-                            core_module,
-                            node_to_access_value
-                        );
-                        if (import_module != nullptr)
-                        {
-                            add_declaration_type_items(items, declaration_database, import_module->module_name);
-
-                            return lsp::CompletionList
-                            {
-                                .isIncomplete = false,
-                                .items = std::move(items),
-                                .itemDefaults = std::nullopt,
-                            };
-                        }
-
-                        h::parser::Module_info const module_info = h::parser::create_module_info(core_module);
-
-                        h::Statement statement_to_access = {};
-                        h::parser::node_to_expression(statement_to_access, module_info, parse_tree, node_to_access.value(), {}, {});
-
-                        if (!statement_to_access.expressions.empty())
-                        {
-                            h::Expression const& expression_to_access = statement_to_access.expressions[0];
-                                
-                            // TODO calculate scope
-                            // TODO calculate expression type
-                            // TODO try to access member
-                        }
-                    }
-
-                }
+                // TODO : can also come in instantiate expressions
+                return create_type_completion_list(declaration_database, core_module);
+            }
+            else if (node_before_value == ".")
+            {
+                std::optional<lsp::CompletionList> module_type_completion_list = create_module_type_completion_list(
+                    declaration_database,
+                    parse_tree,
+                    core_module,
+                    node_before.value()
+                );
+                if (module_type_completion_list.has_value())
+                    return module_type_completion_list.value();
             }
         }
 

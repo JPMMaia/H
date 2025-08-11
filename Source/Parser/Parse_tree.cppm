@@ -146,7 +146,6 @@ namespace h::parser
 
     export std::optional<Parse_node> find_node_before_source_position(
         Parse_tree const& tree,
-        Parse_node const& ancestor_node,
         Parse_node const& hint_node,
         h::Source_position const& source_position
     );

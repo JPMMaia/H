@@ -430,11 +430,12 @@ namespace h::parser
 
     std::optional<Parse_node> find_node_before_source_position(
         Parse_tree const& tree,
-        Parse_node const& ancestor_node,
         Parse_node const& hint_node,
         h::Source_position const& source_position
     )
     {
+        Parse_node const root_node = get_root_node(tree);
+
         std::uint32_t const end_byte = calculate_byte(
             tree,
             hint_node,
@@ -450,7 +451,7 @@ namespace h::parser
             if (character == ' ' || character == '\n')
                 continue;
 
-            TSNode const found_node = ts_node_descendant_for_byte_range(ancestor_node.ts_node, current_byte, current_byte + 1);
+            TSNode const found_node = ts_node_descendant_for_byte_range(root_node.ts_node, current_byte, current_byte);
             if (ts_node_is_null(found_node))
                 return std::nullopt;
 
