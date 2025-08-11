@@ -20,6 +20,18 @@ import h.parser.type_name_parser;
 
 namespace h::parser
 {
+    Module_info create_module_info(
+        h::Module const& core_module
+    )
+    {
+        return
+        {
+            .module_name = core_module.name,
+            .source_file_path = core_module.source_file_path,
+            .alias_imports = core_module.dependencies.alias_imports,
+        };
+    }
+
     std::pmr::string create_string(
         std::string_view const value,
         std::pmr::polymorphic_allocator<> const& output_allocator
@@ -317,12 +329,7 @@ namespace h::parser
             temporaries_allocator
         );
 
-        Module_info const module_info =
-        {
-            .module_name = output.name,
-            .source_file_path = source_file_path,
-            .alias_imports = output.dependencies.alias_imports
-        };
+        Module_info const module_info = create_module_info(output);
 
         std::pmr::vector<Parse_node> const child_nodes = get_child_nodes(tree, node, temporaries_allocator);
         for (std::size_t child_index = 1; child_index < child_nodes.size(); ++child_index)

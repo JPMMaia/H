@@ -78,13 +78,6 @@ namespace h::parser
         ts_tree_delete(tree.ts_tree);
     }
 
-    static bool is_utf_8_code_point(
-        char8_t const character
-    )
-    {
-        return (character & 0b11000000) != 0b10000000;
-    }
-
     static std::uint32_t calculate_new_end_byte(
         std::uint32_t const start_byte,
         std::uint32_t const old_end_byte,
@@ -125,44 +118,6 @@ namespace h::parser
         assert(current_byte == target_byte);
 
         return current_point;
-    }
-
-    static std::uint32_t calculate_byte(
-        std::u8string_view const text,
-        TSPoint const start_point,
-        std::uint32_t const start_byte,
-        TSPoint const target_point
-    )
-    {
-        TSPoint current_point = start_point;
-        std::uint32_t current_byte = start_byte;
-
-        while (current_point.row < target_point.row)
-        {
-            char8_t const character = text[current_byte];
-            
-            if (character == '\n')
-            {
-                current_point.row += 1;
-                current_point.column = 0;
-            }
-
-            current_byte += 1;
-        }
-        assert(current_point.row == target_point.row);
-        
-        while (current_point.column < target_point.column)
-        {
-            char8_t const character = text[current_byte];
-
-            if (is_utf_8_code_point(character))
-                current_point.column += 1;
-            
-            current_byte += 1;
-        }
-        assert(current_point.column == target_point.column);
-        
-        return current_byte;
     }
 
     static void edit_text(

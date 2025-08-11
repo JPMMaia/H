@@ -130,4 +130,28 @@ namespace h::parser
         Parse_node const& node,
         h::Source_position const& position
     );
+
+    export std::uint32_t calculate_byte(
+        std::u8string_view const text,
+        TSPoint const start_point,
+        std::uint32_t const start_byte,
+        TSPoint const target_point
+    );
+
+    export std::uint32_t calculate_byte(
+        Parse_tree const& tree,
+        Parse_node const& hint_node,
+        h::Source_position const& source_position
+    );
+
+    export std::optional<Parse_node> find_node_before_source_position(
+        Parse_tree const& tree,
+        Parse_node const& ancestor_node,
+        Parse_node const& hint_node,
+        h::Source_position const& source_position
+    );
+
+    export bool is_utf_8_code_point(
+        char8_t const character
+    );
 }

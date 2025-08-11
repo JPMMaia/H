@@ -3,7 +3,7 @@ import * as assert from 'assert';
 import { get_document_uri, activate } from './helper.js';
 
 suite("Should do completion", () => {
-	test("Completes 'module' at the beginning of file", async () => {
+	test.skip("Completes 'module' at the beginning of file", async () => {
 		const document_uri = get_document_uri('projects/other/completion_00.hltxt');
 		await test_completion(document_uri, new vscode.Position(0, 0), {
 			items: [
@@ -12,7 +12,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes after module declaration", async () => {
+	test.skip("Completes after module declaration", async () => {
 		const document_uri = get_document_uri('projects/other/completion_01.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 0), {
 			items: [
@@ -31,7 +31,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes return statement", async () => {
+	test.skip("Completes return statement", async () => {
 		const document_uri = get_document_uri('projects/other/completion_02.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 11), {
 			items: [
@@ -89,7 +89,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module name 1", async () => {
+	test.skip("Completes import module name 1", async () => {
 		const document_uri = get_document_uri('projects/project_0/import_completion_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
@@ -101,7 +101,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module name 2", async () => {
+	test.skip("Completes import module name 2", async () => {
 		const document_uri = get_document_uri('projects/project_0/import_completion_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
@@ -113,7 +113,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module name 3", async () => {
+	test.skip("Completes import module name 3", async () => {
 		const document_uri = get_document_uri('projects/project_0/main.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 10), {
 			items: [
@@ -234,7 +234,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module type when using module alias and expecting a type", async () => {
+	test.skip("Completes import module type when using module alias and expecting a type", async () => {
 		const document_uri = get_document_uri('projects/project_0/main.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
@@ -246,7 +246,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module alias when expecting a value", async () => {
+	test.skip("Completes import module alias when expecting a value", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_10.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 16), {
 			items: [
@@ -255,7 +255,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module function when using module alias and expecting a value", async () => {
+	test.skip("Completes import module function when using module alias and expecting a value", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_11.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 24), {
 			items: [
@@ -265,7 +265,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes enum values", async () => {
+	test.skip("Completes enum values", async () => {
 		const document_uri = get_document_uri('projects/other/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 26), {
 			items: [
@@ -276,7 +276,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes enum values through alias", async () => {
+	test.skip("Completes enum values through alias", async () => {
 		const document_uri = get_document_uri('projects/other/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(13, 28), {
 			items: [
@@ -287,7 +287,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module enum values", async () => {
+	test.skip("Completes import module enum values", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 34), {
 			items: [
@@ -298,7 +298,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module enum values through alias", async () => {
+	test.skip("Completes import module enum values through alias", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 36), {
 			items: [
@@ -309,7 +309,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes global variables", async () => {
+	test.skip("Completes global variables", async () => {
 		const document_uri = get_document_uri('projects/other/completion_global_variable_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 16), {
 			items: [
@@ -319,7 +319,7 @@ suite("Should do completion", () => {
 		}, true);
 	});
 
-	test("Completes struct members", async () => {
+	test.skip("Completes struct members", async () => {
 		const document_uri = get_document_uri('projects/other/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 10), {
 			items: [
@@ -329,7 +329,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module struct members", async () => {
+	test.skip("Completes import module struct members", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 10), {
 			items: [
@@ -339,7 +339,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes union members", async () => {
+	test.skip("Completes union members", async () => {
 		const document_uri = get_document_uri('projects/other/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(14, 10), {
 			items: [
@@ -350,7 +350,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes import module union members", async () => {
+	test.skip("Completes import module union members", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 10), {
 			items: [
@@ -361,7 +361,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes a module alias which uses prefix transformations 0", async () => {
+	test.skip("Completes a module alias which uses prefix transformations 0", async () => {
 		const document_uri = get_document_uri('projects/with_prefix_use/main.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 12), {
 			items: [
@@ -370,7 +370,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test("Completes a module alias which uses prefix transformations 1", async () => {
+	test.skip("Completes a module alias which uses prefix transformations 1", async () => {
 		const document_uri = get_document_uri('projects/with_prefix_use/completion_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [

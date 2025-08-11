@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <optional>
 #include <memory_resource>
 #include <string>
@@ -371,5 +372,98 @@ namespace h::parser
         TSNode descendant_node = ts_node_descendant_for_point_range(node.ts_node, start_point, end_point);
 
         return { .ts_node = descendant_node };
+    }
+
+    std::uint32_t calculate_byte(
+        std::u8string_view const text,
+        TSPoint const start_point,
+        std::uint32_t const start_byte,
+        TSPoint const target_point
+    )
+    {
+        TSPoint current_point = start_point;
+        std::uint32_t current_byte = start_byte;
+
+        while (current_point.row < target_point.row)
+        {
+            char8_t const character = text[current_byte];
+            
+            if (character == '\n')
+            {
+                current_point.row += 1;
+                current_point.column = 0;
+            }
+
+            current_byte += 1;
+        }
+        assert(current_point.row == target_point.row);
+        
+        while (current_point.column < target_point.column)
+        {
+            char8_t const character = text[current_byte];
+
+            if (is_utf_8_code_point(character))
+                current_point.column += 1;
+            
+            current_byte += 1;
+        }
+        assert(current_point.column == target_point.column);
+        
+        return current_byte;
+    }
+
+    std::uint32_t calculate_byte(
+        Parse_tree const& tree,
+        Parse_node const& hint_node,
+        h::Source_position const& source_position
+    )
+    {
+        TSPoint const hint_start_point = ts_node_start_point(hint_node.ts_node);
+        std::uint32_t const hint_start_byte = ts_node_start_byte(hint_node.ts_node);
+        
+        TSPoint const target_point{source_position.line - 1, source_position.column - 1};
+
+        std::uint32_t const target_byte = calculate_byte(tree.text, hint_start_point, hint_start_byte, target_point);
+
+        return target_byte;
+    }
+
+    std::optional<Parse_node> find_node_before_source_position(
+        Parse_tree const& tree,
+        Parse_node const& ancestor_node,
+        Parse_node const& hint_node,
+        h::Source_position const& source_position
+    )
+    {
+        std::uint32_t const end_byte = calculate_byte(
+            tree,
+            hint_node,
+            source_position
+        );
+
+        std::uint32_t current_byte = end_byte;
+        while (current_byte > 0)
+        {
+            current_byte -= 1;
+
+            char8_t const character = tree.text[current_byte];
+            if (character == ' ' || character == '\n')
+                continue;
+
+            TSNode const found_node = ts_node_descendant_for_byte_range(ancestor_node.ts_node, current_byte, current_byte + 1);
+            if (ts_node_is_null(found_node))
+                return std::nullopt;
+
+            return Parse_node{found_node};
+        }
+
+        return std::nullopt;
+    }
+
+    bool is_utf_8_code_point(
+        char8_t const character
+    )
+    {
+        return (character & 0b11000000) != 0b10000000;
     }
 }
