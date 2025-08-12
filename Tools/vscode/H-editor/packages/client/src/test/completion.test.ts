@@ -246,7 +246,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module alias when expecting a value", async () => {
+	test("Completes import module alias when expecting a value", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_10.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 16), {
 			items: [
@@ -255,7 +255,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module function when using module alias and expecting a value", async () => {
+	test("Completes import module function when using module alias and expecting a value", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_11.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 24), {
 			items: [

@@ -239,6 +239,25 @@ namespace h::parser
         return Parse_node{ .ts_node = sibling };
     }
 
+    std::optional<Parse_node> get_node_previous_sibling(
+        Parse_node const& node,
+        std::uint32_t const degree
+    )
+    {
+        TSNode current = node.ts_node;
+
+        for (std::uint32_t index = 0; index < degree; ++index)
+        {
+            TSNode const sibling = ts_node_prev_sibling(current);
+            if (ts_node_is_null(sibling))
+                return std::nullopt;
+
+            current = sibling;
+        }
+
+        return Parse_node{ .ts_node = current };
+    }
+
     Source_position get_node_start_source_position(
         Parse_node const& node
     )

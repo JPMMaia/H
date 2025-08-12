@@ -103,6 +103,11 @@ namespace h::parser
         Parse_node const& node
     );
 
+    export std::optional<Parse_node> get_node_previous_sibling(
+        Parse_node const& node,
+        std::uint32_t const degree
+    );
+
     export Source_position get_node_start_source_position(
         Parse_node const& node
     );
