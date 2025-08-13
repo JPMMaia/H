@@ -5,3 +5,4 @@ import c.prefix as cprefix;
 export function main() -> (result: Int32)
 {
     cprefix.
+}

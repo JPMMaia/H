@@ -3401,68 +3401,6 @@ namespace h::compiler
         };
     }
 
-    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
-        Declaration const& declaration,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::pmr::vector<Declaration_member_info> members{output_allocator};
-
-        if (std::holds_alternative<Enum_declaration const*>(declaration.data))
-        {
-            Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration.data);
-
-            members.reserve(enum_declaration.values.size());
-
-            for (std::size_t member_index = 0; member_index < enum_declaration.values.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = enum_declaration.values[member_index].name,
-                    .member_type = create_custom_type_reference(declaration.module_name, enum_declaration.name),
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
-        {
-            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
-
-            members.reserve(struct_declaration.member_types.size());
-
-            for (std::size_t member_index = 0; member_index < struct_declaration.member_types.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = struct_declaration.member_names[member_index],
-                    .member_type = struct_declaration.member_types[member_index],
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
-        {
-            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
-
-            members.reserve(union_declaration.member_types.size());
-
-            for (std::size_t member_index = 0; member_index < union_declaration.member_types.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = union_declaration.member_names[member_index],
-                    .member_type = union_declaration.member_types[member_index],
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-
-        return members;
-    }
-
     Variable const* find_variable_from_scope(
         Scope const& scope,
         std::string_view const name

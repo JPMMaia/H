@@ -360,17 +360,6 @@ namespace h::compiler
         std::uint32_t const count
     );
 
-    struct Declaration_member_info
-    {
-        std::string_view member_name;
-        h::Type_reference member_type;
-    };
-
-    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
-        Declaration const& declaration,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    );
-
     Variable const* find_variable_from_scope(
         Scope const& scope,
         std::string_view const name

@@ -168,10 +168,29 @@ namespace h::compiler
         std::string_view const member_name
     );
 
+    export struct Declaration_member_info
+    {
+        std::string_view member_name;
+        h::Type_reference member_type;
+    };
+
+    export std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
+        Declaration const& declaration,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
     export void add_parameters_to_scope(
         Scope& scope,
         std::span<std::pmr::string const> const parameter_names,
         std::span<h::Type_reference const> const parameter_types
+    );
+
+    export std::optional<Scope> calculate_scope(
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        h::Function_definition const& function_definition,
+        h::Declaration_database const& declaration_database,
+        h::Source_position const& source_position
     );
 
     export template <typename Function>

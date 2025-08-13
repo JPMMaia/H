@@ -265,7 +265,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes enum values", async () => {
+	test("Completes enum values", async () => {
 		const document_uri = get_document_uri('projects/other/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 26), {
 			items: [
@@ -276,7 +276,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes enum values through alias", async () => {
+	test("Completes enum values through alias", async () => {
 		const document_uri = get_document_uri('projects/other/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(13, 28), {
 			items: [
@@ -287,7 +287,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module enum values", async () => {
+	test("Completes import module enum values", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 34), {
 			items: [
@@ -298,7 +298,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module enum values through alias", async () => {
+	test("Completes import module enum values through alias", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_enum_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 36), {
 			items: [
@@ -309,7 +309,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes global variables", async () => {
+	test("Completes global variables", async () => {
 		const document_uri = get_document_uri('projects/other/completion_global_variable_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 16), {
 			items: [
@@ -319,49 +319,49 @@ suite("Should do completion", () => {
 		}, true);
 	});
 
-	test.skip("Completes struct members", async () => {
+	test("Completes struct members", async () => {
 		const document_uri = get_document_uri('projects/other/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 10), {
 			items: [
-				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
-				{ label: "real", kind: vscode.CompletionItemKind.Property },
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
+				{ label: "real", kind: vscode.CompletionItemKind.Field },
 			]
 		});
 	});
 
-	test.skip("Completes import module struct members", async () => {
+	test("Completes import module struct members", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 10), {
 			items: [
-				{ label: "imaginary", kind: vscode.CompletionItemKind.Property },
-				{ label: "real", kind: vscode.CompletionItemKind.Property },
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
+				{ label: "real", kind: vscode.CompletionItemKind.Field },
 			]
 		});
 	});
 
-	test.skip("Completes union members", async () => {
+	test("Completes union members", async () => {
 		const document_uri = get_document_uri('projects/other/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(14, 10), {
 			items: [
-				{ label: "float32", kind: vscode.CompletionItemKind.Property },
-				{ label: "int16", kind: vscode.CompletionItemKind.Property },
-				{ label: "int32", kind: vscode.CompletionItemKind.Property },
+				{ label: "float32", kind: vscode.CompletionItemKind.Field },
+				{ label: "int16", kind: vscode.CompletionItemKind.Field },
+				{ label: "int32", kind: vscode.CompletionItemKind.Field },
 			]
 		});
 	});
 
-	test.skip("Completes import module union members", async () => {
+	test("Completes import module union members", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_union_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 10), {
 			items: [
-				{ label: "float32", kind: vscode.CompletionItemKind.Property },
-				{ label: "int16", kind: vscode.CompletionItemKind.Property },
-				{ label: "int32", kind: vscode.CompletionItemKind.Property },
+				{ label: "float32", kind: vscode.CompletionItemKind.Field },
+				{ label: "int16", kind: vscode.CompletionItemKind.Field },
+				{ label: "int32", kind: vscode.CompletionItemKind.Field },
 			]
 		});
 	});
 
-	test.skip("Completes a module alias which uses prefix transformations 0", async () => {
+	test("Completes a module alias which uses prefix transformations 0", async () => {
 		const document_uri = get_document_uri('projects/with_prefix_use/main.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 12), {
 			items: [
@@ -370,7 +370,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes a module alias which uses prefix transformations 1", async () => {
+	test("Completes a module alias which uses prefix transformations 1", async () => {
 		const document_uri = get_document_uri('projects/with_prefix_use/completion_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(6, 19), {
 			items: [
