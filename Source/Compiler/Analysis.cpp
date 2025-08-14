@@ -1648,6 +1648,6 @@ namespace h::compiler
             process_statement
         );
 
-        return output;
+        return output.has_value() ? output.value() : scope;
     }
 }

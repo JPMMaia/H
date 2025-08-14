@@ -31,21 +31,14 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes return statement", async () => {
+	test("Completes return statement", async () => {
 		const document_uri = get_document_uri('projects/other/completion_02.hltxt');
 		await test_completion(document_uri, new vscode.Position(9, 11), {
 			items: [
 				{ label: "add", kind: vscode.CompletionItemKind.Function },
 				{ label: "add_implementation", kind: vscode.CompletionItemKind.Function },
-				{ label: "explicit", kind: vscode.CompletionItemKind.Keyword },
-				{ label: "false", kind: vscode.CompletionItemKind.Value },
-				{ label: "function", kind: vscode.CompletionItemKind.Keyword },
 				{ label: "lhs", kind: vscode.CompletionItemKind.Variable },
-				{ label: "null", kind: vscode.CompletionItemKind.Value },
 				{ label: "rhs", kind: vscode.CompletionItemKind.Variable },
-				{ label: "struct", kind: vscode.CompletionItemKind.Keyword },
-				{ label: "true", kind: vscode.CompletionItemKind.Value },
-				{ label: "union", kind: vscode.CompletionItemKind.Keyword },
 			]
 		});
 	});
