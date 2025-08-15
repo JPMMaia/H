@@ -10,6 +10,7 @@ module;
 module h.language_server.completion;
 
 import h.compiler.analysis;
+import h.compiler.artifact;
 import h.core;
 import h.core.declarations;
 import h.core.types;
@@ -34,6 +35,25 @@ namespace h::language_server
             return true;
 
         return false;
+    }
+
+    static std::pmr::vector<std::string_view> get_module_names(
+        std::span<h::Module const* const> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<std::string_view> module_names{output_allocator};
+        module_names.reserve(core_modules.size());
+
+        for (h::Module const* core_module : core_modules)
+        {
+            if (core_module == nullptr)
+                continue;
+
+            module_names.push_back(core_module->name);
+        }
+
+        return module_names;
     }
 
     std::optional<Declaration> find_declaration_that_contains_source_position(
@@ -238,6 +258,29 @@ namespace h::language_server
                 {
                     .label = std::string{variable.name},
                     .kind = lsp::CompletionItemKind::Variable,
+                }
+            );
+        }
+    }
+
+    static void add_import_module_name_items(
+        std::vector<lsp::CompletionItem>& items,
+        std::string_view const current_module_name,
+        std::span<std::string_view const> const import_module_names
+    )
+    {
+        items.reserve(items.size() + import_module_names.size());
+
+        for (std::string_view const module_name : import_module_names)
+        {
+            if (module_name == current_module_name)
+                continue;
+
+            items.push_back(
+                lsp::CompletionItem
+                {
+                    .label = std::string{module_name},
+                    .kind = lsp::CompletionItemKind::Module,
                 }
             );
         }
@@ -661,13 +704,23 @@ namespace h::language_server
         return false;
     }
 
+    static bool is_at_import_module_name(std::string_view const node_before_value)
+    {
+        return node_before_value == "import";
+    }
+
     lsp::TextDocument_CompletionResult compute_completion(
+        std::span<h::compiler::Artifact const> const artifacts,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const> const core_modules,
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
         h::Module const& core_module,
         lsp::Position const position
     )
     {
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
         h::Source_position const source_position = to_source_position(position);
 
         h::parser::Parse_node const smallest_node = h::parser::get_smallest_node_that_contains_position(
@@ -684,6 +737,50 @@ namespace h::language_server
 
         std::optional<h::parser::Parse_node> const node_before = h::parser::find_node_before_source_position(parse_tree, smallest_node, source_position);
         std::string_view const node_before_value = node_before.has_value() ? h::parser::get_node_value(parse_tree, node_before.value()) : std::string_view{""};
+
+        if (is_at_import_module_name(node_before_value))
+        {
+            if (core_module.source_file_path.has_value())
+            {
+                std::optional<std::size_t> const artifact_index = h::compiler::find_artifact_index_that_includes_source_file(
+                    artifacts,
+                    core_module.source_file_path.value(),
+                    temporaries_allocator
+                );
+                if (artifact_index.has_value())
+                {
+                    h::compiler::Artifact const& artifact = artifacts[artifact_index.value()];
+
+                    std::pmr::vector<h::Module const*> const artifact_modules_and_dependencies = h::compiler::get_artifact_modules_and_dependencies(
+                        artifact,
+                        artifacts,
+                        header_modules,
+                        core_modules,
+                        temporaries_allocator,
+                        temporaries_allocator
+                    );
+
+                    std::pmr::vector<std::string_view> const import_module_names = get_module_names(artifact_modules_and_dependencies, temporaries_allocator);
+
+                    std::vector<lsp::CompletionItem> items = {};
+                    add_import_module_name_items(items, core_module.name, import_module_names);
+
+                    return lsp::CompletionList
+                    {
+                        .isIncomplete = false,
+                        .items = std::move(items),
+                        .itemDefaults = std::nullopt,
+                    };
+                }
+            }
+
+            return lsp::CompletionList
+            {
+                .isIncomplete = false,
+                .items = {},
+                .itemDefaults = std::nullopt,
+            };
+        }
 
         std::optional<Declaration> const declaration_optional = find_declaration_that_contains_source_position(
             declaration_database,

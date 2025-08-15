@@ -13,6 +13,7 @@ module;
 export module h.compiler.artifact;
 
 import h.compiler.target;
+import h.core;
 
 namespace h::compiler
 {
@@ -112,6 +113,21 @@ namespace h::compiler
     export std::pmr::vector<std::filesystem::path> find_root_include_directories(
         Artifact const& artifact,
         std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::optional<std::size_t> find_artifact_index_that_includes_source_file(
+        std::span<Artifact const> const artifacts,
+        std::filesystem::path const& source_file_path,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<h::Module const*> get_artifact_modules_and_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     export struct External_library_info

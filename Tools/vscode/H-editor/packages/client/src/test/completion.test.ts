@@ -82,7 +82,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module name 1", async () => {
+	test("Completes import module name 1", async () => {
 		const document_uri = get_document_uri('projects/project_0/import_completion_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [
@@ -94,7 +94,7 @@ suite("Should do completion", () => {
 		});
 	});
 
-	test.skip("Completes import module name 2", async () => {
+	test("Completes import module name 2", async () => {
 		const document_uri = get_document_uri('projects/project_0/import_completion_1.hltxt');
 		await test_completion(document_uri, new vscode.Position(2, 7), {
 			items: [

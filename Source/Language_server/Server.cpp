@@ -580,6 +580,9 @@ namespace h::language_server
         lsp::Position const& position = parameters.position;
 
         return compute_completion(
+            workspace_data.artifacts,
+            workspace_data.header_modules,
+            workspace_data.core_modules,
             workspace_data.declaration_database,
             workspace_data.core_module_parse_trees[core_module_index],
             workspace_data.core_modules[core_module_index],
