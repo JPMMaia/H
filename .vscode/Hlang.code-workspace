@@ -362,6 +362,30 @@
 				]
 			},
 			{
+				"label": "Build Debug",
+				"command": "cmake",
+				"args": [
+					"--build",
+					"${workspaceFolder}/build"
+				],
+				"problemMatcher": [
+					"$msCompile"
+				]
+			},
+			{
+				"label": "Build Release",
+				"command": "cmake",
+				"args": [
+					"--build",
+					"${workspaceFolder}/build",
+					"--config",
+					"release"
+				],
+				"problemMatcher": [
+					"$msCompile"
+				]
+			},
+			{
 				"label": "Install Debug Hlang",
 				"type": "shell",
 				"command": "python",
@@ -375,7 +399,10 @@
 				"presentation": {
 					"reveal": "always"
 				},
-				"problemMatcher": []
+				"problemMatcher": [],
+				"dependsOn": [
+					"Build Debug"
+				]
 			},
 			{
 				"label": "Install Release Hlang",
@@ -391,7 +418,10 @@
 				"presentation": {
 					"reveal": "always"
 				},
-				"problemMatcher": []
+				"problemMatcher": [],
+				"dependsOn": [
+					"Build Release"
+				]
 			}
 		]
 	},
