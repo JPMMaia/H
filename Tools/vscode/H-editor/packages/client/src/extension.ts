@@ -14,32 +14,62 @@ import {
 } from 'vscode-languageclient/node.js';
 
 let client: LanguageClient = undefined;
+let server_process: child_process.ChildProcess | undefined = undefined;
 
-function create_server_options_to_create(
-	hlang_language_server_path: string
-): ServerOptions {
+async function create_server_options_to_create(
+	configuration: vscode.WorkspaceConfiguration
+): Promise<ServerOptions> {
 
-	const executable: Executable = {
-		command: hlang_language_server_path,
-		args: [],
-		transport: {
-			kind: TransportKind.socket,
-			port: 12345
+	const server_path = configuration.get<string>("hlang_language_server_executable", "hlang_language_server");
+
+	const options: child_process.ExecSyncOptions = {};
+
+	const language_server_process = child_process.spawn(server_path, options);
+
+	let server_is_ready = false;
+
+	language_server_process.stdout.on("data", (data) => {
+
+		const message = data.toString();
+		if (message.startsWith("Listening...")) {
+			server_is_ready = true;
 		}
-	};
 
-	const server_options: ServerOptions = {
-		run: executable,
-		debug: executable
-	};
+        console.log("Server:", data.toString());
+    });
+    
+	language_server_process.stderr.on("data", (data) => {
+        console.error("Server error:", data.toString());
+    });
 
-	return server_options;
+	language_server_process.on("exit", () => {
+		if (!language_server_process.killed) {
+			language_server_process.kill();
+		}
+	});
+
+	const wait_for_server = new Promise<void>((resolve, reject) => {
+		const loop = () => {
+            if (server_is_ready) {
+                resolve();
+            } else {
+                setTimeout(loop, 500);
+            }
+        };
+        loop();
+	});
+
+	await wait_for_server;
+
+	server_process = language_server_process;
+
+	return create_server_options_to_attach("127.0.0.1", 12345);
 }
 
-function create_server_options_to_attach(
+async function create_server_options_to_attach(
 	server_host: string,
 	server_port: number
-): ServerOptions {
+): Promise<ServerOptions> {
 	 
 	const server_options = () => {
         return new Promise<StreamInfo>((resolve, reject) => {
@@ -59,31 +89,17 @@ function create_server_options_to_attach(
 	return server_options;
 }
 
-function launch_server(): void {
-	
-	const options: child_process.ExecSyncOptions = {
-		stdio: "ignore"
-	};
-
-	const language_server_process = child_process.exec("hlang_language_server", options);
-
-	process.on("exit", () => {
-		if (!language_server_process.killed) {
-			language_server_process.kill();
-		}
-	});
-}
-
 export async function activate(context: vscode.ExtensionContext): Promise<LanguageClient> {
 
+	const configuration = vscode.workspace.getConfiguration("hlang_language_server");
+
 	const mode: string | undefined = process.env.mode;
-	const attach_to_server = mode === "debug";
+	const attach_to_server = mode !== undefined && mode === "debug";
 
-	if (!attach_to_server) {
-		launch_server();
-	}
-
-	const server_options = create_server_options_to_attach("127.0.0.1", 12345);
+	const server_options = 
+		attach_to_server ?
+		await create_server_options_to_attach("127.0.0.1", 12345) :
+		await create_server_options_to_create(configuration);
 
 	// Options to control the language client
 	const client_options: LanguageClientOptions = {
@@ -103,10 +119,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<Langua
 		client_options
 	);
 
-	client.middleware.didOpen = on_did_open;
+	/*client.middleware.didOpen = on_did_open;
 	client.middleware.didChange = on_did_change;
 	client.middleware.provideCompletionItem = provide_completion_item;
-	client.middleware.provideInlayHints = provide_inlay_hints;
+	client.middleware.provideInlayHints = provide_inlay_hints;*/
 
 	const workspace_initialized_promise = wait_for_workspace_initialized_notification(client);
 
@@ -127,11 +143,20 @@ async function wait_for_workspace_initialized_notification(
 	});
 }
 
-export function deactivate(): Thenable<void> | undefined {
-	if (!client) {
-		return undefined;
+export async function deactivate(): Promise<void> {
+
+	if (client !== undefined) {
+		await client.sendNotification("exit");
+		client.stop();
+		client = undefined;
 	}
-	return client.stop();
+
+	if (server_process !== undefined) {
+		server_process.kill();
+		server_process = undefined;
+	}
+	
+	return undefined;
 }
 
 interface Document_state {

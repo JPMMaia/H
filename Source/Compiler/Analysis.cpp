@@ -21,6 +21,23 @@ import h.core.types;
 
 namespace h::compiler
 {
+    static bool range_contains_position(
+        h::Source_range const& range,
+        h::Source_position const& position
+    )
+    {
+        if (range.start.line < position.line && position.line < range.end.line)
+            return true;
+
+        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
+            return true;
+
+        if (range.end.line == position.line && position.column < range.end.column)
+            return true;
+
+        return false;
+    }
+
     Analysis_result process_module(
         h::Module& core_module,
         h::Declaration_database& declaration_database,
@@ -1527,5 +1544,127 @@ namespace h::compiler
         {
             return std::nullopt;
         }
+    }
+
+    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
+        Declaration const& declaration,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    )
+    {
+        std::pmr::vector<Declaration_member_info> members{output_allocator};
+
+        if (std::holds_alternative<Enum_declaration const*>(declaration.data))
+        {
+            Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration.data);
+
+            members.reserve(enum_declaration.values.size());
+
+            for (std::size_t member_index = 0; member_index < enum_declaration.values.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = enum_declaration.values[member_index].name,
+                    .member_type = create_custom_type_reference(declaration.module_name, enum_declaration.name),
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+        {
+            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
+
+            members.reserve(struct_declaration.member_types.size());
+
+            for (std::size_t member_index = 0; member_index < struct_declaration.member_types.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = struct_declaration.member_names[member_index],
+                    .member_type = struct_declaration.member_types[member_index],
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
+        {
+            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
+
+            members.reserve(union_declaration.member_types.size());
+
+            for (std::size_t member_index = 0; member_index < union_declaration.member_types.size(); ++member_index)
+            {
+                Declaration_member_info member_info =
+                {
+                    .member_name = union_declaration.member_names[member_index],
+                    .member_type = union_declaration.member_types[member_index],
+                };
+
+                members.push_back(std::move(member_info));
+            }
+        }
+
+        return members;
+    }
+
+    std::optional<Scope> calculate_scope(
+        h::Module const& core_module,
+        h::Function_declaration const& function_declaration,
+        h::Function_definition const& function_definition,
+        h::Declaration_database const& declaration_database,
+        h::Source_position const& source_position
+    )
+    {
+        std::optional<Scope> output = std::nullopt;
+
+         auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> void {
+            if (statement.expressions.empty() || output.has_value())
+                return;
+
+            h::Expression const& first_expression = statement.expressions[0];
+            if (first_expression.source_range.has_value())
+            {
+                if (range_contains_position(first_expression.source_range.value(), source_position))
+                {
+                    output = scope;
+                }
+                else if (first_expression.source_range->end == source_position)
+                {
+                    output = scope;
+
+                    if (std::holds_alternative<h::Variable_declaration_expression>(first_expression.data))
+                    {
+                        h::Variable_declaration_expression const& variable = std::get<h::Variable_declaration_expression>(first_expression.data);
+                        std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[variable.right_hand_side.expression_index], std::nullopt, declaration_database);
+                        if (type_reference.has_value())
+                            output->variables.push_back({.name = variable.name, .type = type_reference.value(), .is_compile_time = false});
+                    }
+                    else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(first_expression.data))
+                    {
+                        h::Variable_declaration_with_type_expression const& variable = std::get<h::Variable_declaration_with_type_expression>(first_expression.data);
+                        output->variables.push_back({.name = variable.name, .type = variable.type, .is_compile_time = false});
+                    }
+                }
+            }
+        };
+
+        h::compiler::Scope scope = {};
+        h::compiler::add_parameters_to_scope(
+            scope,
+            function_declaration.input_parameter_names,
+            function_declaration.type.input_parameter_types
+        );
+
+        h::compiler::visit_statements_using_scope(
+            core_module,
+            &function_declaration,
+            scope,
+            function_definition.statements,
+            declaration_database,
+            process_statement
+        );
+
+        return output.has_value() ? output.value() : scope;
     }
 }

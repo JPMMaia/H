@@ -181,7 +181,7 @@ namespace h::language_server
             std::optional<Declaration> const declaration = find_declaration(declaration_database, type);
             if (declaration.has_value())
             {
-                std::optional<h::Source_location> const declaration_source_location = get_declaration_source_location(
+                std::optional<h::Source_range_location> const declaration_source_location = get_declaration_source_location(
                     declaration.value()
                 );
                 if (declaration_source_location.has_value() && declaration_source_location->file_path.has_value())
@@ -191,12 +191,12 @@ namespace h::language_server
                         .uri = lsp::DocumentUri::fromPath(declaration_source_location->file_path->generic_string()),
                         .range = {
                             .start = {
-                                .line = declaration_source_location->line - 1,
-                                .character = declaration_source_location->column - 1,
+                                .line = declaration_source_location->range.start.line - 1,
+                                .character = declaration_source_location->range.start.column - 1,
                             },
                             .end = {
-                                .line = declaration_source_location->line -1,
-                                .character = declaration_source_location->column -1,
+                                .line = declaration_source_location->range.start.line -1,
+                                .character = declaration_source_location->range.start.column -1,
                             }
                         },
                     };

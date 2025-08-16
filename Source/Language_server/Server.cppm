@@ -84,6 +84,11 @@ namespace h::language_server
         lsp::DidChangeTextDocumentParams const& parameters
     );
 
+    export lsp::TextDocument_CompletionResult compute_text_document_completion(
+        Server& server,
+        lsp::CompletionParams const& parameters
+    );
+
     export lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
         Server& server,
         lsp::WorkspaceDiagnosticParams const& parameters

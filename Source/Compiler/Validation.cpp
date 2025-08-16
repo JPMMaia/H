@@ -321,7 +321,7 @@ namespace h::compiler
 
         auto const process_declaration_name = [&](
             std::string_view const name,
-            std::optional<Source_location> const& source_location
+            std::optional<Source_range_location> const& source_location
         ) -> void
         {
             if (all_names.contains(name))
@@ -3355,6 +3355,29 @@ namespace h::compiler
         };
     }
 
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_range_location> const& source_location,
+        std::uint32_t const count
+    )
+    {
+        if (!source_location.has_value())
+            return std::nullopt;
+
+        return h::Source_range
+        {
+            .start =
+            {
+                .line = source_location->range.start.line,
+                .column = source_location->range.start.column
+            },
+            .end = 
+            {
+                .line = source_location->range.start.line,
+                .column = source_location->range.start.column + count
+            }
+        };
+    }
+
     std::optional<h::Source_range> create_source_range_from_source_position(
         std::optional<h::Source_position> const& source_position,
         std::uint32_t const count
@@ -3376,68 +3399,6 @@ namespace h::compiler
                 .column = source_position->column + count
             }
         };
-    }
-
-    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
-        Declaration const& declaration,
-        std::pmr::polymorphic_allocator<> const& output_allocator
-    )
-    {
-        std::pmr::vector<Declaration_member_info> members{output_allocator};
-
-        if (std::holds_alternative<Enum_declaration const*>(declaration.data))
-        {
-            Enum_declaration const& enum_declaration = *std::get<Enum_declaration const*>(declaration.data);
-
-            members.reserve(enum_declaration.values.size());
-
-            for (std::size_t member_index = 0; member_index < enum_declaration.values.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = enum_declaration.values[member_index].name,
-                    .member_type = create_custom_type_reference(declaration.module_name, enum_declaration.name),
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
-        {
-            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
-
-            members.reserve(struct_declaration.member_types.size());
-
-            for (std::size_t member_index = 0; member_index < struct_declaration.member_types.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = struct_declaration.member_names[member_index],
-                    .member_type = struct_declaration.member_types[member_index],
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
-        {
-            Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
-
-            members.reserve(union_declaration.member_types.size());
-
-            for (std::size_t member_index = 0; member_index < union_declaration.member_types.size(); ++member_index)
-            {
-                Declaration_member_info member_info =
-                {
-                    .member_name = union_declaration.member_names[member_index],
-                    .member_type = union_declaration.member_types[member_index],
-                };
-
-                members.push_back(std::move(member_info));
-            }
-        }
-
-        return members;
     }
 
     Variable const* find_variable_from_scope(

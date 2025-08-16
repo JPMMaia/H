@@ -741,16 +741,34 @@ namespace h
         return name;
     }
 
-    std::optional<h::Source_location> get_declaration_source_location(
+    std::optional<h::Source_range_location> get_declaration_source_location(
         Declaration const& declaration
     )
     {
-       std::optional<h::Source_location> source_location;
+       std::optional<h::Source_range_location> source_location;
 
         std::visit([&](auto const& data) -> void {
             source_location = data->source_location;
         }, declaration.data);
 
         return source_location;
+    }
+
+    void visit_declarations(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::function<bool(Declaration const& declaration)> const& visitor
+    )
+    {
+        auto const location = database.map.find(module_name);
+        if (location == database.map.end())
+            return;
+
+        for (auto const& pair : location->second)
+        {
+            bool const done = visitor(pair.second);
+            if (done)
+                return;
+        }
     }
 }

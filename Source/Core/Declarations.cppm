@@ -1,5 +1,6 @@
 module;
 
+#include <functional>
 #include <memory_resource>
 #include <optional>
 #include <string>
@@ -15,6 +16,12 @@ import h.core.string_hash;
 
 namespace h
 {
+    export struct Function
+    {
+        h::Function_declaration const* declaration;
+        h::Function_definition const* definition;
+    };
+
     export struct Declaration
     {
         using Data_type = std::variant<
@@ -223,7 +230,13 @@ namespace h
         Declaration const& declaration
     );
 
-    export std::optional<h::Source_location> get_declaration_source_location(
+    export std::optional<h::Source_range_location> get_declaration_source_location(
         Declaration const& declaration
+    );
+
+    export void visit_declarations(
+        Declaration_database const& database,
+        std::string_view const module_name,
+        std::function<bool(Declaration const& declaration)> const& visitor
     );
 }

@@ -13,12 +13,16 @@ import h.parser.parse_tree;
 
 namespace h::parser
 {
-    struct Module_info
+    export struct Module_info
     {
         std::string_view module_name;
         std::optional<std::filesystem::path> source_file_path;
         std::span<Import_module_with_alias const> alias_imports;
     };
+
+    export Module_info create_module_info(
+        h::Module const& core_module
+    );
 
     export std::optional<h::Module> parse_and_convert_to_module(
         std::string_view const source,
@@ -183,7 +187,7 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    h::Expression_index node_to_expression(
+    export h::Expression_index node_to_expression(
         h::Statement& statement,
         Module_info const& module_info,
         Parse_tree const& tree,

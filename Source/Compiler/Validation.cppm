@@ -350,20 +350,14 @@ namespace h::compiler
         std::uint32_t const count
     );
 
-    std::optional<h::Source_range> create_source_range_from_source_position(
-        std::optional<h::Source_position> const& source_position,
+    std::optional<h::Source_range> create_source_range_from_source_location(
+        std::optional<h::Source_range_location> const& source_location,
         std::uint32_t const count
     );
 
-    struct Declaration_member_info
-    {
-        std::string_view member_name;
-        h::Type_reference member_type;
-    };
-
-    std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
-        Declaration const& declaration,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+    std::optional<h::Source_range> create_source_range_from_source_position(
+        std::optional<h::Source_position> const& source_position,
+        std::uint32_t const count
     );
 
     Variable const* find_variable_from_scope(

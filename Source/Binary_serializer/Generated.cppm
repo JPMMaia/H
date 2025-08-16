@@ -66,6 +66,20 @@ namespace h::binary_serializer
     }
 
     export template <>
+    void serialize(Serializer& serializer, Source_range_location const& value)
+    {
+        serialize(serializer, value.file_path);
+        serialize(serializer, value.range);
+    }
+
+    export template <>
+    void deserialize(Deserializer& deserializer, Source_range_location& value)
+    {
+        deserialize(deserializer, value.file_path);
+        deserialize(deserializer, value.range);
+    }
+
+    export template <>
     void serialize(Serializer& serializer, Integer_type const& value)
     {
         serialize(serializer, value.number_of_bits);

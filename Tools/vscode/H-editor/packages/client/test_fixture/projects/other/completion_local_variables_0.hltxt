@@ -1,0 +1,9 @@
+module completion_local_variables_0;
+
+function run() -> ()
+{
+    var a = 0;
+
+    var b = 0;
+
+}

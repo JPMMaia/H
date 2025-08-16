@@ -20,6 +20,18 @@ import h.parser.type_name_parser;
 
 namespace h::parser
 {
+    Module_info create_module_info(
+        h::Module const& core_module
+    )
+    {
+        return
+        {
+            .module_name = core_module.name,
+            .source_file_path = core_module.source_file_path,
+            .alias_imports = core_module.dependencies.alias_imports,
+        };
+    }
+
     std::pmr::string create_string(
         std::string_view const value,
         std::pmr::polymorphic_allocator<> const& output_allocator
@@ -38,6 +50,40 @@ namespace h::parser
             .file_path = source_file_path,
             .line = source_position.line,
             .column = source_position.column,
+        };
+    }
+
+    Source_range_location source_range_to_source_location(
+        std::optional<std::filesystem::path> const& source_file_path,
+        Source_range const& source_range
+    )
+    {
+        return
+        {
+            .file_path = source_file_path,
+            .range = source_range,
+        };
+    }
+
+    Source_range_location get_declaration_source_range(
+        std::optional<std::filesystem::path> const& source_file_path,
+        Parse_node const declaration_node,
+        std::optional<Parse_node> const& name_node
+    )
+    {
+        h::Source_range const range = get_node_source_range(declaration_node);
+        h::Source_position const start =
+            name_node.has_value() ?
+            get_node_start_source_position(name_node.value()) :
+            range.start;
+
+        return
+        {
+            .file_path = source_file_path,
+            .range = {
+                .start = start,
+                .end = range.end,
+            },
         };
     }
 
@@ -283,12 +329,7 @@ namespace h::parser
             temporaries_allocator
         );
 
-        Module_info const module_info =
-        {
-            .module_name = output.name,
-            .source_file_path = source_file_path,
-            .alias_imports = output.dependencies.alias_imports
-        };
+        Module_info const module_info = create_module_info(output);
 
         std::pmr::vector<Parse_node> const child_nodes = get_child_nodes(tree, node, temporaries_allocator);
         for (std::size_t child_index = 1; child_index < child_nodes.size(); ++child_index)
@@ -857,8 +898,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
+        
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -897,8 +939,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
+
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -975,8 +1018,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
+        
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -1098,12 +1142,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
-        else
-        {
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
-        }
+
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (unique_name.has_value())
             output.unique_name = create_string(unique_name.value(), output_allocator);
@@ -1179,6 +1220,8 @@ namespace h::parser
         h::Function_definition output;
         output.name = create_string(function_name, output_allocator);
 
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, std::nullopt);
+
         std::optional<Parse_node> const block_node = get_last_child_node(tree, node);
         if (block_node.has_value())
         {
@@ -1189,8 +1232,6 @@ namespace h::parser
                 output_allocator,
                 temporaries_allocator
             );
-
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(block_node.value()));
         }
 
         return output;
@@ -1211,12 +1252,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
-        else
-        {
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
-        }
+
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -1288,10 +1326,7 @@ namespace h::parser
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
         }
 
-        output.source_location = 
-            name_node.has_value() ?
-            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value())) :
-            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -1321,7 +1356,7 @@ namespace h::parser
                 output.member_default_values.resize(member_count, h::Statement{});
 
                 output.member_source_positions = std::pmr::vector<Source_position>{output_allocator};
-                output.member_source_positions->resize(member_count, h::Source_position{output.source_location->line, output.source_location->column});
+                output.member_source_positions->resize(member_count, h::Source_position{output.source_location->range.start.line, output.source_location->range.start.column});
 
                 for (std::size_t index = 2; index < member_nodes.size(); ++index)
                 {
@@ -1405,12 +1440,9 @@ namespace h::parser
         if (name_node.has_value())
         {
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value()));
         }
-        else
-        {
-            output.source_location = source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
-        }
+
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
 
         if (comment.has_value())
         {
@@ -1480,11 +1512,8 @@ namespace h::parser
             output.name = create_string(get_node_value(tree, name_node.value()), output_allocator);
         }
 
-        output.source_location = 
-            name_node.has_value() ?
-            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(name_node.value())) :
-            source_position_to_source_location(module_info.source_file_path, get_node_start_source_position(node));
-
+        output.source_location = get_declaration_source_range(module_info.source_file_path, node, name_node);
+        
         if (comment.has_value())
         {
             output.comment = create_string(comment.value(), output_allocator);
@@ -1507,7 +1536,7 @@ namespace h::parser
                 output.member_types.resize(member_count, h::Type_reference{});
 
                 output.member_source_positions = std::pmr::vector<Source_position>{output_allocator};
-                output.member_source_positions->resize(member_count, h::Source_position{output.source_location->line, output.source_location->column});
+                output.member_source_positions->resize(member_count, h::Source_position{output.source_location->range.start.line, output.source_location->range.start.column});
 
                 for (std::size_t index = 2; index < member_nodes.size(); ++index)
                 {

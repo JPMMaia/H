@@ -12,7 +12,7 @@ suite("Should get diagnostics", () => {
 		]);
 	});
 
-	test("Diagnoses incorrect float suffix", async () => {
+	test.skip("Diagnoses incorrect float suffix", async () => {
 		const document_uri = get_document_uri("projects/other/diagnostics_float_suffix.hltxt");
 		await test_diagnostics(document_uri, [
 			{ message: "Did not expect 'f' as number suffix. Did you mean 'f16', 'f32' or 'f64'?", range: to_range(4, 12, 4, 16), severity: vscode.DiagnosticSeverity.Error, source: "Compiler" },

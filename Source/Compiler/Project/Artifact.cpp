@@ -17,6 +17,7 @@ module h.compiler.artifact;
 import h.common;
 import h.compiler.common;
 import h.compiler.target;
+import h.core;
 
 namespace h::compiler
 {
@@ -744,6 +745,110 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
 
         return find_root_include_directories(artifact.file_path.parent_path(), artifact.include, output_allocator);
+    }
+
+    std::optional<std::size_t> find_artifact_index_that_includes_source_file(
+        std::span<Artifact const> const artifacts,
+        std::filesystem::path const& source_file_path,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        for (std::size_t index = 0; index < artifacts.size(); ++index)
+        {
+            Artifact const& artifact = artifacts[index];
+
+            std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator);
+            for (std::filesystem::path const& current_source_file : source_files)
+            {
+                if (current_source_file == source_file_path)
+                    return index;
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::pmr::vector<h::Module const*> get_artifact_modules_and_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const> const core_modules,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Module const*> output{ temporaries_allocator };
+
+        auto const add_modules = [&](std::span<std::filesystem::path const> const source_files) -> void
+        {
+            output.reserve(output.size() + source_files.size());
+
+            for (std::filesystem::path const& source_file : source_files)
+            {
+                auto const location = std::find_if(
+                    core_modules.begin(),
+                    core_modules.end(),
+                    [&source_file](h::Module const& module) -> bool
+                    {
+                        return module.source_file_path.has_value() && *module.source_file_path == source_file;
+                    }
+                );
+
+                if (location != core_modules.end())
+                    output.push_back(&*location);
+            }
+        };
+
+        auto const add_headers = [&](std::span<C_header const> const headers) -> void
+        {
+            output.reserve(output.size() + headers.size());
+
+            for (C_header const& header : headers)
+            {
+                auto const location = std::find_if(
+                    header_modules.begin(),
+                    header_modules.end(),
+                    [&header](h::Module const& module) -> bool
+                    {
+                        return module.name == header.module_name;
+                    }
+                );
+
+                if (location != header_modules.end())
+                    output.push_back(&*location);
+            }
+        };
+
+        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator);
+        std::span<C_header const> const c_headers = get_c_headers(artifact);
+
+        add_modules(source_files);
+        add_headers(c_headers);
+
+        for (Dependency const& dependency : artifact.dependencies)
+        {
+            auto const dependency_artifact_location = std::find_if(
+                all_artifacts.begin(),
+                all_artifacts.end(),
+                [&dependency](Artifact const& artifact) -> bool
+                {
+                    return artifact.name == dependency.artifact_name;
+                }
+            );
+
+            if (dependency_artifact_location == all_artifacts.end())
+                continue;
+
+            Artifact const& dependency_artifact = *dependency_artifact_location;
+
+            std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_source_files(dependency_artifact, temporaries_allocator);
+            std::span<C_header const> const dependency_c_headers = get_c_headers(dependency_artifact);
+            
+            add_modules(dependency_source_files);
+            add_headers(dependency_c_headers);
+        }
+
+        return std::pmr::vector<h::Module const*>{std::move(output), output_allocator};
     }
 
     std::optional<External_library_info> get_external_library(

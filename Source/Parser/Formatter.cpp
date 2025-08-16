@@ -1652,7 +1652,7 @@ namespace h::parser
     }
 
     bool place_parameters_on_the_same_line(
-        std::optional<Source_location> const& declaration_source_location,
+        std::optional<Source_range_location> const& declaration_source_location,
         std::optional<std::pmr::vector<Source_position>> const parameter_source_positions
     )
     {
@@ -1667,7 +1667,7 @@ namespace h::parser
 
         Source_position const first_parameter_source_position = parameter_source_positions->front();
 
-        return first_parameter_source_position.line == declaration_source_location->line;
+        return first_parameter_source_position.line == declaration_source_location->range.start.line;
     }
 
     void add_format_function_parameters(
@@ -2114,7 +2114,7 @@ namespace h::parser
         Declaration declaration = {};
         std::optional<std::pmr::string> unique_name = std::nullopt;
         bool is_export = false;
-        std::optional<Source_location> const* source_location;
+        std::optional<Source_range_location> const* source_location;
     };
 
     void add_sorted_declaration_info(
