@@ -62,6 +62,7 @@ namespace h::language_server
 
         bool has_configuration_capability = false;
         bool has_workspace_diagnostic_refresh_capability = false;
+        bool has_workspace_inlay_hint_refresh_capability = false;
         bool has_workspace_folder_capability = false;
         
         message_handler.add<lsp::requests::Initialize>(
@@ -77,6 +78,11 @@ namespace h::language_server
                     if (client_capabilities.workspace->diagnostics)
                     {
                         has_workspace_diagnostic_refresh_capability = client_capabilities.workspace->diagnostics->refreshSupport.value_or(false);
+                    }
+
+                    if (client_capabilities.workspace->inlayHint)
+                    {
+                        has_workspace_inlay_hint_refresh_capability = client_capabilities.workspace->inlayHint->refreshSupport.value_or(false);
                     }
                 }
 
@@ -101,7 +107,8 @@ namespace h::language_server
                         server,
                         server.workspace_folders,
                         has_configuration_capability,
-                        has_workspace_diagnostic_refresh_capability
+                        has_workspace_diagnostic_refresh_capability,
+                        has_workspace_inlay_hint_refresh_capability
                     );
                 }
             }
@@ -184,7 +191,8 @@ namespace h::language_server
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders,
         bool const has_configuration_capability,
-        bool const has_workspace_diagnostic_refresh_capability
+        bool const has_workspace_diagnostic_refresh_capability,
+        bool const has_workspace_inlay_hint_refresh_capability
     )
     {
         if (!has_configuration_capability)
@@ -215,6 +223,15 @@ namespace h::language_server
                 {
                     message_handler.sendRequest<lsp::requests::Workspace_Diagnostic_Refresh>(
                         [](lsp::Workspace_Diagnostic_RefreshResult&& result)
+                        {
+                        }
+                    );
+                }
+
+                if (has_workspace_diagnostic_refresh_capability)
+                {
+                    message_handler.sendRequest<lsp::requests::Workspace_InlayHint_Refresh>(
+                        [](lsp::Workspace_InlayHint_RefreshResult&& result)
                         {
                         }
                     );

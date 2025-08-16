@@ -33,7 +33,8 @@ namespace h::language_server
         Server& server,
         std::span<lsp::WorkspaceFolder const> const workspace_folders,
         bool const has_configuration_capability,
-        bool const has_workspace_diagnostic_refresh_capability
+        bool const has_workspace_diagnostic_refresh_capability,
+        bool const has_workspace_inlay_hint_refresh_capability
     );
 
     struct Workspace_initialized
