@@ -467,7 +467,7 @@ namespace h::parser
             current_byte -= 1;
 
             char8_t const character = tree.text[current_byte];
-            if (character == ' ' || character == '\n')
+            if (character == ' ' || character == '\n' || character == '\r')
                 continue;
 
             TSNode const found_node = ts_node_descendant_for_byte_range(root_node.ts_node, current_byte, current_byte);
