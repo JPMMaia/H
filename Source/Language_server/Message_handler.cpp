@@ -34,6 +34,9 @@ namespace h::language_server
         int const port = 12345;
         lsp::io::SocketListener socket_listener = lsp::io::SocketListener(port);
 
+        std::fprintf(stdout, "Listening...\n");
+        std::fflush(stdout);
+
         while (socket_listener.isReady())
         {
             lsp::io::Socket socket = socket_listener.listen();
