@@ -213,7 +213,7 @@ namespace h::language_server
 
         message_handler.sendRequest<lsp::requests::Workspace_Configuration>(
             std::move(workspace_configuration_parameters),
-            [&](lsp::requests::Workspace_Configuration::Result&& result)
+            [=, &message_handler, &server](lsp::requests::Workspace_Configuration::Result&& result)
             {
                 set_workspace_folder_configurations(server, result);
 
@@ -228,7 +228,7 @@ namespace h::language_server
                     );
                 }
 
-                if (has_workspace_diagnostic_refresh_capability)
+                if (has_workspace_inlay_hint_refresh_capability)
                 {
                     message_handler.sendRequest<lsp::requests::Workspace_InlayHint_Refresh>(
                         [](lsp::Workspace_InlayHint_RefreshResult&& result)
