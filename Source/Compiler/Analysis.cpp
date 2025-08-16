@@ -29,7 +29,7 @@ namespace h::compiler
         if (range.start.line < position.line && position.line < range.end.line)
             return true;
 
-        if (range.start.line == position.line && range.start.column <= position.column)
+        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
             return true;
 
         if (range.end.line == position.line && position.column < range.end.column)
@@ -1619,15 +1619,32 @@ namespace h::compiler
         std::optional<Scope> output = std::nullopt;
 
          auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> void {
-            if (statement.expressions.empty())
+            if (statement.expressions.empty() || output.has_value())
                 return;
 
             h::Expression const& first_expression = statement.expressions[0];
             if (first_expression.source_range.has_value())
             {
-                if (first_expression.source_range->start.line == source_position.line || range_contains_position(first_expression.source_range.value(), source_position))
+                if (range_contains_position(first_expression.source_range.value(), source_position))
                 {
                     output = scope;
+                }
+                else if (first_expression.source_range->end == source_position)
+                {
+                    output = scope;
+
+                    if (std::holds_alternative<h::Variable_declaration_expression>(first_expression.data))
+                    {
+                        h::Variable_declaration_expression const& variable = std::get<h::Variable_declaration_expression>(first_expression.data);
+                        std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[variable.right_hand_side.expression_index], std::nullopt, declaration_database);
+                        if (type_reference.has_value())
+                            output->variables.push_back({.name = variable.name, .type = type_reference.value(), .is_compile_time = false});
+                    }
+                    else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(first_expression.data))
+                    {
+                        h::Variable_declaration_with_type_expression const& variable = std::get<h::Variable_declaration_with_type_expression>(first_expression.data);
+                        output->variables.push_back({.name = variable.name, .type = variable.type, .is_compile_time = false});
+                    }
                 }
             }
         };

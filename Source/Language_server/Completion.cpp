@@ -479,12 +479,19 @@ namespace h::language_server
 
         if (function_declaration != nullptr && function_definition != nullptr)
         {
+            h::Source_range const node_before_source_range = h::parser::get_node_source_range(node_before);
+            std::string_view const node_before_value = get_node_value(parse_tree, node_before);
+            h::Source_position const scope_source_position = 
+                node_before_value.ends_with(";") ?
+                h::Source_position{ .line = node_before_source_range.end.line, .column = node_before_source_range.end.column - 1 } :
+                node_before_source_range.end;
+
             std::optional<h::compiler::Scope> const scope = h::compiler::calculate_scope(
                 core_module,
                 *function_declaration,
                 *function_definition,
                 declaration_database,
-                source_position
+                scope_source_position
             );
 
             if (scope.has_value())
@@ -567,12 +574,19 @@ namespace h::language_server
 
         if (function_declaration != nullptr && function_definition != nullptr)
         {
+            h::Source_range const node_before_source_range = h::parser::get_node_source_range(node_before);
+            std::string_view const node_before_value = get_node_value(parse_tree, node_before);
+            h::Source_position const scope_source_position = 
+                (node_before_value.ends_with(";") || node_before_value.ends_with(".")) ?
+                h::Source_position{ .line = node_before_source_range.end.line, .column = node_before_source_range.end.column - 1 } :
+                node_before_source_range.end;
+
             std::optional<h::compiler::Scope> const scope = h::compiler::calculate_scope(
                 core_module,
                 *function_declaration,
                 *function_definition,
                 declaration_database,
-                source_position
+                scope_source_position
             );
 
             if (scope.has_value())

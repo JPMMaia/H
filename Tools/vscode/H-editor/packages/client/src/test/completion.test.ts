@@ -371,6 +371,27 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes with local variables middle on function", async () => {
+		const document_uri = get_document_uri('projects/other/completion_local_variables_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(5, 0), {
+			items: [
+				{ label: "a", kind: vscode.CompletionItemKind.Variable },
+				{ label: "run", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
+
+	test("Completes with local variables end of function", async () => {
+		const document_uri = get_document_uri('projects/other/completion_local_variables_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(7, 0), {
+			items: [
+				{ label: "a", kind: vscode.CompletionItemKind.Variable },
+				{ label: "b", kind: vscode.CompletionItemKind.Variable },
+				{ label: "run", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
 });
 
 async function test_completion(
