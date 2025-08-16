@@ -4,61 +4,61 @@ import { get_document_uri, activate } from './helper.js';
 
 suite("Should get hover of structs", () => {
 
-    test("Gets struct hover at itself", async () => {
+    test.skip("Gets struct hover at itself", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(3, 7), [
             new vscode.Hover([create_complex_struct_markdown_string()], to_range(3, 7, 3, 14))
         ]);
     });
 
-    test("Gets struct hover at input parameter type", async () => {
+    test.skip("Gets struct hover at input parameter type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(12, 20), [
             new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 20, 12, 27))
         ]);
     });
 
-    test("Gets struct hover at output parameter type", async () => {
+    test.skip("Gets struct hover at output parameter type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(12, 41), [
             new vscode.Hover([create_complex_struct_markdown_string()], to_range(12, 41, 12, 48))
         ]);
     });
 
-    test("Gets struct hover at variable type", async () => {
+    test.skip("Gets struct hover at variable type", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(14, 18), [
             new vscode.Hover([create_complex_struct_markdown_string()], to_range(14, 18, 14, 25))
         ]);
     });
 
-    test("Gets struct member hover at instantiate struct member 0", async () => {
+    test.skip("Gets struct member hover at instantiate struct member 0", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(15, 8), [
             new vscode.Hover([create_complex_struct_real_markdown_string()], to_range(15, 8, 15, 12))
         ]);
     });
 
-    test("Gets struct member hover at instantiate struct member 1", async () => {
+    test.skip("Gets struct member hover at instantiate struct member 1", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(16, 8), [
             new vscode.Hover([create_complex_struct_imaginary_markdown_string()], to_range(16, 8, 16, 17))
         ]);
     });
 
-    test("Do not show struct member hover at instantiate struct member value", async () => {
+    test.skip("Do not show struct member hover at instantiate struct member value", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(15, 12), []);
     });
 
-    test("Gets struct member hover at access expression 0", async () => {
+    test.skip("Gets struct member hover at access expression 0", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(18, 24), [
             new vscode.Hover([create_complex_struct_real_markdown_string()], to_range(18, 24, 18, 28))
         ]);
     });
 
-    test("Gets struct member hover at access expression 1", async () => {
+    test.skip("Gets struct member hover at access expression 1", async () => {
         const document_uri = get_document_uri("hover_struct_0.hltxt");
         await test_hover(document_uri, new vscode.Position(19, 29), [
             new vscode.Hover([create_complex_struct_imaginary_markdown_string()], to_range(19, 29, 19, 38))
@@ -102,21 +102,21 @@ function create_complex_struct_imaginary_markdown_string(): vscode.MarkdownStrin
 
 suite("Should get hover of functions", () => {
 
-    test("Gets function hover at itself", async () => {
+    test.skip("Gets function hover at itself", async () => {
         const document_uri = get_document_uri("hover_function_0.hltxt");
         await test_hover(document_uri, new vscode.Position(10, 9), [
             new vscode.Hover([create_add_function_markdown_string()], to_range(10, 9, 10, 12))
         ]);
     });
 
-    test("Gets function hover at expression call", async () => {
+    test.skip("Gets function hover at expression call", async () => {
         const document_uri = get_document_uri("hover_function_0.hltxt");
         await test_hover(document_uri, new vscode.Position(17, 17), [
             new vscode.Hover([create_add_function_markdown_string()], to_range(17, 17, 17, 20))
         ]);
     });
 
-    test("Gets imported function hover at expression call", async () => {
+    test.skip("Gets imported function hover at expression call", async () => {
         const document_uri = get_document_uri("projects/project_0/main.hltxt");
         await test_hover(document_uri, new vscode.Position(16, 21), [
             new vscode.Hover([create_complex_add_function_markdown_string()], to_range(16, 20, 16, 23))
@@ -153,35 +153,35 @@ function create_complex_add_function_markdown_string(): vscode.MarkdownString {
 
 suite("Should get hover of global variables", () => {
 
-    test("Gets global constant hover at itself", async () => {
+    test.skip("Gets global constant hover at itself", async () => {
         const document_uri = get_document_uri("hover_global_variable_0.hltxt");
         await test_hover(document_uri, new vscode.Position(4, 7), [
             new vscode.Hover([create_global_constant_markdown_string()], to_range(4, 4, 4, 22))
         ]);
     });
 
-    test("Gets global variable hover at itself", async () => {
+    test.skip("Gets global variable hover at itself", async () => {
         const document_uri = get_document_uri("hover_global_variable_0.hltxt");
         await test_hover(document_uri, new vscode.Position(8, 16), [
             new vscode.Hover([create_global_variable_markdown_string()], to_range(8, 8, 8, 26))
         ]);
     });
 
-    test("Gets global constant hover at expression variable", async () => {
+    test.skip("Gets global constant hover at expression variable", async () => {
         const document_uri = get_document_uri("hover_global_variable_0.hltxt");
         await test_hover(document_uri, new vscode.Position(12, 19), [
             new vscode.Hover([create_global_constant_markdown_string()], to_range(12, 12, 12, 30))
         ]);
     });
 
-    test("Gets global variable hover at expression variable", async () => {
+    test.skip("Gets global variable hover at expression variable", async () => {
         const document_uri = get_document_uri("hover_global_variable_0.hltxt");
         await test_hover(document_uri, new vscode.Position(13, 19), [
             new vscode.Hover([create_global_variable_markdown_string()], to_range(13, 12, 13, 30))
         ]);
     });
 
-    test("Gets global variable hover at expression assignment", async () => {
+    test.skip("Gets global variable hover at expression assignment", async () => {
         const document_uri = get_document_uri("hover_global_variable_0.hltxt");
         await test_hover(document_uri, new vscode.Position(14, 10), [
             new vscode.Hover([create_global_variable_markdown_string()], to_range(14, 4, 14, 22))

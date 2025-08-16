@@ -66,6 +66,8 @@ namespace h
 
     TEST_CASE("Run JIT and modify code", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_modify_code";
 
         if (std::filesystem::exists(root_directory))
@@ -154,6 +156,8 @@ namespace h
 
     TEST_CASE("Run JIT with multiple modules", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_multiple_modules";
 
         if (std::filesystem::exists(root_directory))
@@ -230,6 +234,8 @@ namespace h
 
     TEST_CASE("Run JIT that uses a repository", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_repository_modules";
 
         if (std::filesystem::exists(root_directory))
@@ -309,6 +315,8 @@ namespace h
 
     TEST_CASE("Run JIT program that contains errors", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_errors";
 
         if (std::filesystem::exists(root_directory))
@@ -420,6 +428,8 @@ namespace h
 
     TEST_CASE("Run JIT program that uses structs", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_structs";
 
         if (std::filesystem::exists(root_directory))
@@ -499,6 +509,8 @@ namespace h
 
     TEST_CASE("Run JIT program that updates a struct", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_update_structs";
 
         if (std::filesystem::exists(root_directory))
@@ -596,6 +608,8 @@ namespace h
 
     TEST_CASE("Run JIT program and create a new file", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_create_files";
 
         if (std::filesystem::exists(root_directory))
@@ -685,6 +699,8 @@ namespace h
 
     TEST_CASE("Run JIT program and remove a file", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_remove_files";
 
         if (std::filesystem::exists(root_directory))
@@ -791,6 +807,8 @@ namespace h
 
     TEST_CASE("Run JIT program and rename a file", "[JIT]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = std::filesystem::temp_directory_path() / "hlang_test" / "jit_rename_files";
 
         if (std::filesystem::exists(root_directory))

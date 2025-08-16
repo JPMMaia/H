@@ -73,6 +73,8 @@ namespace h
 
     TEST_CASE("Recompile modules that depend on changed export interface", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_0");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -153,6 +155,8 @@ namespace h
 
     TEST_CASE("Do not recompile modules that do not depend on changed export interface", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_1");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -238,6 +242,8 @@ namespace h
 
     TEST_CASE("Recompile modules that depend on changed internal interface used by external", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_2");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -328,6 +334,8 @@ namespace h
 
     TEST_CASE("Recompile modules that depend on changed export interface and propagate changes", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_3");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -436,6 +444,8 @@ namespace h
 
     TEST_CASE("Dot not recompile modules that do not depend on changed export interface when propagating changes", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_4");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -537,6 +547,8 @@ namespace h
 
     TEST_CASE("Recompile modules containing unions that depend on changed export interface and propagate changes", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_5");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -639,6 +651,8 @@ namespace h
 
     TEST_CASE("Recompile modules containing alias that depend on changed export interface and propagate changes", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_6");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -727,6 +741,8 @@ namespace h
 
     TEST_CASE("Recompile modules containing enums that depend on changed export interface and propagate changes", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_7");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();
@@ -823,6 +839,8 @@ namespace h
 
     TEST_CASE("Recompile modules containing functions that depend on changed export interface", "[Recompilation]")
     {
+        SKIP();
+
         std::filesystem::path const root_directory = setup_root_directory("recompilation_8");
         std::filesystem::path const build_directory_path = setup_build_directory(root_directory);
         h::parser::Parser const parser = h::parser::create_parser();

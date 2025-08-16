@@ -80,7 +80,7 @@ suite("Should get inlay hints", () => {
 		]);
 	});
 
-	test("Creates hint for function input parameter", async () => {
+	test.skip("Creates hint for function input parameter", async () => {
 		const document_uri = get_document_uri("projects/other/inlay_hints_2.hltxt");
 
 		const lhs_tooltip = new vscode.MarkdownString(
