@@ -1,6 +1,7 @@
 module;
 
 #include <array>
+#include <format>
 #include <span>
 #include <string>
 #include <vector>
@@ -35,6 +36,29 @@ namespace h::language_server
             return true;
 
         return false;
+    }
+
+    static std::optional<std::string> create_sort_string(
+        std::string_view const label
+    )
+    {
+        if (label.starts_with("_"))
+            return std::format("~{}", label);
+
+        return std::nullopt;
+    }
+
+    static lsp::CompletionItem create_completion_item(
+        std::string_view const label,
+        lsp::CompletionItemKindEnum const kind
+    )
+    {
+        return lsp::CompletionItem
+        {
+            .label = std::string{label},
+            .kind = kind,
+            .sortText = create_sort_string(label),
+        };
     }
 
     static std::pmr::vector<std::string_view> get_module_names(
@@ -196,11 +220,7 @@ namespace h::language_server
         for (std::string_view const type_name : builtin_types)
         {
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{type_name},
-                    .kind = lsp::CompletionItemKind::Keyword,
-                }
+                create_completion_item(type_name, lsp::CompletionItemKind::Keyword)
             );
         }
     }
@@ -215,11 +235,7 @@ namespace h::language_server
         for (h::Enum_value const& value : declaration.values)
         {
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{value.name},
-                    .kind = lsp::CompletionItemKind::EnumMember,
-                }
+                create_completion_item(value.name, lsp::CompletionItemKind::EnumMember)
             );
         }
     }
@@ -235,11 +251,7 @@ namespace h::language_server
         for (h::compiler::Declaration_member_info const& member_info : member_infos)
         {
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{member_info.member_name},
-                    .kind = lsp::CompletionItemKind::Field,
-                }
+                create_completion_item(member_info.member_name, lsp::CompletionItemKind::Field)
             );
         }
     }
@@ -254,11 +266,7 @@ namespace h::language_server
         for (h::compiler::Variable const& variable : scope.variables)
         {
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{variable.name},
-                    .kind = lsp::CompletionItemKind::Variable,
-                }
+                create_completion_item(variable.name, lsp::CompletionItemKind::Variable)
             );
         }
     }
@@ -277,11 +285,7 @@ namespace h::language_server
                 continue;
 
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{module_name},
-                    .kind = lsp::CompletionItemKind::Module,
-                }
+                create_completion_item(module_name, lsp::CompletionItemKind::Module)
             );
         }
     }
@@ -296,11 +300,7 @@ namespace h::language_server
         for (Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
         {
             items.push_back(
-                lsp::CompletionItem
-                {
-                    .label = std::string{import_module.alias},
-                    .kind = lsp::CompletionItemKind::Module,
-                }
+                create_completion_item(import_module.alias, lsp::CompletionItemKind::Module)
             );
         }
     }
@@ -318,11 +318,7 @@ namespace h::language_server
                 h::Alias_type_declaration const& data = *std::get<h::Alias_type_declaration const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::TypeParameter,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::TypeParameter)
                 );
             }
             else if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
@@ -330,11 +326,7 @@ namespace h::language_server
                 h::Enum_declaration const& data = *std::get<h::Enum_declaration const*>(declaration.data);
                 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Enum,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Enum)
                 );
             }
             else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
@@ -342,11 +334,7 @@ namespace h::language_server
                 h::Struct_declaration const& data = *std::get<h::Struct_declaration const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Struct,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Struct)
                 );
             }
             else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
@@ -354,11 +342,7 @@ namespace h::language_server
                 h::Union_declaration const& data = *std::get<h::Union_declaration const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Struct,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Struct)
                 );
             }
             else if (std::holds_alternative<h::Type_constructor const*>(declaration.data))
@@ -366,11 +350,7 @@ namespace h::language_server
                 h::Type_constructor const& data = *std::get<h::Type_constructor const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Constructor,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Constructor)
                 );
             }
 
@@ -397,11 +377,7 @@ namespace h::language_server
                 h::Enum_declaration const& data = *std::get<h::Enum_declaration const*>(declaration.data);
                 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Enum,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Enum)
                 );
             }
             else if (std::holds_alternative<h::Function_declaration const*>(declaration.data))
@@ -409,11 +385,7 @@ namespace h::language_server
                 h::Function_declaration const& data = *std::get<h::Function_declaration const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Function,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Function)
                 );
             }
             else if (std::holds_alternative<h::Global_variable_declaration const*>(declaration.data))
@@ -421,11 +393,7 @@ namespace h::language_server
                 h::Global_variable_declaration const& data = *std::get<h::Global_variable_declaration const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = data.is_mutable ? lsp::CompletionItemKind::Variable : lsp::CompletionItemKind::Constant,
-                    }
+                    create_completion_item(data.name, data.is_mutable ? lsp::CompletionItemKind::Variable : lsp::CompletionItemKind::Constant)
                 );
             }
             else if (std::holds_alternative<h::Function_constructor const*>(declaration.data))
@@ -433,11 +401,7 @@ namespace h::language_server
                 h::Function_constructor const& data = *std::get<h::Function_constructor const*>(declaration.data);
 
                 items.push_back(
-                    lsp::CompletionItem
-                    {
-                        .label = std::string{data.name},
-                        .kind = lsp::CompletionItemKind::Constructor,
-                    }
+                    create_completion_item(data.name, lsp::CompletionItemKind::Constructor)
                 );
             }
 
