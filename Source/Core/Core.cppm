@@ -66,6 +66,12 @@ namespace h
         std::uint32_t const end_column
     );
 
+    export std::optional<h::Source_range> create_sub_source_range(
+        std::optional<h::Source_range> const& source_range,
+        std::uint32_t const start_index,
+        std::uint32_t const count
+    );
+
     export struct Source_range_location
     {
         std::optional<std::filesystem::path> file_path;

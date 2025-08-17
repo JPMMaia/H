@@ -107,6 +107,30 @@ namespace h
         };
     }
 
+    std::optional<h::Source_range> create_sub_source_range(
+        std::optional<h::Source_range> const& source_range,
+        std::uint32_t const start_index,
+        std::uint32_t const count
+    )
+    {
+        if (!source_range.has_value())
+            return std::nullopt;
+
+        h::Source_range const& original_source_range = source_range.value();
+
+        return h::Source_range
+        {
+            .start = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index
+            },
+            .end = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index + count
+            }
+        };
+    }
+
     Source_range_location create_source_range_location(
         std::optional<std::filesystem::path> const& file_path,
         std::uint32_t const start_line,

@@ -38,4 +38,9 @@ namespace h::language_server
         std::span<lsp::PreviousResultId const> const result_ids,
         lsp::DocumentUri const& document_uri
     );
+
+    export bool range_contains_position(
+        h::Source_range const& range,
+        h::Source_position const& position
+    );
 }

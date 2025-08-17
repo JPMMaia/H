@@ -204,6 +204,15 @@ namespace h
     }
 
     export template <typename Function_t>
+        bool visit_type_references(
+            h::Enum_declaration const& declaration,
+            Function_t predicate
+        )
+    {
+        return false;
+    }
+
+    export template <typename Function_t>
     bool visit_type_references(
         h::Global_variable_declaration const& declaration,
         Function_t predicate
@@ -249,6 +258,36 @@ namespace h
         }
 
         return false;
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            h::Function_constructor const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Function_constructor_parameter const& parameter : declaration.parameters)
+        {
+            if (visit_type_references(parameter.type, predicate))
+                return true;
+        }
+
+        return visit_type_references(declaration.statements, predicate);
+    }
+
+    export template <typename Function_t>
+        bool visit_type_references(
+            h::Type_constructor const& declaration,
+            Function_t predicate
+        )
+    {
+        for (h::Type_constructor_parameter const& parameter : declaration.parameters)
+        {
+            if (visit_type_references(parameter.type, predicate))
+                return true;
+        }
+
+        return visit_type_references(declaration.statements, predicate);
     }
 
     export template <typename Function_t>
