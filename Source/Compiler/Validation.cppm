@@ -354,17 +354,6 @@ namespace h::compiler
         std::uint32_t const count
     );
 
-    Variable const* find_variable_from_scope(
-        Scope const& scope,
-        std::string_view const name
-    );
-
-    void add_function_parameters_to_scope(
-        Scope& scope,
-        std::span<std::pmr::string const> const parameter_names,
-        std::span<Type_reference const> const parameter_types
-    );
-
     std::optional<Expression_index> get_implicit_first_call_argument(
         h::Statement const& statement,
         h::Call_expression const& expression,

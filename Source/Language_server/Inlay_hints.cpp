@@ -36,7 +36,8 @@ namespace h::language_server
         add_parameters_to_scope(
             scope,
             function_declaration.input_parameter_names,
-            function_declaration.type.input_parameter_types
+            function_declaration.type.input_parameter_types,
+            function_declaration.input_parameter_source_positions
         );
 
         auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> void

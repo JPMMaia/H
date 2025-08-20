@@ -9,6 +9,7 @@ module;
 
 module h.language_server.go_to_location;
 
+import h.compiler.analysis;
 import h.core;
 import h.core.declarations;
 import h.core.types;
@@ -57,6 +58,29 @@ namespace h::language_server
         }
     }
 
+    static lsp::TextDocument_DefinitionResult create_result_from_declaration(
+        h::parser::Parse_tree const& parse_tree,
+        Declaration const& declaration,
+        bool const client_supports_definition_link
+    )
+    {
+        std::string_view const declaration_name = get_declaration_name(declaration);
+        std::optional<h::Source_range_location> const declaration_location = get_declaration_source_location(declaration);
+        if (!declaration_location.has_value() || !declaration_location->file_path.has_value())
+            return nullptr;
+        
+        std::filesystem::path const& target_file_path = declaration_location->file_path.value();
+        h::Source_range const target_range = declaration_location->range;
+        h::Source_range const target_selection_range = create_sub_source_range(target_range, 0, declaration_name.size()).value();
+
+        return create_result(
+            target_file_path,
+            target_range,
+            target_selection_range,
+            client_supports_definition_link
+        );
+    }
+
     static lsp::TextDocument_DefinitionResult create_result_from_type(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -68,14 +92,30 @@ namespace h::language_server
         if (!declaration.has_value())
             return nullptr;
 
-        std::string_view const declaration_name = get_declaration_name(declaration.value());
-        std::optional<h::Source_range_location> const declaration_location = get_declaration_source_location(declaration.value());
-        if (!declaration_location.has_value() || !declaration_location->file_path.has_value())
+        return create_result_from_declaration(
+            parse_tree,
+            declaration.value(),
+            client_supports_definition_link
+        );
+    }
+
+    static lsp::TextDocument_DefinitionResult create_result_from_variable(
+        h::Module const& core_module,
+        h::compiler::Variable const& variable,
+        bool const client_supports_definition_link
+    )
+    {
+        if (!core_module.source_file_path.has_value() || !variable.source_position.has_value())
             return nullptr;
         
-        std::filesystem::path const& target_file_path = declaration_location->file_path.value();
-        h::Source_range const target_range = declaration_location->range;
-        h::Source_range const target_selection_range = create_sub_source_range(target_range, 0, declaration_name.size()).value();
+        std::filesystem::path const& target_file_path = core_module.source_file_path.value();
+        h::Source_range const target_range = create_source_range(
+            variable.source_position->line,
+            variable.source_position->column,
+            variable.source_position->line,
+            variable.source_position->column + variable.name.size()
+        );
+        h::Source_range const target_selection_range = target_range;
 
         return create_result(
             target_file_path,
@@ -135,30 +175,6 @@ namespace h::language_server
             std::visit(process_declaration, declaration_optional->data);
             if (result_optional.has_value())
                 return result_optional.value();
-
-            /*Declaration const& declaration = declaration_optional.value();
-
-            if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
-            {
-                h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration.data);
-
-                for (h::Type_reference const& member_type : struct_declaration.member_types)
-                {
-                    std::optional<h::Type_reference> const inner_type = find_type_that_contains_source_position(
-                        member_type,
-                        source_position
-                    );
-                    if (inner_type.has_value())
-                    {
-                        return create_result_from_type(
-                            declaration_database,
-                            parse_tree,
-                            inner_type.value(),
-                            client_supports_definition_link
-                        );
-                    }
-                }
-            }*/
         }
 
         std::optional<h::Function> const function = find_function_that_contains_source_position(
@@ -167,18 +183,100 @@ namespace h::language_server
         );
         if (function.has_value())
         {
-            /*// TODO visit types
-            // TODO visit expressions
-            std::filesystem::path const target_file_path;
-            h::Source_range const target_range;
-            h::Source_range const target_selection_range;
+            std::optional<lsp::TextDocument_DefinitionResult> result_optional = std::nullopt;
 
-            return create_result(
-                target_file_path,
-                target_range,
-                target_selection_range,
-                client_supports_definition_link
-            );*/
+            auto const process_type = [&](h::Type_reference const& type) -> bool
+            {
+                std::optional<h::Type_reference> const inner_type = find_type_that_contains_source_position(
+                    type,
+                    source_position
+                );
+                if (inner_type.has_value())
+                {
+                    result_optional = create_result_from_type(
+                        declaration_database,
+                        parse_tree,
+                        inner_type.value(),
+                        client_supports_definition_link
+                    );
+                    return true;
+                }
+                
+                return false;
+            };
+
+            visit_type_references(
+                function->definition->statements,
+                process_type
+            );
+
+            if (result_optional.has_value())
+                return result_optional.value();
+
+            auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> bool
+            {
+                auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+                {
+                    if (!expression.source_range.has_value())
+                        return false;
+
+                    if (range_contains_position(expression.source_range.value(), source_position))
+                    {
+                        if (std::holds_alternative<h::Access_expression>(expression.data))
+                        {
+                            h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
+                            // TODO find declaration
+                            // TODO find declaration member
+                        }
+                        else if (std::holds_alternative<h::Variable_expression>(expression.data))
+                        {
+                            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
+
+                            h::compiler::Variable const* const variable = h::compiler::find_variable_from_scope(scope, variable_expression.name);
+                            if (variable != nullptr)
+                            {
+                                result_optional = create_result_from_variable(core_module, *variable, client_supports_definition_link);
+                                return true;
+                            }
+                            
+                            std::optional<Declaration> const declaration = find_declaration(declaration_database, core_module.name, variable_expression.name);
+                            if (declaration.has_value())
+                            {
+                                result_optional = create_result_from_declaration(parse_tree, declaration.value(), client_supports_definition_link);
+                                return true;
+                            }
+                        }
+                    }
+
+                    return false;
+                };
+
+                return visit_expressions(
+                    statement,
+                    process_expression
+                );
+            };
+
+            h::compiler::Scope scope = {};
+
+            h::compiler::add_parameters_to_scope(
+                scope,
+                function->declaration->input_parameter_names,
+                function->declaration->type.input_parameter_types,
+                function->declaration->input_parameter_source_positions
+            );
+
+            h::compiler::visit_statements_using_scope(
+                core_module,
+                function->declaration,
+                scope,
+                function->definition->statements,
+                declaration_database,
+                process_statement
+            );
+
+            if (result_optional.has_value())
+                return result_optional.value();
         }
 
         return nullptr;
