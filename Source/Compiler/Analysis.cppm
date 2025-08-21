@@ -187,6 +187,7 @@ namespace h::compiler
     {
         std::string_view member_name;
         h::Type_reference member_type;
+        std::optional<h::Source_position> member_source_position;
     };
 
     export std::pmr::vector<Declaration_member_info> get_declaration_member_infos(

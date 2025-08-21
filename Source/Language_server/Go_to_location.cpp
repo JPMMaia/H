@@ -125,6 +125,36 @@ namespace h::language_server
         );
     }
 
+    static lsp::TextDocument_DefinitionResult create_result_from_declaration_member_info(
+        Declaration const& declaration,
+        h::compiler::Declaration_member_info const& member_info,
+        bool const client_supports_definition_link
+    )
+    {
+        if (!member_info.member_source_position.has_value())
+            return nullptr;
+
+        std::optional<h::Source_range_location> const declaration_location = get_declaration_source_location(declaration);
+        if (!declaration_location.has_value() || !declaration_location->file_path.has_value())
+            return nullptr;
+
+        std::filesystem::path const& target_file_path = declaration_location->file_path.value();
+        h::Source_range const target_range = create_source_range(
+            member_info.member_source_position->line,
+            member_info.member_source_position->column,
+            member_info.member_source_position->line,
+            member_info.member_source_position->column + member_info.member_name.size()
+        );
+        h::Source_range const target_selection_range = target_range;    
+
+        return create_result(
+            target_file_path,
+            target_range,
+            target_selection_range,
+            client_supports_definition_link
+        );
+    }
+
     lsp::TextDocument_DefinitionResult compute_go_to_definition(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -133,6 +163,8 @@ namespace h::language_server
         bool const client_supports_definition_link
     )
     {
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
         h::Source_position const& source_position = to_source_position(position);
 
         std::optional<Declaration> const declaration_optional = find_declaration_that_contains_source_position(
@@ -225,8 +257,53 @@ namespace h::language_server
                         if (std::holds_alternative<h::Access_expression>(expression.data))
                         {
                             h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
-                            // TODO find declaration
-                            // TODO find declaration member
+
+                            h::Expression const& expression_to_access = statement.expressions[access_expression.expression.expression_index];
+
+                            std::optional<h::Type_reference> const expression_to_access_type = h::compiler::get_expression_type(
+                                core_module,
+                                function->declaration,
+                                scope,
+                                statement,
+                                expression_to_access,
+                                std::nullopt,
+                                declaration_database
+                            );
+                            if (expression_to_access_type.has_value())
+                            {
+                                std::optional<Declaration> const& declaration = find_declaration(declaration_database, expression_to_access_type.value());
+                                if (declaration.has_value())
+                                {
+                                    std::pmr::vector<h::compiler::Declaration_member_info> const member_infos = h::compiler::get_declaration_member_infos(
+                                        declaration.value(),
+                                        temporaries_allocator
+                                    );
+
+                                    auto const location = std::find_if(
+                                        member_infos.begin(),
+                                        member_infos.end(),
+                                        [&](h::compiler::Declaration_member_info const& member_info) -> bool { return member_info.member_name == access_expression.member_name; }
+                                    );
+                                    if (location != member_infos.end())
+                                    {
+                                        h::compiler::Declaration_member_info const& member_info = *location;
+
+                                        result_optional = create_result_from_declaration_member_info(
+                                            declaration.value(),
+                                            member_info,
+                                            client_supports_definition_link
+                                        );
+                                        return true;
+                                    }
+                                }
+                            }
+
+                            return true;
+                        }
+                        else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+                        {
+                            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
+                            // TODO can be recursive
                         }
                         else if (std::holds_alternative<h::Variable_expression>(expression.data))
                         {
