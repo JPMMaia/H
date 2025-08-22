@@ -125,13 +125,14 @@ namespace h::language_server
         );
     }
 
-    static lsp::TextDocument_DefinitionResult create_result_from_declaration_member_info(
+    static lsp::TextDocument_DefinitionResult create_result_from_declaration_member(
         Declaration const& declaration,
-        h::compiler::Declaration_member_info const& member_info,
+        std::string_view const member_name,
+        std::optional<h::Source_position> const& member_source_position,
         bool const client_supports_definition_link
     )
     {
-        if (!member_info.member_source_position.has_value())
+        if (!member_source_position.has_value())
             return nullptr;
 
         std::optional<h::Source_range_location> const declaration_location = get_declaration_source_location(declaration);
@@ -140,10 +141,10 @@ namespace h::language_server
 
         std::filesystem::path const& target_file_path = declaration_location->file_path.value();
         h::Source_range const target_range = create_source_range(
-            member_info.member_source_position->line,
-            member_info.member_source_position->column,
-            member_info.member_source_position->line,
-            member_info.member_source_position->column + member_info.member_name.size()
+            member_source_position->line,
+            member_source_position->column,
+            member_source_position->line,
+            member_source_position->column + member_name.size()
         );
         h::Source_range const target_selection_range = target_range;    
 
@@ -252,7 +253,7 @@ namespace h::language_server
                     if (!expression.source_range.has_value())
                         return false;
 
-                    if (range_contains_position(expression.source_range.value(), source_position))
+                    if (h::range_contains_position(expression.source_range.value(), source_position))
                     {
                         if (std::holds_alternative<h::Access_expression>(expression.data))
                         {
@@ -288,9 +289,46 @@ namespace h::language_server
                                     {
                                         h::compiler::Declaration_member_info const& member_info = *location;
 
-                                        result_optional = create_result_from_declaration_member_info(
+                                        result_optional = create_result_from_declaration_member(
                                             declaration.value(),
-                                            member_info,
+                                            member_info.member_name,
+                                            member_info.member_source_position,
+                                            client_supports_definition_link
+                                        );
+                                        return true;
+                                    }
+                                }
+                            }
+
+                            h::Enum_declaration const* enum_declaration = find_enum_declaration_using_expression(
+                                declaration_database,
+                                core_module,
+                                statement,
+                                expression_to_access
+                            );
+                            if (enum_declaration != nullptr)
+                            {
+                                if (range_contains_position(expression_to_access.source_range.value(), source_position))
+                                {
+                                    result_optional = create_result_from_declaration(parse_tree, Declaration{.data = enum_declaration}, client_supports_definition_link);
+                                    return true;
+                                }
+
+                                auto const location = std::find_if(
+                                    enum_declaration->values.begin(),
+                                    enum_declaration->values.end(),
+                                    [&](h::Enum_value const& member) -> bool { return member.name == access_expression.member_name; }
+                                );
+                                if (location != enum_declaration->values.end())
+                                {
+                                    h::Enum_value const& member = *location;
+
+                                    if (member.source_location.has_value())
+                                    {
+                                        result_optional = create_result_from_declaration_member(
+                                            Declaration{ .data = enum_declaration },
+                                            member.name,
+                                            h::Source_position{member.source_location->line, member.source_location->column},
                                             client_supports_definition_link
                                         );
                                         return true;

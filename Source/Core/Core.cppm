@@ -72,6 +72,11 @@ namespace h
         std::uint32_t const count
     );
 
+    export bool range_contains_position(
+        h::Source_range const& range,
+        h::Source_position const& position
+    );
+
     export struct Source_range_location
     {
         std::optional<std::filesystem::path> file_path;
