@@ -77,6 +77,11 @@ namespace h
         h::Source_position const& position
     );
 
+    export bool range_contains_position_inclusive(
+        h::Source_range const& range,
+        h::Source_position const& position
+    );
+
     export struct Source_range_location
     {
         std::optional<std::filesystem::path> file_path;

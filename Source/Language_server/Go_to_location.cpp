@@ -253,7 +253,7 @@ namespace h::language_server
                     if (!expression.source_range.has_value())
                         return false;
 
-                    if (h::range_contains_position(expression.source_range.value(), source_position))
+                    if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
                     {
                         if (std::holds_alternative<h::Access_expression>(expression.data))
                         {
@@ -308,7 +308,7 @@ namespace h::language_server
                             );
                             if (enum_declaration != nullptr)
                             {
-                                if (range_contains_position(expression_to_access.source_range.value(), source_position))
+                                if (range_contains_position_inclusive(expression_to_access.source_range.value(), source_position))
                                 {
                                     result_optional = create_result_from_declaration(parse_tree, Declaration{.data = enum_declaration}, client_supports_definition_link);
                                     return true;

@@ -154,6 +154,23 @@ namespace h
         if (range.start.line < position.line && position.line < range.end.line)
             return true;
 
+        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
+            return true;
+
+        if (range.end.line == position.line && position.column < range.end.column)
+            return true;
+
+        return false;
+    }
+
+    bool range_contains_position_inclusive(
+        h::Source_range const& range,
+        h::Source_position const& position
+    )
+    {
+        if (range.start.line < position.line && position.line < range.end.line)
+            return true;
+
         if (range.start.line == position.line && range.start.column <= position.column && position.column <= range.end.column)
             return true;
 
