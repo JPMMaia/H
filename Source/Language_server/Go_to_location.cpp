@@ -353,7 +353,60 @@ namespace h::language_server
                         else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
                         {
                             h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
-                            // TODO can be recursive
+
+                            auto const instantiate_member_location = std::find_if(
+                                instantiate_expression.members.begin(),
+                                instantiate_expression.members.end(),
+                                [&](Instantiate_member_value_pair const& member) -> bool {
+                                    std::optional<h::Source_range> const member_name_source_range = create_sub_source_range(
+                                        member.source_range,
+                                        0,
+                                        member.member_name.size()
+                                    );
+                                    return member_name_source_range.has_value() && range_contains_position_inclusive(member_name_source_range.value(), source_position);
+                                }
+                            );
+                            if (instantiate_member_location != instantiate_expression.members.end())
+                            {
+                                Instantiate_member_value_pair const& member = *instantiate_member_location;
+
+                                std::optional<h::Type_reference> const type_to_instantiate = get_expression_type(
+                                    core_module,
+                                    function->declaration,
+                                    scope,
+                                    statement,
+                                    expression,
+                                    std::nullopt,
+                                    declaration_database
+                                );
+                                if (type_to_instantiate.has_value())
+                                {
+                                    std::optional<Declaration> const& declaration = find_declaration(declaration_database, type_to_instantiate.value());
+                                    if (declaration.has_value())
+                                    {
+                                        std::pmr::vector<h::compiler::Declaration_member_info> const member_infos = h::compiler::get_declaration_member_infos(
+                                            declaration.value(),
+                                            temporaries_allocator
+                                        );
+
+                                        auto const member_location = std::find_if(
+                                            member_infos.begin(),
+                                            member_infos.end(),
+                                            [&](h::compiler::Declaration_member_info const& member_info) -> bool { return member_info.member_name == member.member_name; }
+                                        );
+                                        if (member_location != member_infos.end() && member_location->member_source_position.has_value())
+                                        {
+                                            result_optional = create_result_from_declaration_member(
+                                                declaration.value(),
+                                                member.member_name,
+                                                member_location->member_source_position.value(),
+                                                client_supports_definition_link
+                                            );
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
                         }
                         else if (std::holds_alternative<h::Variable_expression>(expression.data))
                         {
