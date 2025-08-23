@@ -20,7 +20,22 @@ namespace h::compiler
         std::pmr::string name;
         h::Type_reference type;
         bool is_compile_time;
+        std::optional<h::Source_position> source_position;
     };
+
+    export Variable create_variable(
+        std::pmr::string name,
+        h::Type_reference type,
+        bool is_compile_time,
+        std::optional<h::Source_position> source_position
+    );
+
+    export Variable create_variable(
+        std::pmr::string name,
+        h::Type_reference type,
+        bool is_compile_time,
+        std::optional<h::Source_range> source_range
+    );
 
     export using Block_expression_variant = std::variant<
         For_loop_expression const*,
@@ -172,6 +187,7 @@ namespace h::compiler
     {
         std::string_view member_name;
         h::Type_reference member_type;
+        std::optional<h::Source_position> member_source_position;
     };
 
     export std::pmr::vector<Declaration_member_info> get_declaration_member_infos(
@@ -182,7 +198,8 @@ namespace h::compiler
     export void add_parameters_to_scope(
         Scope& scope,
         std::span<std::pmr::string const> const parameter_names,
-        std::span<h::Type_reference const> const parameter_types
+        std::span<h::Type_reference const> const parameter_types,
+        std::optional<std::pmr::vector<Source_position>> const parameter_source_positions
     );
 
     export std::optional<Scope> calculate_scope(
@@ -191,6 +208,11 @@ namespace h::compiler
         h::Function_definition const& function_definition,
         h::Declaration_database const& declaration_database,
         h::Source_position const& source_position
+    );
+
+    export Variable const* find_variable_from_scope(
+        Scope const& scope,
+        std::string_view const name
     );
 
     export template <typename Function>
@@ -233,9 +255,7 @@ namespace h::compiler
                     if (type_reference.has_value())
                     {
                         scope.variables.push_back(
-                            {
-                                .name = for_loop_expression.variable_name, .type = type_reference.value(), .is_compile_time = false
-                            }
+                            create_variable(for_loop_expression.variable_name, type_reference.value(), false, expression.source_range)
                         );
                     }
 
@@ -264,12 +284,16 @@ namespace h::compiler
                     h::Variable_declaration_expression const& data = std::get<h::Variable_declaration_expression>(expression.data);
                     std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.right_hand_side.expression_index], std::nullopt, declaration_database);
                     if (type_reference.has_value())
-                        scope.variables.push_back({.name = data.name, .type = type_reference.value(), .is_compile_time = false});
+                        scope.variables.push_back(
+                            create_variable(data.name, type_reference.value(), false, expression.source_range)
+                        );
                 }
                 else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
                 {
                     h::Variable_declaration_with_type_expression const& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-                    scope.variables.push_back({.name = data.name, .type = data.type, .is_compile_time = false});
+                    scope.variables.push_back(
+                        create_variable(data.name, data.type, false, expression.source_range)
+                    );
                 }
                 else if (std::holds_alternative<h::While_loop_expression>(expression.data))
                 {

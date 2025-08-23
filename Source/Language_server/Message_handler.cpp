@@ -64,6 +64,7 @@ namespace h::language_server
         bool has_workspace_diagnostic_refresh_capability = false;
         bool has_workspace_inlay_hint_refresh_capability = false;
         bool has_workspace_folder_capability = false;
+        bool has_definition_link_support = false;
         
         message_handler.add<lsp::requests::Initialize>(
             [&](lsp::requests::Initialize::Params&& parameters) -> lsp::requests::Initialize::Result
@@ -83,6 +84,14 @@ namespace h::language_server
                     if (client_capabilities.workspace->inlayHint)
                     {
                         has_workspace_inlay_hint_refresh_capability = client_capabilities.workspace->inlayHint->refreshSupport.value_or(false);
+                    }
+                }
+
+                if (client_capabilities.textDocument)
+                {
+                    if (client_capabilities.textDocument->definition)
+                    {
+                        has_definition_link_support = client_capabilities.textDocument->definition->linkSupport.value_or(false);
                     }
                 }
 
@@ -154,6 +163,13 @@ namespace h::language_server
             [&](lsp::requests::TextDocument_Completion::Params&& parameters) -> lsp::requests::TextDocument_Completion::Result
             {
                 return compute_text_document_completion(server, parameters);
+            }
+        );
+
+        message_handler.add<lsp::requests::TextDocument_Definition>(
+            [&](lsp::requests::TextDocument_Definition::Params&& parameters) -> lsp::requests::TextDocument_Definition::Result
+            {
+                return compute_text_document_definition(server, parameters, has_definition_link_support);
             }
         );
 

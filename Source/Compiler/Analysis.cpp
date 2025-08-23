@@ -21,21 +21,36 @@ import h.core.types;
 
 namespace h::compiler
 {
-    static bool range_contains_position(
-        h::Source_range const& range,
-        h::Source_position const& position
+    Variable create_variable(
+        std::pmr::string name,
+        h::Type_reference type,
+        bool is_compile_time,
+        std::optional<h::Source_position> source_position
     )
     {
-        if (range.start.line < position.line && position.line < range.end.line)
-            return true;
+        return
+        {
+            .name = std::move(name),
+            .type = std::move(type),
+            .is_compile_time = is_compile_time,
+            .source_position = source_position,
+        };
+    }
 
-        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
-            return true;
-
-        if (range.end.line == position.line && position.column < range.end.column)
-            return true;
-
-        return false;
+    Variable create_variable(
+        std::pmr::string name,
+        h::Type_reference type,
+        bool is_compile_time,
+        std::optional<h::Source_range> source_range
+    )
+    {
+        return
+        {
+            .name = std::move(name),
+            .type = std::move(type),
+            .is_compile_time = is_compile_time,
+            .source_position = source_range.has_value() ? std::optional<h::Source_position>{source_range->start} : std::optional<h::Source_position>{std::nullopt},
+        };
     }
 
     Analysis_result process_module(
@@ -93,17 +108,19 @@ namespace h::compiler
     void add_parameters_to_scope(
         Scope& scope,
         std::span<std::pmr::string const> const parameter_names,
-        std::span<h::Type_reference const> const parameter_types
+        std::span<h::Type_reference const> const parameter_types,
+        std::optional<std::pmr::vector<Source_position>> const parameter_source_positions
     )
     {
         for (std::size_t parameter_index = 0; parameter_index < parameter_names.size(); ++parameter_index)
         {
             scope.variables.push_back(
-                {
-                    .name = parameter_names[parameter_index],
-                    .type = parameter_types[parameter_index],
-                    .is_compile_time = false,
-                }
+                create_variable(
+                    parameter_names[parameter_index],
+                    parameter_types[parameter_index],
+                    false,
+                    parameter_source_positions.has_value() ? std::optional<h::Source_position>{(*parameter_source_positions)[parameter_index]} : std::optional<h::Source_position>{std::nullopt}
+                )
             );
         }
     }
@@ -121,7 +138,7 @@ namespace h::compiler
         Scope scope{ .variables = std::pmr::vector<Variable>{temporaries_allocator} };
         scope.variables.reserve(64);
 
-        add_parameters_to_scope(scope, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types);
+        add_parameters_to_scope(scope, function_declaration.input_parameter_names, function_declaration.type.input_parameter_types, function_declaration.input_parameter_source_positions);
 
         for (h::Function_condition& condition : function_declaration.preconditions)
         {
@@ -139,7 +156,7 @@ namespace h::compiler
         }
 
         {
-            add_parameters_to_scope(scope, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types);
+            add_parameters_to_scope(scope, function_declaration.output_parameter_names, function_declaration.type.output_parameter_types, function_declaration.output_parameter_source_positions);
 
             for (h::Function_condition& condition : function_declaration.postconditions)
             {
@@ -366,9 +383,7 @@ namespace h::compiler
             if (type_reference.has_value())
             {
                 scope.variables.push_back(
-                    {
-                        .name = data.variable_name, .type = type_reference.value(), .is_compile_time = false
-                    }
+                    create_variable(data.variable_name, type_reference.value(), false, expression.source_range)
                 );
             }
 
@@ -519,14 +534,18 @@ namespace h::compiler
             h::Variable_declaration_expression& data = std::get<h::Variable_declaration_expression>(expression.data);
             std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.right_hand_side.expression_index], std::nullopt, declaration_database);
             if (type_reference.has_value())
-                scope.variables.push_back({.name = data.name, .type = type_reference.value(), .is_compile_time = false});
+                scope.variables.push_back(
+                    create_variable(data.name, type_reference.value(), false, expression.source_range)
+                );
             
             // TODO error if type is nullopt
         }
         else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
         {
             h::Variable_declaration_with_type_expression& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
-            scope.variables.push_back({.name = data.name, .type = data.type, .is_compile_time = false});
+            scope.variables.push_back(
+                create_variable(data.name, data.type, false, expression.source_range)
+            );
         }
         else if (std::holds_alternative<h::While_loop_expression>(expression.data))
         {
@@ -1561,10 +1580,15 @@ namespace h::compiler
 
             for (std::size_t member_index = 0; member_index < enum_declaration.values.size(); ++member_index)
             {
+                h::Enum_value const& enum_value = enum_declaration.values[member_index];
                 Declaration_member_info member_info =
                 {
-                    .member_name = enum_declaration.values[member_index].name,
+                    .member_name = enum_value.name,
                     .member_type = create_custom_type_reference(declaration.module_name, enum_declaration.name),
+                    .member_source_position =
+                        enum_value.source_location.has_value() ?
+                        std::optional<Source_position>{Source_position{enum_value.source_location->line, enum_value.source_location->column}} :
+                        std::optional<Source_position>{std::nullopt},
                 };
 
                 members.push_back(std::move(member_info));
@@ -1582,6 +1606,10 @@ namespace h::compiler
                 {
                     .member_name = struct_declaration.member_names[member_index],
                     .member_type = struct_declaration.member_types[member_index],
+                    .member_source_position = 
+                        struct_declaration.member_source_positions.has_value() ?
+                        std::optional<Source_position>{struct_declaration.member_source_positions.value()[member_index]} : 
+                        std::optional<Source_position>{std::nullopt},
                 };
 
                 members.push_back(std::move(member_info));
@@ -1599,6 +1627,10 @@ namespace h::compiler
                 {
                     .member_name = union_declaration.member_names[member_index],
                     .member_type = union_declaration.member_types[member_index],
+                    .member_source_position =
+                        union_declaration.member_source_positions.has_value() ?
+                        std::optional<Source_position>{union_declaration.member_source_positions.value()[member_index]} :
+                        std::optional<Source_position>{std::nullopt},
                 };
 
                 members.push_back(std::move(member_info));
@@ -1638,12 +1670,16 @@ namespace h::compiler
                         h::Variable_declaration_expression const& variable = std::get<h::Variable_declaration_expression>(first_expression.data);
                         std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[variable.right_hand_side.expression_index], std::nullopt, declaration_database);
                         if (type_reference.has_value())
-                            output->variables.push_back({.name = variable.name, .type = type_reference.value(), .is_compile_time = false});
+                            output->variables.push_back(
+                                create_variable(variable.name, type_reference.value(), false, first_expression.source_range)
+                            );
                     }
                     else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(first_expression.data))
                     {
                         h::Variable_declaration_with_type_expression const& variable = std::get<h::Variable_declaration_with_type_expression>(first_expression.data);
-                        output->variables.push_back({.name = variable.name, .type = variable.type, .is_compile_time = false});
+                        output->variables.push_back(
+                            create_variable(variable.name, variable.type, false, first_expression.source_range)
+                        );
                     }
                 }
             }
@@ -1653,7 +1689,8 @@ namespace h::compiler
         h::compiler::add_parameters_to_scope(
             scope,
             function_declaration.input_parameter_names,
-            function_declaration.type.input_parameter_types
+            function_declaration.type.input_parameter_types,
+            function_declaration.input_parameter_source_positions
         );
 
         h::compiler::visit_statements_using_scope(
@@ -1666,5 +1703,21 @@ namespace h::compiler
         );
 
         return output.has_value() ? output.value() : scope;
+    }
+
+    Variable const* find_variable_from_scope(
+        Scope const& scope,
+        std::string_view const name
+    )
+    {
+        auto const location = std::find_if(
+            scope.variables.begin(),
+            scope.variables.end(),
+            [&](Variable const& variable) -> bool { return variable.name == name; }
+        );
+        if (location == scope.variables.end())
+            return nullptr;
+
+        return &(*location);
     }
 }

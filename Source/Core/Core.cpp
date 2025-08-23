@@ -107,6 +107,30 @@ namespace h
         };
     }
 
+    std::optional<h::Source_range> create_sub_source_range(
+        std::optional<h::Source_range> const& source_range,
+        std::uint32_t const start_index,
+        std::uint32_t const count
+    )
+    {
+        if (!source_range.has_value())
+            return std::nullopt;
+
+        h::Source_range const& original_source_range = source_range.value();
+
+        return h::Source_range
+        {
+            .start = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index
+            },
+            .end = {
+                .line = original_source_range.start.line,
+                .column = original_source_range.start.column + start_index + count
+            }
+        };
+    }
+
     Source_range_location create_source_range_location(
         std::optional<std::filesystem::path> const& file_path,
         std::uint32_t const start_line,
@@ -120,6 +144,40 @@ namespace h
             .file_path = file_path,
             .range = create_source_range(start_line, start_column, end_line, end_column),
         };
+    }
+
+    bool range_contains_position(
+        h::Source_range const& range,
+        h::Source_position const& position
+    )
+    {
+        if (range.start.line < position.line && position.line < range.end.line)
+            return true;
+
+        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
+            return true;
+
+        if (range.end.line == position.line && position.column < range.end.column)
+            return true;
+
+        return false;
+    }
+
+    bool range_contains_position_inclusive(
+        h::Source_range const& range,
+        h::Source_position const& position
+    )
+    {
+        if (range.start.line < position.line && position.line < range.end.line)
+            return true;
+
+        if (range.start.line == position.line && range.start.column <= position.column && position.column <= range.end.column)
+            return true;
+
+        if (range.end.line == position.line && position.column <= range.end.column)
+            return true;
+
+        return false;
     }
 
     

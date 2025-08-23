@@ -630,11 +630,7 @@ namespace h::compiler
             }
 
             scope.variables.push_back(
-                {
-                    .name = value.name,
-                    .type = int32_type,
-                    .is_compile_time = true,
-                }
+                create_variable(value.name, int32_type, true, value.source_location.has_value() ? std::optional<h::Source_position>{h::Source_position{value.source_location->line, value.source_location->column}} : std::optional<h::Source_position>{std::nullopt})
             );
         }
 
@@ -856,10 +852,11 @@ namespace h::compiler
                 .variables{temporaries_allocator}
             };
 
-            add_function_parameters_to_scope(
+            add_parameters_to_scope(
                 scope,
                 declaration.input_parameter_names,
-                declaration.type.input_parameter_types
+                declaration.type.input_parameter_types,
+                declaration.input_parameter_source_positions
             );
 
             std::pmr::vector<h::compiler::Diagnostic> pre_condition_diagnostics = validate_function_contracts(
@@ -873,10 +870,11 @@ namespace h::compiler
             if (!pre_condition_diagnostics.empty())
                 diagnostics.insert(diagnostics.end(), pre_condition_diagnostics.begin(), pre_condition_diagnostics.end());
 
-            add_function_parameters_to_scope(
+            add_parameters_to_scope(
                 scope,
                 declaration.output_parameter_names,
-                declaration.type.output_parameter_types
+                declaration.type.output_parameter_types,
+                declaration.output_parameter_source_positions
             );
 
             std::pmr::vector<h::compiler::Diagnostic> post_condition_diagnostics = validate_function_contracts(
@@ -898,10 +896,11 @@ namespace h::compiler
                 .variables{temporaries_allocator}
             };
 
-            add_function_parameters_to_scope(
+            add_parameters_to_scope(
                 scope,
                 declaration.input_parameter_names,
-                declaration.type.input_parameter_types
+                declaration.type.input_parameter_types,
+                declaration.input_parameter_source_positions
             );
 
             std::pmr::vector<h::compiler::Diagnostic> const definition_diagnostics = validate_statements(
@@ -1049,12 +1048,7 @@ namespace h::compiler
                     if (variable_type.has_value())
                     {
                         new_scope.variables.push_back(
-                            Variable
-                            {
-                                .name = variable_declaration.name,
-                                .type = std::move(variable_type.value()),
-                                .is_compile_time = false,
-                            }
+                            create_variable(variable_declaration.name, std::move(variable_type.value()), false, expression.source_range)
                         );
                     }
                 }
@@ -1063,12 +1057,7 @@ namespace h::compiler
                     h::Variable_declaration_with_type_expression const& variable_declaration_with_type = std::get<h::Variable_declaration_with_type_expression>(expression.data);
 
                     new_scope.variables.push_back(
-                        Variable
-                        {
-                            .name = variable_declaration_with_type.name,
-                            .type = variable_declaration_with_type.type,
-                            .is_compile_time = false,
-                        }
+                        create_variable(variable_declaration_with_type.name, variable_declaration_with_type.type, false, expression.source_range)
                     );
                 }
             }
@@ -2036,12 +2025,7 @@ namespace h::compiler
 
         Scope new_scope = parameters.scope;
         new_scope.variables.push_back(
-            Variable
-            {
-                .name = expression.variable_name,
-                .type = range_begin_type_optional.value(),
-                .is_compile_time = false,
-            }
+            create_variable(expression.variable_name, range_begin_type_optional.value(), false, source_range)
         );
         new_scope.blocks.push_back(&expression);
 
@@ -3308,30 +3292,6 @@ namespace h::compiler
         return first_expression.source_range;
     }
 
-    std::optional<h::Source_range> create_sub_source_range(
-        std::optional<h::Source_range> const& source_range,
-        std::uint32_t const start_index,
-        std::uint32_t const count
-    )
-    {
-        if (!source_range.has_value())
-            return std::nullopt;
-
-        h::Source_range const& original_source_range = source_range.value();
-
-        return h::Source_range
-        {
-            .start = {
-                .line = original_source_range.start.line,
-                .column = original_source_range.start.column + start_index
-            },
-            .end = {
-                .line = original_source_range.start.line,
-                .column = original_source_range.start.column + start_index + count
-            }
-        };
-    }
-
     std::optional<h::Source_range> create_source_range_from_source_location(
         std::optional<h::Source_location> const& source_location,
         std::uint32_t const count
@@ -3399,41 +3359,6 @@ namespace h::compiler
                 .column = source_position->column + count
             }
         };
-    }
-
-    Variable const* find_variable_from_scope(
-        Scope const& scope,
-        std::string_view const name
-    )
-    {
-        auto const location = std::find_if(
-            scope.variables.begin(),
-            scope.variables.end(),
-            [&](Variable const& variable) -> bool { return variable.name == name; }
-        );
-        if (location == scope.variables.end())
-            return nullptr;
-
-        return &(*location);
-    }
-
-    void add_function_parameters_to_scope(
-        Scope& scope,
-        std::span<std::pmr::string const> const parameter_names,
-        std::span<Type_reference const> const parameter_types
-    )
-    {
-        for (std::size_t index = 0; index < parameter_names.size(); ++index)
-        {
-            scope.variables.push_back(
-                Variable
-                {
-                    .name = parameter_names[index],
-                    .type = parameter_types[index],
-                    .is_compile_time = false,
-                }
-            );
-        }
     }
 
     std::optional<Expression_index> get_implicit_first_call_argument(

@@ -8,7 +8,8 @@ export function run(): Promise<void> {
 	const mocha = new Mocha({
 		ui: 'tdd',
 		color: true,
-		//grep: "Provides tokens for semantic_highlight_alias.hltxt"
+		//grep: "Gets definition location of itself",
+		timeout: 100000,
 	});
 
 	const testsRoot = __dirname;

@@ -22,14 +22,18 @@ target_sources(H_language_server
             "Core.cppm"
             "Completion.cppm"
             "Diagnostics.cppm"
+            "Go_to_location.cppm"
             "Inlay_hints.cppm"
+            "Location.cppm"
             "Message_handler.cppm"
             "Server.cppm"
    PRIVATE
       "Core.cpp"
       "Completion.cpp"
       "Diagnostics.cpp"
+      "Go_to_location.cpp"
       "Inlay_hints.cpp"
+      "Location.cpp"
       "Message_handler.cpp"
       "Server.cpp"
 )

@@ -23,6 +23,7 @@ import h.core.declarations;
 import h.language_server.completion;
 import h.language_server.core;
 import h.language_server.diagnostics;
+import h.language_server.go_to_location;
 import h.language_server.inlay_hints;
 import h.parser.convertor;
 import h.parser.parse_tree;
@@ -78,6 +79,10 @@ namespace h::language_server
             },
         };
 
+        lsp::DefinitionOptions const definition_options
+        {
+        };
+
         lsp::TextDocumentSyncOptions const text_document_sync_server_capabilities
         {
             .openClose = true,
@@ -107,6 +112,7 @@ namespace h::language_server
             {
                 .textDocumentSync = text_document_sync_server_capabilities,
                 .completionProvider = completion_options,
+                .definitionProvider = definition_options,
                 .inlayHintProvider = inlay_hint_options,
                 .diagnosticProvider = diagnostic_options,
                 .workspace = workspace_server_capabilities,
@@ -587,6 +593,31 @@ namespace h::language_server
             workspace_data.core_module_parse_trees[core_module_index],
             workspace_data.core_modules[core_module_index],
             position
+        );
+    }
+
+    lsp::TextDocument_DefinitionResult compute_text_document_definition(
+        Server& server,
+        lsp::DefinitionParams const& parameters,
+        bool const client_supports_definition_link
+    )
+    {
+        std::optional<std::pair<Workspace_data&, std::size_t>> const workspace_core_module_pair = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!workspace_core_module_pair.has_value())
+            return nullptr;
+
+        Workspace_data const& workspace_data = workspace_core_module_pair->first;
+        std::size_t const core_module_index = workspace_core_module_pair->second;
+
+        return compute_go_to_definition(
+            workspace_data.declaration_database,
+            workspace_data.core_module_parse_trees[core_module_index],
+            workspace_data.core_modules[core_module_index],
+            parameters.position,
+            client_supports_definition_link
         );
     }
 

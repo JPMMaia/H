@@ -89,6 +89,12 @@ namespace h::language_server
         lsp::CompletionParams const& parameters
     );
 
+    export lsp::TextDocument_DefinitionResult compute_text_document_definition(
+        Server& server,
+        lsp::DefinitionParams const& parameters,
+        bool const client_supports_definition_link
+    );
+
     export lsp::WorkspaceDiagnosticReport compute_workspace_diagnostics(
         Server& server,
         lsp::WorkspaceDiagnosticParams const& parameters

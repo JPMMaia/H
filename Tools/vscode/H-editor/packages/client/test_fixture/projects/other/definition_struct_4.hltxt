@@ -1,0 +1,6 @@
+module definition_struct_4;
+
+struct My_struct
+{
+    a: *My_struct = null;
+}

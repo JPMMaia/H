@@ -339,12 +339,6 @@ namespace h::compiler
         h::Statement const& statement
     );
 
-    std::optional<h::Source_range> create_sub_source_range(
-        std::optional<h::Source_range> const& source_range,
-        std::uint32_t const start_index,
-        std::uint32_t const count
-    );
-
     std::optional<h::Source_range> create_source_range_from_source_location(
         std::optional<h::Source_location> const& source_location,
         std::uint32_t const count
@@ -358,17 +352,6 @@ namespace h::compiler
     std::optional<h::Source_range> create_source_range_from_source_position(
         std::optional<h::Source_position> const& source_position,
         std::uint32_t const count
-    );
-
-    Variable const* find_variable_from_scope(
-        Scope const& scope,
-        std::string_view const name
-    );
-
-    void add_function_parameters_to_scope(
-        Scope& scope,
-        std::span<std::pmr::string const> const parameter_names,
-        std::span<Type_reference const> const parameter_types
     );
 
     std::optional<Expression_index> get_implicit_first_call_argument(
