@@ -81,39 +81,6 @@ namespace h::language_server
         return std::nullopt;
     }
 
-    h::Enum_declaration const* find_enum_declaration_using_expression(
-        Declaration_database const& declaration_database,
-        h::Module const& core_module,
-        h::Statement const& statement,
-        h::Expression const& expression
-    )
-    {
-        if (std::holds_alternative<h::Access_expression>(expression.data))
-        {
-            h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
-
-            h::Expression const& expression_to_access = statement.expressions[access_expression.expression.expression_index];
-            if (std::holds_alternative<h::Variable_expression>(expression_to_access.data))
-            {
-                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression_to_access.data);
-                
-                std::optional<Declaration> const declaration = find_underlying_declaration_using_import_alias(declaration_database, core_module, variable_expression.name, access_expression.member_name);
-                if (declaration.has_value() && std::holds_alternative<h::Enum_declaration const*>(declaration->data))
-                    return std::get<h::Enum_declaration const*>(declaration->data);
-            }
-        }
-        else if (std::holds_alternative<h::Variable_expression>(expression.data))
-        {
-            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
-
-            std::optional<Declaration> const declaration = find_underlying_declaration(declaration_database, core_module.name, variable_expression.name);
-            if (declaration.has_value() && std::holds_alternative<h::Enum_declaration const*>(declaration->data))
-                return std::get<h::Enum_declaration const*>(declaration->data);
-        }
-
-        return nullptr;
-    }
-
     std::optional<h::Type_reference> find_type_that_contains_source_position(
         h::Type_reference const& type,
         h::Source_position const& source_position
@@ -146,5 +113,55 @@ namespace h::language_server
         );
 
         return *best;
+    }
+
+    std::optional<Declaration> find_value_declaration_using_expression(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Access_expression>(expression.data))
+        {
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
+
+            h::Expression const& expression_to_access = statement.expressions[access_expression.expression.expression_index];
+            if (std::holds_alternative<h::Variable_expression>(expression_to_access.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression_to_access.data);
+                
+                std::optional<Declaration> const declaration = find_underlying_declaration_using_import_alias(declaration_database, core_module, variable_expression.name, access_expression.member_name);
+                return declaration;
+            }
+        }
+        else if (std::holds_alternative<h::Variable_expression>(expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(expression.data);
+
+            std::optional<Declaration> const declaration = find_underlying_declaration(declaration_database, core_module.name, variable_expression.name);
+            return declaration;
+        }
+
+        return std::nullopt;
+    }
+
+    h::Enum_declaration const* find_enum_declaration_using_expression(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        std::optional<Declaration> const declaration = find_value_declaration_using_expression(
+            declaration_database,
+            core_module,
+            statement,
+            expression
+        );
+        if (declaration.has_value() && std::holds_alternative<h::Enum_declaration const*>(declaration->data))
+            return std::get<h::Enum_declaration const*>(declaration->data);
+
+        return nullptr;
     }
 }

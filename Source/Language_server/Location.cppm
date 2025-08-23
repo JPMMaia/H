@@ -23,15 +23,22 @@ namespace h::language_server
         h::Source_position const& source_position
     );
 
-    export h::Enum_declaration const* find_enum_declaration_using_expression(
+    export std::optional<h::Type_reference> find_type_that_contains_source_position(
+        h::Type_reference const& type,
+        h::Source_position const& source_position
+    );
+
+    export std::optional<Declaration> find_value_declaration_using_expression(
         Declaration_database const& declaration_database,
         h::Module const& core_module,
         h::Statement const& statement,
         h::Expression const& expression
     );
 
-    export std::optional<h::Type_reference> find_type_that_contains_source_position(
-        h::Type_reference const& type,
-        h::Source_position const& source_position
+    export h::Enum_declaration const* find_enum_declaration_using_expression(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Statement const& statement,
+        h::Expression const& expression
     );
 }

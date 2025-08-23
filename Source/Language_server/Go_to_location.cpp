@@ -336,6 +336,18 @@ namespace h::language_server
                                 }
                             }
 
+                            std::optional<Declaration> const declaration = find_value_declaration_using_expression(
+                                declaration_database,
+                                core_module,
+                                statement,
+                                expression
+                            );
+                            if (declaration.has_value())
+                            {
+                                result_optional = create_result_from_declaration(parse_tree, declaration.value(), client_supports_definition_link);
+                                return true;
+                            }
+
                             return true;
                         }
                         else if (std::holds_alternative<h::Instantiate_expression>(expression.data))

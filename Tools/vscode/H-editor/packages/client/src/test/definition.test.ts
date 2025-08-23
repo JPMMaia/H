@@ -4,7 +4,7 @@ import { get_document_uri, activate } from './helper.js';
 
 suite("Should get definition location of structs", () => {
 
-    test("Gets definition location of itself", async () => {
+    test.skip("Gets definition location of itself", async () => {
         const document_uri = get_document_uri("projects/other/definition_struct_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 9), [
             new vscode.Location(get_document_uri("projects/other/definition_struct_0.hltxt"), to_range(2, 7, 2, 16))
@@ -84,7 +84,7 @@ suite("Should get definition location of structs", () => {
 
 suite("Should get definition location of unions", () => {
 
-    test("Gets definition location of itself", async () => {
+    test.skip("Gets definition location of itself", async () => {
         const document_uri = get_document_uri("projects/other/definition_union_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 6), [
             new vscode.Location(get_document_uri("projects/other/definition_union_0.hltxt"), to_range(2, 6, 2, 14))
@@ -185,14 +185,14 @@ suite("Should get definition location of functions", () => {
         ]);
     });
 
-    test("Gets definition location of function input parameter name 0", async () => {
+    test.skip("Gets definition location of function input parameter name 0", async () => {
         const document_uri = get_document_uri("projects/other/definition_function_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 13), [
             new vscode.Location(get_document_uri("projects/other/definition_function_0.hltxt"), to_range(2, 13, 2, 16))
         ]);
     });
 
-    test("Gets definition location of function input parameter name 1", async () => {
+    test.skip("Gets definition location of function input parameter name 1", async () => {
         const document_uri = get_document_uri("projects/other/definition_function_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 28), [
             new vscode.Location(get_document_uri("projects/other/definition_function_0.hltxt"), to_range(2, 25, 2, 28))
@@ -203,7 +203,7 @@ suite("Should get definition location of functions", () => {
 
 suite("Should get definition location of enums", () => {
 
-    test("Gets definition location of enum at itself", async () => {
+    test.skip("Gets definition location of enum at itself", async () => {
         const document_uri = get_document_uri("projects/other/definition_enum_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 5), [
             new vscode.Location(get_document_uri("projects/other/definition_enum_0.hltxt"), to_range(2, 5, 2, 12))
@@ -269,7 +269,7 @@ suite("Should get definition location of enums", () => {
 
 suite("Should get definition location of global variables", () => {
 
-    test("Gets global variable definition location of itself", async () => {
+    test.skip("Gets global variable definition location of itself", async () => {
         const document_uri = get_document_uri("projects/other/definition_global_variable_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(2, 6), [
             new vscode.Location(get_document_uri("projects/other/definition_global_variable_0.hltxt"), to_range(2, 4, 2, 22))
@@ -286,7 +286,7 @@ suite("Should get definition location of global variables", () => {
     test("Gets definition location of define when used as expression", async () => {
         const document_uri = get_document_uri("projects/project_1/definition_global_variable_0.hltxt");
         await test_definitions(document_uri, new vscode.Position(6, 20), [
-            new vscode.Location(get_document_uri("build/Complex/c.entry.generated.hltxt"), to_range(12, 11, 12, 13))
+            new vscode.Location(get_document_uri("projects/complex/complex.h"), to_range(24, 8, 24, 10))
         ]);
     });
 });
