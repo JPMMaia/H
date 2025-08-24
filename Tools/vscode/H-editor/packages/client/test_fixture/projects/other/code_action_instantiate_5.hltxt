@@ -1,4 +1,4 @@
-module code_action_instantiate_0;
+module code_action_instantiate_5;
 
 struct My_struct
 {

@@ -84,6 +84,11 @@ namespace h::language_server
         lsp::DidChangeTextDocumentParams const& parameters
     );
 
+    export lsp::TextDocument_CodeActionResult compute_text_document_code_actions(
+        Server& server,
+        lsp::CodeActionParams const& parameters
+    );
+
     export lsp::TextDocument_CompletionResult compute_text_document_completion(
         Server& server,
         lsp::CompletionParams const& parameters

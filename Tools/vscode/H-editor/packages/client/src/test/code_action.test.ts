@@ -4,8 +4,8 @@ import { get_document_uri, activate } from './helper.js';
 
 suite("Should get instantiate expression add missing members code action", () => {
 
-    test.skip("Add missing instantiate members 0", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_0.hltxt");
+    test("Add missing instantiate members 0", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_0.hltxt");
         await test_code_actions(document_uri, to_range(12, 31, 12, 31), vscode.CodeActionKind.RefactorRewrite, [
             {
                 title: "Add missing instantiate members",
@@ -15,8 +15,8 @@ suite("Should get instantiate expression add missing members code action", () =>
         ]);
     });
 
-    test.skip("Add missing instantiate members, without modifying existing member values", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_1.hltxt");
+    test("Add missing instantiate members, without modifying existing member values", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_1.hltxt");
         await test_code_actions(document_uri, to_range(12, 31, 12, 31), vscode.CodeActionKind.RefactorRewrite, [
             {
                 title: "Add missing instantiate members",
@@ -26,13 +26,13 @@ suite("Should get instantiate expression add missing members code action", () =>
         ]);
     });
 
-    test.skip("Do not get any code action if all instantiate members are present", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_2.hltxt");
+    test("Do not get any code action if all instantiate members are present", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_2.hltxt");
         await test_code_actions(document_uri, to_range(12, 31, 12, 31), vscode.CodeActionKind.RefactorRewrite, []);
     });
 
-    test.skip("Add missing instantiate members which are also structs", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_3.hltxt");
+    test("Add missing instantiate members which are also structs", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_3.hltxt");
         await test_code_actions(document_uri, to_range(23, 29, 23, 29), vscode.CodeActionKind.RefactorRewrite, [
             {
                 title: "Add missing instantiate members",
@@ -42,8 +42,8 @@ suite("Should get instantiate expression add missing members code action", () =>
         ]);
     });
 
-    test.skip("Add missing instantiate members inside a instantiate expression", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_4.hltxt");
+    test("Add missing instantiate members inside a instantiate expression", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_4.hltxt");
         await test_code_actions(document_uri, to_range(24, 12, 24, 12), vscode.CodeActionKind.RefactorRewrite, [
             {
                 title: "Add missing instantiate members",
@@ -53,8 +53,8 @@ suite("Should get instantiate expression add missing members code action", () =>
         ]);
     });
 
-    test.skip("Add missing instantiate members inside an explicit instantiate expression", async () => {
-        const document_uri = get_document_uri("code_action_instantiate_5.hltxt");
+    test("Add missing instantiate members inside an explicit instantiate expression", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_5.hltxt");
         await test_code_actions(document_uri, to_range(12, 40, 12, 40), vscode.CodeActionKind.RefactorRewrite, [
             {
                 title: "Add missing instantiate members",

@@ -20,6 +20,7 @@ import h.compiler.diagnostic;
 import h.compiler.target;
 import h.core;
 import h.core.declarations;
+import h.language_server.code_action;
 import h.language_server.completion;
 import h.language_server.core;
 import h.language_server.diagnostics;
@@ -63,12 +64,34 @@ namespace h::language_server
 
         lsp::ClientCapabilities const& client_capabilities = parameters.capabilities;
 
+        bool has_code_action_literal_support = false;
+
+        if (client_capabilities.textDocument.has_value())
+        {
+            lsp::TextDocumentClientCapabilities const& text_document_client_capabilities = client_capabilities.textDocument.value();
+            if (text_document_client_capabilities.codeAction.has_value())
+            {
+                lsp::CodeActionClientCapabilities const& code_action_client_capabilities = text_document_client_capabilities.codeAction.value();
+                if (code_action_client_capabilities.codeActionLiteralSupport.has_value())
+                {
+                    has_code_action_literal_support = true;
+                }
+            }
+        }
+
         lsp::DiagnosticOptions const diagnostic_options
         {
             .workDoneProgress = false,
             .interFileDependencies = true,
             .workspaceDiagnostics = true,
             .identifier = std::nullopt,
+        };
+
+        lsp::CodeActionOptions const code_action_options
+        {
+            .workDoneProgress = false,
+            .codeActionKinds = {},
+            .resolveProvider = false,
         };
 
         lsp::CompletionOptions const completion_options
@@ -123,6 +146,15 @@ namespace h::language_server
                 .version = "0.1.0"
             }
         };
+
+        if (has_code_action_literal_support)
+        {
+            result.capabilities.codeActionProvider = code_action_options;
+        }
+        else
+        {
+            result.capabilities.codeActionProvider = true;
+        }
 
         std::span<lsp::WorkspaceFolder const> const workspace_folders =
             parameters.workspaceFolders && !parameters.workspaceFolders->isNull() ?
@@ -566,6 +598,30 @@ namespace h::language_server
 
             workspace_data.core_module_diagnostic_dirty_flags[core_module_index] = true;
         }
+    }
+
+    lsp::TextDocument_CodeActionResult compute_text_document_code_actions(
+        Server& server,
+        lsp::CodeActionParams const& parameters
+    )
+    {
+        std::optional<std::pair<Workspace_data&, std::size_t>> const workspace_core_module_pair = find_workspace_core_module_index(
+            server,
+            parameters.textDocument.uri
+        );
+        if (!workspace_core_module_pair.has_value())
+            return nullptr;
+
+        Workspace_data const& workspace_data = workspace_core_module_pair->first;
+        std::size_t const core_module_index = workspace_core_module_pair->second;
+
+        return compute_code_actions(
+            workspace_data.declaration_database,
+            workspace_data.core_module_parse_trees[core_module_index],
+            workspace_data.core_modules[core_module_index],
+            parameters.range,
+            parameters.context
+        );
     }
 
     lsp::TextDocument_CompletionResult compute_text_document_completion(

@@ -19,8 +19,9 @@ target_sources(H_language_server
    PUBLIC FILE_SET modules TYPE CXX_MODULES
         FILES
             "Breakpoint.cppm"
-            "Core.cppm"
+            "Code_action.cppm"
             "Completion.cppm"
+            "Core.cppm"
             "Diagnostics.cppm"
             "Go_to_location.cppm"
             "Inlay_hints.cppm"
@@ -28,8 +29,9 @@ target_sources(H_language_server
             "Message_handler.cppm"
             "Server.cppm"
    PRIVATE
-      "Core.cpp"
+      "Code_action.cpp"
       "Completion.cpp"
+      "Core.cpp"
       "Diagnostics.cpp"
       "Go_to_location.cpp"
       "Inlay_hints.cpp"
