@@ -301,6 +301,35 @@ namespace h::parser
         }
     }
 
+    std::pmr::string format_statement(
+        h::Module const& core_module,
+        Statement const& statement,
+        std::uint32_t indentation,
+        bool const add_semicolon,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Format_options const options
+        {
+            .alias_imports = core_module.dependencies.alias_imports,
+            .output_allocator = output_allocator,
+            .temporaries_allocator = temporaries_allocator,
+        };
+
+        String_buffer buffer;
+
+        add_format_statement(
+            buffer,
+            statement,
+            indentation,
+            options,
+            add_semicolon
+        );
+
+        return to_string(buffer);
+    }
+
     void add_format_expression(
         String_buffer& buffer,
         Statement const& statement,

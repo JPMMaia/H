@@ -18,7 +18,7 @@ endif()
 FetchContent_Declare(
   extern_lsp_framework
   GIT_REPOSITORY https://github.com/leon-bckl/lsp-framework.git
-  GIT_TAG        9c1a4a92a0df8813d1bd2bde4c041b572b3763fb
+  GIT_TAG        fa2a8f7de4fe612e10badc15201c2176de850c14
 )
 FetchContent_GetProperties(extern_lsp_framework)
 if(NOT extern_lsp_framework_POPULATED)

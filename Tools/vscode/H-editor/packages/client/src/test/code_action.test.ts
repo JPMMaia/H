@@ -117,7 +117,7 @@ function assert_workspace_edits(actual: vscode.WorkspaceEdit | undefined, expect
         const [actual_uri, actual_edits] = actual_entries[i];
         const [expected_uri, expected_edits] = expected_entries[i];
 
-        assert.equal(actual_uri.toString(), expected_uri.toString());
+        assert.equal(actual_uri.fsPath, expected_uri.fsPath);
 
         assert.equal(actual_edits.length, expected_edits.length);
 
