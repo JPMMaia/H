@@ -488,41 +488,16 @@ namespace h::c
 
             Type_reference const float32_type = h::create_fundamental_type_type_reference(h::Fundamental_type::Float32);
 
-            h::Statement const color_array_value =
+            h::Expression const color_array_value = h::Expression
             {
-                .expressions = {
-                    h::Expression
+                .data = h::Constant_array_expression
+                {
+                    .array_data =
                     {
-                        .data = h::Constant_array_expression
-                        {
-                            .array_data =
-                            {
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                            }
-                        }
-                    }
-                }
-            };
-
-            h::Statement const color_value =
-            {
-                .expressions = {
-                    h::Expression
-                    {
-                        .data = h::Instantiate_expression
-                        {
-                            .type = Instantiate_expression_type::Default,
-                            .members = {
-                                Instantiate_member_value_pair
-                                {
-                                    .member_name = "float32",
-                                    .value = std::move(color_array_value)
-                                }
-                            }
-                        }
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                     }
                 }
             };
@@ -539,8 +514,33 @@ namespace h::c
                                 Instantiate_member_value_pair
                                 {
                                     .member_name = "color",
-                                    .value = std::move(color_value)
+                                    .value = {.expression_index = 1}
                                 }
+                            }
+                        }
+                    },
+                    {
+                        .data = h::Instantiate_expression
+                        {
+                            .type = Instantiate_expression_type::Default,
+                            .members = {
+                                Instantiate_member_value_pair
+                                {
+                                    .member_name = "float32",
+                                    .value = {.expression_index = 2}
+                                }
+                            }
+                        }
+                    },
+                    {
+                        .data = h::Constant_array_expression
+                        {
+                            .array_data =
+                            {
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                             }
                         }
                     }

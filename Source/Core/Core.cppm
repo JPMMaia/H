@@ -836,7 +836,7 @@ namespace h
     export struct Instantiate_member_value_pair
     {
         std::pmr::string member_name;
-        Statement value;
+        Expression_index value;
         std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR

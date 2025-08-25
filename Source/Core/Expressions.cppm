@@ -25,6 +25,8 @@ namespace h
 
     export h::Expression create_constant_array_expression(std::pmr::vector<h::Statement> array_data);
 
+    export void add_enum_value_expressions(h::Statement& statement, std::string_view const enum_name, std::string_view const member_name);
+
     export std::pmr::vector<h::Expression> create_enum_value_expressions(std::string_view const enum_name, std::string_view const member_name);
 
     export h::Expression create_instantiate_expression(Instantiate_expression_type type, std::pmr::vector<Instantiate_member_value_pair> members);

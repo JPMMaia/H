@@ -42,28 +42,37 @@ namespace h
         };
     }
 
-    std::pmr::vector<h::Expression> create_enum_value_expressions(std::string_view const enum_name, std::string_view const member_name)
+    void add_enum_value_expressions(h::Statement& statement, std::string_view const enum_name, std::string_view const member_name)
     {
-        return
+        h::Expression access_expression
         {
-            h::Expression
+            .data = h::Access_expression
             {
-                .data = h::Access_expression
-                {
-                    .expression = {
-                        .expression_index = 1
-                    },
-                    .member_name = std::pmr::string{ member_name },
-                }
-            },
-            h::Expression
-            {
-                .data = h::Variable_expression
-                {
-                    .name = std::pmr::string{ enum_name },
-                }
+                .expression = {
+                    .expression_index = statement.expressions.size() + 1
+                },
+                .member_name = std::pmr::string{ member_name },
             }
         };
+
+        statement.expressions.push_back(std::move(access_expression));
+
+        h::Expression variable_expression
+        {
+            .data = h::Variable_expression
+            {
+                .name = std::pmr::string{ enum_name },
+            }
+        };
+
+        statement.expressions.push_back(std::move(variable_expression));
+    }
+
+    std::pmr::vector<h::Expression> create_enum_value_expressions(std::string_view const enum_name, std::string_view const member_name)
+    {
+        h::Statement statement = {};
+        add_enum_value_expressions(statement, enum_name, member_name);
+        return statement.expressions;
     }
 
     h::Expression create_instantiate_expression(Instantiate_expression_type const type, std::pmr::vector<Instantiate_member_value_pair> members)

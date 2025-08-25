@@ -468,24 +468,6 @@ namespace h::compiler
                 );
             }
         }
-        else if (std::holds_alternative<h::Instantiate_expression>(expression.data))
-        {
-            h::Instantiate_expression& data = std::get<h::Instantiate_expression>(expression.data);
-            for (h::Instantiate_member_value_pair& member : data.members)
-            {
-                process_statement(
-                    result,
-                    core_module,
-                    function_declaration,
-                    scope,
-                    member.value,
-                    std::nullopt,
-                    declaration_database,
-                    options,
-                    temporaries_allocator
-                );
-            }
-        }
         else if (std::holds_alternative<h::Switch_expression>(expression.data))
         {
             h::Switch_expression& data = std::get<h::Switch_expression>(expression.data);
@@ -686,6 +668,39 @@ namespace h::compiler
                             return function_declaration_to_call->type.input_parameter_types[argument_index];
                         else
                             return std::nullopt;
+                    }
+                }
+            }
+            else if (std::holds_alternative<h::Instantiate_expression>(current_expression.data))
+            {
+                h::Instantiate_expression const& parent_instantiate_expression = std::get<h::Instantiate_expression>(current_expression.data);
+
+                for (h::Instantiate_member_value_pair const& member : parent_instantiate_expression.members)
+                {
+                    if (member.value.expression_index == expression_index)
+                    {
+                        std::optional<h::Type_reference> const current_expression_type = get_expression_type(
+                            core_module,
+                            function_declaration,
+                            scope,
+                            statement,
+                            current_expression,
+                            std::nullopt,
+                            declaration_database
+                        );
+                        if (!current_expression_type.has_value())
+                            return std::nullopt;
+
+                        std::optional<Declaration> const& declaration = find_underlying_declaration(declaration_database, current_expression_type.value());
+                        if (!declaration.has_value())
+                            return std::nullopt;
+
+                        std::optional<h::Type_reference> const current_member_type = get_declaration_member_type(
+                            declaration.value(),
+                            member.member_name
+                        );
+
+                        return current_member_type;
                     }
                 }
             }

@@ -2675,7 +2675,7 @@ namespace h::parser
             std::optional<Parse_node> const value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");
             if (value_node.has_value())
             {
-                pair.value = node_to_statement(module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
+                pair.value = node_to_expression(statement, module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
             }
             
             output.members.push_back(std::move(pair));

@@ -1817,7 +1817,16 @@ namespace h::c
         return output;
     }
 
-    h::Statement create_default_value(
+    static void add_expression(
+        h::Statement& statement,
+        h::Expression expression
+    )
+    {
+        statement.expressions.push_back(std::move(expression));
+    }
+
+    static void add_default_value_to_statement(
+        h::Statement& statement,
         Type_reference const& value_type,
         h::Module const& core_module,
         h::Declaration_database const& declaration_database
@@ -1838,13 +1847,8 @@ namespace h::c
             array_data.resize(constant_array_type.size);
             std::fill(array_data.begin(), array_data.end(), element_default_value);
 
-            return h::create_statement(
-                {
-                    h::create_constant_array_expression(
-                        std::move(array_data)
-                    )
-                }
-            );
+            add_expression(statement, h::create_constant_array_expression(std::move(array_data)));
+            return;
         }
         else if (std::holds_alternative<h::Custom_type_reference>(value_type.data))
         {
@@ -1865,7 +1869,8 @@ namespace h::c
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
                     Type_reference const& underlying_type = underlying_type_optional.value();
-                    return create_default_value(underlying_type, core_module, declaration_database);
+                    add_default_value_to_statement(statement, underlying_type, core_module, declaration_database);
+                    return;
                 }
                 else if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
                 {
@@ -1874,41 +1879,32 @@ namespace h::c
                     if (enum_declaration->values.empty())
                         throw std::runtime_error{ std::format("Enum '{}' is empty!", enum_declaration->name) };
 
-                    return h::create_statement(
-                        h::create_enum_value_expressions(enum_declaration->name, enum_declaration->values[0].name)
-                    );
+                    h::add_enum_value_expressions(statement, enum_declaration->name, enum_declaration->values[0].name);
+                    return;
                 }
                 else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
                 {
-                    return h::create_statement(
-                        {
-                            h::create_instantiate_expression(Instantiate_expression_type::Default, {})
-                        }
-                    );
+                    add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {}));
+                    return;
                 }
                 else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
                 {
                     h::Union_declaration const* union_declaration = std::get<h::Union_declaration const*>(declaration.data);
 
                     if (union_declaration->member_types.empty()) {
-                        return h::create_statement(
-                            {
-                                h::create_instantiate_expression(Instantiate_expression_type::Default, {})
-                            }
-                        );
+                        add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {}));
+                        return;
                     }
 
                     h::Instantiate_member_value_pair member_value
                     {
                         .member_name = union_declaration->member_names[0],
-                        .value = create_default_value(union_declaration->member_types[0], core_module, declaration_database)
+                        .value = {.expression_index = statement.expressions.size() + 1},
                     };
-
-                    return h::create_statement(
-                        {
-                            h::create_instantiate_expression(Instantiate_expression_type::Default, {std::move(member_value)})
-                        }
-                    );
+                    add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {std::move(member_value)}));
+                    
+                    add_default_value_to_statement(statement, union_declaration->member_types[0], core_module, declaration_database);
+                    return;
                 }
             }
         }
@@ -1919,37 +1915,19 @@ namespace h::c
             switch (fundamental_type)
             {
             case h::Fundamental_type::Bool: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "false"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "false"));
+                return;
             }
             case h::Fundamental_type::Float16:
             case h::Fundamental_type::Float32:
             case h::Fundamental_type::Float64:
             case h::Fundamental_type::C_longdouble: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "0.0"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "0.0"));
+                return;
             }
             case h::Fundamental_type::String: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            ""
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, ""));
+                return;
             }
             case h::Fundamental_type::Byte:
             case h::Fundamental_type::C_bool:
@@ -1964,48 +1942,41 @@ namespace h::c
             case h::Fundamental_type::C_ulong:
             case h::Fundamental_type::C_longlong:
             case h::Fundamental_type::C_ulonglong: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "0"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "0"));
+                return;
             }
             }
         }
         else if (std::holds_alternative<h::Function_pointer_type>(value_type.data))
         {
             h::Function_pointer_type const& function_type = std::get<h::Function_pointer_type>(value_type.data);
-            return h::create_statement(
-                {
-                    h::create_null_pointer_expression()
-                }
-            );
+            add_expression(statement, h::create_null_pointer_expression());
+            return;
         }
         else if (std::holds_alternative<h::Integer_type>(value_type.data))
         {
-            return h::create_statement(
-                {
-                    h::create_constant_expression(
-                        value_type,
-                        "0"
-                    )
-                }
-            );
+            add_expression(statement, h::create_constant_expression(value_type, "0"));
+            return;
         }
         else if (std::holds_alternative<h::Pointer_type>(value_type.data))
         {
             h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(value_type.data);
-            return h::create_statement(
-                {
-                    h::create_null_pointer_expression()
-                }
-            );
+            add_expression(statement, h::create_null_pointer_expression());
+            return;
         }
 
         throw std::runtime_error{ "create_default_value() did not handle Type_reference type!" };
+    }
+
+    h::Statement create_default_value(
+        Type_reference const& value_type,
+        h::Module const& core_module,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        h::Statement statement = {};
+        add_default_value_to_statement(statement, value_type, core_module, declaration_database);
+        return statement;
     }
 
     void add_struct_member_default_values(

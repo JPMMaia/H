@@ -121,7 +121,10 @@ namespace h::language_server
         h::Instantiate_expression const& original_instantiate_expression
     )
     {
-        h::Instantiate_expression new_instantiate_expression = original_instantiate_expression;
+        Statement statement;
+        statement.expressions.push_back(h::Expression{original_instantiate_expression});
+        
+        h::Instantiate_expression& new_instantiate_expression = std::get<h::Instantiate_expression>(statement.expressions[0].data);
 
         for (std::size_t index = 0; index < declaration.member_names.size(); ++index)
         {
@@ -135,13 +138,16 @@ namespace h::language_server
 
             if (location == new_instantiate_expression.members.end())
             {
+                std::size_t const value_expression_index = statement.expressions.size();
+                
                 h::Statement const& default_value = declaration.member_default_values[index];
+                statement.expressions.insert(statement.expressions.end(), default_value.expressions.begin(), default_value.expressions.end());
 
                 new_instantiate_expression.members.push_back(
                     h::Instantiate_member_value_pair
                     {
                         .member_name = std::pmr::string{member_name},
-                        .value = default_value,
+                        .value = {.expression_index = value_expression_index },
                         .source_range = std::nullopt,
                     }
                 );
@@ -171,13 +177,6 @@ namespace h::language_server
             parse_tree,
             original_expression.source_range->start
         );
-
-        Statement const statement
-        {
-            .expressions = {
-                h::Expression{.data = new_instantiate_expression}
-            }
-        };
 
         std::pmr::string const new_text = h::parser::format_statement(
             core_module,
@@ -223,51 +222,35 @@ namespace h::language_server
         return first.column < second.column;
     }
 
-    static h::Expression const& find_innermost_instantiate_expression(
-        h::Expression const& top_expression,
-        h::Instantiate_expression const& top_instantiate_expression,
+    static h::Expression const* find_innermost_instantiate_expression(
+        h::Statement const& statement,
         h::Source_position const& source_position
     )
     {
-        h::Expression const* innermost = &top_expression;
+        h::Expression const* innermost = nullptr;
 
-        for (Instantiate_member_value_pair const& member : top_instantiate_expression.members)
+        for (h::Expression const& expression : statement.expressions)
         {
-            if (member.value.expressions.empty())
-                continue;
-
-            h::Expression const& first_expression = member.value.expressions[0];
-            if (h::range_contains_position_inclusive(first_expression.source_range.value(), source_position))
+            if (std::holds_alternative<h::Instantiate_expression>(expression.data))
             {
-                auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+                if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
                 {
-                    if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+                    if (innermost != nullptr)
                     {
-                        if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
+                        if (h::range_contains_position_inclusive(innermost->source_range.value(), expression.source_range->start))
                         {
-                            h::Expression const& found_expression = find_innermost_instantiate_expression(
-                                expression,
-                                std::get<h::Instantiate_expression>(expression.data),
-                                source_position
-                            );
-                            innermost = &found_expression;
-                            return true;
+                            innermost = &expression;
                         }
                     }
-
-                    return false;
-                };
-
-                visit_expressions(
-                    member.value,
-                    process_expression
-                );
-                if (innermost != &top_expression)
-                    break;
+                    else
+                    {
+                        innermost = &expression;
+                    }
+                }
             }
         }
 
-        return *innermost;
+        return innermost;
     }
 
     lsp::TextDocument_CodeActionResult compute_code_actions(
@@ -292,70 +275,50 @@ namespace h::language_server
 
             auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> bool
             {
-                auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+                h::Expression const* expression = find_innermost_instantiate_expression(
+                    statement,
+                    source_range.start
+                );
+                if (expression != nullptr)
                 {
-                    if (!expression.source_range.has_value())
-                        return false;
-
-                    if (h::range_contains_position_inclusive(expression.source_range.value(), source_range.start))
+                    std::optional<h::Type_reference> const type_to_instantiate = get_expression_type(
+                        core_module,
+                        function->declaration,
+                        scope,
+                        statement,
+                        *expression,
+                        std::nullopt,
+                        declaration_database
+                    );
+                    if (type_to_instantiate.has_value())
                     {
-                        if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+                        std::optional<Declaration> const& declaration = find_underlying_declaration(declaration_database, type_to_instantiate.value());
+                        if (declaration.has_value() && std::holds_alternative<h::Struct_declaration const*>(declaration->data))
                         {
-                            h::Instantiate_expression const& top_instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
-                            h::Expression const& innermost_expression = find_innermost_instantiate_expression(
-                                expression,
-                                std::get<h::Instantiate_expression>(expression.data),
-                                source_range.start
+                            std::pmr::vector<h::compiler::Declaration_member_info> const member_infos = h::compiler::get_declaration_member_infos(
+                                declaration.value(),
+                                {}
                             );
-                            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(innermost_expression.data);
 
-                            std::optional<h::Type_reference> const type_to_instantiate = get_expression_type(
-                                core_module,
-                                function->declaration,
-                                scope,
-                                statement, // TODO
-                                innermost_expression,
-                                std::nullopt,
-                                declaration_database
-                            );
-                            if (type_to_instantiate.has_value())
+                            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(expression->data);
+                            if (member_infos.size() != instantiate_expression.members.size())
                             {
-                                std::optional<Declaration> const& declaration = find_underlying_declaration(declaration_database, type_to_instantiate.value());
-                                if (declaration.has_value() && std::holds_alternative<h::Struct_declaration const*>(declaration->data))
-                                {
-                                    std::pmr::vector<h::compiler::Declaration_member_info> const member_infos = h::compiler::get_declaration_member_infos(
-                                        declaration.value(),
-                                        {}
-                                    );
+                                lsp::CodeAction code_action = create_add_missing_instantiate_members_code_action(
+                                    parse_tree,
+                                    core_module,
+                                    *std::get<h::Struct_declaration const*>(declaration->data),
+                                    *expression,
+                                    instantiate_expression
+                                );
 
-                                    if (member_infos.size() != instantiate_expression.members.size())
-                                    {
-                                        h::Instantiate_expression new_instantiate_expression = instantiate_expression;
-
-                                        lsp::CodeAction code_action = create_add_missing_instantiate_members_code_action(
-                                            parse_tree,
-                                            core_module,
-                                            *std::get<h::Struct_declaration const*>(declaration->data),
-                                            innermost_expression,
-                                            instantiate_expression
-                                        );
-
-                                        code_actions.push_back(std::move(code_action));
-                                        return true;
-                                    }
-                                }
+                                code_actions.push_back(std::move(code_action));
+                                return true;
                             }
-                            
                         }
                     }
+                }
 
-                    return false;
-                };
-
-                return visit_expressions(
-                    statement,
-                    process_expression
-                );
+                return false;
             };
 
             h::compiler::Scope scope = {};

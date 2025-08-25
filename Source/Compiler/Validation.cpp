@@ -2281,11 +2281,13 @@ namespace h::compiler
 
             h::Type_reference const& member_type = location->member_type;
 
+            h::Expression const& member_value_expression = parameters.statement.expressions[pair.value.expression_index];
             std::optional<h::Type_reference> const assigned_value_type = get_expression_type(
                 parameters.core_module,
                 parameters.function_declaration,
                 parameters.scope,
-                pair.value,
+                parameters.statement,
+                member_value_expression,
                 member_type,
                 parameters.declaration_database
             );
@@ -2299,7 +2301,7 @@ namespace h::compiler
                 {
                     create_error_diagnostic(
                         parameters.core_module.source_file_path,
-                        get_statement_source_range(pair.value),
+                        member_value_expression.source_range,
                         std::format(
                             "Cannot assign value of type '{}' to member '{}.{}' of type '{}'.",
                             provided_type_name,
@@ -3179,6 +3181,7 @@ namespace h::compiler
                 bool const is_compile_time = is_computable_at_compile_time(
                     core_module,
                     scope,
+                    statement,
                     pair.value,
                     expression_types,
                     declaration_database
