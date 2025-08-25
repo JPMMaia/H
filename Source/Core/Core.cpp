@@ -151,16 +151,13 @@ namespace h
         h::Source_position const& position
     )
     {
-        if (range.start.line < position.line && position.line < range.end.line)
-            return true;
+        if (position.line < range.start.line || (position.line == range.start.line && position.column < range.start.column))
+            return false;
 
-        if (range.start.line == position.line && range.start.column <= position.column && position.column < range.end.column)
-            return true;
+        if (position.line > range.end.line || (position.line == range.end.line && position.column >= range.end.column))
+            return false;
 
-        if (range.end.line == position.line && position.column < range.end.column)
-            return true;
-
-        return false;
+        return true;
     }
 
     bool range_contains_position_inclusive(
@@ -168,16 +165,13 @@ namespace h
         h::Source_position const& position
     )
     {
-        if (range.start.line < position.line && position.line < range.end.line)
-            return true;
+        if (position.line < range.start.line || (position.line == range.start.line && position.column < range.start.column))
+            return false;
 
-        if (range.start.line == position.line && range.start.column <= position.column && position.column <= range.end.column)
-            return true;
+        if (position.line > range.end.line || (position.line == range.end.line && position.column > range.end.column))
+            return false;
 
-        if (range.end.line == position.line && position.column <= range.end.column)
-            return true;
-
-        return false;
+        return true;
     }
 
     
