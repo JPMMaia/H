@@ -209,6 +209,67 @@ namespace h::language_server
         };
     }
 
+    static bool is_position_before(
+        h::Source_position const& first,
+        h::Source_position const& second
+    )
+    {
+        if (first.line < second.line)
+            return true;
+
+        if (first.line > second.line)
+            return false;
+
+        return first.column < second.column;
+    }
+
+    static h::Expression const& find_innermost_instantiate_expression(
+        h::Expression const& top_expression,
+        h::Instantiate_expression const& top_instantiate_expression,
+        h::Source_position const& source_position
+    )
+    {
+        h::Expression const* innermost = &top_expression;
+
+        for (Instantiate_member_value_pair const& member : top_instantiate_expression.members)
+        {
+            if (member.value.expressions.empty())
+                continue;
+
+            h::Expression const& first_expression = member.value.expressions[0];
+            if (h::range_contains_position_inclusive(first_expression.source_range.value(), source_position))
+            {
+                auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+                {
+                    if (std::holds_alternative<h::Instantiate_expression>(expression.data))
+                    {
+                        if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
+                        {
+                            h::Expression const& found_expression = find_innermost_instantiate_expression(
+                                expression,
+                                std::get<h::Instantiate_expression>(expression.data),
+                                source_position
+                            );
+                            innermost = &found_expression;
+                            return true;
+                        }
+                    }
+
+                    return false;
+                };
+
+                visit_expressions(
+                    member.value,
+                    process_expression
+                );
+                if (innermost != &top_expression)
+                    break;
+            }
+        }
+
+        return *innermost;
+    }
+
     lsp::TextDocument_CodeActionResult compute_code_actions(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -240,14 +301,20 @@ namespace h::language_server
                     {
                         if (std::holds_alternative<h::Instantiate_expression>(expression.data))
                         {
-                            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
+                            h::Instantiate_expression const& top_instantiate_expression = std::get<h::Instantiate_expression>(expression.data);
+                            h::Expression const& innermost_expression = find_innermost_instantiate_expression(
+                                expression,
+                                std::get<h::Instantiate_expression>(expression.data),
+                                source_range.start
+                            );
+                            h::Instantiate_expression const& instantiate_expression = std::get<h::Instantiate_expression>(innermost_expression.data);
 
                             std::optional<h::Type_reference> const type_to_instantiate = get_expression_type(
                                 core_module,
                                 function->declaration,
                                 scope,
-                                statement,
-                                expression,
+                                statement, // TODO
+                                innermost_expression,
                                 std::nullopt,
                                 declaration_database
                             );
@@ -269,7 +336,7 @@ namespace h::language_server
                                             parse_tree,
                                             core_module,
                                             *std::get<h::Struct_declaration const*>(declaration->data),
-                                            expression,
+                                            innermost_expression,
                                             instantiate_expression
                                         );
 
