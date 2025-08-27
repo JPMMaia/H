@@ -1271,4 +1271,10 @@ namespace h
         h::Module const& core_module,
         std::string_view const alias_name
     );
+
+    export h::Expression_index copy_expressions_to_new_statement(
+        h::Statement& destination_statement,
+        h::Statement const& source_statement,
+        h::Expression_index const source_expression_index
+    );
 }

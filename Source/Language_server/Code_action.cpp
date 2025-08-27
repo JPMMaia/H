@@ -121,10 +121,10 @@ namespace h::language_server
         h::Instantiate_expression const& original_instantiate_expression
     )
     {
-        Statement statement;
-        statement.expressions.push_back(h::Expression{original_instantiate_expression});
+        h::Instantiate_expression new_instantiate_expression = original_instantiate_expression;
         
-        h::Instantiate_expression& new_instantiate_expression = std::get<h::Instantiate_expression>(statement.expressions[0].data);
+        Statement statement;
+        statement.expressions.push_back({});
 
         for (std::size_t index = 0; index < declaration.member_names.size(); ++index)
         {
@@ -141,7 +141,7 @@ namespace h::language_server
                 std::size_t const value_expression_index = statement.expressions.size();
                 
                 h::Statement const& default_value = declaration.member_default_values[index];
-                statement.expressions.insert(statement.expressions.end(), default_value.expressions.begin(), default_value.expressions.end());
+                h::copy_expressions_to_new_statement(statement, default_value, h::Expression_index{ .expression_index = 0});
 
                 new_instantiate_expression.members.push_back(
                     h::Instantiate_member_value_pair
@@ -172,6 +172,8 @@ namespace h::language_server
                 return false;
             }
         );
+
+        statement.expressions[0] = h::Expression{new_instantiate_expression};
 
         std::uint32_t const indentation = calculate_indendation(
             parse_tree,

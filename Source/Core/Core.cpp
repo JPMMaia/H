@@ -387,4 +387,188 @@ namespace h
 
         return &(*location);
     }
+
+    h::Expression_index copy_expressions_to_new_statement(
+        h::Statement& destination_statement,
+        h::Statement const& source_statement,
+        h::Expression_index const source_expression_index
+    )
+    {
+        h::Expression current_expression = source_statement.expressions[source_expression_index.expression_index];
+        
+        std::uint64_t const destination_expression_index = destination_statement.expressions.size();
+        destination_statement.expressions.push_back({});
+
+        if (std::holds_alternative<h::Access_expression>(current_expression.data))
+        {
+            Access_expression& data = std::get<Access_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+        }
+        else if (std::holds_alternative<h::Access_array_expression>(current_expression.data))
+        {
+            Access_array_expression& data = std::get<Access_array_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+            data.index = copy_expressions_to_new_statement(destination_statement, source_statement, data.index);
+        }
+        else if (std::holds_alternative<h::Assert_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Assignment_expression>(current_expression.data))
+        {
+            Assignment_expression& data = std::get<Assignment_expression>(current_expression.data);
+            data.left_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.left_hand_side);
+            data.right_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.right_hand_side);
+        }
+        else if (std::holds_alternative<h::Binary_expression>(current_expression.data))
+        {
+            Binary_expression& data = std::get<Binary_expression>(current_expression.data);
+            data.left_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.left_hand_side);
+            data.right_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.right_hand_side);
+        }
+        else if (std::holds_alternative<h::Block_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Break_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Call_expression>(current_expression.data))
+        {
+            Call_expression& data = std::get<Call_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+            for (h::Expression_index& expression_index : data.arguments)
+                expression_index = copy_expressions_to_new_statement(destination_statement, source_statement, expression_index);
+        }
+        else if (std::holds_alternative<h::Cast_expression>(current_expression.data))
+        {
+            Cast_expression& data = std::get<Cast_expression>(current_expression.data);
+            data.source = copy_expressions_to_new_statement(destination_statement, source_statement, data.source);
+        }
+        else if (std::holds_alternative<h::Comment_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Compile_time_expression>(current_expression.data))
+        {
+            Compile_time_expression& data = std::get<Compile_time_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+        }
+        else if (std::holds_alternative<h::Constant_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Constant_array_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Continue_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Defer_expression>(current_expression.data))
+        {
+            Defer_expression& data = std::get<Defer_expression>(current_expression.data);
+            data.expression_to_defer = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression_to_defer);
+        }
+        else if (std::holds_alternative<h::Dereference_and_access_expression>(current_expression.data))
+        {
+            Dereference_and_access_expression& data = std::get<Dereference_and_access_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+        }
+        else if (std::holds_alternative<h::For_loop_expression>(current_expression.data))
+        {
+            For_loop_expression& data = std::get<For_loop_expression>(current_expression.data);
+            data.range_begin = copy_expressions_to_new_statement(destination_statement, source_statement, data.range_begin);
+            if (data.step_by.has_value())
+                data.step_by = copy_expressions_to_new_statement(destination_statement, source_statement, data.step_by.value());
+        }
+        else if (std::holds_alternative<h::Function_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Instance_call_expression>(current_expression.data))
+        {
+            Instance_call_expression& data = std::get<Instance_call_expression>(current_expression.data);
+            data.left_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.left_hand_side);
+        }
+        else if (std::holds_alternative<h::If_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Instantiate_expression>(current_expression.data))
+        {
+            Instantiate_expression& data = std::get<Instantiate_expression>(current_expression.data);
+            for (h::Instantiate_member_value_pair& member : data.members)
+                member.value = copy_expressions_to_new_statement(destination_statement, source_statement, member.value);
+        }
+        else if (std::holds_alternative<h::Invalid_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Null_pointer_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Parenthesis_expression>(current_expression.data))
+        {
+            Parenthesis_expression& data = std::get<Parenthesis_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+        }
+        else if (std::holds_alternative<h::Reflection_expression>(current_expression.data))
+        {
+            Reflection_expression& data = std::get<Reflection_expression>(current_expression.data);
+            for (h::Expression_index& expression_index : data.arguments)
+                expression_index = copy_expressions_to_new_statement(destination_statement, source_statement, expression_index);
+        }
+        else if (std::holds_alternative<h::Return_expression>(current_expression.data))
+        {
+            Return_expression& data = std::get<Return_expression>(current_expression.data);
+            if (data.expression.has_value())
+                data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression.value());
+        }
+        else if (std::holds_alternative<h::Struct_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Switch_expression>(current_expression.data))
+        {
+            Switch_expression& data = std::get<Switch_expression>(current_expression.data);
+            data.value = copy_expressions_to_new_statement(destination_statement, source_statement, data.value);
+            for (h::Switch_case_expression_pair& pair : data.cases)
+            {
+                if (pair.case_value.has_value())
+                    pair.case_value = copy_expressions_to_new_statement(destination_statement, source_statement, pair.case_value.value());
+            }
+        }
+        else if (std::holds_alternative<h::Ternary_condition_expression>(current_expression.data))
+        {
+            Ternary_condition_expression& data = std::get<Ternary_condition_expression>(current_expression.data);
+            data.condition = copy_expressions_to_new_statement(destination_statement, source_statement, data.condition);
+        }
+        else if (std::holds_alternative<h::Type_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Unary_expression>(current_expression.data))
+        {
+            Unary_expression& data = std::get<Unary_expression>(current_expression.data);
+            data.expression = copy_expressions_to_new_statement(destination_statement, source_statement, data.expression);
+        }
+        else if (std::holds_alternative<h::Union_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::Variable_declaration_expression>(current_expression.data))
+        {
+            Variable_declaration_expression& data = std::get<Variable_declaration_expression>(current_expression.data);
+            data.right_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.right_hand_side);
+        }
+        else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(current_expression.data))
+        {
+            Variable_declaration_with_type_expression& data = std::get<Variable_declaration_with_type_expression>(current_expression.data);
+            data.right_hand_side = copy_expressions_to_new_statement(destination_statement, source_statement, data.right_hand_side);
+        }
+        else if (std::holds_alternative<h::Variable_expression>(current_expression.data))
+        {
+        }
+        else if (std::holds_alternative<h::While_loop_expression>(current_expression.data))
+        {
+        }
+        else
+        {
+            throw std::runtime_error{"copy_expressions_to_new_statement: Not implemented!"};
+        }
+        
+        destination_statement.expressions[destination_expression_index] = std::move(current_expression);
+
+        return h::Expression_index{.expression_index = destination_expression_index};
+    }
 }
