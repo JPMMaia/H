@@ -106,6 +106,36 @@ namespace h::c
         CHECK(expression == h::Constant_expression{ .type = int32_type, .data = std::pmr::string{value_expected_data} });
     }
 
+    static h::Statement create_cast_constant_statement(
+        std::string_view const data,
+        h::Type_reference source_type,
+        h::Type_reference destination_type
+    )
+    {
+        return
+        {
+            .expressions = {
+                h::Expression
+                {
+                    .data = h::Cast_expression
+                    {
+                        .source = { .expression_index = 1 },
+                        .destination_type = destination_type,
+                        .cast_type = Cast_type::Numeric
+                    }
+                },
+                h::Expression
+                {
+                    .data = h::Constant_expression
+                    {
+                        .type = source_type,
+                        .data = std::pmr::string{data}
+                    }
+                }
+            }
+        };
+    }
+
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
     {
         std::pmr::vector<std::filesystem::path> const header_search_directories = 
@@ -438,6 +468,15 @@ namespace h::c
                 .expressions = {
                     h::Expression
                     {
+                        .data = h::Cast_expression
+                        {
+                            .source = { .expression_index = 1 },
+                            .destination_type = actual.member_types[0],
+                            .cast_type = Cast_type::Numeric
+                        }
+                    },
+                    h::Expression
+                    {
                         .data = h::Constant_expression
                         {
                             .type = uint32_type,
@@ -447,7 +486,7 @@ namespace h::c
                 }
             };
 
-            CHECK(actual.member_default_values[0] == expected_default_value);
+            CHECK(actual.member_default_values[0] == create_cast_constant_statement("0", uint32_type, actual.member_types[0]));
         }
 
         {
@@ -603,17 +642,17 @@ namespace h::c
         CHECK(actual.member_names[2] == "flags");
         CHECK(actual.member_types[2] == create_custom_type_reference("vulkan", "VkBufferCreateFlags"));
         CHECK(actual.member_bit_fields[2].has_value() == false);
-        CHECK(actual.member_default_values[2] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
+        CHECK(actual.member_default_values[2] == create_cast_constant_statement("0", uint32_type, actual.member_types[2]));
 
         CHECK(actual.member_names[3] == "size");
         CHECK(actual.member_types[3] == create_custom_type_reference("vulkan", "VkDeviceSize"));
         CHECK(actual.member_bit_fields[3].has_value() == false);
-        CHECK(actual.member_default_values[3] == h::create_statement({ h::create_constant_expression(uint64_type, "0") }));
+        CHECK(actual.member_default_values[3] == create_cast_constant_statement("0", uint64_type, actual.member_types[3]));
 
         CHECK(actual.member_names[4] == "usage");
         CHECK(actual.member_types[4] == create_custom_type_reference("vulkan", "VkBufferUsageFlags"));
         CHECK(actual.member_bit_fields[4].has_value() == false);
-        CHECK(actual.member_default_values[4] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
+        CHECK(actual.member_default_values[4] == create_cast_constant_statement("0", uint32_type, actual.member_types[4]));
 
         CHECK(actual.member_names[5] == "sharingMode");
         CHECK(actual.member_types[5] == create_custom_type_reference("vulkan", "VkSharingMode"));

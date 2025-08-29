@@ -418,7 +418,7 @@ namespace h::c
             h::Custom_type_reference reference
             {
                 .module_reference = {
-                    .name = {}
+                    .name = declarations.module_name
                 },
                 .name = declaration.name
             };
@@ -468,7 +468,7 @@ namespace h::c
             h::Custom_type_reference reference
             {
                 .module_reference = {
-                    .name = {}
+                    .name = declarations.module_name
                 },
                 .name = declaration.name
             };
@@ -492,7 +492,7 @@ namespace h::c
             std::string_view const type_spelling_string = type_spelling.string_view();
             std::string_view type_name = remove_type(type_spelling_string);
 
-            return h::create_custom_type_reference("", type_name);
+            return h::create_custom_type_reference(declarations.module_name, type_name);
         }
         case CXType_Void:
         {
@@ -1340,7 +1340,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_struct_declaration.name
                 };
@@ -1363,7 +1363,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_union_declaration.name
                 };
@@ -1476,7 +1476,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_struct_declaration.name
                 };
@@ -1498,7 +1498,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_union_declaration.name
                 };
@@ -1556,11 +1556,6 @@ namespace h::c
 
     bool is_fixed_width_integer_typedef_reference(h::Custom_type_reference const& reference, std::span<std::string_view const> const integer_alias_names)
     {
-        if (!reference.module_reference.name.empty())
-        {
-            return false;
-        }
-
         auto const location = std::find(
             integer_alias_names.begin(),
             integer_alias_names.end(),
@@ -1752,66 +1747,36 @@ namespace h::c
             output.alias_type_declarations.erase(output.alias_type_declarations.begin() + index);
         }
 
+        auto const process_type = [&](h::Type_reference const& type) -> bool
+        {
+            h::Type_reference& mutable_type = const_cast<Type_reference&>(type);
+            convert_typedef_to_integer_type_if_necessary(
+                mutable_type,
+                input.alias_type_declarations,
+                names,
+                indices
+            );
+            return false;
+        };
+
         for (h::Alias_type_declaration& declaration : output.alias_type_declarations)
         {
-            for (h::Type_reference& reference : declaration.type)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Struct_declaration& declaration : output.struct_declarations)
         {
-            for (h::Type_reference& reference : declaration.member_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Union_declaration& declaration : output.union_declarations)
         {
-            for (h::Type_reference& reference : declaration.member_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Function_declaration& declaration : output.function_declarations)
         {
-            for (h::Type_reference& reference : declaration.type.input_parameter_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
-
-            for (h::Type_reference& reference : declaration.type.output_parameter_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         return output;
@@ -1869,6 +1834,20 @@ namespace h::c
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
                     Type_reference const& underlying_type = underlying_type_optional.value();
+
+                    add_expression(
+                        statement, 
+                        h::Expression
+                        {
+                            .data = h::Cast_expression
+                            {
+                                .source = { .expression_index = statement.expressions.size() + 1 },
+                                .destination_type = value_type,
+                                .cast_type = h::Cast_type::Numeric,
+                            }
+                        }
+                    );
+
                     add_default_value_to_statement(statement, underlying_type, core_module, declaration_database);
                     return;
                 }
@@ -2478,7 +2457,6 @@ namespace h::c
 
         group_declarations_by_visibility(declarations_with_fixed_width_integers, header_module.export_declarations, header_module.internal_declarations, options.public_prefixes);
 
-        h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
         add_struct_member_default_values(header_module, header_module.internal_declarations, declaration_database);
 
