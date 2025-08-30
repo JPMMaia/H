@@ -376,6 +376,11 @@ namespace h::c
             std::cerr << "Warning: ignoring _Complex type\n";
             return std::nullopt;
         }
+        case CXType_Dependent:
+        {
+            std::cerr << "Warning: ignoring dependent type\n";
+            return std::nullopt;
+        }
         case CXType_IncompleteArray:
         case CXType_Pointer:
         {
