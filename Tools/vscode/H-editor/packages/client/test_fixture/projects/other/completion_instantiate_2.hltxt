@@ -1,0 +1,10 @@
+module completion_instantiate_2;
+
+import c.complex as complex;
+
+export function run() -> ()
+{
+    var value: complex.Complex = {
+        real: complex.
+    };
+}

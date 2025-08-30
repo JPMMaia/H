@@ -8,6 +8,7 @@ module;
 
 module h.language_server.location;
 
+import h.compiler.analysis;
 import h.core;
 import h.core.declarations;
 import h.core.types;
@@ -163,5 +164,88 @@ namespace h::language_server
             return std::get<h::Enum_declaration const*>(declaration->data);
 
         return nullptr;
+    }
+
+    void visit_expressions_that_contain_position(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Source_position const& source_position,
+        std::function<bool(h::Function_declaration const* function_declaration, h::compiler::Scope const& scope, h::Statement const& statement, h::Expression const& expression)> const& visitor
+    )
+    {
+        std::optional<h::Function> const function = find_function_that_contains_source_position(
+            core_module,
+            source_position
+        );
+
+        if (function.has_value())
+        {
+            auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> bool
+            {
+                auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+                {
+                    if (!expression.source_range.has_value())
+                        return false;
+
+                    if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
+                        return visitor(function->declaration, scope, statement, expression);
+
+                    return false;
+                };
+
+                if (statement.expressions.empty())
+                    return false;
+
+                h::Expression const& first_expression = statement.expressions[0];
+                if (!first_expression.source_range.has_value())
+                    return false;
+
+                if (!h::range_contains_position_inclusive(first_expression.source_range.value(), source_position))
+                    return false;
+
+                return visit_expressions(
+                    statement,
+                    process_expression
+                );
+            };
+
+            h::compiler::Scope scope = {};
+
+            h::compiler::add_parameters_to_scope(
+                scope,
+                function->declaration->input_parameter_names,
+                function->declaration->type.input_parameter_types,
+                function->declaration->input_parameter_source_positions
+            );
+
+            h::compiler::visit_statements_using_scope(
+                core_module,
+                function->declaration,
+                scope,
+                function->definition->statements,
+                declaration_database,
+                process_statement
+            );
+        }
+        else
+        {
+            h::compiler::Scope const scope = {};
+
+            auto const process_expression = [&](h::Expression const& expression, h::Statement const& statement) -> bool
+            {
+                if (!expression.source_range.has_value())
+                    return false;
+
+                if (h::range_contains_position_inclusive(expression.source_range.value(), source_position))
+                    return visitor(nullptr, scope, statement, expression);
+
+                return false;
+            };
+
+            visit_expressions(
+                core_module,
+                process_expression
+            );
+        }
     }
 }

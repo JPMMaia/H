@@ -312,6 +312,35 @@ suite("Should do completion", () => {
 		}, true);
 	});
 
+	test("Completes instantiate expression members", async () => {
+		const document_uri = get_document_uri('projects/other/completion_instantiate_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(10, 26), {
+			items: [
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
+				{ label: "real", kind: vscode.CompletionItemKind.Field },
+			]
+		});
+	});
+
+	test("Completes value inside instantiate expression", async () => {
+		const document_uri = get_document_uri('projects/other/completion_instantiate_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(11, 14), {
+			items: [
+				{ label: "run", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
+
+	test("Completes import value inside instantiate expression", async () => {
+		const document_uri = get_document_uri('projects/other/completion_instantiate_2.hltxt');
+		await test_completion(document_uri, new vscode.Position(7, 22), {
+			items: [
+				{ label: "add", kind: vscode.CompletionItemKind.Function },
+				{ label: "PI", kind: vscode.CompletionItemKind.Constant },
+			]
+		});
+	});
+
 	test("Completes struct members", async () => {
 		const document_uri = get_document_uri('projects/other/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(11, 10), {

@@ -1628,6 +1628,14 @@ namespace h::parser
 
             return get_non_generic_expression_node(tree, child.value());
         }
+        else if (symbol == "Identifier" || symbol == "Variable_name" || symbol == "Expression_access_member_name")
+        {
+            std::optional<Parse_node> const parent = get_parent_node(node);
+            if (!parent.has_value())
+                return std::nullopt;
+            
+            return get_non_generic_expression_node(tree, parent.value());
+        }
         else
         {
             return node;
