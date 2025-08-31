@@ -1158,6 +1158,129 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that cannot assign to non-mutable variable", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var value = 0;
+    value = 1;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 5, 6, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify non-mutable variable 'value'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that cannot assign to value of non-mutable pointer", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    mutable mutable_value = 0;
+    
+    var pointer_0: *mutable Int32 = &mutable_value;
+    *pointer_0 = 1;
+
+    var pointer_1: *Int32 = &mutable_value;
+    *pointer_1 = 2;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(11, 5, 11, 19),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify pointee value of non-mutable pointer.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that cannot assign to member of value of non-mutable pointer", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    member_0: Int32 = 0;
+}
+
+function run() -> ()
+{
+    mutable mutable_value: My_struct = {};
+    
+    var pointer_0: *mutable My_struct = &mutable_value;
+    pointer_0->member_0 = 1;
+
+    var pointer_1: *My_struct = &mutable_value;
+    pointer_1->member_1 = 2;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 5, 16, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify member value of non-mutable pointer.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that cannot assign to member of non-mutable variable", "[Validation][Assignment_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    member_0: Int32 = 0;
+}
+
+function run() -> ()
+{
+    mutable mutable_value: My_struct = {};
+    mutable_value.member_0 = 1;
+
+    var value: My_struct = {};
+    value.member_0 = 2;
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(14, 5, 14, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify member value of non-mutable pointer.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that left and right hand side expression types match", "[Validation][Binary_expression]")
     {
@@ -1767,6 +1890,45 @@ function run() -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Variable 'Int32' does not exist.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that non-mutable pointer cannot be assigned to mutable pointer in a function call", "[Validation][Call_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function foo(v0: *Int32) -> ()
+{
+}
+
+function foo_mutable(v0: *mutable Int32) -> ()
+{
+}
+
+function run() -> ()
+{
+    mutable mutable_value = 0;
+    foo(&mutable_value);
+    foo_mutable(&mutable_value);
+
+    var value = 0;
+    foo(&value);
+    foo_mutable(&value);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(19, 17, 19, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is '*mutable Int32' but '*Int32' was provided.",
                 .related_information = {},
             },
         };
@@ -3257,6 +3419,93 @@ function run() -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Cannot apply unary operation '*' to expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that non-mutable pointer cannot be assigned to mutable pointer", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    member_0: Int32 = 0;
+}
+
+function run() -> ()
+{
+    mutable mutable_int_value = 0;
+    var pointer_0: *Int32 = &mutable_int_value;
+    var pointer_1: *mutable Int32 = &mutable_int_value;
+
+    var int_value = 0;
+    var pointer_2: *Int32 = &int_value;
+    var pointer_3: *mutable Int32 = &int_value;
+
+    mutable mutable_struct_value: My_struct = {};
+    var pointer_4: *My_struct = &mutable_struct_value;
+    var pointer_5: *mutable My_struct = &mutable_struct_value;
+
+    var struct_value: My_struct = {};
+    var pointer_6: *My_struct = &struct_value;
+    var pointer_7: *mutable My_struct = &struct_value;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 37, 16, 38),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot take mutable pointer of non-mutable variable.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(24, 41, 7, 42),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot take mutable pointer of non-mutable variable.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that mutable pointer cannot be taken from a member of a non-mutable pointer", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    member_0: Int32 = 0;
+}
+
+function run() -> ()
+{
+    mutable mutable_struct_value: My_struct = {};
+    var pointer_0: *Int32 = &mutable_struct_value.member_0;
+    var pointer_1: *mutable Int32 = &mutable_struct_value.member_0;
+
+    var struct_value: My_struct = {};
+    var pointer_2: *Int32 = &struct_value.member_0;
+    var pointer_3: *mutable Int32 = &struct_value.member_0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 37, 16, 38),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot take mutable pointer of non-mutable member of variable.",
                 .related_information = {},
             },
         };
