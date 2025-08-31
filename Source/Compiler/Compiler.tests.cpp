@@ -727,120 +727,149 @@ entry:
   %d = alloca i32, align 4
   %e = alloca i32, align 4
   %1 = alloca %struct.bit_fields_My_struct, align 8
-  %instance = alloca %struct.bit_fields_My_struct, align 8
+  %mutable_instance = alloca %struct.bit_fields_My_struct, align 8
   %2 = alloca %struct.bit_fields_My_struct, align 8
+  %instance = alloca %struct.bit_fields_My_struct, align 8
+  %3 = alloca %struct.bit_fields_My_struct, align 8
   %instance_2 = alloca %struct.bit_fields_My_struct, align 8
-  %3 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  store i64 %"arguments[0].parameter", ptr %3, align 8
   %4 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %5 = load i32, ptr %4, align 4
-  %6 = lshr i32 %5, 0
-  %7 = and i32 %6, 16777215
-  store i32 %7, ptr %a, align 4
-  %8 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %9 = load i32, ptr %8, align 4
-  %10 = lshr i32 %9, 24
-  %11 = and i32 %10, 255
-  store i32 %11, ptr %b, align 4
-  %12 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %13 = load i32, ptr %12, align 4
-  %14 = lshr i32 %13, 32
-  %15 = and i32 %14, 4095
-  store i32 %15, ptr %c, align 4
-  %16 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %17 = load i32, ptr %16, align 4
-  %18 = lshr i32 %17, 44
-  %19 = and i32 %18, 255
-  store i32 %19, ptr %d, align 4
-  %20 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %21 = load i32, ptr %20, align 4
-  %22 = lshr i32 %21, 52
-  %23 = and i32 %22, 4095
-  store i32 %23, ptr %e, align 4
-  %24 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %25 = load i32, ptr %24, align 4
-  %26 = lshr i32 %25, 0
-  %27 = and i32 %26, 16777215
-  %28 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %29 = load i32, ptr %28, align 4
-  %30 = and i32 %29, -16777216
-  %31 = or i32 %30, 1
-  store i32 %31, ptr %28, align 4
-  %32 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %33 = load i32, ptr %32, align 4
-  %34 = lshr i32 %33, 24
-  %35 = and i32 %34, 255
-  %36 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %37 = load i32, ptr %36, align 4
-  %38 = and i32 %37, 16777215
-  %39 = or i32 %38, 33554432
-  store i32 %39, ptr %36, align 4
-  %40 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %41 = load i32, ptr %40, align 4
-  %42 = lshr i32 %41, 32
-  %43 = and i32 %42, 4095
-  %44 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %45 = load i32, ptr %44, align 4
-  %46 = and i32 %45, -4096
-  %47 = or i32 %46, poison
-  store i32 %47, ptr %44, align 4
-  %48 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %49 = load i32, ptr %48, align 4
-  %50 = and i32 %49, -16777216
-  %51 = or i32 %50, 1
-  store i32 %51, ptr %48, align 4
-  %52 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %53 = load i32, ptr %52, align 4
-  %54 = and i32 %53, 16777215
-  %55 = or i32 %54, 33554432
-  store i32 %55, ptr %52, align 4
-  %56 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %57 = load i32, ptr %56, align 4
-  %58 = and i32 %57, -4096
-  %59 = or i32 %58, poison
-  store i32 %59, ptr %56, align 4
-  %60 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %61 = load i32, ptr %60, align 4
-  %62 = and i32 %61, -1044481
-  %63 = or i32 %62, poison
-  store i32 %63, ptr %60, align 4
-  %64 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %65 = load i32, ptr %64, align 4
-  %66 = and i32 %65, 1048575
-  %67 = or i32 %66, poison
-  store i32 %67, ptr %64, align 4
-  %68 = load %struct.bit_fields_My_struct, ptr %1, align 8
-  store %struct.bit_fields_My_struct %68, ptr %instance, align 8
-  %69 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
-  %70 = load i32, ptr %69, align 4
-  %71 = and i32 %70, -16777216
-  %72 = or i32 %71, 1
-  store i32 %72, ptr %69, align 4
-  %73 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
-  %74 = load i32, ptr %73, align 4
-  %75 = and i32 %74, 16777215
-  %76 = or i32 %75, 0
-  store i32 %76, ptr %73, align 4
-  %77 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
-  %78 = load i32, ptr %77, align 4
-  %79 = and i32 %78, -4096
-  %80 = or i32 %79, poison
-  store i32 %80, ptr %77, align 4
-  %81 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
-  %82 = load i32, ptr %81, align 4
-  %83 = and i32 %82, -1044481
-  %84 = or i32 %83, poison
-  store i32 %84, ptr %81, align 4
-  %85 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
-  %86 = load i32, ptr %85, align 4
-  %87 = and i32 %86, 1048575
-  %88 = or i32 %87, poison
-  store i32 %88, ptr %85, align 4
-  %89 = load %struct.bit_fields_My_struct, ptr %2, align 8
-  store %struct.bit_fields_My_struct %89, ptr %instance_2, align 8
-  %90 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
-  %91 = load i64, ptr %90, align 8
-  ret i64 %91
+  store i64 %"arguments[0].parameter", ptr %4, align 8
+  %5 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %6 = load i32, ptr %5, align 4
+  %7 = lshr i32 %6, 0
+  %8 = and i32 %7, 16777215
+  store i32 %8, ptr %a, align 4
+  %9 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %10 = load i32, ptr %9, align 4
+  %11 = lshr i32 %10, 24
+  %12 = and i32 %11, 255
+  store i32 %12, ptr %b, align 4
+  %13 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %14 = load i32, ptr %13, align 4
+  %15 = lshr i32 %14, 32
+  %16 = and i32 %15, 4095
+  store i32 %16, ptr %c, align 4
+  %17 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %18 = load i32, ptr %17, align 4
+  %19 = lshr i32 %18, 44
+  %20 = and i32 %19, 255
+  store i32 %20, ptr %d, align 4
+  %21 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %22 = load i32, ptr %21, align 4
+  %23 = lshr i32 %22, 52
+  %24 = and i32 %23, 4095
+  store i32 %24, ptr %e, align 4
+  %25 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %26 = load i32, ptr %25, align 4
+  %27 = and i32 %26, -16777216
+  %28 = or i32 %27, 0
+  store i32 %28, ptr %25, align 4
+  %29 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %30 = load i32, ptr %29, align 4
+  %31 = and i32 %30, 16777215
+  %32 = or i32 %31, 0
+  store i32 %32, ptr %29, align 4
+  %33 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %34 = load i32, ptr %33, align 4
+  %35 = and i32 %34, -4096
+  %36 = or i32 %35, poison
+  store i32 %36, ptr %33, align 4
+  %37 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %38 = load i32, ptr %37, align 4
+  %39 = and i32 %38, -1044481
+  %40 = or i32 %39, poison
+  store i32 %40, ptr %37, align 4
+  %41 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
+  %42 = load i32, ptr %41, align 4
+  %43 = and i32 %42, 1048575
+  %44 = or i32 %43, poison
+  store i32 %44, ptr %41, align 4
+  %45 = load %struct.bit_fields_My_struct, ptr %1, align 8
+  store %struct.bit_fields_My_struct %45, ptr %mutable_instance, align 8
+  %46 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %47 = load i32, ptr %46, align 4
+  %48 = lshr i32 %47, 0
+  %49 = and i32 %48, 16777215
+  %50 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %51 = load i32, ptr %50, align 4
+  %52 = and i32 %51, -16777216
+  %53 = or i32 %52, 1
+  store i32 %53, ptr %50, align 4
+  %54 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %55 = load i32, ptr %54, align 4
+  %56 = lshr i32 %55, 24
+  %57 = and i32 %56, 255
+  %58 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %59 = load i32, ptr %58, align 4
+  %60 = and i32 %59, 16777215
+  %61 = or i32 %60, 33554432
+  store i32 %61, ptr %58, align 4
+  %62 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %63 = load i32, ptr %62, align 4
+  %64 = lshr i32 %63, 32
+  %65 = and i32 %64, 4095
+  %66 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %67 = load i32, ptr %66, align 4
+  %68 = and i32 %67, -4096
+  %69 = or i32 %68, poison
+  store i32 %69, ptr %66, align 4
+  %70 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %71 = load i32, ptr %70, align 4
+  %72 = and i32 %71, -16777216
+  %73 = or i32 %72, 1
+  store i32 %73, ptr %70, align 4
+  %74 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %75 = load i32, ptr %74, align 4
+  %76 = and i32 %75, 16777215
+  %77 = or i32 %76, 33554432
+  store i32 %77, ptr %74, align 4
+  %78 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %79 = load i32, ptr %78, align 4
+  %80 = and i32 %79, -4096
+  %81 = or i32 %80, poison
+  store i32 %81, ptr %78, align 4
+  %82 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %83 = load i32, ptr %82, align 4
+  %84 = and i32 %83, -1044481
+  %85 = or i32 %84, poison
+  store i32 %85, ptr %82, align 4
+  %86 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %87 = load i32, ptr %86, align 4
+  %88 = and i32 %87, 1048575
+  %89 = or i32 %88, poison
+  store i32 %89, ptr %86, align 4
+  %90 = load %struct.bit_fields_My_struct, ptr %2, align 8
+  store %struct.bit_fields_My_struct %90, ptr %instance, align 8
+  %91 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
+  %92 = load i32, ptr %91, align 4
+  %93 = and i32 %92, -16777216
+  %94 = or i32 %93, 1
+  store i32 %94, ptr %91, align 4
+  %95 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
+  %96 = load i32, ptr %95, align 4
+  %97 = and i32 %96, 16777215
+  %98 = or i32 %97, 0
+  store i32 %98, ptr %95, align 4
+  %99 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
+  %100 = load i32, ptr %99, align 4
+  %101 = and i32 %100, -4096
+  %102 = or i32 %101, poison
+  store i32 %102, ptr %99, align 4
+  %103 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
+  %104 = load i32, ptr %103, align 4
+  %105 = and i32 %104, -1044481
+  %106 = or i32 %105, poison
+  store i32 %106, ptr %103, align 4
+  %107 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
+  %108 = load i32, ptr %107, align 4
+  %109 = and i32 %108, 1048575
+  %110 = or i32 %109, poison
+  store i32 %110, ptr %107, align 4
+  %111 = load %struct.bit_fields_My_struct, ptr %3, align 8
+  store %struct.bit_fields_My_struct %111, ptr %instance_2, align 8
+  %112 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
+  %113 = load i64, ptr %112, align 8
+  ret i64 %113
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }

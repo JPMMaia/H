@@ -731,6 +731,8 @@ namespace h::language_server
 
                     return true;
                 }
+
+                return false;
             };
 
             visit_expressions_that_contain_position(

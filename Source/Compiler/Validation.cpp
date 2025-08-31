@@ -88,6 +88,51 @@ namespace h::compiler
         return first == second;
     }
 
+    bool can_assign_type(
+        Declaration_database const& declaration_database,
+        std::optional<h::Type_reference> const& destination,
+        std::optional<h::Type_reference> const& source
+    )
+    {
+        if (!destination.has_value() || !source.has_value())
+            return false;
+
+        std::optional<h::Type_reference> const destination_underlying_type = get_underlying_type(declaration_database, destination.value());
+        if (!destination_underlying_type.has_value())
+            return false;
+        h::Type_reference const& destination_type = destination_underlying_type.value();
+
+        std::optional<h::Type_reference> const source_underlying_type = get_underlying_type(declaration_database, source.value());
+        if (!source_underlying_type.has_value())
+            return false;
+        h::Type_reference const& source_type = source_underlying_type.value();
+
+        if (is_pointer(destination_type))
+        {
+            if (is_null_pointer_type(source_type))
+                return true;
+
+            if (!is_pointer(source_type))
+                return false;
+
+            h::Pointer_type const& destination_pointer_type = std::get<h::Pointer_type>(destination_type.data);
+            h::Pointer_type const& source_pointer_type = std::get<h::Pointer_type>(source_type.data);
+
+            if (destination_pointer_type.is_mutable && !source_pointer_type.is_mutable)
+                return false;
+
+            if (destination_pointer_type.element_type.empty() && source_pointer_type.element_type.empty())
+                return true;
+
+            return can_assign_type(declaration_database, destination_pointer_type.element_type[0], source_pointer_type.element_type[0]);
+        }
+
+        if (is_function_pointer(destination_type) && is_null_pointer_type(source_type))
+            return true;
+
+        return destination == source;
+    }
+
     std::array<std::string_view, 14> get_reserved_keywords()
     {
         return
@@ -587,7 +632,7 @@ namespace h::compiler
             {
                 h::Statement const& statement = value.value.value();
 
-                std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+                std::pmr::vector<std::optional<Type_info>> const expression_types = calculate_expression_type_infos_of_statement(
                     core_module,
                     nullptr,
                     scope,
@@ -639,7 +684,7 @@ namespace h::compiler
             }
 
             scope.variables.push_back(
-                create_variable(value.name, int32_type, true, value.source_location.has_value() ? std::optional<h::Source_position>{h::Source_position{value.source_location->line, value.source_location->column}} : std::optional<h::Source_position>{std::nullopt})
+                create_variable(value.name, int32_type, false, true, value.source_location.has_value() ? std::optional<h::Source_position>{h::Source_position{value.source_location->line, value.source_location->column}} : std::optional<h::Source_position>{std::nullopt})
             );
         }
 
@@ -653,7 +698,7 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+        std::pmr::vector<std::optional<Type_info>> const expression_types = calculate_expression_type_infos_of_statement(
             core_module,
             nullptr,
             {},
@@ -685,10 +730,7 @@ namespace h::compiler
 
         if (declaration.type.has_value())
         {
-            std::optional<h::Type_reference> const& type_reference =
-                !expression_types.empty() ?
-                expression_types[0] :
-                std::optional<h::Type_reference>{std::nullopt};
+            std::optional<h::Type_reference> const& type_reference = get_expression_type_from_type_info(expression_types, 0);
 
             if (!are_compatible_types(declaration_database, declaration.type, type_reference))
             {
@@ -747,7 +789,7 @@ namespace h::compiler
             h::Type_reference const& member_type = declaration.member_types[member_index];
             h::Statement const& member_default_value = declaration.member_default_values[member_index];
 
-            std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+            std::pmr::vector<std::optional<Type_info>> const expression_types = calculate_expression_type_infos_of_statement(
                 core_module,
                 nullptr,
                 {},
@@ -777,10 +819,7 @@ namespace h::compiler
                 continue;
             }
 
-            std::optional<Type_reference> const& default_value_type =
-                !expression_types.empty() ?
-                expression_types[0] :
-                std::optional<Type_reference>{std::nullopt};
+            std::optional<Type_reference> const& default_value_type = get_expression_type_from_type_info(expression_types, 0);
 
             if (!are_compatible_types(declaration_database, default_value_type, member_type))
             {
@@ -1057,7 +1096,7 @@ namespace h::compiler
                     if (variable_type.has_value())
                     {
                         new_scope.variables.push_back(
-                            create_variable(variable_declaration.name, std::move(variable_type.value()), false, expression.source_range)
+                            create_variable(variable_declaration.name, std::move(variable_type.value()), variable_declaration.is_mutable, false, expression.source_range)
                         );
                     }
                 }
@@ -1066,7 +1105,7 @@ namespace h::compiler
                     h::Variable_declaration_with_type_expression const& variable_declaration_with_type = std::get<h::Variable_declaration_with_type_expression>(expression.data);
 
                     new_scope.variables.push_back(
-                        create_variable(variable_declaration_with_type.name, variable_declaration_with_type.type, false, expression.source_range)
+                        create_variable(variable_declaration_with_type.name, variable_declaration_with_type.type, variable_declaration_with_type.is_mutable, false, expression.source_range)
                     );
                 }
             }
@@ -1085,7 +1124,7 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<std::optional<h::Type_reference>> const expression_types = calculate_expression_types_of_statement(
+        std::pmr::vector<std::optional<Type_info>> const expression_types = calculate_expression_type_infos_of_statement(
             core_module,
             function_declaration,
             scope,
@@ -1240,7 +1279,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& left_hand_side_type = parameters.expression_types[access_expression.expression.expression_index];
+        std::optional<h::Type_reference> const& left_hand_side_type = get_expression_type_from_type_info(parameters.expression_types, access_expression.expression);
 
         if (left_hand_side_type.has_value())
         {
@@ -1415,8 +1454,8 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[left_hand_side.expression_index];
-        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[right_hand_side.expression_index];
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, left_hand_side);
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, right_hand_side);
 
         if (!left_hand_side_type_optional.has_value() || !right_hand_side_type_optional.has_value())
             return {};
@@ -1575,10 +1614,10 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
-        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.left_hand_side);
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.right_hand_side);
         
-        if (!are_compatible_types(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
+        if (!can_assign_type(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
             h::Expression const& right_hand_side_expression = parameters.statement.expressions[expression.right_hand_side.expression_index];
             std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -1594,6 +1633,19 @@ namespace h::compiler
                         left_hand_side_type_name,
                         right_hand_side_type_name
                     )
+                )
+            };
+        }
+
+        std::optional<Type_info> left_hand_side_type_info = parameters.expression_types[expression.left_hand_side.expression_index];
+        if (left_hand_side_type_info.has_value() && !left_hand_side_type_info->is_mutable)
+        {
+            return
+            {
+                create_error_diagnostic(
+                    parameters.core_module.source_file_path,
+                    source_range,
+                    "Cannot modify non-mutable value."
                 )
             };
         }
@@ -1621,8 +1673,8 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
-        std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
+        std::optional<h::Type_reference> const& left_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.left_hand_side);
+        std::optional<h::Type_reference> const& right_hand_side_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.right_hand_side);
         
         if (!are_compatible_types(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
@@ -1775,7 +1827,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& callable_type_optional = parameters.expression_types[expression.expression.expression_index];
+        std::optional<h::Type_reference> const& callable_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.expression);
 
         Function_constructor const* const function_constructor = find_function_constructor_using_call_expression(
             parameters.core_module.name,
@@ -1875,11 +1927,11 @@ namespace h::compiler
         for (std::size_t argument_index = 0; argument_index < function_pointer_type.type.input_parameter_types.size(); ++argument_index)
         {
             std::uint64_t const expression_index = call_arguments[argument_index].expression_index;
-            std::optional<h::Type_reference> const& argument_type_optional = parameters.expression_types[expression_index];
+            std::optional<h::Type_reference> const& argument_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression_index);
             
             h::Type_reference const& parameter_type = function_pointer_type.type.input_parameter_types[argument_index];
 
-            if (!are_compatible_types(parameters.declaration_database, argument_type_optional, parameter_type))
+            if (!can_assign_type(parameters.declaration_database, parameter_type, argument_type_optional))
             {
                 std::optional<Source_range> const argument_source_range = parameters.statement.expressions[expression_index].source_range;
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, argument_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -1911,7 +1963,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& source_type_optional = parameters.expression_types[expression.source.expression_index];
+        std::optional<h::Type_reference> const& source_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.source);
         std::optional<Type_reference> const& underlying_destination_type = get_underlying_type(parameters.declaration_database, expression.destination_type);
 
         if (!source_type_optional.has_value() || !underlying_destination_type.has_value())
@@ -2012,7 +2064,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& range_begin_type_optional = parameters.expression_types[expression.range_begin.expression_index];
+        std::optional<h::Type_reference> const& range_begin_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.range_begin);
 
         if (!range_begin_type_optional.has_value() || (!is_integer(range_begin_type_optional.value()) && !is_floating_point(range_begin_type_optional.value())))
         {
@@ -2034,7 +2086,7 @@ namespace h::compiler
 
         Scope new_scope = parameters.scope;
         new_scope.variables.push_back(
-            create_variable(expression.variable_name, range_begin_type_optional.value(), false, source_range)
+            create_variable(expression.variable_name, range_begin_type_optional.value(), true, false, source_range)
         );
         new_scope.blocks.push_back(&expression);
 
@@ -2082,7 +2134,7 @@ namespace h::compiler
 
         if (expression.step_by.has_value())
         {
-            std::optional<h::Type_reference> const& step_by_type_optional = parameters.expression_types[expression.step_by->expression_index];
+            std::optional<h::Type_reference> const& step_by_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.step_by.value());
 
             if (!are_compatible_types(parameters.declaration_database, range_begin_type_optional, step_by_type_optional))
             {
@@ -2224,7 +2276,7 @@ namespace h::compiler
             }
         }
 
-        std::optional<h::Type_reference> const type_to_instantiate = parameters.expression_types[parameters.expression_index];
+        std::optional<h::Type_reference> const type_to_instantiate = get_expression_type_from_type_info(parameters.expression_types, parameters.expression_index);
         if (!type_to_instantiate.has_value())
         {
             return
@@ -2398,7 +2450,7 @@ namespace h::compiler
 
         if (expression.expression.has_value())
         {
-            std::optional<h::Type_reference> const& provided_type = parameters.expression_types[expression.expression->expression_index];
+            std::optional<h::Type_reference> const& provided_type = get_expression_type_from_type_info(parameters.expression_types, expression.expression.value());
 
             if (!are_compatible_types(parameters.declaration_database, provided_type, expected_type))
             {
@@ -2452,7 +2504,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<Type_reference> const type_optional = parameters.expression_types[expression.value.expression_index];
+        std::optional<Type_reference> const type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.value);
 
         if (!type_optional.has_value() || (!is_enum_type(parameters.declaration_database, type_optional.value()) && !is_integer(type_optional.value())))
         {
@@ -2501,7 +2553,7 @@ namespace h::compiler
             }
 
             h::Expression const& case_value_expression = parameters.statement.expressions[pair.case_value->expression_index];
-            std::optional<h::Type_reference> const case_value_type_optional = parameters.expression_types[pair.case_value->expression_index];
+            std::optional<h::Type_reference> const case_value_type_optional = get_expression_type_from_type_info(parameters.expression_types, pair.case_value.value());
 
             if (!are_compatible_types(parameters.declaration_database, type_optional, case_value_type_optional))
             {
@@ -2554,7 +2606,7 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& condition_type_optional = parameters.expression_types[expression.condition.expression_index];
+        std::optional<h::Type_reference> const& condition_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.condition);
 
         if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
         {
@@ -2645,13 +2697,44 @@ namespace h::compiler
         return {};
     }
 
+    static bool can_take_address_of_expression(
+        h::Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Access_expression>(expression.data))
+        {
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
+            h::Expression const& left_expression = statement.expressions[access_expression.expression.expression_index];
+            return can_take_address_of_expression(statement, left_expression);
+        }
+        else if (std::holds_alternative<h::Access_array_expression>(expression.data))
+        {
+            h::Access_array_expression const& access_expression = std::get<h::Access_array_expression>(expression.data);
+            h::Expression const& left_expression = statement.expressions[access_expression.expression.expression_index];
+            return can_take_address_of_expression(statement, left_expression);
+        }
+        else if (std::holds_alternative<h::Dereference_and_access_expression>(expression.data))
+        {
+            h::Dereference_and_access_expression const& access_expression = std::get<h::Dereference_and_access_expression>(expression.data);
+            h::Expression const& left_expression = statement.expressions[access_expression.expression.expression_index];
+            return can_take_address_of_expression(statement, left_expression);
+        }
+        else if (std::holds_alternative<h::Variable_expression>(expression.data))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_unary_expression(
         Validate_expression_parameters const& parameters,
         h::Unary_expression const& expression,
         std::optional<h::Source_range> const& source_range
     )
     {
-        std::optional<h::Type_reference> const& operand_type_optional = parameters.expression_types[expression.expression.expression_index];
+        std::optional<h::Type_reference> const& operand_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.expression);
 
         if (!operand_type_optional.has_value())
             return {}; // TODO error
@@ -2739,9 +2822,8 @@ namespace h::compiler
             case Unary_operation::Address_of:
             {
                 Expression const& operand_expression = parameters.statement.expressions[expression.expression.expression_index];
-                // TODO should be possible to take address from access expression too
-                bool const is_temporary = !std::holds_alternative<h::Variable_expression>(operand_expression.data);
-                if (is_temporary)
+                bool const can_take_adress = can_take_address_of_expression(parameters.statement, operand_expression);
+                if (!can_take_adress)
                 {
                     return
                     {
@@ -2803,7 +2885,7 @@ namespace h::compiler
             };
         }
 
-        std::optional<h::Type_reference> const& type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
+        std::optional<h::Type_reference> const& type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.right_hand_side);
         if (!type_optional.has_value())
         {
             h::Expression const& right_hand_side = parameters.statement.expressions[expression.right_hand_side.expression_index];
@@ -2883,7 +2965,7 @@ namespace h::compiler
                 parameters.declaration_database
             );
 
-            if (!are_compatible_types(parameters.declaration_database, type, right_hand_side_type))
+            if (!can_assign_type(parameters.declaration_database, type, right_hand_side_type))
             {
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -3009,6 +3091,37 @@ namespace h::compiler
         return {};
     }
 
+    std::pmr::vector<std::optional<Type_info>> calculate_expression_type_infos_of_statement(
+        h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
+        Scope const& scope,
+        h::Statement const& statement,
+        std::optional<h::Type_reference> const expected_statement_type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::optional<Type_info>> expression_types{temporaries_allocator};
+        expression_types.resize(statement.expressions.size(), std::nullopt);
+
+        for (std::size_t expression_index = 0; expression_index < statement.expressions.size(); ++expression_index)
+        {
+            h::Expression const& expression = statement.expressions[expression_index];
+            
+            expression_types[expression_index] = get_expression_type_info(
+                core_module,
+                function_declaration,
+                scope,
+                statement,
+                expression,
+                expected_statement_type,
+                declaration_database
+            );
+        }
+
+        return expression_types;
+    }
+
     std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
         h::Module const& core_module,
         h::Function_declaration const* const function_declaration,
@@ -3040,6 +3153,30 @@ namespace h::compiler
         return expression_types;
     }
 
+    std::optional<h::Type_reference> get_expression_type_from_type_info(
+        std::span<std::optional<Type_info> const> const type_infos,
+        std::uint64_t const expression_index
+    )
+    {
+        if (expression_index >= type_infos.size())
+            return std::nullopt;
+
+        std::optional<Type_info> const& type_info = type_infos[expression_index];
+        if (!type_info.has_value())
+            return std::nullopt;
+        
+        return type_info->type;
+    }
+
+    std::optional<h::Type_reference> get_expression_type_from_type_info(
+        std::span<std::optional<Type_info> const> const type_infos,
+        h::Expression_index const expression_index
+    )
+    {
+        return get_expression_type_from_type_info(type_infos, expression_index.expression_index);
+    }
+
+
     bool is_computable_at_compile_time(
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
@@ -3061,7 +3198,7 @@ namespace h::compiler
         h::Module const& core_module,
         h::compiler::Scope const& scope,
         h::Statement const& statement,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     )
     {
@@ -3069,14 +3206,14 @@ namespace h::compiler
             return true;
 
         h::Expression const& expression = statement.expressions[0];
-        std::optional<h::Type_reference> const& expression_type = expression_types[0];
+        std::optional<Type_info> const& expression_type = expression_types[0];
 
         return is_computable_at_compile_time(
             core_module,
             scope,
             statement,
             expression,
-            expression_type,
+            expression_type.has_value() ? std::optional<h::Type_reference>{expression_type->type} : std::optional<h::Type_reference>{std::nullopt},
             expression_types,
             declaration_database
         );
@@ -3087,19 +3224,19 @@ namespace h::compiler
         h::compiler::Scope const& scope,
         h::Statement const& statement,
         h::Expression_index const& expression_index,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     )
     {
         h::Expression const& expression = statement.expressions[expression_index.expression_index];
-        std::optional<h::Type_reference> const& expression_type = expression_types[expression_index.expression_index];
+        std::optional<Type_info> const& expression_type = expression_types[expression_index.expression_index];
 
         return is_computable_at_compile_time(
             core_module,
             scope,
             statement,
             expression,
-            expression_type,
+            expression_type.has_value() ? std::optional<h::Type_reference>{expression_type->type} : std::optional<h::Type_reference>{std::nullopt},
             expression_types,
             declaration_database
         );
@@ -3111,7 +3248,7 @@ namespace h::compiler
         h::Statement const& statement,
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     )
     {

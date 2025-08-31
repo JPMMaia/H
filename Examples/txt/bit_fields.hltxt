@@ -19,9 +19,10 @@ function run(parameter: My_struct) -> (result: My_struct)
     var d = parameter.d;
     var e = parameter.e;
 
-    parameter.a = 1u32;
-    parameter.b = 2u32 as My_uint;
-    parameter.c = 3u32;
+    mutable mutable_instance: My_struct = {};
+    mutable_instance.a = 1u32;
+    mutable_instance.b = 2u32 as My_uint;
+    mutable_instance.c = 3u32;
 
     var instance: My_struct = explicit {
         a: 1u32,

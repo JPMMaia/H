@@ -131,7 +131,7 @@ namespace h::compiler
         Scope const& scope;
         h::Statement const& statement;
         std::optional<h::Type_reference> const& expected_statement_type;
-        std::span<std::optional<h::Type_reference> const> expression_types;
+        std::span<std::optional<Type_info> const> expression_types;
         std::size_t expression_index;
         Declaration_database const& declaration_database;
         std::pmr::polymorphic_allocator<> const& temporaries_allocator;
@@ -269,6 +269,16 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<std::optional<Type_info>> calculate_expression_type_infos_of_statement(
+        h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
+        Scope const& scope,
+        h::Statement const& statement,
+        std::optional<h::Type_reference> const expected_statement_type,
+        Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     std::pmr::vector<std::optional<h::Type_reference>> calculate_expression_types_of_statement(
         h::Module const& core_module,
         h::Function_declaration const* const function_declaration,
@@ -277,6 +287,16 @@ namespace h::compiler
         std::optional<h::Type_reference> const expected_statement_type,
         Declaration_database const& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    std::optional<h::Type_reference> get_expression_type_from_type_info(
+        std::span<std::optional<Type_info> const> const type_infos,
+        std::uint64_t const expression_index
+    );
+
+    std::optional<h::Type_reference> get_expression_type_from_type_info(
+        std::span<std::optional<Type_info> const> const type_infos,
+        h::Expression_index const expression_index
     );
 
     bool is_computable_at_compile_time(
@@ -289,7 +309,7 @@ namespace h::compiler
         h::Module const& core_module,
         h::compiler::Scope const& scope,
         h::Statement const& statement,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     );
 
@@ -298,7 +318,7 @@ namespace h::compiler
         h::compiler::Scope const& scope,
         h::Statement const& statement,
         h::Expression_index const& expression_index,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     );
 
@@ -308,7 +328,7 @@ namespace h::compiler
         h::Statement const& statement,
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
-        std::span<std::optional<h::Type_reference> const> const expression_types,
+        std::span<std::optional<Type_info> const> const expression_types,
         Declaration_database const& declaration_database
     );
 
