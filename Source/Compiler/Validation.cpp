@@ -57,23 +57,32 @@ namespace h::compiler
     }
 
     bool are_compatible_types(
+        Declaration_database const& declaration_database,
         std::optional<h::Type_reference> const& first,
         std::optional<h::Type_reference> const& second
     )
     {
         if (!first.has_value() || !second.has_value())
             return false;
+
+        std::optional<h::Type_reference> const first_underlying_type = get_underlying_type(declaration_database, first.value());
+        if (!first_underlying_type.has_value())
+            return false;
+
+        std::optional<h::Type_reference> const second_underlying_type = get_underlying_type(declaration_database, second.value());
+        if (!second_underlying_type.has_value())
+            return false;
         
-        if (is_pointer(first.value()) && is_null_pointer_type(second.value()))
+        if (is_pointer(first_underlying_type.value()) && is_null_pointer_type(second_underlying_type.value()))
             return true;
 
-        if (is_null_pointer_type(first.value()) && is_pointer(second.value()))
+        if (is_null_pointer_type(first_underlying_type.value()) && is_pointer(second_underlying_type.value()))
             return true;
 
-        if (is_function_pointer(first.value()) && is_null_pointer_type(second.value()))
+        if (is_function_pointer(first_underlying_type.value()) && is_null_pointer_type(second_underlying_type.value()))
             return true;
 
-        if (is_null_pointer_type(first.value()) && is_function_pointer(second.value()))
+        if (is_null_pointer_type(first_underlying_type.value()) && is_function_pointer(second_underlying_type.value()))
             return true;
 
         return first == second;
@@ -681,7 +690,7 @@ namespace h::compiler
                 expression_types[0] :
                 std::optional<h::Type_reference>{std::nullopt};
 
-            if (!are_compatible_types(declaration.type, type_reference))
+            if (!are_compatible_types(declaration_database, declaration.type, type_reference))
             {
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, type_reference, temporaries_allocator, temporaries_allocator);
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, declaration.type, temporaries_allocator, temporaries_allocator);
@@ -773,7 +782,7 @@ namespace h::compiler
                 expression_types[0] :
                 std::optional<Type_reference>{std::nullopt};
 
-            if (!are_compatible_types(default_value_type, member_type))
+            if (!are_compatible_types(declaration_database, default_value_type, member_type))
             {
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, default_value_type, temporaries_allocator, temporaries_allocator);
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, member_type, temporaries_allocator, temporaries_allocator);
@@ -1569,7 +1578,7 @@ namespace h::compiler
         std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
         std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
         
-        if (!are_compatible_types(left_hand_side_type_optional, right_hand_side_type_optional))
+        if (!are_compatible_types(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
             h::Expression const& right_hand_side_expression = parameters.statement.expressions[expression.right_hand_side.expression_index];
             std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -1615,7 +1624,7 @@ namespace h::compiler
         std::optional<h::Type_reference> const& left_hand_side_type_optional = parameters.expression_types[expression.left_hand_side.expression_index];
         std::optional<h::Type_reference> const& right_hand_side_type_optional = parameters.expression_types[expression.right_hand_side.expression_index];
         
-        if (!are_compatible_types(left_hand_side_type_optional, right_hand_side_type_optional))
+        if (!are_compatible_types(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
             std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
             std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -1870,7 +1879,7 @@ namespace h::compiler
             
             h::Type_reference const& parameter_type = function_pointer_type.type.input_parameter_types[argument_index];
 
-            if (!are_compatible_types(argument_type_optional, parameter_type))
+            if (!are_compatible_types(parameters.declaration_database, argument_type_optional, parameter_type))
             {
                 std::optional<Source_range> const argument_source_range = parameters.statement.expressions[expression_index].source_range;
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, argument_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2052,7 +2061,7 @@ namespace h::compiler
             parameters.declaration_database
         );
 
-        if (!are_compatible_types(range_begin_type_optional, range_end_type_optional))
+        if (!are_compatible_types(parameters.declaration_database, range_begin_type_optional, range_end_type_optional))
         {
             std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, range_end_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
             std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2075,7 +2084,7 @@ namespace h::compiler
         {
             std::optional<h::Type_reference> const& step_by_type_optional = parameters.expression_types[expression.step_by->expression_index];
 
-            if (!are_compatible_types(range_begin_type_optional, step_by_type_optional))
+            if (!are_compatible_types(parameters.declaration_database, range_begin_type_optional, step_by_type_optional))
             {
                 h::Expression const& step_by_expression = parameters.statement.expressions[expression.step_by->expression_index];
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, step_by_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2292,7 +2301,7 @@ namespace h::compiler
                 parameters.declaration_database
             );
 
-            if (!are_compatible_types(member_type, assigned_value_type))
+            if (!are_compatible_types(parameters.declaration_database, member_type, assigned_value_type))
             {
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, assigned_value_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, member_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2391,7 +2400,7 @@ namespace h::compiler
         {
             std::optional<h::Type_reference> const& provided_type = parameters.expression_types[expression.expression->expression_index];
 
-            if (!are_compatible_types(provided_type, expected_type))
+            if (!are_compatible_types(parameters.declaration_database, provided_type, expected_type))
             {
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, provided_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2494,7 +2503,7 @@ namespace h::compiler
             h::Expression const& case_value_expression = parameters.statement.expressions[pair.case_value->expression_index];
             std::optional<h::Type_reference> const case_value_type_optional = parameters.expression_types[pair.case_value->expression_index];
 
-            if (!are_compatible_types(type_optional, case_value_type_optional))
+            if (!are_compatible_types(parameters.declaration_database, type_optional, case_value_type_optional))
             {
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, case_value_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2614,7 +2623,7 @@ namespace h::compiler
             parameters.declaration_database
         );
 
-        if (!are_compatible_types(then_type_optional, else_type_optional))
+        if (!are_compatible_types(parameters.declaration_database, then_type_optional, else_type_optional))
         {
             std::pmr::string const then_type_name = h::parser::format_type_reference(parameters.core_module, then_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
             std::pmr::string const else_type_name = h::parser::format_type_reference(parameters.core_module, else_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
@@ -2874,7 +2883,7 @@ namespace h::compiler
                 parameters.declaration_database
             );
 
-            if (!are_compatible_types(type, right_hand_side_type))
+            if (!are_compatible_types(parameters.declaration_database, type, right_hand_side_type))
             {
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);

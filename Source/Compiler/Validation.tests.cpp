@@ -2683,6 +2683,30 @@ struct My_struct
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that null can be assigned to a pointer alias", "[Validation][Null_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_pointer = *Int32;
+
+struct My_struct
+{
+    a: My_pointer = null;
+}
+
+function run() -> ()
+{
+    var pointer: My_pointer = null;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
     {
