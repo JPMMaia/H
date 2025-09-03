@@ -113,7 +113,117 @@ namespace h::language_server
         return edit;
     }
 
+    std::optional<std::size_t> find_enum_value_index_from_default_value(
+        h::Enum_declaration const& enum_declaration,
+        h::Statement const& member_default_value
+    )
+    {
+        if (member_default_value.expressions.empty())
+            return std::nullopt;
+
+        h::Expression const& first_expression = member_default_value.expressions[0];
+        if (std::holds_alternative<h::Access_expression>(first_expression.data))
+        {
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(first_expression.data);
+
+            auto const location = std::find_if(
+                enum_declaration.values.begin(),
+                enum_declaration.values.end(),
+                [&](h::Enum_value const& enum_value) -> bool { return enum_value.name == access_expression.member_name; }
+            );
+            if (location == enum_declaration.values.end())
+                return std::nullopt;
+
+            return std::distance(enum_declaration.values.begin(), location);
+        }
+
+        return std::nullopt;
+    }
+
+    static h::Statement create_instantiate_member_statement_value(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Struct_declaration const& declaration,
+        std::size_t const member_index
+    )
+    {
+        h::Statement const& member_default_value = declaration.member_default_values[member_index];
+        
+        h::Type_reference const& member_type = declaration.member_types[member_index];
+        std::optional<Declaration> const member_declaration = find_underlying_declaration(
+            declaration_database,
+            member_type
+        );
+        if (!member_declaration.has_value())
+            return member_default_value;
+
+        if (std::holds_alternative<h::Enum_declaration const*>(member_declaration->data))
+        {
+            std::optional<std::string_view> enum_module_name = get_type_module_name(member_type);
+            if (!enum_module_name.has_value() || enum_module_name.value() == core_module.name)
+                return member_default_value;
+
+            h::Enum_declaration const& enum_declaration = *std::get<h::Enum_declaration const*>(member_declaration->data);
+            std::optional<std::size_t> const enum_value_index = find_enum_value_index_from_default_value(
+                enum_declaration,
+                member_default_value
+            );
+            if (!enum_value_index.has_value())
+                return member_default_value;
+
+            auto const import_location = std::find_if(
+                core_module.dependencies.alias_imports.begin(),
+                core_module.dependencies.alias_imports.end(),
+                [&](Import_module_with_alias const& import_module) { return import_module.module_name == enum_module_name.value(); }
+            );
+            if (import_location == core_module.dependencies.alias_imports.end())
+                return member_default_value;
+
+            std::string_view const import_alias = import_location->alias;
+
+            h::Statement statement
+            {
+                .expressions = {
+                    h::Expression
+                    {
+                        .data = h::Access_expression
+                        {
+                            .expression = {
+                                .expression_index = 1,
+                            },
+                            .member_name = enum_declaration.values[enum_value_index.value()].name
+                        }
+                    },
+                    h::Expression
+                    {
+                        .data = h::Access_expression
+                        {
+                            .expression = {
+                                .expression_index = 2,
+                            },
+                            .member_name = enum_declaration.name
+                        }
+                    },
+                    h::Expression
+                    {
+                        .data = h::Variable_expression
+                        {
+                            .name = std::pmr::string{import_alias}
+                        }
+                    }
+                }
+            };
+
+            return statement;
+        }
+        else
+        {
+            return member_default_value;
+        }
+    }
+
     static lsp::CodeAction create_add_missing_instantiate_members_code_action(
+        Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
         h::Module const& core_module,
         h::Struct_declaration const& declaration,
@@ -140,8 +250,14 @@ namespace h::language_server
             {
                 std::size_t const value_expression_index = statement.expressions.size();
                 
-                h::Statement const& default_value = declaration.member_default_values[index];
-                h::copy_expressions_to_new_statement(statement, default_value, h::Expression_index{ .expression_index = 0});
+                h::Statement const member_statement = create_instantiate_member_statement_value(
+                    declaration_database,
+                    core_module,
+                    declaration,
+                    index
+                );
+
+                h::copy_expressions_to_new_statement(statement, member_statement, h::Expression_index{ .expression_index = 0});
 
                 new_instantiate_expression.members.push_back(
                     h::Instantiate_member_value_pair
@@ -306,6 +422,7 @@ namespace h::language_server
                             if (member_infos.size() != instantiate_expression.members.size())
                             {
                                 lsp::CodeAction code_action = create_add_missing_instantiate_members_code_action(
+                                    declaration_database,
                                     parse_tree,
                                     core_module,
                                     *std::get<h::Struct_declaration const*>(declaration->data),

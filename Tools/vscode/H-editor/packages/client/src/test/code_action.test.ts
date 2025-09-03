@@ -63,6 +63,17 @@ suite("Should get instantiate expression add missing members code action", () =>
             }
         ]);
     });
+
+    test("Add missing instantiate member that is imported", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_instantiate_6.hltxt");
+        await test_code_actions(document_uri, to_range(6, 44, 6, 44), vscode.CodeActionKind.RefactorRewrite, [
+            {
+                title: "Add missing instantiate members",
+                kind: vscode.CodeActionKind.QuickFix,
+                edit: create_replace_workspace_edit(document_uri, to_range(6, 34, 6, 45), "explicit {\n        a: ext.My_enum.Member_1\n    }")
+            }
+        ]);
+    });
 });
 
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {

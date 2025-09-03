@@ -1,0 +1,8 @@
+module code_action_instantiate_6;
+
+import code_action_instantiate_import as ext;
+
+function run() -> ()
+{
+    var instance: ext.My_struct = explicit {};
+}
