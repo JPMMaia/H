@@ -3352,21 +3352,6 @@ namespace h::compiler
         return false;
     }
 
-    bool is_enum_type(
-        Declaration_database const& declaration_database,
-        Type_reference const& type
-    )
-    {
-        std::optional<Declaration> const declaration = find_underlying_declaration(
-            declaration_database,
-            type
-        );
-        if (!declaration.has_value())
-            return false;
-        
-        return std::holds_alternative<Enum_declaration const*>(declaration->data);
-    }
-
     Global_variable_declaration const* get_global_variable(
         std::string_view const current_module_name,
         h::Expression const& expression,

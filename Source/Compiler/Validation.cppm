@@ -332,11 +332,6 @@ namespace h::compiler
         Declaration_database const& declaration_database
     );
 
-    bool is_enum_type(
-        Declaration_database const& declaration_database,
-        Type_reference const& type
-    );
-
     Global_variable_declaration const* get_global_variable(
         std::string_view const current_module_name,
         h::Expression const& expression,

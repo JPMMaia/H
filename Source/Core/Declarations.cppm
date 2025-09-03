@@ -239,4 +239,9 @@ namespace h
         std::string_view const module_name,
         std::function<bool(Declaration const& declaration)> const& visitor
     );
+
+    export bool is_enum_type(
+        Declaration_database const& database,
+        Type_reference const& type
+    );
 }
