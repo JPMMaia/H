@@ -212,19 +212,19 @@ namespace h::c
 
         REQUIRE(actual.values.size() >= 5);
 
-        CHECK(actual.values[0].name == "VK_PHYSICAL_DEVICE_TYPE_OTHER");
+        CHECK(actual.values[0].name == "Other");
         check_enum_constant_value(actual, 0, "0");
 
-        CHECK(actual.values[1].name == "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU");
+        CHECK(actual.values[1].name == "Integrated_gpu");
         check_enum_constant_value(actual, 1, "1");
 
-        CHECK(actual.values[2].name == "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU");
+        CHECK(actual.values[2].name == "Discrete_gpu");
         check_enum_constant_value(actual, 2, "2");
 
-        CHECK(actual.values[3].name == "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU");
+        CHECK(actual.values[3].name == "Virtual_gpu");
         check_enum_constant_value(actual, 3, "3");
 
-        CHECK(actual.values[4].name == "VK_PHYSICAL_DEVICE_TYPE_CPU");
+        CHECK(actual.values[4].name == "Cpu");
         check_enum_constant_value(actual, 4, "4");
     }
 
@@ -632,7 +632,7 @@ namespace h::c
         CHECK(actual.member_names[0] == "sType");
         CHECK(actual.member_types[0] == create_custom_type_reference("vulkan", "VkStructureType"));
         CHECK(actual.member_bit_fields[0].has_value() == false);
-        CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "VK_STRUCTURE_TYPE_APPLICATION_INFO")));
+        CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "Application_info")));
 
         CHECK(actual.member_names[1] == "pNext");
         CHECK(actual.member_types[1] == h::create_pointer_type_type_reference({}, false));
@@ -657,7 +657,7 @@ namespace h::c
         CHECK(actual.member_names[5] == "sharingMode");
         CHECK(actual.member_types[5] == create_custom_type_reference("vulkan", "VkSharingMode"));
         CHECK(actual.member_bit_fields[5].has_value() == false);
-        CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "VK_SHARING_MODE_EXCLUSIVE")));
+        CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "Exclusive")));
 
         CHECK(actual.member_names[6] == "queueFamilyIndexCount");
         CHECK(actual.member_types[6] == uint32_type);

@@ -2209,18 +2209,163 @@ namespace h::c
         }
     }
 
+    std::pmr::vector<std::string_view> separate_words(
+        std::string_view const value
+    )
+    {
+        std::pmr::vector<std::string_view> output;
+
+        if (value.size() == 1)
+        {
+            output.push_back(value);
+            return output;
+        }
+
+        std::size_t word_begin_index = 0;
+
+        for (std::size_t index = 1; index < value.size(); ++index)
+        {
+            char const current_character = value[index];
+            if (current_character == '_')
+            {
+                std::size_t const count = index - word_begin_index;
+                output.push_back(value.substr(word_begin_index, count));
+
+                word_begin_index = index + 1;
+                continue;
+            }
+
+            char const previous_character = value[index - 1];
+            if (std::islower(previous_character) && std::isupper(current_character))
+            {
+                std::size_t const count = index - word_begin_index;
+                output.push_back(value.substr(word_begin_index, count));
+
+                word_begin_index = index;
+                continue;
+            }
+        }
+
+        std::string_view const last_word = value.substr(word_begin_index);
+        if (!last_word.empty())
+            output.push_back(last_word);
+
+        return output;
+    }
+
+    std::pmr::vector<std::pmr::string> transform_to_lower_case(
+        std::span<std::string_view const> const values
+    )
+    {
+        std::pmr::vector<std::pmr::string> output;
+        output.reserve(values.size());
+
+        for (std::string_view const value : values)
+        {
+            std::pmr::string lower_case_value;
+            lower_case_value.resize(value.size());
+
+            for (std::size_t index = 0; index < value.size(); ++index)
+            {
+                lower_case_value[index] = std::tolower(value[index]);
+            }
+
+            output.push_back(std::move(lower_case_value));
+        }
+
+        return output;
+    }
+
+    std::span<std::pmr::string const> get_enum_value_name_without_prefix(
+        std::span<std::pmr::string const> const enum_name_words,
+        std::span<std::pmr::string const> const value_words
+    )
+    {
+        std::size_t index = 0;
+        while (index < enum_name_words.size() && index < value_words.size())
+        {
+            std::string_view const enum_name_word = enum_name_words[index];
+            std::string_view const value_word = value_words[index];
+
+            if (enum_name_word != value_word)
+                break;
+                
+            index += 1;
+        }
+
+        return value_words.subspan(index);
+    }
+
+    std::pmr::string join(
+        std::span<std::pmr::string const> const words,
+        char const character
+    )
+    {
+        if (words.empty())
+            return "";
+
+        if (words.size() == 1)
+            return words[0];
+
+        std::pmr::string output;
+        output.append(words[0]);
+
+        for (std::size_t index = 1; index < words.size(); ++index)
+        {
+            output.append(1, character);
+            output.append(words[index]);
+        }
+
+        return output;
+    }
+
+    std::pmr::string transform_enum_value_name(
+        std::string_view const value_name,
+        std::span<std::pmr::string const> const enum_name_lower_case_words,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {   
+        std::pmr::vector<std::string_view> const value_words = separate_words(value_name);
+        std::pmr::vector<std::pmr::string> const value_lower_case_words = transform_to_lower_case(value_words);
+
+        std::span<std::pmr::string const> const value_words_without_prefix = get_enum_value_name_without_prefix(enum_name_lower_case_words, value_lower_case_words);
+
+        std::pmr::string snake_case_value = join(value_words_without_prefix, '_');
+        if (!snake_case_value.empty())
+            snake_case_value[0] = std::toupper(snake_case_value[0]);
+
+        return snake_case_value;
+    }
+
+    void transform_enum_values(
+        h::Enum_declaration& declaration,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {
+        std::pmr::vector<std::string_view> const enum_name_words = separate_words(declaration.name);
+        std::pmr::vector<std::pmr::string> const enum_name_lower_case_words = transform_to_lower_case(enum_name_words);
+
+        for (h::Enum_value& value : declaration.values)
+        {
+            value.name = transform_enum_value_name(value.name, enum_name_lower_case_words, remove_prefixes);
+        }
+    }
+
     void transform_names(
         C_declarations& declarations,
         std::span<std::pmr::string const> const remove_prefixes
     )
     {
+        for (h::Enum_declaration& declaration : declarations.enum_declarations)
+        {
+            transform_enum_values(declaration, remove_prefixes);
+            transform_name(declaration, remove_prefixes);
+        }
+
         if (remove_prefixes.empty())
             return;
 
         for (h::Alias_type_declaration& declaration : declarations.alias_type_declarations)
-            transform_name(declaration, remove_prefixes);
-    
-        for (h::Enum_declaration& declaration : declarations.enum_declarations)
             transform_name(declaration, remove_prefixes);
 
         for (h::Global_variable_declaration& declaration : declarations.global_variable_declarations)
