@@ -2623,6 +2623,42 @@ function run(value: Int32) -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates assignment of enum value to enum member", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const dependency = R"(module Module_a;
+
+enum My_enum
+{
+    A = 0,
+}
+)";
+
+        std::string_view const input = R"(module Test;
+
+import Module_a as Module_a;
+
+struct My_struct
+{
+    a: Module_a.My_enum = Module_a.My_enum.A;
+}
+
+function run() -> ()
+{
+    var instance_0: My_struct = {
+        a: Module_a.My_enum.A
+    };
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { dependency };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that cannot assign to non-mutable variable", "[Validation][Mutability]")
     {

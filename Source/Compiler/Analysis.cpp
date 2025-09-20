@@ -1780,7 +1780,9 @@ namespace h::compiler
     {
         if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
         {
-            return h::create_integer_type_type_reference(32, true);
+            h::Enum_declaration const& enum_declaration = *std::get<h::Enum_declaration const*>(declaration.data);
+
+            return h::create_custom_type_reference(declaration.module_name, enum_declaration.name);
         }
         else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
         {
