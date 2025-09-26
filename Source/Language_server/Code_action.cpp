@@ -11,6 +11,7 @@ module;
 module h.language_server.code_action;
 
 import h.compiler.analysis;
+import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
 import h.core.types;
@@ -371,15 +372,42 @@ namespace h::language_server
         return innermost;
     }
 
+    void add_fix_code_action(
+        std::vector<std::variant<lsp::Command, lsp::CodeAction>>& code_actions,
+        Declaration_database const& declaration_database,
+        h::parser::Parse_tree const& parse_tree,
+        h::Module const& core_module,
+        std::span<h::compiler::Diagnostic const> const diagnostics,
+        lsp::Range const range,
+        lsp::CodeActionContext const& context
+    )
+    {
+        for (h::compiler::Diagnostic const& diagnostic : diagnostics)
+        {
+            if (diagnostic.code.has_value())
+            {
+                h::compiler::Diagnostic_code const code = diagnostic.code.value();
+                if (code == h::compiler::Diagnostic_code::Type_mismatch)
+                {
+                    // TODO
+                    int i = 0;
+                }
+            }
+        }
+    }
+
     lsp::TextDocument_CodeActionResult compute_code_actions(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
         h::Module const& core_module,
+        std::span<h::compiler::Diagnostic const> const diagnostics,
         lsp::Range const range,
         lsp::CodeActionContext const& context
     )
     {
         std::vector<std::variant<lsp::Command, lsp::CodeAction>> code_actions;
+
+        add_fix_code_action(code_actions, declaration_database, parse_tree, core_module, diagnostics, range, context);
 
         h::Source_range const source_range = to_source_range(range);
 

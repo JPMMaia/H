@@ -76,6 +76,42 @@ suite("Should get instantiate expression add missing members code action", () =>
     });
 });
 
+suite("Code action should fix type mismatch using cast", () => {
+
+    test("Fix mismatch using cast 0", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_fix_type_mismatch_using_cast_0.hltxt");
+        await test_code_actions(document_uri, to_range(6, 21, 6, 21), vscode.CodeActionKind.QuickFix, [
+            {
+                title: "Add cast from 'Int32' to 'My_int' ('Int32' to 'Int32')",
+                kind: vscode.CodeActionKind.QuickFix,
+                edit: create_replace_workspace_edit(document_uri, to_range(6, 21, 6, 22), "0 as My_int")
+            }
+        ]);
+    });
+
+    test("Fix mismatch using cast 1", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_fix_type_mismatch_using_cast_0.hltxt");
+        await test_code_actions(document_uri, to_range(7, 21, 7, 21), vscode.CodeActionKind.QuickFix, [
+            {
+                title: "Add cast from 'Uint32' to 'My_int' ('Uint32' to 'Int32')",
+                kind: vscode.CodeActionKind.QuickFix,
+                edit: create_replace_workspace_edit(document_uri, to_range(7, 21, 7, 25), "1u32 as My_int")
+            }
+        ]);
+    });
+
+    test("Fix mismatch using cast 2", async () => {
+        const document_uri = get_document_uri("projects/other/code_action_fix_type_mismatch_using_cast_0.hltxt");
+        await test_code_actions(document_uri, to_range(8, 22, 8, 22), vscode.CodeActionKind.QuickFix, [
+            {
+                title: "Add cast from 'Uint32' to 'Float32' ('Uint32' to 'Float32')",
+                kind: vscode.CodeActionKind.QuickFix,
+                edit: create_replace_workspace_edit(document_uri, to_range(8, 22, 8, 26), "1u32 as Float32")
+            }
+        ]);
+    });
+});
+
 function to_range(start_line: number, start_character: number, end_line: number, end_character: number): vscode.Range {
     const start = new vscode.Position(start_line, start_character);
     const end = new vscode.Position(end_line, end_character);

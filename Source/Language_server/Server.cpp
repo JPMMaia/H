@@ -421,6 +421,9 @@ namespace h::language_server
             std::pmr::vector<std::optional<int>> core_module_versions{output_allocator};
             core_module_versions.resize(core_module_source_file_paths.size(), std::nullopt);
 
+            std::pmr::vector<std::pmr::vector<h::compiler::Diagnostic>> core_module_diagnostics{output_allocator};
+            core_module_diagnostics.resize(core_module_source_file_paths.size());
+
             std::pmr::vector<std::pmr::string> core_module_diagnostic_result_ids{output_allocator};
             core_module_diagnostic_result_ids.resize(core_module_source_file_paths.size(), "0");
 
@@ -459,6 +462,7 @@ namespace h::language_server
                 .header_modules = std::move(header_modules),
                 .core_module_source_file_paths = std::move(core_module_source_file_paths),
                 .core_module_versions = std::move(core_module_versions),
+                .core_module_diagnostics = std::move(core_module_diagnostics),
                 .core_module_diagnostic_result_ids = std::move(core_module_diagnostic_result_ids),
                 .core_module_diagnostic_dirty_flags = std::move(core_module_diagnostic_dirty_flags),
                 .core_module_parse_trees = std::move(core_module_parse_trees),
@@ -619,6 +623,7 @@ namespace h::language_server
             workspace_data.declaration_database,
             workspace_data.core_module_parse_trees[core_module_index],
             workspace_data.core_modules[core_module_index],
+            workspace_data.core_module_diagnostics[core_module_index],
             parameters.range,
             parameters.context
         );
@@ -697,6 +702,7 @@ namespace h::language_server
             std::pmr::vector<lsp::WorkspaceDocumentDiagnosticReport> const items = create_all_diagnostics(
                 workspace_data.core_module_source_file_paths,
                 workspace_data.core_module_versions,
+                workspace_data.core_module_diagnostics,
                 parameters.previousResultIds,
                 workspace_data.core_module_diagnostic_result_ids,
                 workspace_data.core_module_diagnostic_dirty_flags,

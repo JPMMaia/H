@@ -8,6 +8,7 @@ export module h.language_server.server;
 
 import h.compiler.artifact;
 import h.compiler.builder;
+import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
 import h.parser.parse_tree;
@@ -22,6 +23,7 @@ namespace h::language_server
         std::pmr::vector<h::Module> header_modules;
         std::pmr::vector<std::filesystem::path> core_module_source_file_paths;
         std::pmr::vector<std::optional<int>> core_module_versions;
+        std::pmr::vector<std::pmr::vector<h::compiler::Diagnostic>> core_module_diagnostics;
         std::pmr::vector<std::pmr::string> core_module_diagnostic_result_ids;
         std::pmr::vector<bool> core_module_diagnostic_dirty_flags;
         std::pmr::vector<h::parser::Parse_tree> core_module_parse_trees;

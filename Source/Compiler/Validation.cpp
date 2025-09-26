@@ -18,6 +18,7 @@ import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
 import h.core.types;
+import h.json_serializer;
 import h.parser.formatter;
 
 namespace h::compiler
@@ -37,6 +38,38 @@ namespace h::compiler
             .message = std::pmr::string{message},
             .related_information = {},
         };
+    }
+
+    h::compiler::Diagnostic create_error_diagnostic_with_code(
+        std::optional<std::filesystem::path> const source_file_path,
+        std::optional<Source_range> const range,
+        std::string_view const message,
+        Diagnostic_code const code,
+        Diagnostic_data data
+    )
+    {
+        return h::compiler::Diagnostic
+        {
+            .file_path = source_file_path,
+            .range = range.has_value() ? range.value() : Source_range{},
+            .source = Diagnostic_source::Compiler,
+            .severity = Diagnostic_severity::Error,
+            .code = code,
+            .message = std::pmr::string{message},
+            .related_information = {},
+            .data = std::move(data),
+        };
+    }
+
+    Diagnostic_data create_mismatch_type_data(
+        std::optional<h::Type_reference> const& provided_type,
+        std::optional<h::Type_reference> const& expected_type
+    )
+    {
+        std::pmr::string provided_type_json = provided_type.has_value() ? h::json::write_to_string(provided_type.value()) : std::pmr::string{"null"};
+        std::pmr::string expected_type_json = expected_type.has_value() ? h::json::write_to_string(expected_type.value()) : std::pmr::string{"null"};
+        std::pmr::string data = std::pmr::string{std::format("{{provided_type:{}, expected_type:{}}}", provided_type_json, expected_type_json)};
+        return data;
     }
 
     h::compiler::Diagnostic create_warning_diagnostic(
@@ -739,10 +772,12 @@ namespace h::compiler
 
                 return
                 {
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         core_module.source_file_path,
                         get_statement_source_range(declaration.initial_value),
-                        std::format("Expression type '{}' does not match expected type '{}'.", provided_type_name, expected_type_name)
+                        std::format("Expression type '{}' does not match expected type '{}'.", provided_type_name, expected_type_name),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(type_reference, declaration.type)
                     )
                 };
             }
@@ -827,14 +862,16 @@ namespace h::compiler
                 std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, member_type, temporaries_allocator, temporaries_allocator);
 
                 diagnostics.push_back(
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         core_module.source_file_path,
                         get_statement_source_range(member_default_value),
                         std::format(
                             "Expression type '{}' does not match expected type '{}'.",
                             provided_type_name,
                             expected_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(default_value_type, member_type)
                     )
                 );
             }
@@ -1683,14 +1720,16 @@ namespace h::compiler
 
             return
             {
-                create_error_diagnostic(
+                create_error_diagnostic_with_code(
                     parameters.core_module.source_file_path,
                     source_range,
                     std::format(
                         "Binary expression requires both operands to be of the same type. Left side type '{}' does not match right hand side type '{}'.",
                         left_hand_side_type_name,
                         right_hand_side_type_name
-                    )
+                    ),
+                    Diagnostic_code::Type_mismatch,
+                    create_mismatch_type_data(left_hand_side_type_optional, right_hand_side_type_optional)
                 )
             };
         }
@@ -2120,14 +2159,16 @@ namespace h::compiler
 
             return
             {
-                create_error_diagnostic(
+                create_error_diagnostic_with_code(
                     parameters.core_module.source_file_path,
                     get_statement_source_range(expression.range_end),
                     std::format(
                         "For loop range end type '{}' does not match range begin type '{}'.",
                         provided_type_name,
                         expected_type_name
-                    )
+                    ),
+                    Diagnostic_code::Type_mismatch,
+                    create_mismatch_type_data(range_end_type_optional, range_begin_type_optional)
                 )
             };
         }
@@ -2144,14 +2185,16 @@ namespace h::compiler
 
                 return
                 {
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         parameters.core_module.source_file_path,
                         step_by_expression.source_range,
                         std::format(
                             "For loop step_by type '{}' does not match range begin type '{}'.",
                             provided_type_name,
                             expected_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(step_by_type_optional, range_begin_type_optional)
                     )
                 };
             }
@@ -2360,7 +2403,7 @@ namespace h::compiler
 
                 return
                 {
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         parameters.core_module.source_file_path,
                         member_value_expression.source_range,
                         std::format(
@@ -2369,7 +2412,9 @@ namespace h::compiler
                             h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
                             pair.member_name,
                             expected_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(assigned_value_type, member_type)
                     )
                 };
             }
@@ -2459,7 +2504,7 @@ namespace h::compiler
 
                 return
                 {
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         parameters.core_module.source_file_path,
                         source_range,
                         std::format(
@@ -2467,7 +2512,9 @@ namespace h::compiler
                             parameters.function_declaration->name,
                             expected_type_name,
                             provided_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(provided_type, expected_type)
                     )
                 };
             }
@@ -2561,14 +2608,16 @@ namespace h::compiler
                 std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, case_value_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 diagnostics.push_back(
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         parameters.core_module.source_file_path,
                         case_value_expression.source_range,
                         std::format(
                             "Switch case value type '{}' does not match switch condition type '{}'.",
                             provided_type_name,
                             expected_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_mismatch_type_data(case_value_type_optional, type_optional)
                     )
                 );
             }

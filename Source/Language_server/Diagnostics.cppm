@@ -39,6 +39,7 @@ namespace h::language_server
     export std::pmr::vector<lsp::WorkspaceDocumentDiagnosticReport> create_all_diagnostics(
         std::span<std::filesystem::path const> const core_module_source_file_paths,
         std::span<std::optional<int> const> const core_module_versions,
+        std::pmr::vector<std::pmr::vector<h::compiler::Diagnostic>>& core_module_diagnostics,
         std::span<lsp::PreviousResultId const> const previous_result_ids,
         std::span<std::pmr::string> const core_module_diagnostic_result_ids,
         std::pmr::vector<bool>& core_module_diagnostic_dirty_flags,

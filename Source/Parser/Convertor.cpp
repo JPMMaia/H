@@ -1799,6 +1799,7 @@ namespace h::parser
         }
         else
         {
+            statement.expressions.pop_back();
             return {.expression_index = static_cast<std::uint64_t>(-1)};
         }
 
