@@ -421,6 +421,16 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes inside if expression", async () => {
+		const document_uri = get_document_uri('projects/other/completion_if_expression_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(7, 0), {
+			items: [
+				{ label: "a", kind: vscode.CompletionItemKind.Variable },
+				{ label: "run", kind: vscode.CompletionItemKind.Function },
+			]
+		});
+	});
 });
 
 async function test_completion(

@@ -1910,10 +1910,18 @@ namespace h::compiler
     )
     {
         std::optional<Scope> output = std::nullopt;
+        std::optional<Scope> last_scope = std::nullopt;
 
          auto const process_statement = [&](h::Statement const& statement, h::compiler::Scope const& scope) -> void {
-            if (statement.expressions.empty() || output.has_value())
+
+            if (output.has_value())
                 return;
+            
+            if (statement.expressions.empty())
+            {
+                last_scope = scope;
+                return;
+            }
 
             h::Expression const& first_expression = statement.expressions[0];
             if (first_expression.source_range.has_value())
@@ -1963,7 +1971,13 @@ namespace h::compiler
             process_statement
         );
 
-        return output.has_value() ? output.value() : scope;
+        if (output.has_value())
+            return output.value();
+
+        if (last_scope.has_value())
+            return last_scope.value();
+
+        return scope;
     }
 
     Variable const* find_variable_from_scope(

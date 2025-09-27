@@ -1,0 +1,12 @@
+module completion_if_expression_0;
+
+function run() -> ()
+{
+    var a = true;
+
+    if 
+
+    var b = false;
+    var c = 0;
+    var d = 0;
+}
