@@ -372,6 +372,48 @@ namespace h::language_server
         return innermost;
     }
 
+    lsp::CodeAction create_add_cast_code_action(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::compiler::Diagnostic const& diagnostic,
+        h::compiler::Diagnostic_mismatch_type_data const& mismatch_data,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::optional<h::Type_reference> const provided_underlying_type = get_underlying_type(declaration_database, mismatch_data.provided_type);
+        std::optional<h::Type_reference> const expected_underlying_type = get_underlying_type(declaration_database, mismatch_data.expected_type);
+
+        std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, mismatch_data.provided_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const provided_underlying_type_name = h::parser::format_type_reference(core_module, provided_underlying_type, temporaries_allocator, temporaries_allocator);
+
+        std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, mismatch_data.expected_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const expected_underlying_type_name = h::parser::format_type_reference(core_module, expected_underlying_type, temporaries_allocator, temporaries_allocator);
+
+        h::Source_range const source_range = h::create_source_range(
+            diagnostic.range.end.line,
+            diagnostic.range.end.column,
+            diagnostic.range.end.line,
+            diagnostic.range.end.column
+        );
+
+        std::string const new_text = std::format(" as {}", expected_type_name);
+
+        lsp::WorkspaceEdit edit = create_workspace_edit_from_text_edit(
+            core_module.source_file_path.value(),
+            source_range,
+            new_text
+        );
+
+        return lsp::CodeAction
+        {
+            .title = std::format("Add cast from '{}' to '{}' ('{}' to '{}')", provided_type_name, expected_type_name, provided_underlying_type_name, expected_underlying_type_name),
+            .kind = lsp::CodeActionKind::QuickFix,
+            .diagnostics = std::nullopt, // TODO
+            .isPreferred = true,
+            .edit = std::move(edit),
+        };
+    }
+
     void add_fix_code_action(
         std::vector<std::variant<lsp::Command, lsp::CodeAction>>& code_actions,
         Declaration_database const& declaration_database,
@@ -382,15 +424,31 @@ namespace h::language_server
         lsp::CodeActionContext const& context
     )
     {
+        h::Source_range const source_range = to_source_range(range);
+
         for (h::compiler::Diagnostic const& diagnostic : diagnostics)
         {
+            if (!range_contains_position_inclusive(diagnostic.range, source_range.start))
+                continue;
+
             if (diagnostic.code.has_value())
             {
                 h::compiler::Diagnostic_code const code = diagnostic.code.value();
                 if (code == h::compiler::Diagnostic_code::Type_mismatch)
                 {
-                    // TODO
-                    int i = 0;
+                    h::compiler::Diagnostic_mismatch_type_data const mismatch_data = h::compiler::read_diagnostic_mismatch_type_data(
+                        diagnostic.data
+                    );
+
+                    lsp::CodeAction code_action = create_add_cast_code_action(
+                        declaration_database,
+                        core_module,
+                        diagnostic,
+                        mismatch_data,
+                        {}
+                    );
+                    
+                    code_actions.emplace_back(std::move(code_action));
                 }
             }
         }

@@ -18,7 +18,6 @@ import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
 import h.core.types;
-import h.json_serializer;
 import h.parser.formatter;
 
 namespace h::compiler
@@ -59,17 +58,6 @@ namespace h::compiler
             .related_information = {},
             .data = std::move(data),
         };
-    }
-
-    Diagnostic_data create_mismatch_type_data(
-        std::optional<h::Type_reference> const& provided_type,
-        std::optional<h::Type_reference> const& expected_type
-    )
-    {
-        std::pmr::string provided_type_json = provided_type.has_value() ? h::json::write_to_string(provided_type.value()) : std::pmr::string{"null"};
-        std::pmr::string expected_type_json = expected_type.has_value() ? h::json::write_to_string(expected_type.value()) : std::pmr::string{"null"};
-        std::pmr::string data = std::pmr::string{std::format("{{provided_type:{}, expected_type:{}}}", provided_type_json, expected_type_json)};
-        return data;
     }
 
     h::compiler::Diagnostic create_warning_diagnostic(
@@ -777,7 +765,7 @@ namespace h::compiler
                         get_statement_source_range(declaration.initial_value),
                         std::format("Expression type '{}' does not match expected type '{}'.", provided_type_name, expected_type_name),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(type_reference, declaration.type)
+                        create_diagnostic_mismatch_type_data(type_reference, declaration.type)
                     )
                 };
             }
@@ -871,7 +859,7 @@ namespace h::compiler
                             expected_type_name
                         ),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(default_value_type, member_type)
+                        create_diagnostic_mismatch_type_data(default_value_type, member_type)
                     )
                 );
             }
@@ -1729,7 +1717,7 @@ namespace h::compiler
                         right_hand_side_type_name
                     ),
                     Diagnostic_code::Type_mismatch,
-                    create_mismatch_type_data(left_hand_side_type_optional, right_hand_side_type_optional)
+                    create_diagnostic_mismatch_type_data(left_hand_side_type_optional, right_hand_side_type_optional)
                 )
             };
         }
@@ -2168,7 +2156,7 @@ namespace h::compiler
                         expected_type_name
                     ),
                     Diagnostic_code::Type_mismatch,
-                    create_mismatch_type_data(range_end_type_optional, range_begin_type_optional)
+                    create_diagnostic_mismatch_type_data(range_end_type_optional, range_begin_type_optional)
                 )
             };
         }
@@ -2194,7 +2182,7 @@ namespace h::compiler
                             expected_type_name
                         ),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(step_by_type_optional, range_begin_type_optional)
+                        create_diagnostic_mismatch_type_data(step_by_type_optional, range_begin_type_optional)
                     )
                 };
             }
@@ -2414,7 +2402,7 @@ namespace h::compiler
                             expected_type_name
                         ),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(assigned_value_type, member_type)
+                        create_diagnostic_mismatch_type_data(assigned_value_type, member_type)
                     )
                 };
             }
@@ -2514,7 +2502,7 @@ namespace h::compiler
                             provided_type_name
                         ),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(provided_type, expected_type)
+                        create_diagnostic_mismatch_type_data(provided_type, expected_type)
                     )
                 };
             }
@@ -2617,7 +2605,7 @@ namespace h::compiler
                             expected_type_name
                         ),
                         Diagnostic_code::Type_mismatch,
-                        create_mismatch_type_data(case_value_type_optional, type_optional)
+                        create_diagnostic_mismatch_type_data(case_value_type_optional, type_optional)
                     )
                 );
             }
@@ -3021,14 +3009,16 @@ namespace h::compiler
 
                 return
                 {
-                    create_error_diagnostic(
+                    create_error_diagnostic_with_code(
                         parameters.core_module.source_file_path,
                         right_hand_side.source_range,
                         std::format(
                             "Expression type '{}' does not match expected type '{}'.",
                             provided_type_name,
                             expected_type_name
-                        )
+                        ),
+                        Diagnostic_code::Type_mismatch,
+                        create_diagnostic_mismatch_type_data(right_hand_side_type, type)
                     )
                 };
             }

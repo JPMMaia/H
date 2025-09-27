@@ -338,6 +338,17 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
+        std::optional<Type_reference> const& type_reference
+    )
+    {
+        if (!type_reference.has_value())
+            return std::nullopt;
+
+        return get_underlying_type(declaration_database, type_reference.value());
+    }
+
+    std::optional<Type_reference> get_underlying_type(
+        Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration
     )
     {

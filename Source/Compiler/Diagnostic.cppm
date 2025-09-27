@@ -67,4 +67,20 @@ namespace h::compiler
     export void sort_diagnostics(
         std::pmr::vector<Diagnostic>& diagnostics
     );
+
+    
+    export struct Diagnostic_mismatch_type_data
+    {
+        std::optional<h::Type_reference> provided_type;
+        std::optional<h::Type_reference> expected_type;
+    };
+
+    export Diagnostic_data create_diagnostic_mismatch_type_data(
+        std::optional<h::Type_reference> const& provided_type,
+        std::optional<h::Type_reference> const& expected_type
+    );
+
+    export Diagnostic_mismatch_type_data read_diagnostic_mismatch_type_data(
+        Diagnostic_data const& data
+    );
 }

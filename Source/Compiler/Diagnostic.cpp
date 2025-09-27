@@ -6,9 +6,12 @@ module;
 #include <sstream>
 #include <string>
 
+#include <nlohmann/json.hpp>
+
 module h.compiler.diagnostic;
 
 import h.core;
+import h.json_serializer;
 
 namespace h::compiler
 {
@@ -65,5 +68,47 @@ namespace h::compiler
                 return lhs.message < rhs.message;
             }
         );
+    }
+
+    Diagnostic_data create_diagnostic_mismatch_type_data(
+        std::optional<h::Type_reference> const& provided_type,
+        std::optional<h::Type_reference> const& expected_type
+    )
+    {
+        std::pmr::string provided_type_json = provided_type.has_value() ? h::json::write_to_string(provided_type.value()) : std::pmr::string{"null"};
+        std::pmr::string expected_type_json = expected_type.has_value() ? h::json::write_to_string(expected_type.value()) : std::pmr::string{"null"};
+
+        nlohmann::json output;
+        
+        if (provided_type.has_value())
+            output["provided_type"] = nlohmann::json::parse(h::json::write_to_string(provided_type.value()));
+        
+        if (expected_type.has_value())
+            output["expected_type"] = nlohmann::json::parse(h::json::write_to_string(expected_type.value()));
+        
+        return std::pmr::string{output.dump()};
+    }
+
+    Diagnostic_mismatch_type_data read_diagnostic_mismatch_type_data(
+        Diagnostic_data const& data
+    )
+    {
+        Diagnostic_mismatch_type_data output = {};
+
+        nlohmann::json input = nlohmann::json::parse(data);
+
+        if (input.contains("provided_type"))
+        {
+            std::string const& provided_type_string = input["provided_type"].dump();
+            output.provided_type = h::json::read<h::Type_reference>(provided_type_string.c_str());
+        }
+
+        if (input.contains("expected_type"))
+        {
+            std::string const& expected_type_string = input["expected_type"].dump();
+            output.expected_type = h::json::read<h::Type_reference>(expected_type_string.c_str());
+        }
+
+        return output;
     }
 }

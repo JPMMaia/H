@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as assert from 'assert';
+import * as language_client from 'vscode-languageclient';
 import { get_document_uri, activate } from './helper.js';
 
 suite("Should get instantiate expression add missing members code action", () => {
@@ -84,7 +85,7 @@ suite("Code action should fix type mismatch using cast", () => {
             {
                 title: "Add cast from 'Int32' to 'My_int' ('Int32' to 'Int32')",
                 kind: vscode.CodeActionKind.QuickFix,
-                edit: create_replace_workspace_edit(document_uri, to_range(6, 21, 6, 22), "0 as My_int")
+                edit: create_replace_workspace_edit(document_uri, to_range(6, 22, 6, 22), " as My_int")
             }
         ]);
     });
@@ -95,7 +96,7 @@ suite("Code action should fix type mismatch using cast", () => {
             {
                 title: "Add cast from 'Uint32' to 'My_int' ('Uint32' to 'Int32')",
                 kind: vscode.CodeActionKind.QuickFix,
-                edit: create_replace_workspace_edit(document_uri, to_range(7, 21, 7, 25), "1u32 as My_int")
+                edit: create_replace_workspace_edit(document_uri, to_range(7, 25, 7, 25), " as My_int")
             }
         ]);
     });
@@ -106,7 +107,7 @@ suite("Code action should fix type mismatch using cast", () => {
             {
                 title: "Add cast from 'Uint32' to 'Float32' ('Uint32' to 'Float32')",
                 kind: vscode.CodeActionKind.QuickFix,
-                edit: create_replace_workspace_edit(document_uri, to_range(8, 22, 8, 26), "1u32 as Float32")
+                edit: create_replace_workspace_edit(document_uri, to_range(8, 26, 8, 26), " as Float32")
             }
         ]);
     });
@@ -129,7 +130,14 @@ function create_replace_workspace_edit(
 }
 
 async function test_code_actions(document_uri: vscode.Uri, range_or_selection: vscode.Range | vscode.Selection, kind: vscode.CodeActionKind, expected_code_actions: vscode.CodeAction[]) {
-    await activate(document_uri);
+    const client = await activate(document_uri);
+    
+    const parameters: language_client.WorkspaceDiagnosticParams = {
+            identifier: "hlang",
+            previousResultIds: []
+        };
+    
+    await client.sendRequest(language_client.WorkspaceDiagnosticRequest.method, parameters);
 
     const actual_code_actions = (await vscode.commands.executeCommand(
         'vscode.executeCodeActionProvider',

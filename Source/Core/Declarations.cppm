@@ -141,6 +141,11 @@ namespace h
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
+        std::optional<Type_reference> const& type_reference
+    );
+
+    export std::optional<Type_reference> get_underlying_type(
+        Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration
     );
 
