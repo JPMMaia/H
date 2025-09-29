@@ -78,13 +78,13 @@ namespace h::compiler
         std::pmr::string provided_type_json = provided_type.has_value() ? h::json::write_to_string(provided_type.value()) : std::pmr::string{"null"};
         std::pmr::string expected_type_json = expected_type.has_value() ? h::json::write_to_string(expected_type.value()) : std::pmr::string{"null"};
 
-        nlohmann::json output;
+        nlohmann::ordered_json output;
         
         if (provided_type.has_value())
-            output["provided_type"] = nlohmann::json::parse(h::json::write_to_string(provided_type.value()));
+            output["provided_type"] = nlohmann::ordered_json::parse(h::json::write_to_string(provided_type.value()));
         
         if (expected_type.has_value())
-            output["expected_type"] = nlohmann::json::parse(h::json::write_to_string(expected_type.value()));
+            output["expected_type"] = nlohmann::ordered_json::parse(h::json::write_to_string(expected_type.value()));
         
         return std::pmr::string{output.dump()};
     }
@@ -95,7 +95,7 @@ namespace h::compiler
     {
         Diagnostic_mismatch_type_data output = {};
 
-        nlohmann::json input = nlohmann::json::parse(data);
+        nlohmann::ordered_json input = nlohmann::ordered_json::parse(data);
 
         if (input.contains("provided_type"))
         {
