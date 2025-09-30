@@ -1769,6 +1769,11 @@ namespace h::c
             h::visit_type_references(declaration, process_type);
         }
 
+        for (h::Global_variable_declaration& declaration : output.global_variable_declarations)
+        {
+            h::visit_type_references(declaration, process_type);
+        }
+
         for (h::Struct_declaration& declaration : output.struct_declarations)
         {
             h::visit_type_references(declaration, process_type);

@@ -74,6 +74,14 @@ namespace h::c
         return *location;
     }
 
+    h::Global_variable_declaration const& find_global_variable_declaration(h::Module const& header_module, std::string_view const name)
+    {
+        std::span<h::Global_variable_declaration const> const global_variable_declarations = header_module.export_declarations.global_variable_declarations;
+        auto const location = std::find_if(global_variable_declarations.begin(), global_variable_declarations.end(), [name](h::Global_variable_declaration const& global_variable_declaration) -> bool { return global_variable_declaration.name == name; });
+        REQUIRE(location != global_variable_declarations.end());
+        return *location;
+    }
+
     h::Struct_declaration const& find_struct_declaration(h::Module const& header_module, std::string_view const name)
     {
         std::span<h::Struct_declaration const> const struct_declarations = header_module.export_declarations.struct_declarations;
@@ -668,6 +676,35 @@ namespace h::c
         CHECK(actual.member_types[7] == h::create_pointer_type_type_reference({ h::create_integer_type_type_reference(32, false) }, false));
         CHECK(actual.member_bit_fields[7].has_value() == false);
         CHECK(actual.member_default_values[7] == h::create_statement({ h::create_null_pointer_expression() }));
+    }
+
+    TEST_CASE("Import vulkan.h C header has correct macro types")
+    {
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+
+        h::Global_variable_declaration const& actual = h::c::find_global_variable_declaration(header_module, "VK_API_VERSION_1_0");
+
+        CHECK(actual.name == "VK_API_VERSION_1_0");
+
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "VK_API_VERSION_1_0");
+
+        h::Type_reference const uint32_type
+        {
+            .data = h::Integer_type
+            {
+                .number_of_bits = 32,
+                .is_signed = false
+            }
+        };
+
+        REQUIRE(actual.type.has_value());
+        CHECK(actual.type.value() == uint32_type);
+        
+        CHECK(actual.is_mutable == false);
     }
 
     TEST_CASE("Import vulkan.h C header creates 'VkClearColorValue' union")
