@@ -163,6 +163,17 @@ namespace h
 #endif
     };
 
+    export struct Array_slice_type
+    {
+        std::pmr::vector<Type_reference> element_type;
+
+#if HACK_SPACESHIP_OPERATOR
+        friend std::strong_ordering operator<=>(Array_slice_type const& lhs, Array_slice_type const& rhs) = default;
+#else
+        friend auto operator<=>(Array_slice_type const& lhs, Array_slice_type const& rhs) = default;
+#endif
+    };
+
     export struct Builtin_type_reference
     {
         std::pmr::string value;
@@ -287,6 +298,7 @@ namespace h
     export struct Type_reference
     {
         using Data_type = std::variant<
+            Array_slice_type,
             Builtin_type_reference,
             Constant_array_type,
             Custom_type_reference,

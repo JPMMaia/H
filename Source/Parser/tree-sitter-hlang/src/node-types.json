@@ -49,6 +49,21 @@
     }
   },
   {
+    "type": "Array_slice_type",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "Type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "Block",
     "named": true,
     "fields": {},
@@ -2107,6 +2122,10 @@
       "required": true,
       "types": [
         {
+          "type": "Array_slice_type",
+          "named": true
+        },
+        {
           "type": "Constant_array_type",
           "named": true
         },
@@ -2490,6 +2509,10 @@
   },
   {
     "type": "?",
+    "named": false
+  },
+  {
+    "type": "Array_slice",
     "named": false
   },
   {

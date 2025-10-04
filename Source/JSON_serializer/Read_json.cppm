@@ -429,6 +429,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_source_range(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_source_range_location(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_integer_type(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_array_slice_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_builtin_type_reference(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_type(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_pointer_type(Stack_state* state, std::string_view const key);
@@ -653,6 +654,38 @@ namespace h::json
                 .pointer = &parent->is_signed,
                 .type = "bool",
                 .get_next_state = nullptr,
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_array_slice_type(Stack_state* state, std::string_view const key)
+    {
+        h::Array_slice_type* parent = static_cast<h::Array_slice_type*>(state->pointer);
+
+        if (key == "element_type")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->element_type,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
             };
         }
 
@@ -1022,9 +1055,15 @@ namespace h::json
         {
             auto const set_variant_type = [](Stack_state* state, std::string_view const type) -> void
             {
-                using Variant_type = std::variant<h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_pointer_type, h::Integer_type, h::Null_pointer_type, h::Parameter_type, h::Pointer_type, h::Type_instance>;
+                using Variant_type = std::variant<h::Array_slice_type, h::Builtin_type_reference, h::Constant_array_type, h::Custom_type_reference, h::Fundamental_type, h::Function_pointer_type, h::Integer_type, h::Null_pointer_type, h::Parameter_type, h::Pointer_type, h::Type_instance>;
                 Variant_type* pointer = static_cast<Variant_type*>(state->pointer);
 
+                if (type == "Array_slice_type")
+                {
+                    *pointer = Array_slice_type{};
+                    state->type = "Array_slice_type";
+                    return;
+                }
                 if (type == "Builtin_type_reference")
                 {
                     *pointer = Builtin_type_reference{};
@@ -1103,6 +1142,11 @@ namespace h::json
                 {
                     auto const get_next_state_function = [&]() -> std::optional<Stack_state>(*)(Stack_state* state, std::string_view key)
                     {
+                        if (state->type == "Array_slice_type")
+                        {
+                            return get_next_state_array_slice_type;
+                        }
+
                         if (state->type == "Builtin_type_reference")
                         {
                             return get_next_state_builtin_type_reference;
@@ -1171,7 +1215,7 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->data,
-                .type = "std::variant<Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_pointer_type,Integer_type,Null_pointer_type,Parameter_type,Pointer_type,Type_instance>",
+                .type = "std::variant<Array_slice_type,Builtin_type_reference,Constant_array_type,Custom_type_reference,Fundamental_type,Function_pointer_type,Integer_type,Null_pointer_type,Parameter_type,Pointer_type,Type_instance>",
                 .get_next_state = get_next_state,
                 .set_variant_type = set_variant_type,
             };
@@ -4779,6 +4823,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Integer_type",
                 .get_next_state = get_next_state_integer_type
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Array_slice_type>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Array_slice_type",
+                .get_next_state = get_next_state_array_slice_type
             };
         }
 

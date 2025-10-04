@@ -1553,7 +1553,14 @@ namespace h::parser
         Format_options const& options
     )
     {
-        if (std::holds_alternative<Builtin_type_reference>(type.data))
+        if (std::holds_alternative<Array_slice_type>(type.data))
+        {
+            Array_slice_type const& value = std::get<Array_slice_type>(type.data);
+            add_text(buffer, "Array_slice<");
+            add_format_type_name(buffer, value.element_type, options);
+            add_text(buffer, ">");
+        }
+        else if (std::holds_alternative<Builtin_type_reference>(type.data))
         {
             Builtin_type_reference const& value = std::get<Builtin_type_reference>(type.data);
             add_text(buffer, value.value);

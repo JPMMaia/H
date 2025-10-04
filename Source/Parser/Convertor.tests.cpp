@@ -64,6 +64,12 @@ namespace h::parser
         destroy_parser(std::move(parser));
     }
 
+    TEST_CASE("Converts array_slices.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "array_slices.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts assert_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "assert_expressions.hltxt";

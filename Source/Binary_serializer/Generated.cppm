@@ -94,6 +94,18 @@ namespace h::binary_serializer
     }
 
     export template <>
+    void serialize(Serializer& serializer, Array_slice_type const& value)
+    {
+        serialize(serializer, value.element_type);
+    }
+
+    export template <>
+    void deserialize(Deserializer& deserializer, Array_slice_type& value)
+    {
+        deserialize(deserializer, value.element_type);
+    }
+
+    export template <>
     void serialize(Serializer& serializer, Builtin_type_reference const& value)
     {
         serialize(serializer, value.value);

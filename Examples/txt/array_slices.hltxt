@@ -1,0 +1,20 @@
+module Array_slices;
+
+export function take(integers: Array_slice<Int32>) -> ()
+{
+    var data: *Int32 = integers.data;
+    var size = integers.size;
+
+    var element: Int32 = integers[0];
+}
+
+export function run() -> ()
+{
+    var a: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    take(a);
+
+    var b = 0;
+    var c: *Int32 = &b;
+    var d = create_array_slice_from_pointer(c, 1);
+    take(d);
+}

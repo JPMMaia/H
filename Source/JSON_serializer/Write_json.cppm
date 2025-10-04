@@ -299,6 +299,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Array_slice_type const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Builtin_type_reference const& input
         );
 
@@ -932,6 +938,18 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Array_slice_type const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("element_type");
+        write_object(writer, output.element_type);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Builtin_type_reference const& output
         )
     {
@@ -1073,7 +1091,15 @@ namespace h::json
         writer.Key("data");
 
         writer.StartObject();
-        if (std::holds_alternative<Builtin_type_reference>(output.data))
+        if (std::holds_alternative<Array_slice_type>(output.data))
+        {
+            writer.Key("type");
+            writer.String("Array_slice_type");
+            writer.Key("value");
+            Array_slice_type const& value = std::get<Array_slice_type>(output.data);
+            write_object(writer, value);
+        }
+        else if (std::holds_alternative<Builtin_type_reference>(output.data))
         {
             writer.Key("type");
             writer.String("Builtin_type_reference");
