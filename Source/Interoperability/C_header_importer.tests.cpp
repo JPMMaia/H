@@ -74,6 +74,14 @@ namespace h::c
         return *location;
     }
 
+    h::Global_variable_declaration const& find_global_variable_declaration(h::Module const& header_module, std::string_view const name)
+    {
+        std::span<h::Global_variable_declaration const> const global_variable_declarations = header_module.export_declarations.global_variable_declarations;
+        auto const location = std::find_if(global_variable_declarations.begin(), global_variable_declarations.end(), [name](h::Global_variable_declaration const& global_variable_declaration) -> bool { return global_variable_declaration.name == name; });
+        REQUIRE(location != global_variable_declarations.end());
+        return *location;
+    }
+
     h::Struct_declaration const& find_struct_declaration(h::Module const& header_module, std::string_view const name)
     {
         std::span<h::Struct_declaration const> const struct_declarations = header_module.export_declarations.struct_declarations;
@@ -104,6 +112,36 @@ namespace h::c
         };
 
         CHECK(expression == h::Constant_expression{ .type = int32_type, .data = std::pmr::string{value_expected_data} });
+    }
+
+    static h::Statement create_cast_constant_statement(
+        std::string_view const data,
+        h::Type_reference source_type,
+        h::Type_reference destination_type
+    )
+    {
+        return
+        {
+            .expressions = {
+                h::Expression
+                {
+                    .data = h::Cast_expression
+                    {
+                        .source = { .expression_index = 1 },
+                        .destination_type = destination_type,
+                        .cast_type = Cast_type::Numeric
+                    }
+                },
+                h::Expression
+                {
+                    .data = h::Constant_expression
+                    {
+                        .type = source_type,
+                        .data = std::pmr::string{data}
+                    }
+                }
+            }
+        };
     }
 
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
@@ -182,19 +220,19 @@ namespace h::c
 
         REQUIRE(actual.values.size() >= 5);
 
-        CHECK(actual.values[0].name == "VK_PHYSICAL_DEVICE_TYPE_OTHER");
+        CHECK(actual.values[0].name == "Other");
         check_enum_constant_value(actual, 0, "0");
 
-        CHECK(actual.values[1].name == "VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU");
+        CHECK(actual.values[1].name == "Integrated_gpu");
         check_enum_constant_value(actual, 1, "1");
 
-        CHECK(actual.values[2].name == "VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU");
+        CHECK(actual.values[2].name == "Discrete_gpu");
         check_enum_constant_value(actual, 2, "2");
 
-        CHECK(actual.values[3].name == "VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU");
+        CHECK(actual.values[3].name == "Virtual_gpu");
         check_enum_constant_value(actual, 3, "3");
 
-        CHECK(actual.values[4].name == "VK_PHYSICAL_DEVICE_TYPE_CPU");
+        CHECK(actual.values[4].name == "Cpu");
         check_enum_constant_value(actual, 4, "4");
     }
 
@@ -438,6 +476,15 @@ namespace h::c
                 .expressions = {
                     h::Expression
                     {
+                        .data = h::Cast_expression
+                        {
+                            .source = { .expression_index = 1 },
+                            .destination_type = actual.member_types[0],
+                            .cast_type = Cast_type::Numeric
+                        }
+                    },
+                    h::Expression
+                    {
                         .data = h::Constant_expression
                         {
                             .type = uint32_type,
@@ -447,7 +494,7 @@ namespace h::c
                 }
             };
 
-            CHECK(actual.member_default_values[0] == expected_default_value);
+            CHECK(actual.member_default_values[0] == create_cast_constant_statement("0", uint32_type, actual.member_types[0]));
         }
 
         {
@@ -488,41 +535,16 @@ namespace h::c
 
             Type_reference const float32_type = h::create_fundamental_type_type_reference(h::Fundamental_type::Float32);
 
-            h::Statement const color_array_value =
+            h::Expression const color_array_value = h::Expression
             {
-                .expressions = {
-                    h::Expression
+                .data = h::Constant_array_expression
+                {
+                    .array_data =
                     {
-                        .data = h::Constant_array_expression
-                        {
-                            .array_data =
-                            {
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
-                            }
-                        }
-                    }
-                }
-            };
-
-            h::Statement const color_value =
-            {
-                .expressions = {
-                    h::Expression
-                    {
-                        .data = h::Instantiate_expression
-                        {
-                            .type = Instantiate_expression_type::Default,
-                            .members = {
-                                Instantiate_member_value_pair
-                                {
-                                    .member_name = "float32",
-                                    .value = std::move(color_array_value)
-                                }
-                            }
-                        }
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                        h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                     }
                 }
             };
@@ -539,8 +561,33 @@ namespace h::c
                                 Instantiate_member_value_pair
                                 {
                                     .member_name = "color",
-                                    .value = std::move(color_value)
+                                    .value = {.expression_index = 1}
                                 }
+                            }
+                        }
+                    },
+                    {
+                        .data = h::Instantiate_expression
+                        {
+                            .type = Instantiate_expression_type::Default,
+                            .members = {
+                                Instantiate_member_value_pair
+                                {
+                                    .member_name = "float32",
+                                    .value = {.expression_index = 2}
+                                }
+                            }
+                        }
+                    },
+                    {
+                        .data = h::Constant_array_expression
+                        {
+                            .array_data =
+                            {
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
+                                h::create_statement({h::create_constant_expression(float32_type, "0.0")}),
                             }
                         }
                     }
@@ -593,7 +640,7 @@ namespace h::c
         CHECK(actual.member_names[0] == "sType");
         CHECK(actual.member_types[0] == create_custom_type_reference("vulkan", "VkStructureType"));
         CHECK(actual.member_bit_fields[0].has_value() == false);
-        CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "VK_STRUCTURE_TYPE_APPLICATION_INFO")));
+        CHECK(actual.member_default_values[0] == h::create_statement(h::create_enum_value_expressions("VkStructureType", "Application_info")));
 
         CHECK(actual.member_names[1] == "pNext");
         CHECK(actual.member_types[1] == h::create_pointer_type_type_reference({}, false));
@@ -603,22 +650,22 @@ namespace h::c
         CHECK(actual.member_names[2] == "flags");
         CHECK(actual.member_types[2] == create_custom_type_reference("vulkan", "VkBufferCreateFlags"));
         CHECK(actual.member_bit_fields[2].has_value() == false);
-        CHECK(actual.member_default_values[2] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
+        CHECK(actual.member_default_values[2] == create_cast_constant_statement("0", uint32_type, actual.member_types[2]));
 
         CHECK(actual.member_names[3] == "size");
         CHECK(actual.member_types[3] == create_custom_type_reference("vulkan", "VkDeviceSize"));
         CHECK(actual.member_bit_fields[3].has_value() == false);
-        CHECK(actual.member_default_values[3] == h::create_statement({ h::create_constant_expression(uint64_type, "0") }));
+        CHECK(actual.member_default_values[3] == create_cast_constant_statement("0", uint64_type, actual.member_types[3]));
 
         CHECK(actual.member_names[4] == "usage");
         CHECK(actual.member_types[4] == create_custom_type_reference("vulkan", "VkBufferUsageFlags"));
         CHECK(actual.member_bit_fields[4].has_value() == false);
-        CHECK(actual.member_default_values[4] == h::create_statement({ h::create_constant_expression(uint32_type, "0") }));
+        CHECK(actual.member_default_values[4] == create_cast_constant_statement("0", uint32_type, actual.member_types[4]));
 
         CHECK(actual.member_names[5] == "sharingMode");
         CHECK(actual.member_types[5] == create_custom_type_reference("vulkan", "VkSharingMode"));
         CHECK(actual.member_bit_fields[5].has_value() == false);
-        CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "VK_SHARING_MODE_EXCLUSIVE")));
+        CHECK(actual.member_default_values[5] == h::create_statement(h::create_enum_value_expressions("VkSharingMode", "Exclusive")));
 
         CHECK(actual.member_names[6] == "queueFamilyIndexCount");
         CHECK(actual.member_types[6] == uint32_type);
@@ -629,6 +676,35 @@ namespace h::c
         CHECK(actual.member_types[7] == h::create_pointer_type_type_reference({ h::create_integer_type_type_reference(32, false) }, false));
         CHECK(actual.member_bit_fields[7].has_value() == false);
         CHECK(actual.member_default_values[7] == h::create_statement({ h::create_null_pointer_expression() }));
+    }
+
+    TEST_CASE("Import vulkan.h C header has correct macro types")
+    {
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+
+        h::Global_variable_declaration const& actual = h::c::find_global_variable_declaration(header_module, "VK_API_VERSION_1_0");
+
+        CHECK(actual.name == "VK_API_VERSION_1_0");
+
+        REQUIRE(actual.unique_name.has_value());
+        CHECK(actual.unique_name.value() == "VK_API_VERSION_1_0");
+
+        h::Type_reference const uint32_type
+        {
+            .data = h::Integer_type
+            {
+                .number_of_bits = 32,
+                .is_signed = false
+            }
+        };
+
+        REQUIRE(actual.type.has_value());
+        CHECK(actual.type.value() == uint32_type);
+        
+        CHECK(actual.is_mutable == false);
     }
 
     TEST_CASE("Import vulkan.h C header creates 'VkClearColorValue' union")

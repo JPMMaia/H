@@ -1,0 +1,12 @@
+module code_action_instantiate_import;
+
+enum My_enum
+{
+    Member_0 = 0,
+    Member_1 = 0,
+}
+
+struct My_struct
+{
+    a: My_enum = My_enum.Member_1;
+}

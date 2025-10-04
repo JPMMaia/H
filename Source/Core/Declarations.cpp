@@ -338,6 +338,17 @@ namespace h
 
     std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
+        std::optional<Type_reference> const& type_reference
+    )
+    {
+        if (!type_reference.has_value())
+            return std::nullopt;
+
+        return get_underlying_type(declaration_database, type_reference.value());
+    }
+
+    std::optional<Type_reference> get_underlying_type(
+        Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration
     )
     {
@@ -770,5 +781,20 @@ namespace h
             if (done)
                 return;
         }
+    }
+
+    bool is_enum_type(
+        Declaration_database const& declaration_database,
+        Type_reference const& type
+    )
+    {
+        std::optional<Declaration> const declaration = find_underlying_declaration(
+            declaration_database,
+            type
+        );
+        if (!declaration.has_value())
+            return false;
+        
+        return std::holds_alternative<Enum_declaration const*>(declaration->data);
     }
 }

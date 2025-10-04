@@ -1,5 +1,6 @@
 module;
 
+#include <functional>
 #include <optional>
 #include <string_view>
 
@@ -7,6 +8,7 @@ module;
 
 export module h.language_server.location;
 
+import h.compiler.analysis;
 import h.core;
 import h.core.declarations;
 
@@ -40,5 +42,12 @@ namespace h::language_server
         h::Module const& core_module,
         h::Statement const& statement,
         h::Expression const& expression
+    );
+
+    export void visit_expressions_that_contain_position(
+        Declaration_database const& declaration_database,
+        h::Module const& core_module,
+        h::Source_position const& source_position,
+        std::function<bool(h::Function_declaration const* function_declaration, h::compiler::Scope const& scope, h::Statement const& statement, h::Expression const& expression)> const& visitor
     );
 }

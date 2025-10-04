@@ -301,6 +301,35 @@ namespace h::parser
         }
     }
 
+    std::pmr::string format_statement(
+        h::Module const& core_module,
+        Statement const& statement,
+        std::uint32_t indentation,
+        bool const add_semicolon,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        Format_options const options
+        {
+            .alias_imports = core_module.dependencies.alias_imports,
+            .output_allocator = output_allocator,
+            .temporaries_allocator = temporaries_allocator,
+        };
+
+        String_buffer buffer;
+
+        add_format_statement(
+            buffer,
+            statement,
+            indentation,
+            options,
+            add_semicolon
+        );
+
+        return to_string(buffer);
+    }
+
     void add_format_expression(
         String_buffer& buffer,
         Statement const& statement,
@@ -1047,6 +1076,7 @@ namespace h::parser
     }
 
     bool place_instantiate_members_on_the_same_line(
+        h::Statement const& statement,
         Instantiate_expression const& expression,
         std::optional<h::Source_position> const source_position
     )
@@ -1058,10 +1088,8 @@ namespace h::parser
             return true;
 
         Instantiate_member_value_pair const& pair = expression.members[0];
-        if (pair.value.expressions.empty())
-            return true;
-
-        Expression const& first_expression = pair.value.expressions[0];
+        
+        h::Expression const& first_expression = statement.expressions[pair.value.expression_index];
         if (!first_expression.source_range.has_value())
             return true;
 
@@ -1108,7 +1136,7 @@ namespace h::parser
     {
         bool const same_line = 
             source_range.has_value() ? 
-            place_instantiate_members_on_the_same_line(expression, source_range->start) :
+            place_instantiate_members_on_the_same_line(statement, expression, source_range->start) :
             false;
 
         if (expression.type == Instantiate_expression_type::Explicit)
@@ -1147,7 +1175,7 @@ namespace h::parser
                 Instantiate_member_value_pair const& member = expression.members[index];
                 add_text(buffer, member.member_name);
                 add_text(buffer, ": ");
-                add_format_statement(buffer, member.value, outside_indentation + 4, options, false);
+                add_format_expression(buffer, statement, get_expression(statement, member.value), outside_indentation + 4, options);
             }
 
             if (!same_line)

@@ -9,7 +9,7 @@ export function foo() -> ()
 {
     var a = [];
     var b: Constant_array<Int32, 0> = [];
-    var c: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    mutable c: Constant_array<Int32, 4> = [0, 1, 2, 3];
 
     c[0] = 0;
     c[1] = 1;

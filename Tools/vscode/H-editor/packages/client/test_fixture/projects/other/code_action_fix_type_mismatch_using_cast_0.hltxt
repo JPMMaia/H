@@ -1,0 +1,10 @@
+module code_action_fix_type_mismatch_using_cast_0;
+
+using My_int = Int32;
+
+function run() -> ()
+{
+    var v0: My_int = 0;
+    var v1: My_int = 1u32;
+    var v2: Float32 = 1u32;
+}

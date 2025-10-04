@@ -32,6 +32,15 @@ namespace h::parser
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    export std::pmr::string format_statement(
+        h::Module const& core_module,
+        Statement const& statement,
+        std::uint32_t indentation,
+        bool const add_semicolon = true,
+        std::pmr::polymorphic_allocator<> const& output_allocator = {},
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator = {}
+    );
+
     struct String_buffer
     {
         std::stringstream string_stream;

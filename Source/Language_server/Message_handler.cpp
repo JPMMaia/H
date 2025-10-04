@@ -159,6 +159,13 @@ namespace h::language_server
             }
         );
 
+        message_handler.add<lsp::requests::TextDocument_CodeAction>(
+            [&](lsp::requests::TextDocument_CodeAction::Params&& parameters) -> lsp::requests::TextDocument_CodeAction::Result
+            {
+                return compute_text_document_code_actions(server, parameters);
+            }
+        );
+
         message_handler.add<lsp::requests::TextDocument_Completion>(
             [&](lsp::requests::TextDocument_Completion::Params&& parameters) -> lsp::requests::TextDocument_Completion::Result
             {

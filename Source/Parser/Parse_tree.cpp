@@ -403,7 +403,7 @@ namespace h::parser
         TSPoint current_point = start_point;
         std::uint32_t current_byte = start_byte;
 
-        while (current_point.row < target_point.row)
+        while (current_point.row < target_point.row && current_byte < text.size())
         {
             char8_t const character = text[current_byte];
             
@@ -417,7 +417,7 @@ namespace h::parser
         }
         assert(current_point.row == target_point.row);
         
-        while (current_point.column < target_point.column)
+        while (current_point.column < target_point.column && current_byte < text.size())
         {
             char8_t const character = text[current_byte];
 

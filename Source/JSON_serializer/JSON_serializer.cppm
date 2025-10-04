@@ -17,6 +17,7 @@ module;
 
 #include <rapidjson/filereadstream.h>
 #include <rapidjson/filewritestream.h>
+#include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/reader.h>
 #include <rapidjson/writer.h>
 
@@ -217,5 +218,18 @@ namespace h::json
         write_object(writer, value);
 
         std::fclose(file);
+    }
+
+    export template<typename Input_type>
+        std::pmr::string write_to_string(
+            Input_type const& value
+        )
+    {
+        std::basic_stringstream<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>> string_stream;
+        rapidjson::OStreamWrapper stream_wrapper{ string_stream };
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer{ stream_wrapper };
+        h::json::write(writer, value);
+
+        return string_stream.str();
     }
 }

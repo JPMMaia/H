@@ -3037,8 +3037,8 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->value,
-                .type = "Statement",
-                .get_next_state = get_next_state_statement,
+                .type = "Expression_index",
+                .get_next_state = get_next_state_expression_index,
             };
         }
 

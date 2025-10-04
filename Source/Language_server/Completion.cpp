@@ -391,6 +391,41 @@ namespace h::language_server
         };
     }
 
+    static lsp::CompletionList create_declaration_member_completion_list(
+        Declaration const& declaration
+    )
+    {
+        std::vector<lsp::CompletionItem> items = {};
+
+        add_declaration_member_items(
+            items,
+            declaration
+        );
+
+        return lsp::CompletionList
+        {
+            .isIncomplete = false,
+            .items = std::move(items),
+            .itemDefaults = std::nullopt,
+        };
+    }
+
+    static h::Source_position get_dot_source_position(
+        h::Source_position const source_position_after_dot
+    )
+    {
+        if (source_position_after_dot.column > 1)
+        {
+            return h::Source_position
+            {
+                .line = source_position_after_dot.line,
+                .column = source_position_after_dot.column - 1
+            };
+        }
+
+        return source_position_after_dot;
+    }
+
     static std::optional<lsp::CompletionList> create_access_value_completion_list(
         Declaration_database const& declaration_database,
         h::parser::Parse_tree const& parse_tree,
@@ -401,7 +436,11 @@ namespace h::language_server
         h::Source_position const source_position
     )
     {
-        std::optional<h::parser::Parse_node> const node_to_access = h::parser::get_node_previous_sibling(node_before);
+        std::optional<h::parser::Parse_node> const node_to_access = h::parser::find_node_before_source_position(
+            parse_tree,
+            node_before,
+            get_dot_source_position(source_position)
+        );
         if (!node_to_access.has_value())
             return std::nullopt;
 
@@ -572,6 +611,23 @@ namespace h::language_server
         return node_before_value == "import";
     }
 
+    static bool is_at_instantiate_member(
+        h::parser::Parse_node const smallest_node,
+        std::string_view const smallest_node_symbol,
+        std::string_view const previous_sibling_symbol
+    )
+    {
+        std::optional<h::parser::Parse_node> const parent_node = h::parser::get_parent_node(smallest_node);
+        if (parent_node.has_value())
+        {
+            std::string_view const parent_node_symbol = h::parser::get_node_symbol(parent_node.value());
+            if (parent_node_symbol == "Expression_instantiate_members" && (previous_sibling_symbol == "{" || previous_sibling_symbol == ","))
+                return true;    
+        }
+
+        return false;
+    }
+
     lsp::TextDocument_CompletionResult compute_completion(
         std::span<h::compiler::Artifact const> const artifacts,
         std::span<h::Module const> const header_modules,
@@ -643,6 +699,51 @@ namespace h::language_server
                 .items = {},
                 .itemDefaults = std::nullopt,
             };
+        }
+
+        if (is_at_instantiate_member(smallest_node, smallest_node_symbol, previous_sibling_symbol))
+        {
+            std::optional<lsp::CompletionList> completion_list = std::nullopt;
+
+            auto const process_expression = [&](h::Function_declaration const* const function_declaration, h::compiler::Scope const& scope, h::Statement const& statement, h::Expression const& expression) -> bool
+            {
+                std::optional<h::Type_reference> const expression_type = h::compiler::get_expression_type(
+                    core_module,
+                    function_declaration,
+                    scope,
+                    statement,
+                    expression,
+                    std::nullopt,
+                    declaration_database
+                );
+                if (expression_type.has_value())
+                {
+                    std::optional<Declaration> const declaration = find_underlying_declaration(
+                        declaration_database,
+                        expression_type.value()
+                    );
+                    if (declaration.has_value())
+                    {
+                        completion_list = create_declaration_member_completion_list(
+                            declaration.value()
+                        );
+                    }
+
+                    return true;
+                }
+
+                return false;
+            };
+
+            visit_expressions_that_contain_position(
+                declaration_database,
+                core_module,
+                source_position,
+                process_expression
+            );
+
+            if (completion_list.has_value())
+                return completion_list.value();
         }
 
         std::optional<Declaration> const declaration_optional = find_declaration_that_contains_source_position(

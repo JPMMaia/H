@@ -770,16 +770,6 @@ namespace h
                     return true;
             }
         }
-        else if (std::holds_alternative<Instantiate_expression>(expression.data))
-        {
-            Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
-
-            for (Instantiate_member_value_pair const& pair : data.members)
-            {
-                if (visit_expressions(pair.value, predicate))
-                    return true;
-            }
-        }
         else if (std::holds_alternative<Switch_expression>(expression.data))
         {
             Switch_expression const& data = std::get<Switch_expression>(expression.data);

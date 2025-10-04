@@ -19,6 +19,7 @@ namespace h::compiler
     {
         std::pmr::string name;
         h::Type_reference type;
+        bool is_mutable;
         bool is_compile_time;
         std::optional<h::Source_position> source_position;
     };
@@ -26,6 +27,7 @@ namespace h::compiler
     export Variable create_variable(
         std::pmr::string name,
         h::Type_reference type,
+        bool is_mutable,
         bool is_compile_time,
         std::optional<h::Source_position> source_position
     );
@@ -33,6 +35,7 @@ namespace h::compiler
     export Variable create_variable(
         std::pmr::string name,
         h::Type_reference type,
+        bool is_mutable,
         bool is_compile_time,
         std::optional<h::Source_range> source_range
     );
@@ -130,6 +133,25 @@ namespace h::compiler
         h::Declaration_database& declaration_database,
         Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export struct Type_info
+    {
+        h::Type_reference type = {};
+        bool is_mutable = false;
+    };
+
+    export Type_info create_type_info(h::Type_reference type, bool is_mutable);
+    export std::optional<Type_info> create_type_info(std::optional<h::Type_reference> type, bool is_mutable);
+
+    export std::optional<Type_info> get_expression_type_info(
+        h::Module const& core_module,
+        h::Function_declaration const* const function_declaration,
+        Scope const& scope,
+        h::Statement const& statement,
+        h::Expression const& expression,
+        std::optional<h::Type_reference> const& expected_expression_type,
+        h::Declaration_database const& declaration_database
     );
 
     export std::optional<h::Type_reference> get_expression_type(
@@ -255,7 +277,7 @@ namespace h::compiler
                     if (type_reference.has_value())
                     {
                         scope.variables.push_back(
-                            create_variable(for_loop_expression.variable_name, type_reference.value(), false, expression.source_range)
+                            create_variable(for_loop_expression.variable_name, type_reference.value(), true, false, expression.source_range)
                         );
                     }
 
@@ -285,14 +307,14 @@ namespace h::compiler
                     std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.right_hand_side.expression_index], std::nullopt, declaration_database);
                     if (type_reference.has_value())
                         scope.variables.push_back(
-                            create_variable(data.name, type_reference.value(), false, expression.source_range)
+                            create_variable(data.name, type_reference.value(), data.is_mutable, false, expression.source_range)
                         );
                 }
                 else if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
                 {
                     h::Variable_declaration_with_type_expression const& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
                     scope.variables.push_back(
-                        create_variable(data.name, data.type, false, expression.source_range)
+                        create_variable(data.name, data.type, data.is_mutable, false, expression.source_range)
                     );
                 }
                 else if (std::holds_alternative<h::While_loop_expression>(expression.data))

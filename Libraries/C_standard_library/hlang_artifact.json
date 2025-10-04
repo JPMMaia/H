@@ -7,6 +7,10 @@
             {
                 "name": "c.stdio",
                 "header": "stdio.h"
+            },
+            {
+                "name": "c.stdlib",
+                "header": "stdlib.h"
             }
         ],
         "external_library": {

@@ -376,6 +376,11 @@ namespace h::c
             std::cerr << "Warning: ignoring _Complex type\n";
             return std::nullopt;
         }
+        case CXType_Dependent:
+        {
+            std::cerr << "Warning: ignoring dependent type\n";
+            return std::nullopt;
+        }
         case CXType_IncompleteArray:
         case CXType_Pointer:
         {
@@ -418,7 +423,7 @@ namespace h::c
             h::Custom_type_reference reference
             {
                 .module_reference = {
-                    .name = {}
+                    .name = declarations.module_name
                 },
                 .name = declaration.name
             };
@@ -468,7 +473,7 @@ namespace h::c
             h::Custom_type_reference reference
             {
                 .module_reference = {
-                    .name = {}
+                    .name = declarations.module_name
                 },
                 .name = declaration.name
             };
@@ -492,7 +497,7 @@ namespace h::c
             std::string_view const type_spelling_string = type_spelling.string_view();
             std::string_view type_name = remove_type(type_spelling_string);
 
-            return h::create_custom_type_reference("", type_name);
+            return h::create_custom_type_reference(declarations.module_name, type_name);
         }
         case CXType_Void:
         {
@@ -1340,7 +1345,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_struct_declaration.name
                 };
@@ -1363,7 +1368,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_union_declaration.name
                 };
@@ -1476,7 +1481,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_struct_declaration.name
                 };
@@ -1498,7 +1503,7 @@ namespace h::c
                 h::Custom_type_reference reference
                 {
                     .module_reference = {
-                        .name = {}
+                        .name = data->declarations->module_name
                     },
                     .name = nested_union_declaration.name
                 };
@@ -1556,11 +1561,6 @@ namespace h::c
 
     bool is_fixed_width_integer_typedef_reference(h::Custom_type_reference const& reference, std::span<std::string_view const> const integer_alias_names)
     {
-        if (!reference.module_reference.name.empty())
-        {
-            return false;
-        }
-
         auto const location = std::find(
             integer_alias_names.begin(),
             integer_alias_names.end(),
@@ -1752,72 +1752,56 @@ namespace h::c
             output.alias_type_declarations.erase(output.alias_type_declarations.begin() + index);
         }
 
+        auto const process_type = [&](h::Type_reference const& type) -> bool
+        {
+            h::Type_reference& mutable_type = const_cast<Type_reference&>(type);
+            convert_typedef_to_integer_type_if_necessary(
+                mutable_type,
+                input.alias_type_declarations,
+                names,
+                indices
+            );
+            return false;
+        };
+
         for (h::Alias_type_declaration& declaration : output.alias_type_declarations)
         {
-            for (h::Type_reference& reference : declaration.type)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
+        }
+
+        for (h::Global_variable_declaration& declaration : output.global_variable_declarations)
+        {
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Struct_declaration& declaration : output.struct_declarations)
         {
-            for (h::Type_reference& reference : declaration.member_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Union_declaration& declaration : output.union_declarations)
         {
-            for (h::Type_reference& reference : declaration.member_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         for (h::Function_declaration& declaration : output.function_declarations)
         {
-            for (h::Type_reference& reference : declaration.type.input_parameter_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
-
-            for (h::Type_reference& reference : declaration.type.output_parameter_types)
-            {
-                convert_typedef_to_integer_type_if_necessary(
-                    reference,
-                    input.alias_type_declarations,
-                    names,
-                    indices
-                );
-            }
+            h::visit_type_references(declaration, process_type);
         }
 
         return output;
     }
 
-    h::Statement create_default_value(
+    static void add_expression(
+        h::Statement& statement,
+        h::Expression expression
+    )
+    {
+        statement.expressions.push_back(std::move(expression));
+    }
+
+    static void add_default_value_to_statement(
+        h::Statement& statement,
         Type_reference const& value_type,
         h::Module const& core_module,
         h::Declaration_database const& declaration_database
@@ -1838,13 +1822,8 @@ namespace h::c
             array_data.resize(constant_array_type.size);
             std::fill(array_data.begin(), array_data.end(), element_default_value);
 
-            return h::create_statement(
-                {
-                    h::create_constant_array_expression(
-                        std::move(array_data)
-                    )
-                }
-            );
+            add_expression(statement, h::create_constant_array_expression(std::move(array_data)));
+            return;
         }
         else if (std::holds_alternative<h::Custom_type_reference>(value_type.data))
         {
@@ -1865,7 +1844,22 @@ namespace h::c
                         throw std::runtime_error{ std::format("Alias type '{}' is void!", alias_type_declaration->name) };
 
                     Type_reference const& underlying_type = underlying_type_optional.value();
-                    return create_default_value(underlying_type, core_module, declaration_database);
+
+                    add_expression(
+                        statement, 
+                        h::Expression
+                        {
+                            .data = h::Cast_expression
+                            {
+                                .source = { .expression_index = statement.expressions.size() + 1 },
+                                .destination_type = value_type,
+                                .cast_type = h::Cast_type::Numeric,
+                            }
+                        }
+                    );
+
+                    add_default_value_to_statement(statement, underlying_type, core_module, declaration_database);
+                    return;
                 }
                 else if (std::holds_alternative<h::Enum_declaration const*>(declaration.data))
                 {
@@ -1874,41 +1868,32 @@ namespace h::c
                     if (enum_declaration->values.empty())
                         throw std::runtime_error{ std::format("Enum '{}' is empty!", enum_declaration->name) };
 
-                    return h::create_statement(
-                        h::create_enum_value_expressions(enum_declaration->name, enum_declaration->values[0].name)
-                    );
+                    h::add_enum_value_expressions(statement, enum_declaration->name, enum_declaration->values[0].name);
+                    return;
                 }
                 else if (std::holds_alternative<h::Struct_declaration const*>(declaration.data))
                 {
-                    return h::create_statement(
-                        {
-                            h::create_instantiate_expression(Instantiate_expression_type::Default, {})
-                        }
-                    );
+                    add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {}));
+                    return;
                 }
                 else if (std::holds_alternative<h::Union_declaration const*>(declaration.data))
                 {
                     h::Union_declaration const* union_declaration = std::get<h::Union_declaration const*>(declaration.data);
 
                     if (union_declaration->member_types.empty()) {
-                        return h::create_statement(
-                            {
-                                h::create_instantiate_expression(Instantiate_expression_type::Default, {})
-                            }
-                        );
+                        add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {}));
+                        return;
                     }
 
                     h::Instantiate_member_value_pair member_value
                     {
                         .member_name = union_declaration->member_names[0],
-                        .value = create_default_value(union_declaration->member_types[0], core_module, declaration_database)
+                        .value = {.expression_index = statement.expressions.size() + 1},
                     };
-
-                    return h::create_statement(
-                        {
-                            h::create_instantiate_expression(Instantiate_expression_type::Default, {std::move(member_value)})
-                        }
-                    );
+                    add_expression(statement, h::create_instantiate_expression(Instantiate_expression_type::Default, {std::move(member_value)}));
+                    
+                    add_default_value_to_statement(statement, union_declaration->member_types[0], core_module, declaration_database);
+                    return;
                 }
             }
         }
@@ -1919,37 +1904,19 @@ namespace h::c
             switch (fundamental_type)
             {
             case h::Fundamental_type::Bool: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "false"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "false"));
+                return;
             }
             case h::Fundamental_type::Float16:
             case h::Fundamental_type::Float32:
             case h::Fundamental_type::Float64:
             case h::Fundamental_type::C_longdouble: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "0.0"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "0.0"));
+                return;
             }
             case h::Fundamental_type::String: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            ""
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, ""));
+                return;
             }
             case h::Fundamental_type::Byte:
             case h::Fundamental_type::C_bool:
@@ -1964,48 +1931,41 @@ namespace h::c
             case h::Fundamental_type::C_ulong:
             case h::Fundamental_type::C_longlong:
             case h::Fundamental_type::C_ulonglong: {
-                return h::create_statement(
-                    {
-                        h::create_constant_expression(
-                            value_type,
-                            "0"
-                        )
-                    }
-                );
+                add_expression(statement, h::create_constant_expression(value_type, "0"));
+                return;
             }
             }
         }
         else if (std::holds_alternative<h::Function_pointer_type>(value_type.data))
         {
             h::Function_pointer_type const& function_type = std::get<h::Function_pointer_type>(value_type.data);
-            return h::create_statement(
-                {
-                    h::create_null_pointer_expression()
-                }
-            );
+            add_expression(statement, h::create_null_pointer_expression());
+            return;
         }
         else if (std::holds_alternative<h::Integer_type>(value_type.data))
         {
-            return h::create_statement(
-                {
-                    h::create_constant_expression(
-                        value_type,
-                        "0"
-                    )
-                }
-            );
+            add_expression(statement, h::create_constant_expression(value_type, "0"));
+            return;
         }
         else if (std::holds_alternative<h::Pointer_type>(value_type.data))
         {
             h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(value_type.data);
-            return h::create_statement(
-                {
-                    h::create_null_pointer_expression()
-                }
-            );
+            add_expression(statement, h::create_null_pointer_expression());
+            return;
         }
 
         throw std::runtime_error{ "create_default_value() did not handle Type_reference type!" };
+    }
+
+    h::Statement create_default_value(
+        Type_reference const& value_type,
+        h::Module const& core_module,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        h::Statement statement = {};
+        add_default_value_to_statement(statement, value_type, core_module, declaration_database);
+        return statement;
     }
 
     void add_struct_member_default_values(
@@ -2254,18 +2214,163 @@ namespace h::c
         }
     }
 
+    std::pmr::vector<std::string_view> separate_words(
+        std::string_view const value
+    )
+    {
+        std::pmr::vector<std::string_view> output;
+
+        if (value.size() == 1)
+        {
+            output.push_back(value);
+            return output;
+        }
+
+        std::size_t word_begin_index = 0;
+
+        for (std::size_t index = 1; index < value.size(); ++index)
+        {
+            char const current_character = value[index];
+            if (current_character == '_')
+            {
+                std::size_t const count = index - word_begin_index;
+                output.push_back(value.substr(word_begin_index, count));
+
+                word_begin_index = index + 1;
+                continue;
+            }
+
+            char const previous_character = value[index - 1];
+            if (std::islower(previous_character) && std::isupper(current_character))
+            {
+                std::size_t const count = index - word_begin_index;
+                output.push_back(value.substr(word_begin_index, count));
+
+                word_begin_index = index;
+                continue;
+            }
+        }
+
+        std::string_view const last_word = value.substr(word_begin_index);
+        if (!last_word.empty())
+            output.push_back(last_word);
+
+        return output;
+    }
+
+    std::pmr::vector<std::pmr::string> transform_to_lower_case(
+        std::span<std::string_view const> const values
+    )
+    {
+        std::pmr::vector<std::pmr::string> output;
+        output.reserve(values.size());
+
+        for (std::string_view const value : values)
+        {
+            std::pmr::string lower_case_value;
+            lower_case_value.resize(value.size());
+
+            for (std::size_t index = 0; index < value.size(); ++index)
+            {
+                lower_case_value[index] = std::tolower(value[index]);
+            }
+
+            output.push_back(std::move(lower_case_value));
+        }
+
+        return output;
+    }
+
+    std::span<std::pmr::string const> get_enum_value_name_without_prefix(
+        std::span<std::pmr::string const> const enum_name_words,
+        std::span<std::pmr::string const> const value_words
+    )
+    {
+        std::size_t index = 0;
+        while (index < enum_name_words.size() && index < value_words.size())
+        {
+            std::string_view const enum_name_word = enum_name_words[index];
+            std::string_view const value_word = value_words[index];
+
+            if (enum_name_word != value_word)
+                break;
+                
+            index += 1;
+        }
+
+        return value_words.subspan(index);
+    }
+
+    std::pmr::string join(
+        std::span<std::pmr::string const> const words,
+        char const character
+    )
+    {
+        if (words.empty())
+            return "";
+
+        if (words.size() == 1)
+            return words[0];
+
+        std::pmr::string output;
+        output.append(words[0]);
+
+        for (std::size_t index = 1; index < words.size(); ++index)
+        {
+            output.append(1, character);
+            output.append(words[index]);
+        }
+
+        return output;
+    }
+
+    std::pmr::string transform_enum_value_name(
+        std::string_view const value_name,
+        std::span<std::pmr::string const> const enum_name_lower_case_words,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {   
+        std::pmr::vector<std::string_view> const value_words = separate_words(value_name);
+        std::pmr::vector<std::pmr::string> const value_lower_case_words = transform_to_lower_case(value_words);
+
+        std::span<std::pmr::string const> const value_words_without_prefix = get_enum_value_name_without_prefix(enum_name_lower_case_words, value_lower_case_words);
+
+        std::pmr::string snake_case_value = join(value_words_without_prefix, '_');
+        if (!snake_case_value.empty())
+            snake_case_value[0] = std::toupper(snake_case_value[0]);
+
+        return snake_case_value;
+    }
+
+    void transform_enum_values(
+        h::Enum_declaration& declaration,
+        std::span<std::pmr::string const> const remove_prefixes
+    )
+    {
+        std::pmr::vector<std::string_view> const enum_name_words = separate_words(declaration.name);
+        std::pmr::vector<std::pmr::string> const enum_name_lower_case_words = transform_to_lower_case(enum_name_words);
+
+        for (h::Enum_value& value : declaration.values)
+        {
+            value.name = transform_enum_value_name(value.name, enum_name_lower_case_words, remove_prefixes);
+        }
+    }
+
     void transform_names(
         C_declarations& declarations,
         std::span<std::pmr::string const> const remove_prefixes
     )
     {
+        for (h::Enum_declaration& declaration : declarations.enum_declarations)
+        {
+            transform_enum_values(declaration, remove_prefixes);
+            transform_name(declaration, remove_prefixes);
+        }
+
         if (remove_prefixes.empty())
             return;
 
         for (h::Alias_type_declaration& declaration : declarations.alias_type_declarations)
-            transform_name(declaration, remove_prefixes);
-    
-        for (h::Enum_declaration& declaration : declarations.enum_declarations)
             transform_name(declaration, remove_prefixes);
 
         for (h::Global_variable_declaration& declaration : declarations.global_variable_declarations)
@@ -2507,7 +2612,6 @@ namespace h::c
 
         group_declarations_by_visibility(declarations_with_fixed_width_integers, header_module.export_declarations, header_module.internal_declarations, options.public_prefixes);
 
-        h::fix_custom_type_references(header_module);
         add_struct_member_default_values(header_module, header_module.export_declarations, declaration_database);
         add_struct_member_default_values(header_module, header_module.internal_declarations, declaration_database);
 

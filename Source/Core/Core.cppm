@@ -836,7 +836,7 @@ namespace h
     export struct Instantiate_member_value_pair
     {
         std::pmr::string member_name;
-        Statement value;
+        Expression_index value;
         std::optional<Source_range> source_range;
 
 #if HACK_SPACESHIP_OPERATOR
@@ -1270,5 +1270,11 @@ namespace h
     export Import_module_with_alias const* find_import_module_with_alias(
         h::Module const& core_module,
         std::string_view const alias_name
+    );
+
+    export h::Expression_index copy_expressions_to_new_statement(
+        h::Statement& destination_statement,
+        h::Statement const& source_statement,
+        h::Expression_index const source_expression_index
     );
 }

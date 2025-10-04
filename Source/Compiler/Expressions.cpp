@@ -2445,6 +2445,7 @@ namespace h::compiler
     }
 
     Value_and_type create_instantiate_struct_expression_value(
+        Statement const& statement,
         Instantiate_expression const& expression,
         Expression_parameters const& parameters,
         std::string_view const module_name,
@@ -2471,11 +2472,13 @@ namespace h::compiler
                 Type_reference const& member_type = struct_declaration.member_types[member_index];
 
                 auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_member_value_pair const& pair) { return pair.member_name == member_name; });
-                Statement const& member_value_statement = expression_pair_location != expression.members.end() ? expression_pair_location->value : struct_declaration.member_default_values[member_index];
-
+                
                 Expression_parameters new_parameters = parameters;
                 new_parameters.expression_type = member_type;
-                Value_and_type const member_value = create_loaded_statement_value(member_value_statement, new_parameters);
+                Value_and_type const member_value =
+                    expression_pair_location != expression.members.end() ?
+                    create_loaded_expression_value(expression_pair_location->value.expression_index, statement, new_parameters) :
+                    create_loaded_statement_value(struct_declaration.member_default_values[member_index], new_parameters);
 
                 generate_store_struct_member_instructions(
                     parameters.clang_module_data,
@@ -2514,11 +2517,9 @@ namespace h::compiler
                 if (pair.member_name != member_name)
                     throw std::runtime_error{ std::format("Expected struct member '{}' of struct '{}.{}' instead of '{}' while instantiating struct!", member_name, module_name, struct_declaration.name, pair.member_name) };
 
-                Statement const& member_value_statement = pair.value;
-
                 Expression_parameters new_parameters = parameters;
                 new_parameters.expression_type = member_type;
-                Value_and_type const member_value = create_loaded_statement_value(member_value_statement, new_parameters);
+                Value_and_type const member_value = create_loaded_expression_value(pair.value.expression_index, statement, new_parameters);
 
                 generate_store_struct_member_instructions(
                     parameters.clang_module_data,
@@ -2549,6 +2550,7 @@ namespace h::compiler
     }
 
     Value_and_type create_instantiate_union_expression_value(
+        Statement const& statement,
         Instantiate_expression const& expression,
         Expression_parameters const& parameters,
         std::string_view const module_name,
@@ -2604,7 +2606,7 @@ namespace h::compiler
 
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = member_type;
-        Value_and_type const member_value = create_loaded_statement_value(member_value_pair.value, new_parameters);
+        Value_and_type const member_value = create_loaded_expression_value(member_value_pair.value.expression_index, statement, new_parameters);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -2718,6 +2720,7 @@ namespace h::compiler
 
     Value_and_type create_instantiate_expression_value(
         Instantiate_expression const& expression,
+        Statement const& statement,
         Expression_parameters const& parameters
     )
     {
@@ -2746,12 +2749,12 @@ namespace h::compiler
         if (std::holds_alternative<Struct_declaration const*>(declaration.data))
         {
             Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration.data);
-            return create_instantiate_struct_expression_value(expression, parameters, declaration_module_name, struct_declaration, type_reference);
+            return create_instantiate_struct_expression_value(statement, expression, parameters, declaration_module_name, struct_declaration, type_reference);
         }
         else if (std::holds_alternative<Union_declaration const*>(declaration.data))
         {
             Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration.data);
-            return create_instantiate_union_expression_value(expression, parameters, declaration_module_name, union_declaration, type_reference);
+            return create_instantiate_union_expression_value(statement, expression, parameters, declaration_module_name, union_declaration, type_reference);
         }
 
         throw std::runtime_error{ std::format("Instantiate_expression can only be used to instantiate either structs or unions! Tried to instantiate '{}.{}'", declaration_module_name, custom_type_reference->name) };
@@ -3650,7 +3653,7 @@ namespace h::compiler
         else if (std::holds_alternative<Instantiate_expression>(expression.data))
         {
             Instantiate_expression const& data = std::get<Instantiate_expression>(expression.data);
-            return create_instantiate_expression_value(data, new_parameters);
+            return create_instantiate_expression_value(data, statement, new_parameters);
         }
         else if (std::holds_alternative<Null_pointer_expression>(expression.data))
         {

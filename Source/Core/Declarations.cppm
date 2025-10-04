@@ -141,6 +141,11 @@ namespace h
 
     export std::optional<Type_reference> get_underlying_type(
         Declaration_database const& declaration_database,
+        std::optional<Type_reference> const& type_reference
+    );
+
+    export std::optional<Type_reference> get_underlying_type(
+        Declaration_database const& declaration_database,
         Alias_type_declaration const& declaration
     );
 
@@ -238,5 +243,10 @@ namespace h
         Declaration_database const& database,
         std::string_view const module_name,
         std::function<bool(Declaration const& declaration)> const& visitor
+    );
+
+    export bool is_enum_type(
+        Declaration_database const& database,
+        Type_reference const& type
     );
 }

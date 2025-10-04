@@ -1628,6 +1628,14 @@ namespace h::parser
 
             return get_non_generic_expression_node(tree, child.value());
         }
+        else if (symbol == "Identifier" || symbol == "Variable_name" || symbol == "Expression_access_member_name")
+        {
+            std::optional<Parse_node> const parent = get_parent_node(node);
+            if (!parent.has_value())
+                return std::nullopt;
+            
+            return get_non_generic_expression_node(tree, parent.value());
+        }
         else
         {
             return node;
@@ -1791,6 +1799,7 @@ namespace h::parser
         }
         else
         {
+            statement.expressions.pop_back();
             return {.expression_index = static_cast<std::uint64_t>(-1)};
         }
 
@@ -2675,7 +2684,7 @@ namespace h::parser
             std::optional<Parse_node> const value_node = get_child_node(tree, member_node, "Generic_expression_or_instantiate");
             if (value_node.has_value())
             {
-                pair.value = node_to_statement(module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
+                pair.value = node_to_expression(statement, module_info, tree, value_node.value(), output_allocator, temporaries_allocator);
             }
             
             output.members.push_back(std::move(pair));

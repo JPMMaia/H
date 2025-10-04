@@ -187,6 +187,7 @@ namespace h::language_server
     std::pmr::vector<lsp::WorkspaceDocumentDiagnosticReport> create_all_diagnostics(
         std::span<std::filesystem::path const> const core_module_source_file_paths,
         std::span<std::optional<int> const> const core_module_versions,
+        std::pmr::vector<std::pmr::vector<h::compiler::Diagnostic>>& core_module_diagnostics,
         std::span<lsp::PreviousResultId const> const previous_result_ids,
         std::span<std::pmr::string> const core_module_diagnostic_result_ids,
         std::pmr::vector<bool>& core_module_diagnostic_dirty_flags,
@@ -275,6 +276,7 @@ namespace h::language_server
                     parser_diagnostics
                 );
 
+                core_module_diagnostics[core_module_index] = parser_diagnostics;
                 items.push_back(std::move(item));
             }
             else
@@ -302,6 +304,7 @@ namespace h::language_server
                     compiler_diagnostics
                 );
 
+                core_module_diagnostics[core_module_index] = result.diagnostics;
                 items.push_back(std::move(item));
             }
         }
@@ -328,6 +331,16 @@ namespace h::language_server
         }
     }
 
+    lsp::Opt<lsp::OneOf<int, lsp::String>> to_lsp_diagnostic_code(
+        std::optional<h::compiler::Diagnostic_code> const code
+    )
+    {
+        if (!code.has_value())
+            return std::nullopt;
+
+        return static_cast<int>(code.value());
+    }
+
     lsp::String diagnostic_source_to_string(
         h::compiler::Diagnostic_source const source
     )
@@ -351,7 +364,9 @@ namespace h::language_server
             .range = to_lsp_range(input.range),
             .message = lsp::String{input.message},
             .severity = to_lsp_diagnostic_severity(input.severity),
+            .code = to_lsp_diagnostic_code(input.code),
             .source = diagnostic_source_to_string(input.source),
+            .data = !input.data.empty() ? lsp::json::parse(input.data) : nullptr,
         };
     }
 }

@@ -238,7 +238,7 @@ namespace h
             for (h::Instantiate_member_value_pair const& pair : data.members)
             {
                 update_hash(state, pair.member_name);
-                update_hash(state, pair.value);
+                update_hash(state, statement, pair.value);
             }
         }
         else if (std::holds_alternative<h::Null_pointer_expression>(expression.data))
