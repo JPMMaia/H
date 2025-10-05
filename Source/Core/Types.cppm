@@ -110,7 +110,18 @@ namespace h
         if (done)
             return true;
 
-        if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
+        if (std::holds_alternative<Array_slice_type>(type_reference.data))
+        {
+            Array_slice_type const& data = std::get<Array_slice_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.element_type)
+            {
+                if (visit_type_references_recursively(nested_type_reference, predicate))
+                    return true;
+            }
+
+            return false;
+        }
+        else if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
         {
             return false;
         }

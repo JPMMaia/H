@@ -11,6 +11,7 @@ import h.compiler.analysis;
 import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
+import h.core.types;
 import h.parser.convertor;
 import h.parser.parser;
 
@@ -376,6 +377,7 @@ var my_global_1: Int32 = 2.0f32;
                 .range = create_source_range(4, 26, 4, 32),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             }
@@ -487,6 +489,7 @@ struct My_struct
                 .range = create_source_range(6, 16, 6, 22),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             }
@@ -586,6 +589,7 @@ struct My_struct_1
                 .range = create_source_range(23, 16, 23, 18),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'void' does not match expected type 'Int32'.",
                 .related_information = {},
             }
@@ -1184,6 +1188,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(6, 13, 6, 27),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Binary expression requires both operands to be of the same type. Left side type 'Int32' does not match right hand side type 'Float32'.",
                 .related_information = {},
             },
@@ -1191,6 +1196,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(7, 13, 7, 26),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Binary expression requires both operands to be of the same type. Left side type 'Bool' does not match right hand side type 'Float32'.",
                 .related_information = {},
             },
@@ -1198,6 +1204,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(13, 14, 13, 20),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Binary expression requires both operands to be of the same type. Left side type '*Int32' does not match right hand side type 'Int32'.",
                 .related_information = {},
             },
@@ -2241,6 +2248,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(8, 28, 8, 33),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "For loop range end type 'Int32' does not match range begin type 'Float32'.",
                 .related_information = {},
             },
@@ -2248,6 +2256,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(11, 23, 11, 30),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "For loop range end type 'Float32' does not match range begin type 'Int32'.",
                 .related_information = {},
             },
@@ -2255,6 +2264,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(14, 34, 14, 40),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "For loop step_by type 'Float32' does not match range begin type 'Int32'.",
                 .related_information = {},
             },
@@ -2615,6 +2625,7 @@ function run(value: Int32) -> ()
                 .range = create_source_range(11, 12, 11, 18),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Cannot assign value of type 'Float32' to member 'My_struct.a' of type 'Int32'.",
                 .related_information = {},
             },
@@ -2819,6 +2830,7 @@ function run() -> ()
                 .range = create_source_range(16, 37, 16, 47),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
                 .related_information = {},
             },
@@ -2826,6 +2838,7 @@ function run() -> ()
                 .range = create_source_range(24, 41, 24, 54),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type '*My_struct' does not match expected type '*mutable My_struct'.",
                 .related_information = {},
             },
@@ -2862,6 +2875,7 @@ function run() -> ()
                 .range = create_source_range(16, 37, 16, 59),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
                 .related_information = {},
             },
@@ -2889,6 +2903,7 @@ struct My_struct
                 .range = create_source_range(6, 16, 6, 20),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Null_pointer_type' does not match expected type 'Int32'.",
                 .related_information = {},
             },
@@ -2944,6 +2959,7 @@ function run(value: Int32) -> (result: Int32)
                 .range = create_source_range(22, 5, 22, 16),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Function 'run' expects a return value of type 'Int32', but 'Null_pointer_type' was provided.",
                 .related_information = {},
             },
@@ -3026,6 +3042,7 @@ function run_int32(value: Int32) -> (result: Int32)
                 .range = create_source_range(9, 9, 9, 17),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Function 'run_void' expects a return value of type 'void', but 'Int32' was provided.",
                 .related_information = {},
             },
@@ -3190,6 +3207,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(16, 14, 16, 20),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Switch case value type 'Float32' does not match switch condition type 'Int32'.",
                 .related_information = {},
             },
@@ -3244,6 +3262,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(20, 14, 20, 23),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Switch case value type 'My_enum' does not match switch condition type 'Int32'.",
                 .related_information = {},
             },
@@ -3251,6 +3270,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(26, 14, 26, 15),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Switch case value type 'Int32' does not match switch condition type 'My_enum'.",
                 .related_information = {},
             },
@@ -3258,6 +3278,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(29, 14, 29, 25),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Switch case value type 'My_enum_2' does not match switch condition type 'My_enum'.",
                 .related_information = {},
             },
@@ -3680,6 +3701,7 @@ function run() -> ()
                 .range = create_source_range(10, 20, 10, 26),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             },
@@ -3687,6 +3709,7 @@ function run() -> ()
                 .range = create_source_range(11, 20, 11, 31),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Float32' does not match expected type 'Int32'.",
                 .related_information = {},
             },
@@ -3756,6 +3779,7 @@ function run() -> ()
                 .range = create_source_range(21, 33, 21, 39),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Float32' does not match expected type 'My_struct'.",
                 .related_information = {},
             },
@@ -3763,6 +3787,7 @@ function run() -> ()
                 .range = create_source_range(24, 32, 24, 33),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Int32' does not match expected type 'My_union'.",
                 .related_information = {},
             },
@@ -3908,6 +3933,154 @@ using My_uint = Uint65;
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Type 'Uint65' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Constant_array can be implicitly converted to Array_slice", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function take_int32(integers: Array_slice<Int32>) -> ()
+{
+}
+
+export function take_int64(integers: Array_slice<Int64>) -> ()
+{
+}
+
+export function run() -> ()
+{
+    var a: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    
+    var b: Array_slice<Int32> = a;
+    take_int32(a);
+
+    var c: Array_slice<Int64> = a;
+    take_int64(a);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(18, 33, 18, 34),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(19, 16, 19, 17),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Array_slice elements are of the correct type", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run(integers: Array_slice<Int32>) -> ()
+{
+    var a: Int32 = integers[0];
+    var b: Int64 = integers[0];
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 20, 6, 31),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Int64'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Array_slice contains data and size", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run(integers: Array_slice<Int32>) -> ()
+{
+    var data: *Int32 = integers.data;
+    var size: Int64 = integers.size;
+    var random = integers.random;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 18, 7, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'random' does not exist in the type 'Array_slice<Int32>'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+    
+    TEST_CASE("Validates create_array_slice_from_pointer() usage", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run(data: *Int32, size: Uint64) -> ()
+{
+    var a: Array_slice<Int32> = create_array_slice_from_pointer(data, size);
+    var b: Array_slice<Int64> = create_array_slice_from_pointer(data, size);
+
+    var data_int64: *Int64 = null;
+    var c: Array_slice<Int64> = create_array_slice_from_pointer(data_int64, size);
+
+    var incorrect_size = 0i32;
+    var d = create_array_slice_from_pointer(data_int64, incorrect_size);
+
+    var incorrect_data = 0i32;
+    var e = create_array_slice_from_pointer(incorrect_data, size);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 33, 6, 76),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(12, 57, 12, 71),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Uint64'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(15, 45, 15, 59),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression type 'Int32' does not match expected type 'Pointer'.",
                 .related_information = {},
             }
         };

@@ -38,10 +38,14 @@ namespace h::compiler
             output_stream << std::format("({},{},{},{}): ", diagnostic.range.start.line, diagnostic.range.start.column, diagnostic.range.end.line, diagnostic.range.end.column);
 
         if (diagnostic.severity == Diagnostic_severity::Warning)
-            output_stream << "warning: ";
+            output_stream << "warning";
         else
-            output_stream << "error: ";
-        
+            output_stream << "error";
+
+        if (diagnostic.code.has_value())
+            output_stream << "(" << static_cast<int>(diagnostic.code.value()) << ")";
+
+        output_stream << ": ";
         output_stream << diagnostic.message;
 
         return output_stream;
