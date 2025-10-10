@@ -11,9 +11,9 @@ module h.language_server.inlay_hints;
 import h.compiler.analysis;
 import h.core;
 import h.core.declarations;
+import h.core.formatter;
 import h.core.types;
 import h.language_server.core;
-import h.parser.formatter;
 
 namespace h::language_server
 {
@@ -167,7 +167,7 @@ namespace h::language_server
 
         if (h::is_custom_type_reference(type))
         {
-            std::pmr::string const type_name = h::parser::format_type_reference(
+            std::pmr::string const type_name = h::format_type_reference(
                 core_module,
                 type,
                 temporaries_allocator,
@@ -347,7 +347,7 @@ namespace h::language_server
                 }
                 else
                 {
-                    std::pmr::string const type_name = h::parser::format_type_reference(
+                    std::pmr::string const type_name = h::format_type_reference(
                         core_module,
                         type,
                         temporaries_allocator,
@@ -382,7 +382,7 @@ namespace h::language_server
         }
         else
         {
-            std::pmr::string const type_name = h::parser::format_type_reference(
+            std::pmr::string const type_name = h::format_type_reference(
                 core_module,
                 type,
                 temporaries_allocator,

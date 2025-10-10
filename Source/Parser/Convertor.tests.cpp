@@ -7,8 +7,8 @@
 
 import h.common;
 import h.core;
+import h.core.formatter;
 import h.parser.convertor;
-import h.parser.formatter;
 import h.parser.parse_tree;
 import h.parser.parser;
 
@@ -50,7 +50,7 @@ namespace h::parser
                 .temporaries_allocator = temporaries_allocator,
             };
 
-            std::pmr::string const converted_text = format_module(
+            std::pmr::string const converted_text = h::format_module(
                 converted_module.value(),
                 format_options
             );

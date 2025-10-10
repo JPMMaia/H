@@ -21,13 +21,11 @@ target_sources(H_parser
    PUBLIC FILE_SET modules TYPE CXX_MODULES
       FILES
          "Convertor.cppm"
-         "Formatter.cppm"
          "Parse_tree.cppm"
          "Parser.cppm"
          "Type_name_parser.cppm"
    PRIVATE
       "Convertor.cpp"
-      "Formatter.cpp"
       "Parse_tree.cpp"
       "Parser.cpp"
       "Type_name_parser.cpp"

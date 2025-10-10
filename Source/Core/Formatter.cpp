@@ -10,13 +10,13 @@ module;
 #include <variant>
 #include <vector>
 
-module h.parser.formatter;
+module h.core.formatter;
 
 import h.core;
 import h.core.declarations;
 import h.core.types;
 
-namespace h::parser
+namespace h
 {
     static std::pmr::vector<std::string_view> decode_comment(
         std::string_view const value,

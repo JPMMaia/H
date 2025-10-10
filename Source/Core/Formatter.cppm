@@ -7,11 +7,11 @@ module;
 #include <sstream>
 #include <string>
 
-export module h.parser.formatter;
+export module h.core.formatter;
 
 import h.core;
 
-namespace h::parser
+namespace h
 {
     export struct Format_options
     {

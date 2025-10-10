@@ -14,10 +14,10 @@ import h.compiler.analysis;
 import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
+import h.core.formatter;
 import h.core.types;
 import h.language_server.core;
 import h.language_server.location;
-import h.parser.formatter;
 import h.parser.parse_tree;
 
 namespace h::language_server
@@ -297,7 +297,7 @@ namespace h::language_server
             original_expression.source_range->start
         );
 
-        std::pmr::string const new_text = h::parser::format_statement(
+        std::pmr::string const new_text = h::format_statement(
             core_module,
             statement,
             indentation,
@@ -383,11 +383,11 @@ namespace h::language_server
         std::optional<h::Type_reference> const provided_underlying_type = get_underlying_type(declaration_database, mismatch_data.provided_type);
         std::optional<h::Type_reference> const expected_underlying_type = get_underlying_type(declaration_database, mismatch_data.expected_type);
 
-        std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, mismatch_data.provided_type, temporaries_allocator, temporaries_allocator);
-        std::pmr::string const provided_underlying_type_name = h::parser::format_type_reference(core_module, provided_underlying_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const provided_type_name = h::format_type_reference(core_module, mismatch_data.provided_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const provided_underlying_type_name = h::format_type_reference(core_module, provided_underlying_type, temporaries_allocator, temporaries_allocator);
 
-        std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, mismatch_data.expected_type, temporaries_allocator, temporaries_allocator);
-        std::pmr::string const expected_underlying_type_name = h::parser::format_type_reference(core_module, expected_underlying_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const expected_type_name = h::format_type_reference(core_module, mismatch_data.expected_type, temporaries_allocator, temporaries_allocator);
+        std::pmr::string const expected_underlying_type_name = h::format_type_reference(core_module, expected_underlying_type, temporaries_allocator, temporaries_allocator);
 
         h::Source_range const source_range = h::create_source_range(
             diagnostic.range.end.line,

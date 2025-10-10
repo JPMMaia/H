@@ -17,8 +17,8 @@ import h.compiler.analysis;
 import h.compiler.diagnostic;
 import h.core;
 import h.core.declarations;
+import h.core.formatter;
 import h.core.types;
-import h.parser.formatter;
 
 namespace h::compiler
 {
@@ -341,7 +341,7 @@ namespace h::compiler
 
         if (!declaration.has_value())
         {
-            std::pmr::string const type_name = h::parser::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
+            std::pmr::string const type_name = h::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
 
             return
             {
@@ -367,7 +367,7 @@ namespace h::compiler
 
         if (integer_type.number_of_bits != 8 && integer_type.number_of_bits != 16 && integer_type.number_of_bits != 32 && integer_type.number_of_bits != 64)
         {
-            std::pmr::string const type_name = h::parser::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
+            std::pmr::string const type_name = h::format_type_reference(core_module, type, temporaries_allocator, temporaries_allocator);
 
             return
             {
@@ -755,8 +755,8 @@ namespace h::compiler
 
             if (!are_compatible_types(declaration_database, declaration.type, type_reference))
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, type_reference, temporaries_allocator, temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, declaration.type, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(core_module, type_reference, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(core_module, declaration.type, temporaries_allocator, temporaries_allocator);
 
                 return
                 {
@@ -846,8 +846,8 @@ namespace h::compiler
 
             if (!are_compatible_types(declaration_database, default_value_type, member_type))
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, default_value_type, temporaries_allocator, temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(core_module, member_type, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(core_module, default_value_type, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(core_module, member_type, temporaries_allocator, temporaries_allocator);
 
                 diagnostics.push_back(
                     create_error_diagnostic_with_code(
@@ -1030,7 +1030,7 @@ namespace h::compiler
 
             if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(core_module, condition_type_optional, temporaries_allocator, temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(core_module, condition_type_optional, temporaries_allocator, temporaries_allocator);
 
                 diagnostics.push_back(
                     create_error_diagnostic(
@@ -1335,7 +1335,7 @@ namespace h::compiler
                     );
                     if (!function_declaration.has_value() || (!std::holds_alternative<h::Function_declaration const*>(function_declaration->data) && !std::holds_alternative<h::Function_constructor const*>(function_declaration->data)))
                     {
-                        std::pmr::string const type_full_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+                        std::pmr::string const type_full_name = h::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                         return
                         {
@@ -1453,7 +1453,7 @@ namespace h::compiler
 
         if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
         {
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return 
             {
@@ -1502,7 +1502,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to integers or bytes.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1519,7 +1519,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to integers, bytes or enums.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1540,7 +1540,7 @@ namespace h::compiler
                             source_range,
                             std::format(
                                 "Binary operation '{}' can only be applied to numbers, bytes or booleans.",
-                                h::parser::binary_operation_symbol_to_string(operation)
+                                h::binary_operation_symbol_to_string(operation)
                             )
                         )
                     };
@@ -1555,7 +1555,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to numbers, bytes, booleans or enums.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1572,7 +1572,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to numeric types.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1589,7 +1589,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to a boolean value.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1606,7 +1606,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation '{}' can only be applied to numeric types.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1623,7 +1623,7 @@ namespace h::compiler
                         source_range,
                         std::format(
                             "Binary operation 'has' can only be applied to enum values.",
-                            h::parser::binary_operation_symbol_to_string(operation)
+                            h::binary_operation_symbol_to_string(operation)
                         )
                     )
                 };
@@ -1645,8 +1645,8 @@ namespace h::compiler
         if (!can_assign_type(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
             h::Expression const& right_hand_side_expression = parameters.statement.expressions[expression.right_hand_side.expression_index];
-            std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-            std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const left_hand_side_type_name = h::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const right_hand_side_type_name = h::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -1703,8 +1703,8 @@ namespace h::compiler
         
         if (!are_compatible_types(parameters.declaration_database, left_hand_side_type_optional, right_hand_side_type_optional))
         {
-            std::pmr::string const left_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-            std::pmr::string const right_hand_side_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const left_hand_side_type_name = h::format_type_reference(parameters.core_module, left_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const right_hand_side_type_name = h::format_type_reference(parameters.core_module, right_hand_side_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -1961,8 +1961,8 @@ namespace h::compiler
             if (!can_assign_type(parameters.declaration_database, parameter_type, argument_type_optional))
             {
                 std::optional<Source_range> const argument_source_range = parameters.statement.expressions[expression_index].source_range;
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, argument_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, parameter_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, argument_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, parameter_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 diagnostics.push_back(
                     {
@@ -2002,8 +2002,8 @@ namespace h::compiler
                     source_range,
                     std::format(
                         "Cannot apply numeric cast from '{}' to '{}'.",
-                        h::parser::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
-                        h::parser::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                        h::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
                     )
                 )
             };
@@ -2028,8 +2028,8 @@ namespace h::compiler
                     source_range,
                     std::format(
                         "Cannot apply numeric cast from '{}' to '{}'.",
-                        h::parser::format_type_reference(parameters.core_module, underlying_source_type, parameters.temporaries_allocator, parameters.temporaries_allocator),
-                        h::parser::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                        h::format_type_reference(parameters.core_module, underlying_source_type, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::format_type_reference(parameters.core_module, underlying_destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
                     )
                 )
             };
@@ -2044,8 +2044,8 @@ namespace h::compiler
                     source_range,
                     std::format(
                         "Numeric cast from '{}' to '{}'.",
-                        h::parser::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
-                        h::parser::format_type_reference(parameters.core_module, expression.destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
+                        h::format_type_reference(parameters.core_module, source_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                        h::format_type_reference(parameters.core_module, expression.destination_type, parameters.temporaries_allocator, parameters.temporaries_allocator)
                     )
                 )
             };
@@ -2096,7 +2096,7 @@ namespace h::compiler
         if (!range_begin_type_optional.has_value() || (!is_integer(range_begin_type_optional.value()) && !is_floating_point(range_begin_type_optional.value())))
         {
             h::Expression const& range_begin_expression = parameters.statement.expressions[expression.range_begin.expression_index];
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -2142,8 +2142,8 @@ namespace h::compiler
 
         if (!are_compatible_types(parameters.declaration_database, range_begin_type_optional, range_end_type_optional))
         {
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, range_end_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-            std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, range_end_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -2168,8 +2168,8 @@ namespace h::compiler
             if (!are_compatible_types(parameters.declaration_database, range_begin_type_optional, step_by_type_optional))
             {
                 h::Expression const& step_by_expression = parameters.statement.expressions[expression.step_by->expression_index];
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, step_by_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, step_by_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, range_begin_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 return
                 {
@@ -2241,7 +2241,7 @@ namespace h::compiler
 
                     if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
                     {
-                        std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                        std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                         diagnostics.push_back(
                             create_error_diagnostic(
@@ -2364,7 +2364,7 @@ namespace h::compiler
                         create_sub_source_range(pair.source_range, 0, pair.member_name.size()),
                         std::format(
                             "'{}.{}' does not exist.",
-                            h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            h::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
                             pair.member_name
                         )
                     )
@@ -2386,8 +2386,8 @@ namespace h::compiler
 
             if (!are_compatible_types(parameters.declaration_database, member_type, assigned_value_type))
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, assigned_value_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, member_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, assigned_value_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, member_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 return
                 {
@@ -2397,7 +2397,7 @@ namespace h::compiler
                         std::format(
                             "Cannot assign value of type '{}' to member '{}.{}' of type '{}'.",
                             provided_type_name,
-                            h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            h::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
                             pair.member_name,
                             expected_type_name
                         ),
@@ -2452,7 +2452,7 @@ namespace h::compiler
                                 source_range,
                                 std::format(
                                     "'{}.{}' is not set. Explicit instantiate expression requires all members to be set.",
-                                    h::parser::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                                    h::format_type_reference(parameters.core_module, type_to_instantiate, parameters.temporaries_allocator, parameters.temporaries_allocator),
                                     member_info.member_name
                                 )
                             )
@@ -2487,8 +2487,8 @@ namespace h::compiler
 
             if (!are_compatible_types(parameters.declaration_database, provided_type, expected_type))
             {
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, provided_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, provided_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 return
                 {
@@ -2513,7 +2513,7 @@ namespace h::compiler
             {
                 if (!parameters.function_declaration->type.output_parameter_types.empty())
                 {
-                    std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                    std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, expected_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                     return {
                         create_error_diagnostic(
@@ -2544,7 +2544,7 @@ namespace h::compiler
         if (!type_optional.has_value() || (!is_enum_type(parameters.declaration_database, type_optional.value()) && !is_integer(type_optional.value())))
         {
             h::Expression const& value_expression = parameters.statement.expressions[expression.value.expression_index];
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -2592,8 +2592,8 @@ namespace h::compiler
 
             if (!are_compatible_types(parameters.declaration_database, type_optional, case_value_type_optional))
             {
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, case_value_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, case_value_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 diagnostics.push_back(
                     create_error_diagnostic_with_code(
@@ -2648,7 +2648,7 @@ namespace h::compiler
         if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
         {
             h::Expression const& condition_expression = parameters.statement.expressions[expression.condition.expression_index];
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -2714,8 +2714,8 @@ namespace h::compiler
 
         if (!are_compatible_types(parameters.declaration_database, then_type_optional, else_type_optional))
         {
-            std::pmr::string const then_type_name = h::parser::format_type_reference(parameters.core_module, then_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
-            std::pmr::string const else_type_name = h::parser::format_type_reference(parameters.core_module, else_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const then_type_name = h::format_type_reference(parameters.core_module, then_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const else_type_name = h::format_type_reference(parameters.core_module, else_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return
             {
@@ -2795,7 +2795,7 @@ namespace h::compiler
                             create_sub_source_range(source_range, 0, 1),
                             std::format(
                                 "Cannot apply unary operation '{}' to expression.",
-                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                                h::unary_operation_symbol_to_string(expression.operation)
                             )
                         )
                     };
@@ -2813,7 +2813,7 @@ namespace h::compiler
                             create_sub_source_range(source_range, 0, 1),
                             std::format(
                                 "Cannot apply unary operation '{}' to expression.",
-                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                                h::unary_operation_symbol_to_string(expression.operation)
                             )
                         )
                     };
@@ -2831,7 +2831,7 @@ namespace h::compiler
                             create_sub_source_range(source_range, 0, 1),
                             std::format(
                                 "Cannot apply unary operation '{}' to expression.",
-                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                                h::unary_operation_symbol_to_string(expression.operation)
                             )
                         )
                     };
@@ -2849,7 +2849,7 @@ namespace h::compiler
                             create_sub_source_range(source_range, 0, 1),
                             std::format(
                                 "Cannot apply unary operation '{}' to expression.",
-                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                                h::unary_operation_symbol_to_string(expression.operation)
                             )
                         )
                     };
@@ -2869,7 +2869,7 @@ namespace h::compiler
                             create_sub_source_range(source_range, 0, 1),
                             std::format(
                                 "Cannot apply unary operation '{}' to expression.",
-                                h::parser::unary_operation_symbol_to_string(expression.operation)
+                                h::unary_operation_symbol_to_string(expression.operation)
                             )
                         )
                     };
@@ -2983,7 +2983,7 @@ namespace h::compiler
                         right_hand_side.source_range,
                         std::format(
                             "Cannot assign expression of type '{}' to variable '{}'. Expected struct or union type.",
-                            h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator),
+                            h::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator),
                             expression.name
                         )
                     )
@@ -3004,8 +3004,8 @@ namespace h::compiler
 
             if (!can_assign_type(parameters.declaration_database, type, right_hand_side_type))
             {
-                std::pmr::string const expected_type_name = h::parser::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator);
-                std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, type, parameters.temporaries_allocator, parameters.temporaries_allocator);
+                std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, right_hand_side_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
                 return
                 {
@@ -3096,7 +3096,7 @@ namespace h::compiler
 
         if (!condition_type_optional.has_value() || (!is_bool(condition_type_optional.value()) && !is_c_bool(condition_type_optional.value())))
         {
-            std::pmr::string const provided_type_name = h::parser::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
+            std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, condition_type_optional, parameters.temporaries_allocator, parameters.temporaries_allocator);
 
             return 
             {
