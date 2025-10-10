@@ -3971,14 +3971,15 @@ export function run() -> ()
                 .range = create_source_range(18, 33, 18, 34),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Constant_array<Int32, 4>' does not match expected type 'Array_slice<Int64>'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(19, 16, 19, 17),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .message = "Argument 0 type is 'Array_slice<Int64>' but 'Constant_array<Int32, 4>' was provided.",
                 .related_information = {},
             }
         };
@@ -4004,6 +4005,7 @@ export function run(integers: Array_slice<Int32>) -> ()
                 .range = create_source_range(6, 20, 6, 31),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Int32' does not match expected type 'Int64'.",
                 .related_information = {},
             }

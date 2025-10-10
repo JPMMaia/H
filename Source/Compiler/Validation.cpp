@@ -151,6 +151,21 @@ namespace h::compiler
         if (is_function_pointer(destination_type) && is_null_pointer_type(source_type))
             return true;
 
+        if (std::holds_alternative<h::Array_slice_type>(destination_type.data))
+        {
+            h::Array_slice_type const& array_slice_type = std::get<h::Array_slice_type>(destination_type.data);
+
+            if (std::holds_alternative<h::Constant_array_type>(source_type.data))
+            {
+                h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(source_type.data);
+
+                if (array_slice_type.element_type.empty() && constant_array_type.value_type.empty())
+                    return true;
+
+                return array_slice_type.element_type[0] == constant_array_type.value_type[0];
+            }
+        }
+
         return destination == source;
     }
 
