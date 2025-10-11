@@ -1367,6 +1367,27 @@ namespace h::compiler
                     }
                 }
             }
+
+            if (std::holds_alternative<h::Array_slice_type>(left_hand_side_type->data))
+            {
+                if (access_expression.member_name != "data" && access_expression.member_name != "length")
+                {
+                    std::pmr::string const type_full_name = h::format_type_reference(parameters.core_module, left_hand_side_type.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                    return
+                    {
+                        create_error_diagnostic(
+                            parameters.core_module.source_file_path,
+                            source_range,
+                            std::format(
+                                "Member '{}' does not exist in the type '{}'.",
+                                access_expression.member_name,
+                                type_full_name
+                            )
+                        )
+                    };
+                }
+            }
         }
         else
         {

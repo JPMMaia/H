@@ -4021,7 +4021,7 @@ export function run(integers: Array_slice<Int32>) -> ()
 export function run(integers: Array_slice<Int32>) -> ()
 {
     var data: *Int32 = integers.data;
-    var size: Int64 = integers.size;
+    var length: Uint64 = integers.length;
     var random = integers.random;
 }
 )";
@@ -4045,19 +4045,19 @@ export function run(integers: Array_slice<Int32>) -> ()
     {
         std::string_view const input = R"(module Array_slices;
 
-export function run(data: *Int32, size: Uint64) -> ()
+export function run(data: *Int32, length: Uint64) -> ()
 {
-    var a: Array_slice<Int32> = create_array_slice_from_pointer(data, size);
-    var b: Array_slice<Int64> = create_array_slice_from_pointer(data, size);
+    var a: Array_slice<Int32> = create_array_slice_from_pointer(data, length);
+    var b: Array_slice<Int64> = create_array_slice_from_pointer(data, length);
 
     var data_int64: *Int64 = null;
-    var c: Array_slice<Int64> = create_array_slice_from_pointer(data_int64, size);
+    var c: Array_slice<Int64> = create_array_slice_from_pointer(data_int64, length);
 
-    var incorrect_size = 0i32;
-    var d = create_array_slice_from_pointer(data_int64, incorrect_size);
+    var incorrect_length = 0i32;
+    var d = create_array_slice_from_pointer(data_int64, incorrect_length);
 
     var incorrect_data = 0i32;
-    var e = create_array_slice_from_pointer(incorrect_data, size);
+    var e = create_array_slice_from_pointer(incorrect_data, length);
 }
 )";
 

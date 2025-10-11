@@ -3,7 +3,7 @@ module Array_slices;
 export function take(integers: Array_slice<Int32>) -> ()
 {
     var data: *Int32 = integers.data;
-    var size = integers.size;
+    var length = integers.length;
 
     var element: Int32 = integers[0];
 }

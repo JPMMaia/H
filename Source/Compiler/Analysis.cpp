@@ -865,6 +865,29 @@ namespace h::compiler
 
                 return std::nullopt;
             }
+            else if (std::holds_alternative<h::Array_slice_type>(type_reference.value().data))
+            {
+                h::Array_slice_type const& array_slice_type = std::get<h::Array_slice_type>(type_reference.value().data);
+
+                if (data.member_name == "data")
+                {
+                    return Type_info
+                    {
+                        .type = create_pointer_type_type_reference(array_slice_type.element_type, false),
+                        .is_mutable = false,
+                    };
+                }
+                else if (data.member_name == "length")
+                {
+                    return Type_info
+                    {
+                        .type = h::create_integer_type_type_reference(64, false),
+                        .is_mutable = false,
+                    };
+                }
+
+                return std::nullopt;
+            }
             else if (std::holds_alternative<h::Custom_type_reference>(type_reference.value().data))
             {
                 std::optional<Declaration> const declaration = find_underlying_declaration(
