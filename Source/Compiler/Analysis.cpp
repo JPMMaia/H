@@ -1059,7 +1059,52 @@ namespace h::compiler
             Call_expression const& data = std::get<h::Call_expression>(expression.data);
 
             std::optional<h::Type_reference> const type_reference = get_expression_type(core_module, nullptr, scope, statement, statement.expressions[data.expression.expression_index], std::nullopt, declaration_database);
-            if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
+
+            if (type_reference.has_value() && std::holds_alternative<h::Builtin_type_reference>(type_reference.value().data))
+            {
+                h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(type_reference.value().data);
+                
+                if (builtin_type_reference.value == "create_array_slice_from_pointer")
+                {
+                    std::pmr::vector<h::Type_reference> element_type;
+
+                    if (data.arguments.size() > 0)
+                    {
+                        std::optional<Type_info> const first_argument_type_info = get_expression_type_info(core_module, nullptr, scope, statement, statement.expressions[data.arguments[0].expression_index], std::nullopt, declaration_database);
+                        if (first_argument_type_info.has_value() && is_pointer(first_argument_type_info->type))
+                        {
+                            std::optional<Type_reference> value_type = remove_pointer(first_argument_type_info->type);
+                            if (value_type.has_value())
+                                element_type.push_back(std::move(value_type.value()));
+                        }
+                    }
+
+                    return Type_info
+                    {
+                        .type = create_array_slice_type_reference(element_type),
+                        .is_mutable = false,
+                    };
+
+                    /*h::Function_type function_type
+                    {
+                        .input_parameter_types = {
+                            create_pointer_type_type_reference(element_type, false),
+                            create_integer_type_type_reference(64, false)
+                        },
+                        .output_parameter_types = {
+                            create_array_slice_type_reference(element_type)
+                        },
+                        .is_variadic = false,
+                    };
+
+                    return Type_info
+                    {
+                        .type = create_function_type_type_reference(std::move(function_type), {"data", "length"}, {"array"}),
+                        .is_mutable = false,
+                    };*/
+                }
+            }
+            else if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
             {
                 std::optional<Deduced_instance_call> const deduced_instance_call = deduce_instance_call_arguments(
                     declaration_database,
@@ -1449,6 +1494,18 @@ namespace h::compiler
                             .is_mutable = false,
                         };
                     }
+                }
+            }
+
+            // Try builtins:
+            {
+                if (data.name == "create_array_slice_from_pointer")
+                {
+                    return Type_info
+                    {
+                        .type = create_builtin_type_reference(data.name),
+                        .is_mutable = false,
+                    };
                 }
             }
 

@@ -15,11 +15,14 @@ import h.core;
 
 namespace h
 {
+    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type);
+
     export Type_reference create_bool_type_reference();
     export bool is_bool(Type_reference const& type);
     export bool is_c_bool(Type_reference const& type);
 
     export Type_reference create_builtin_type_reference(std::pmr::string value);
+    export bool is_builtin_type_reference(Type_reference const& type);
 
     export Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size);
 

@@ -4065,24 +4065,25 @@ export function run(data: *Int32, length: Uint64) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 33, 6, 76),
+                .range = create_source_range(6, 33, 6, 78),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
                 .related_information = {},
             },
             {
-                .range = create_source_range(12, 57, 12, 71),
+                .range = create_source_range(12, 57, 12, 73),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Uint64'.",
+                .message = "Argument 1 type is 'Uint64' but 'Int32' was provided.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(15, 45, 15, 59),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Expression type 'Int32' does not match expected type 'Pointer'.",
+                .message = "Argument 0 type is '*void' but 'Int32' was provided.",
                 .related_information = {},
             }
         };

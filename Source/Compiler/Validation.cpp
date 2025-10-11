@@ -1884,6 +1884,60 @@ namespace h::compiler
         return nullptr;
     }
 
+    std::optional<h::Function_pointer_type> get_function_pointer_type_from_callable(
+        Validate_expression_parameters const& parameters,
+        h::Call_expression const& expression,
+        std::optional<h::Type_reference> const& callable_type
+    )
+    {
+        if (!callable_type.has_value())
+            return std::nullopt;
+
+        if (is_function_pointer(callable_type.value()))
+            return std::get<h::Function_pointer_type>(callable_type->data);
+
+        if (is_builtin_type_reference(callable_type.value()))
+        {
+            h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(callable_type->data);
+            if (builtin_type_reference.value == "create_array_slice_from_pointer")
+            {
+                std::pmr::vector<h::Type_reference> element_type;
+
+                if (expression.arguments.size() > 0)
+                {
+                    std::optional<Type_info> const first_argument_type_info = get_expression_type_info(parameters.core_module, nullptr, parameters.scope, parameters.statement, parameters.statement.expressions[expression.arguments[0].expression_index], std::nullopt, parameters.declaration_database);
+                    if (first_argument_type_info.has_value() && is_pointer(first_argument_type_info->type))
+                    {
+                        std::optional<Type_reference> value_type = remove_pointer(first_argument_type_info->type);
+                        if (value_type.has_value())
+                            element_type.push_back(std::move(value_type.value()));
+                    }
+                }
+
+                h::Function_type function_type
+                {
+                    .input_parameter_types = {
+                        create_pointer_type_type_reference(element_type, false),
+                        create_integer_type_type_reference(64, false)
+                    },
+                    .output_parameter_types = {
+                        create_array_slice_type_reference(element_type)
+                    },
+                    .is_variadic = false,
+                };
+
+                return h::Function_pointer_type
+                {
+                    .type = std::move(function_type),
+                    .input_parameter_names = {"data", "length"},
+                    .output_parameter_names = {"array"}
+                };
+            }
+        }
+
+        return std::nullopt;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_call_expression(
         Validate_expression_parameters const& parameters,
         h::Call_expression const& expression,
@@ -1929,7 +1983,13 @@ namespace h::compiler
             return {};
         }
 
-        if (!callable_type_optional.has_value() || !is_function_pointer(callable_type_optional.value()))
+        const std::optional<h::Function_pointer_type> function_pointer_type_optional = get_function_pointer_type_from_callable(
+            parameters,
+            expression,
+            callable_type_optional
+        );
+
+        if (!function_pointer_type_optional.has_value())
         {
             return
             {
@@ -1941,7 +2001,7 @@ namespace h::compiler
             };
         }
 
-        h::Function_pointer_type const& function_pointer_type = std::get<h::Function_pointer_type>(callable_type_optional->data);
+        h::Function_pointer_type const& function_pointer_type = function_pointer_type_optional.value();
 
         std::pmr::vector<Expression_index> const call_arguments = get_implicit_call_aguments(
             parameters.statement,
@@ -3063,6 +3123,11 @@ namespace h::compiler
         return {};
     }
 
+    static bool is_builtin_function(std::string_view const name)
+    {
+        return name == "create_array_slice_from_pointer";
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
@@ -3089,6 +3154,9 @@ namespace h::compiler
             expression.name
         );
         if (import_alias != nullptr)
+            return {};
+
+        if (is_builtin_function(expression.name))
             return {};
 
         return

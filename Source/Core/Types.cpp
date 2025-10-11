@@ -18,6 +18,17 @@ import h.core;
 
 namespace h
 {
+    Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type)
+    {
+        return
+        {
+            .data = h::Array_slice_type
+            {
+                .element_type = std::move(element_type)
+            }
+        };
+    }
+
     Type_reference create_bool_type_reference()
     {
         return create_fundamental_type_type_reference(Fundamental_type::Bool);
@@ -55,6 +66,11 @@ namespace h
                 .value = std::move(value),
             }
         }; 
+    }
+
+    bool is_builtin_type_reference(Type_reference const& type)
+    {
+        return std::holds_alternative<Builtin_type_reference>(type.data);
     }
 
 
