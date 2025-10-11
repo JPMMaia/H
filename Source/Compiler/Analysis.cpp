@@ -960,7 +960,19 @@ namespace h::compiler
             if (!lhs_type_reference.has_value())
                 return std::nullopt;
 
-            if (std::holds_alternative<h::Constant_array_type>(lhs_type_reference->data))
+            if (std::holds_alternative<h::Array_slice_type>(lhs_type_reference->data))
+            {
+                h::Array_slice_type const& array_type = std::get<h::Array_slice_type>(lhs_type_reference->data);
+                if (array_type.element_type.empty())
+                    return std::nullopt;
+
+                return Type_info
+                {
+                    .type = array_type.element_type[0],
+                    .is_mutable = lhs_type_info->is_mutable,
+                };
+            }
+            else if (std::holds_alternative<h::Constant_array_type>(lhs_type_reference->data))
             {
                 h::Constant_array_type const& array_type = std::get<h::Constant_array_type>(lhs_type_reference->data);
                 if (array_type.value_type.empty())
