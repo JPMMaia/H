@@ -944,7 +944,17 @@ namespace h::compiler
         Type_database const& type_database
     )
     {
-        if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
+        if (std::holds_alternative<Array_slice_type>(type_reference.data))
+        {
+            LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at("H.Builtin");
+            auto const location = llvm_type_map.find("Generic_array_slice");
+            if (location == llvm_type_map.end())
+                throw std::runtime_error{ "Could not find Generic_array_slice LLVM type!" };
+
+            llvm::Type* const llvm_type = location->second;
+            return llvm_type;
+        }
+        else if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
         {
             // Builtin_type_reference const& data = std::get<Builtin_type_reference>(type_reference.data);
             throw std::runtime_error{ "Not implemented." };

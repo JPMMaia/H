@@ -166,6 +166,126 @@ namespace h
     h::parser::destroy_parser(std::move(parser));
   }
 
+  TEST_CASE("Compile Array Slices", "[LLVM_IR]")
+  {
+    char const* const input_file = "array_slices.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define void @Array_slices_take(ptr %"arguments[0].integers_0", i64 %"arguments[0].integers_1") #0 {
+entry:
+  %integers = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %data = alloca ptr, align 8
+  %length = alloca i64, align 8
+  %v0 = alloca i32, align 4
+  %v1 = alloca i32, align 4
+  %v2 = alloca i32, align 4
+  %0 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 0
+  store ptr %"arguments[0].integers_0", ptr %0, align 8
+  %1 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 1
+  store i64 %"arguments[0].integers_1", ptr %1, align 8
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  store ptr %2, ptr %data, align 8
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1
+  %4 = load i64, ptr %3, align 8
+  store i64 %4, ptr %length, align 8
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer = getelementptr i32, ptr %5, i32 0
+  %6 = load i32, ptr %array_slice_element_pointer, align 4
+  store i32 %6, ptr %v0, align 4
+  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer1 = getelementptr i32, ptr %7, i32 1
+  %8 = load i32, ptr %array_slice_element_pointer1, align 4
+  store i32 %8, ptr %v1, align 4
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer2 = getelementptr i32, ptr %9, i32 2
+  %10 = load i32, ptr %array_slice_element_pointer2, align 4
+  store i32 %10, ptr %v2, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+define void @Array_slices_run() #0 {
+entry:
+  %array = alloca [4 x i32], i64 4, align 4
+  %a = alloca [4 x i32], align 4
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array4 = alloca [1 x i32], i64 1, align 4
+  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %b = alloca i32, align 4
+  %c = alloca ptr, align 8
+  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
+  store i32 0, ptr %array_element_pointer, align 4
+  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1
+  store i32 1, ptr %array_element_pointer1, align 4
+  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2
+  store i32 2, ptr %array_element_pointer2, align 4
+  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
+  store i32 3, ptr %array_element_pointer3, align 4
+  %4 = load [4 x i32], ptr %array, align 4
+  store [4 x i32] %4, ptr %a, align 4
+  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %data_pointer, ptr %5, align 8
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 4, ptr %6, align 8
+  %7 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 0
+  %8 = load ptr, ptr %7, align 8
+  %9 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 1
+  %10 = load i64, ptr %9, align 8
+  call void @Array_slices_take(ptr %8, i64 %10)
+  %11 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0
+  store ptr null, ptr %11, align 8
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1
+  store i64 0, ptr %12, align 8
+  %13 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 0
+  %14 = load ptr, ptr %13, align 8
+  %15 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 1
+  %16 = load i64, ptr %15, align 8
+  call void @Array_slices_take(ptr %14, i64 %16)
+  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
+  store i32 4, ptr %array_element_pointer5, align 4
+  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
+  %17 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0
+  store ptr %data_pointer6, ptr %17, align 8
+  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1
+  store i64 1, ptr %18, align 8
+  %19 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 0
+  %20 = load ptr, ptr %19, align 8
+  %21 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 1
+  %22 = load i64, ptr %21, align 8
+  call void @Array_slices_take(ptr %20, i64 %22)
+  store i32 0, ptr %b, align 4
+  store ptr %b, ptr %c, align 8
+  %23 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0
+  store ptr %c, ptr %23, align 8
+  %24 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1
+  store i64 1, ptr %24, align 8
+  %25 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8
+  store %struct.H_Builtin_Generic_array_slice %25, ptr %d, align 8
+  %26 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 0
+  %27 = load ptr, ptr %26, align 8
+  %28 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 1
+  %29 = load i64, ptr %28, align 8
+  call void @Array_slices_take(ptr %27, i64 %29)
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
   {
     char const* const input_file = "assert_expressions.hltxt";

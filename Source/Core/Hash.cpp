@@ -129,6 +129,7 @@ namespace h
             update_hash(state, &index, sizeof(index));
         }
 
+        // TODO array_slice_type
         if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
         {
             h::Builtin_type_reference const& data = std::get<h::Builtin_type_reference>(type_reference.data);

@@ -29,6 +29,11 @@ namespace h
         };
     }
 
+    bool is_array_slice_type_reference(Type_reference const& type)
+    {
+        return std::holds_alternative<Array_slice_type>(type.data);
+    }
+
     Type_reference create_bool_type_reference()
     {
         return create_fundamental_type_type_reference(Fundamental_type::Bool);
@@ -84,6 +89,16 @@ namespace h
                 .size = size,
             }
         }; 
+    }
+
+    std::uint64_t get_constant_array_type_size(Type_reference const& type_reference)
+    {
+        return std::get<Constant_array_type>(type_reference.data).size;
+    }
+
+    bool is_constant_array_type_reference(Type_reference const& type)
+    {
+        return std::holds_alternative<Constant_array_type>(type.data);
     }
 
 
@@ -457,7 +472,15 @@ namespace h
 
     std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type)
     {
-        if (std::holds_alternative<Constant_array_type>(type.data))
+        if (std::holds_alternative<Array_slice_type>(type.data))
+        {
+            Array_slice_type const& array_slice_type = std::get<Array_slice_type>(type.data);
+            if (array_slice_type.element_type.empty())
+                return std::nullopt;
+
+            return array_slice_type.element_type.front();
+        }
+        else if (std::holds_alternative<Constant_array_type>(type.data))
         {
             Constant_array_type const& constant_array_type = std::get<Constant_array_type>(type.data);
             if (constant_array_type.value_type.empty())
@@ -491,5 +514,53 @@ namespace h
         }
 
         return std::nullopt;
+    }
+
+    h::Struct_declaration create_array_slice_type_struct_declaration(std::pmr::vector<Type_reference> const& element_type)
+    {
+        h::Type_reference const uint64_type
+        {
+            .data = h::Integer_type
+            {
+                .number_of_bits = 64,
+                .is_signed = false
+            }
+        };
+
+        return h::Struct_declaration
+        {
+            .name = "Generic_array_slice",
+            .member_types = {
+                h::create_pointer_type_type_reference(element_type, false),
+                h::create_integer_type_type_reference(64, false)
+            },
+            .member_names = {
+                "data",
+                "length"
+            },
+            .member_bit_fields = {
+                std::nullopt,
+                std::nullopt
+            },
+            .member_default_values = {
+                h::Statement{ 
+                    .expressions = {
+                        h::Expression{ .data = h::Null_pointer_expression{} }
+                    }
+                },
+                h::Statement{
+                    .expressions = {
+                        h::Expression{
+                            .data = h::Constant_expression {
+                                .type = uint64_type,
+                                .data = 0
+                            }
+                        }
+                    }
+                }
+            },
+            .is_packed = false,
+            .is_literal = false,
+        };
     }
 }

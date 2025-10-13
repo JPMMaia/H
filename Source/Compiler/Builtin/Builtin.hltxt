@@ -1,5 +1,11 @@
 module H.Builtin;
 
+export struct Generic_array_slice
+{
+    data: *Byte = null;
+    length: Uint64 = 0u64;
+}
+
 export struct String
 {
     data: *Byte = null;

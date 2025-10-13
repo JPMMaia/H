@@ -584,6 +584,22 @@ namespace h::compiler
             }
         }
 
+        if (left_hand_side.type.has_value() && h::is_array_slice_type_reference(left_hand_side.type.value()))
+        {
+            h::Array_slice_type const& array_slice_type = std::get<h::Array_slice_type>(left_hand_side.type->data);
+
+            h::Struct_declaration const struct_declaration = create_array_slice_type_struct_declaration(array_slice_type.element_type);
+
+            return create_access_struct_member(
+                left_hand_side,
+                expression.member_name,
+                "H.Builtin",
+                struct_declaration,
+                std::nullopt,
+                parameters
+            );
+        }
+
         {
             std::optional<Custom_type_reference> custom_type_reference = get_custom_type_reference_from_access_expression(expression, left_hand_side, statement, core_module.name);
 
@@ -723,6 +739,35 @@ namespace h::compiler
         std::optional<Type_reference> element_type = get_element_or_pointee_type(*left_hand_side_expression_value.type);
         if (!element_type.has_value())
             throw std::runtime_error{"Cannot find element type of array access."};
+
+        if (h::is_array_slice_type_reference(*left_hand_side_expression_value.type))
+        {
+            llvm::Type* const array_slice_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, left_hand_side_expression_value.type.value(), type_database);
+            llvm::Value* const data_pointer = llvm_builder.CreateStructGEP(
+                array_slice_llvm_type,
+                left_hand_side_expression_value.value,
+                0
+            );
+            
+            llvm::Type* const element_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, element_type.value(), type_database);
+
+            Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
+            llvm::Value* const index_llvm_value = index_value.value;
+
+            llvm::Value* const element_pointer = llvm_builder.CreateGEP(
+                element_llvm_type,
+                data_pointer,
+                llvm::ArrayRef<llvm::Value*>{index_llvm_value},
+                "array_slice_element_pointer"
+            );
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = element_pointer,
+                .type = element_type
+            };
+        }
 
         bool const using_pointer = is_pointer(*left_hand_side_expression_value.type);
         Type_reference const& type_reference_to_use =
@@ -1593,6 +1638,94 @@ namespace h::compiler
         return std::nullopt;
     }
 
+    Value_and_type instantiate_array_slice(
+        std::pmr::vector<h::Type_reference> const& element_type,
+        Value_and_type const& data_value,
+        Value_and_type const& length_value,
+        Expression_parameters const& parameters
+    )
+    {
+        h::Type_reference const array_slice_type_reference = h::create_array_slice_type_reference(element_type);
+        llvm::Type* const llvm_array_slice_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, array_slice_type_reference, parameters.type_database);
+
+        llvm::AllocaInst* const struct_alloca = create_alloca_instruction(parameters.llvm_builder, parameters.llvm_data_layout, *parameters.llvm_parent_function, llvm_array_slice_type);
+
+        h::Struct_declaration const struct_declaration = h::create_array_slice_type_struct_declaration(element_type);
+
+        generate_store_struct_member_instructions(
+            parameters.clang_module_data,
+            parameters.llvm_context,
+            parameters.llvm_builder,
+            parameters.llvm_data_layout,
+            struct_alloca,
+            "data",
+            "H.Builtin",
+            struct_declaration,
+            std::nullopt,
+            data_value,
+            parameters.type_database
+        );
+
+        generate_store_struct_member_instructions(
+            parameters.clang_module_data,
+            parameters.llvm_context,
+            parameters.llvm_builder,
+            parameters.llvm_data_layout,
+            struct_alloca,
+            "length",
+            "H.Builtin",
+            struct_declaration,
+            std::nullopt,
+            length_value,
+            parameters.type_database
+        );
+
+        return Value_and_type
+        {
+            .name = "",
+            .value = struct_alloca,
+            .type = array_slice_type_reference
+        };
+    }
+
+    std::optional<Value_and_type> create_builtin_call_expression_value(
+        Call_expression const& expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        h::Expression const& left_hand_side = statement.expressions[expression.expression.expression_index];
+
+        if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+            
+            if (variable_expression.name == "create_array_slice_from_pointer")
+            {
+                if (expression.arguments.size() != 2)
+                    throw std::runtime_error{"create_array_slice_from_pointer() expects two arguments!"};
+
+                Value_and_type const data_value = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
+                if (!data_value.type.has_value())
+                    throw std::runtime_error{"Cannot find deduce argument 0 type of create_array_slice_from_pointer()"};
+
+                std::optional<h::Type_reference> element_type_optional = remove_pointer(data_value.type.value());
+                std::pmr::vector<h::Type_reference> const element_type = element_type_optional.has_value() ? std::pmr::vector<h::Type_reference>{element_type_optional.value()} : std::pmr::vector<h::Type_reference>{};
+
+                Value_and_type const length_value = create_expression_value(expression.arguments[1].expression_index, statement, parameters);
+
+                return instantiate_array_slice(
+                    element_type,
+                    data_value,
+                    length_value,
+                    parameters
+                );
+            }
+        }
+
+        return std::nullopt;
+    }
+
     Value_and_type create_call_expression_value(
         Call_expression const& expression,
         Statement const& statement,
@@ -1601,6 +1734,12 @@ namespace h::compiler
     {
         if (parameters.llvm_parent_function == nullptr)
             throw std::runtime_error{"Can only create calls inside functions!"};
+
+        {
+            std::optional<Value_and_type> const value = create_builtin_call_expression_value(expression, statement, parameters);
+            if (value.has_value())
+                return value.value();
+        }
 
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
@@ -1991,7 +2130,7 @@ namespace h::compiler
                 throw std::runtime_error{"Type mismatch between elements of the initializer list."};
         }
 
-        if (parameters.expression_type.has_value())
+        if (parameters.expression_type.has_value() && !is_array_slice_type_reference(parameters.expression_type.value()))
         {
             if (!std::holds_alternative<Constant_array_type>(parameters.expression_type->data))
                 throw std::runtime_error{"Cannot assign initializer list to type."};
@@ -2013,22 +2152,17 @@ namespace h::compiler
             llvm::ArrayType* const llvm_array_type = llvm::ArrayType::get(llvm_int32_type, 0);
             llvm::Value* const llvm_undef_array = llvm::UndefValue::get(llvm_array_type);
 
-            if (parameters.expression_type.has_value())
-            {
-                return Value_and_type
-                {
-                    .name = "",
-                    .value = llvm_undef_array,
-                    .type = parameters.expression_type,
-                };
-            }
-
-            return Value_and_type
+            Value_and_type const constant_array_value
             {
                 .name = "",
                 .value = llvm_undef_array,
                 .type = create_constant_array_type_reference({create_integer_type_type_reference(32, true)}, 0),
             };
+
+            return convert_to_expected_type_if_needed(
+                constant_array_value,
+                parameters
+            );
         }
 
         Type_reference const& element_type = *array_data_values[0].type;
@@ -2049,12 +2183,17 @@ namespace h::compiler
             llvm_builder.CreateStore(value, element_pointer);
         }
 
-        return Value_and_type
+        Value_and_type const constant_array_value
         {
             .name = "",
             .value = array_alloca,
             .type = create_constant_array_type_reference({element_type}, array_length),
         };
+
+        return convert_to_expected_type_if_needed(
+            constant_array_value,
+            parameters
+        );
     }
 
     Value_and_type create_continue_expression_value(
@@ -3348,6 +3487,95 @@ namespace h::compiler
         };
     }
 
+    Value_and_type convert_to_expected_type_if_needed(
+        Value_and_type const& value,
+        Expression_parameters const& parameters
+    )
+    {
+        // Do implicit convertions:
+        if (value.type.has_value() && parameters.expression_type.has_value())
+        {
+            Type_reference const& source_type = value.type.value();
+            Type_reference const& expected_type = parameters.expression_type.value();
+            
+            if (is_constant_array_type_reference(source_type) && is_array_slice_type_reference(expected_type))
+            {
+                llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+                std::uint64_t const array_length = get_constant_array_type_size(source_type);
+
+                if (array_length == 0)
+                {
+                    Value_and_type const data_value
+                    {
+                        .name = "",
+                        .value = llvm::ConstantPointerNull::get(llvm::PointerType::get(parameters.llvm_context, 0)),
+                        .type = std::nullopt,
+                    };
+
+                    Value_and_type const length_value
+                    {
+                        .name = "",
+                        .value = llvm_builder.getInt64(array_length),
+                        .type = create_integer_type_type_reference(64, false),
+                    };
+
+                    std::optional<Type_reference> const expected_element_type = get_element_or_pointee_type(expected_type);
+                    std::pmr::vector<h::Type_reference> const element_type{expected_element_type.value()};
+
+                    Value_and_type const array_slice = instantiate_array_slice(
+                        element_type,
+                        data_value,
+                        length_value,
+                        parameters
+                    );
+
+                    return array_slice;
+                }
+
+                std::optional<Type_reference> const source_element_type = get_element_or_pointee_type(source_type);
+                std::optional<Type_reference> const expected_element_type = get_element_or_pointee_type(expected_type);
+
+                if (source_element_type == expected_element_type)
+                {
+                    std::pmr::vector<h::Type_reference> const element_type{expected_element_type.value()};
+
+                    llvm::Type* const constant_array_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
+
+                    Value_and_type const data_value
+                    {
+                        .name = "",
+                        .value = llvm_builder.CreateGEP(
+                            constant_array_llvm_type,
+                            value.value,
+                            {llvm_builder.getInt32(0), llvm_builder.getInt32(0)},
+                            "data_pointer"
+                        ),
+                        .type = std::nullopt,
+                    };
+
+                    Value_and_type const length_value
+                    {
+                        .name = "",
+                        .value = llvm_builder.getInt64(array_length),
+                        .type = create_integer_type_type_reference(64, false),
+                    };
+
+                    Value_and_type const array_slice = instantiate_array_slice(
+                        element_type,
+                        data_value,
+                        length_value,
+                        parameters
+                    );
+
+                    return array_slice;
+                }
+            }
+        }
+
+        return value;
+    }
+
     Value_and_type create_variable_expression_value(
         Variable_expression const& expression,
         Expression_parameters const& parameters
@@ -3366,7 +3594,7 @@ namespace h::compiler
 
             if (location.has_value())
             {
-                return location.value();
+                return convert_to_expected_type_if_needed(location.value(), parameters);
             }
         }
 
@@ -3375,7 +3603,7 @@ namespace h::compiler
             auto const location = std::find_if(parameters.function_arguments.begin(), parameters.function_arguments.end(), is_variable);
             if (location != parameters.function_arguments.end())
             {
-                return *location;
+                return convert_to_expected_type_if_needed(*location, parameters);
             }
         }
 
