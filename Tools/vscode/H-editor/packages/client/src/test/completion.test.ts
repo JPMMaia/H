@@ -431,6 +431,16 @@ suite("Should do completion", () => {
 			]
 		});
 	});
+
+	test("Completes array slice 0", async () => {
+		const document_uri = get_document_uri('projects/other/completion_array_slice_0.hltxt');
+		await test_completion(document_uri, new vscode.Position(4, 10), {
+			items: [
+				{ label: "data", kind: vscode.CompletionItemKind.Field },
+				{ label: "length", kind: vscode.CompletionItemKind.Field },
+			]
+		});
+	});
 });
 
 async function test_completion(

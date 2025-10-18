@@ -141,6 +141,20 @@ namespace h::language_server
         }
     }
 
+    static void add_array_slice_member_items(
+        std::vector<lsp::CompletionItem>& items,
+        Array_slice_type const& type
+    )
+    {
+        items.push_back(
+            create_completion_item("data", lsp::CompletionItemKind::Field)
+        );
+
+        items.push_back(
+            create_completion_item("length", lsp::CompletionItemKind::Field)
+        );
+    }
+
     static void add_scope_variable_items(
         std::vector<lsp::CompletionItem>& items,
         h::compiler::Scope const& scope
@@ -525,6 +539,19 @@ namespace h::language_server
                 );
                 if (expression_type.has_value())
                 {
+                    if (is_array_slice_type_reference(expression_type.value()))
+                    {
+                        std::vector<lsp::CompletionItem> items = {};    
+                        add_array_slice_member_items(items, std::get<Array_slice_type>(expression_type->data));
+
+                        return lsp::CompletionList
+                        {
+                            .isIncomplete = false,
+                            .items = std::move(items),
+                            .itemDefaults = std::nullopt,
+                        };
+                    }
+
                     std::optional<Declaration> const underlying_declaration_optional = find_underlying_declaration(
                         declaration_database,
                         expression_type.value()
