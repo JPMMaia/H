@@ -750,6 +750,30 @@ namespace h::parser
 
             return h::Type_reference{ .data = std::move(output), .source_range = source_range };
         }
+        else if (type_choice == "Array_slice_type")
+        {
+            h::Array_slice_type output = {};
+
+            std::optional<Parse_node> const element_type_node = get_child_node(tree, child, 2);
+            if (element_type_node.has_value())
+            {
+                std::optional<h::Type_reference> element_type = node_to_type_reference(
+                    module_info,
+                    tree,
+                    element_type_node.value(),
+                    output_allocator,
+                    temporaries_allocator
+                );
+
+                if (element_type.has_value())
+                {
+                    output.element_type = std::pmr::vector<h::Type_reference>{output_allocator};
+                    output.element_type.emplace_back(std::move(element_type.value()));
+                }
+            }
+
+            return h::Type_reference{ .data = std::move(output), .source_range = source_range };
+        }
         else if (type_choice == "Constant_array_type")
         {
             h::Constant_array_type output = {};

@@ -50,8 +50,30 @@ namespace h::compiler
         Diagnostic_related_information related_information = {};
         Diagnostic_data data = {};
 
-        friend auto operator<=>(Diagnostic const& lhs, Diagnostic const& rhs) = default;
+        friend auto operator <=>(Diagnostic const& lhs, Diagnostic const& rhs)
+        {
+            if (auto cmp = lhs.file_path <=> rhs.file_path; cmp != 0)
+                return cmp;
+            if (auto cmp = lhs.range <=> rhs.range; cmp != 0)
+                return cmp;
+            if (auto cmp = lhs.source <=> rhs.source; cmp != 0)
+                return cmp;
+            if (auto cmp = lhs.severity <=> rhs.severity; cmp != 0)
+                return cmp;
+            if (auto cmp = lhs.code <=> rhs.code; cmp != 0)
+                return cmp;
+            if (auto cmp = lhs.message <=> rhs.message; cmp != 0)
+                return cmp;
+            return lhs.related_information <=> rhs.related_information;
+        }
+
+        friend bool operator==(Diagnostic const& lhs, Diagnostic const& rhs)
+        {
+            return (lhs <=> rhs) == 0;
+        }
     };
+
+    
 
     export std::pmr::string diagnostic_to_string(
         Diagnostic const& diagnostic,

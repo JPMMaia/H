@@ -2054,7 +2054,21 @@ namespace h::compiler
         Clang_declaration_database const& clang_declaration_database
     )
     {
-        if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
+        if (std::holds_alternative<h::Array_slice_type>(type_reference.data))
+        {
+            auto const module_declarations_location = clang_declaration_database.map.find("H.Builtin");
+            if (module_declarations_location == clang_declaration_database.map.end())
+                throw std::runtime_error{"Cannot find Builtin module!"};
+            Clang_module_declarations const& module_declarations = module_declarations_location->second;
+
+            auto const array_slice_type_location = module_declarations.struct_declarations.find("Generic_array_slice");
+            if (array_slice_type_location == module_declarations.struct_declarations.end())
+                throw std::runtime_error{"Cannot find Builtin.Generic_array_slice!"};
+
+            clang::RecordDecl* const record_declaration = array_slice_type_location->second;
+            return clang_ast_context.getRecordType(record_declaration);
+        }
+        else if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
         {
             h::Builtin_type_reference const& builtin_type = std::get<h::Builtin_type_reference>(type_reference.data);
             if (builtin_type.value == "__builtin_va_list")

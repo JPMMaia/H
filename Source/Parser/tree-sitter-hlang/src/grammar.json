@@ -244,6 +244,10 @@
         },
         {
           "type": "SYMBOL",
+          "name": "Array_slice_type"
+        },
+        {
+          "type": "SYMBOL",
           "name": "Function_pointer_type"
         },
         {
@@ -317,6 +321,27 @@
           }
         ]
       }
+    },
+    "Array_slice_type": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "Array_slice"
+        },
+        {
+          "type": "STRING",
+          "value": "<"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "Type"
+        },
+        {
+          "type": "STRING",
+          "value": ">"
+        }
+      ]
     },
     "Constant_array_type": {
       "type": "SEQ",

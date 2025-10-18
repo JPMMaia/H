@@ -7,8 +7,8 @@
 
 import h.common;
 import h.core;
+import h.core.formatter;
 import h.parser.convertor;
-import h.parser.formatter;
 import h.parser.parse_tree;
 import h.parser.parser;
 
@@ -50,7 +50,7 @@ namespace h::parser
                 .temporaries_allocator = temporaries_allocator,
             };
 
-            std::pmr::string const converted_text = format_module(
+            std::pmr::string const converted_text = h::format_module(
                 converted_module.value(),
                 format_options
             );
@@ -62,6 +62,12 @@ namespace h::parser
 
         destroy_tree(std::move(tree));
         destroy_parser(std::move(parser));
+    }
+
+    TEST_CASE("Converts array_slices.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "array_slices.hltxt";
+        test_convertor(input_file);
     }
 
     TEST_CASE("Converts assert_expressions.hltxt", "[Convertor]")

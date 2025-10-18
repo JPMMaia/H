@@ -15,13 +15,19 @@ import h.core;
 
 namespace h
 {
+    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type);
+    export bool is_array_slice_type_reference(Type_reference const& type);
+
     export Type_reference create_bool_type_reference();
     export bool is_bool(Type_reference const& type);
     export bool is_c_bool(Type_reference const& type);
 
     export Type_reference create_builtin_type_reference(std::pmr::string value);
+    export bool is_builtin_type_reference(Type_reference const& type);
 
     export Type_reference create_constant_array_type_reference(std::pmr::vector<Type_reference> value_type, std::uint64_t size);
+    export std::uint64_t get_constant_array_type_size(Type_reference const& type_reference);
+    export bool is_constant_array_type_reference(Type_reference const& type);
 
     export Type_reference create_custom_type_reference(std::string_view module_name, std::string_view name);
     export bool is_custom_type_reference(Type_reference const& type);
@@ -59,6 +65,8 @@ namespace h
     export std::optional<Type_reference> get_element_or_pointee_type(Type_reference const& type);
 
     export std::optional<std::string_view> get_type_module_name(Type_reference const& type);
+
+    export h::Struct_declaration create_array_slice_type_struct_declaration(std::pmr::vector<Type_reference> const& element_type);
 
     export template <typename Value_t, typename Function_t>
         bool visit_type_references_recursively(
@@ -110,7 +118,18 @@ namespace h
         if (done)
             return true;
 
-        if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
+        if (std::holds_alternative<Array_slice_type>(type_reference.data))
+        {
+            Array_slice_type const& data = std::get<Array_slice_type>(type_reference.data);
+            for (Type_reference const& nested_type_reference : data.element_type)
+            {
+                if (visit_type_references_recursively(nested_type_reference, predicate))
+                    return true;
+            }
+
+            return false;
+        }
+        else if (std::holds_alternative<Builtin_type_reference>(type_reference.data))
         {
             return false;
         }

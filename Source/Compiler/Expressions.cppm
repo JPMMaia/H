@@ -173,4 +173,9 @@ namespace h::compiler
         Variable_expression const& expression,
         Expression_parameters const& parameters
     );
+
+    Value_and_type convert_to_expected_type_if_needed(
+        Value_and_type const& value,
+        Expression_parameters const& parameters
+    );
 }

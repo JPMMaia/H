@@ -166,6 +166,126 @@ namespace h
     h::parser::destroy_parser(std::move(parser));
   }
 
+  TEST_CASE("Compile Array Slices", "[LLVM_IR]")
+  {
+    char const* const input_file = "array_slices.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define void @Array_slices_take(ptr %"arguments[0].integers_0", i64 %"arguments[0].integers_1") #0 {
+entry:
+  %integers = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %data = alloca ptr, align 8
+  %length = alloca i64, align 8
+  %v0 = alloca i32, align 4
+  %v1 = alloca i32, align 4
+  %v2 = alloca i32, align 4
+  %0 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 0
+  store ptr %"arguments[0].integers_0", ptr %0, align 8
+  %1 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 1
+  store i64 %"arguments[0].integers_1", ptr %1, align 8
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  store ptr %2, ptr %data, align 8
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1
+  %4 = load i64, ptr %3, align 8
+  store i64 %4, ptr %length, align 8
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer = getelementptr i32, ptr %5, i32 0
+  %6 = load i32, ptr %array_slice_element_pointer, align 4
+  store i32 %6, ptr %v0, align 4
+  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer1 = getelementptr i32, ptr %7, i32 1
+  %8 = load i32, ptr %array_slice_element_pointer1, align 4
+  store i32 %8, ptr %v1, align 4
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer2 = getelementptr i32, ptr %9, i32 2
+  %10 = load i32, ptr %array_slice_element_pointer2, align 4
+  store i32 %10, ptr %v2, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+define void @Array_slices_run() #0 {
+entry:
+  %array = alloca [4 x i32], i64 4, align 4
+  %a = alloca [4 x i32], align 4
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array4 = alloca [1 x i32], i64 1, align 4
+  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %b = alloca i32, align 4
+  %c = alloca ptr, align 8
+  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
+  store i32 0, ptr %array_element_pointer, align 4
+  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1
+  store i32 1, ptr %array_element_pointer1, align 4
+  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2
+  store i32 2, ptr %array_element_pointer2, align 4
+  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
+  store i32 3, ptr %array_element_pointer3, align 4
+  %4 = load [4 x i32], ptr %array, align 4
+  store [4 x i32] %4, ptr %a, align 4
+  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %data_pointer, ptr %5, align 8
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 4, ptr %6, align 8
+  %7 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 0
+  %8 = load ptr, ptr %7, align 8
+  %9 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 1
+  %10 = load i64, ptr %9, align 8
+  call void @Array_slices_take(ptr %8, i64 %10)
+  %11 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0
+  store ptr null, ptr %11, align 8
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1
+  store i64 0, ptr %12, align 8
+  %13 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 0
+  %14 = load ptr, ptr %13, align 8
+  %15 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 1
+  %16 = load i64, ptr %15, align 8
+  call void @Array_slices_take(ptr %14, i64 %16)
+  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
+  store i32 4, ptr %array_element_pointer5, align 4
+  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
+  %17 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0
+  store ptr %data_pointer6, ptr %17, align 8
+  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1
+  store i64 1, ptr %18, align 8
+  %19 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 0
+  %20 = load ptr, ptr %19, align 8
+  %21 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 1
+  %22 = load i64, ptr %21, align 8
+  call void @Array_slices_take(ptr %20, i64 %22)
+  store i32 0, ptr %b, align 4
+  store ptr %b, ptr %c, align 8
+  %23 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0
+  store ptr %c, ptr %23, align 8
+  %24 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1
+  store i64 1, ptr %24, align 8
+  %25 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8
+  store %struct.H_Builtin_Generic_array_slice %25, ptr %d, align 8
+  %26 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 0
+  %27 = load ptr, ptr %26, align 8
+  %28 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 1
+  %29 = load i64, ptr %28, align 8
+  call void @Array_slices_take(ptr %27, i64 %29)
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
   {
     char const* const input_file = "assert_expressions.hltxt";
@@ -2310,22 +2430,22 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 
     char const* const expected_llvm_ir = R"(
 %struct.dynamic_array_Allocator = type { ptr, ptr }
-%"struct.dynamic_array_Dynamic_array@12163040539293411600" = type { ptr, i64, i64, %struct.dynamic_array_Allocator }
+%"struct.dynamic_array_Dynamic_array@9566610295894871722" = type { ptr, i64, i64, %struct.dynamic_array_Allocator }
 
-@function_contract_error_string = private unnamed_addr constant [106 x i8] c"In function 'dynamic_array.create@17667569505855402249' precondition 'allocator.allocate != null' failed!\00"
-@function_contract_error_string.1 = private unnamed_addr constant [108 x i8] c"In function 'dynamic_array.create@17667569505855402249' precondition 'allocator.deallocate != null' failed!\00"
-@function_contract_error_string.2 = private unnamed_addr constant [99 x i8] c"In function 'dynamic_array.push_back@10381242744536279270' precondition 'instance != null' failed!\00"
-@function_contract_error_string.3 = private unnamed_addr constant [100 x i8] c"In function 'dynamic_array.push_back@10381242744536279270' assert 'Allocation did not fail' failed!\00"
-@function_contract_error_string.4 = private unnamed_addr constant [92 x i8] c"In function 'dynamic_array.get@9702523150449348026' precondition 'instance != null' failed!\00"
-@function_contract_error_string.5 = private unnamed_addr constant [100 x i8] c"In function 'dynamic_array.get@9702523150449348026' precondition 'index < instance->length' failed!\00"
+@function_contract_error_string = private unnamed_addr constant [106 x i8] c"In function 'dynamic_array.create@17907512829831209369' precondition 'allocator.allocate != null' failed!\00"
+@function_contract_error_string.1 = private unnamed_addr constant [108 x i8] c"In function 'dynamic_array.create@17907512829831209369' precondition 'allocator.deallocate != null' failed!\00"
+@function_contract_error_string.2 = private unnamed_addr constant [99 x i8] c"In function 'dynamic_array.push_back@17441349256315945061' precondition 'instance != null' failed!\00"
+@function_contract_error_string.3 = private unnamed_addr constant [100 x i8] c"In function 'dynamic_array.push_back@17441349256315945061' assert 'Allocation did not fail' failed!\00"
+@function_contract_error_string.4 = private unnamed_addr constant [93 x i8] c"In function 'dynamic_array.get@16525916682172407869' precondition 'instance != null' failed!\00"
+@function_contract_error_string.5 = private unnamed_addr constant [101 x i8] c"In function 'dynamic_array.get@16525916682172407869' precondition 'index < instance->length' failed!\00"
 
 ; Function Attrs: convergent
 define private void @dynamic_array_usage_run() #0 {
 entry:
   %0 = alloca %struct.dynamic_array_Allocator, align 8
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %1 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
-  %instance = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %1 = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
+  %instance = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
   %element = alloca i32, align 4
   %2 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %0, i32 0, i32 0
   store ptr null, ptr %2, align 8
@@ -2337,20 +2457,20 @@ entry:
   %6 = load ptr, ptr %5, align 8
   %7 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
   %8 = load ptr, ptr %7, align 8
-  call void @"dynamic_array_create@17667569505855402249"(ptr noundef %1, ptr %6, ptr %8)
-  %9 = load %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, align 8
-  store %"struct.dynamic_array_Dynamic_array@12163040539293411600" %9, ptr %instance, align 8
-  call void @"dynamic_array_push_back@10381242744536279270"(ptr noundef %instance, i32 noundef 1)
-  %10 = call i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %instance, i64 noundef 0)
+  call void @"dynamic_array_create@17907512829831209369"(ptr noundef %1, ptr %6, ptr %8)
+  %9 = load %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, align 8
+  store %"struct.dynamic_array_Dynamic_array@9566610295894871722" %9, ptr %instance, align 8
+  call void @"dynamic_array_push_back@17441349256315945061"(ptr noundef %instance, i32 noundef 1)
+  %10 = call i32 @"dynamic_array_get@16525916682172407869"(ptr noundef %instance, i64 noundef 0)
   store i32 %10, ptr %element, align 4
   ret void
 }
 
 ; Function Attrs: convergent
-define private void @"dynamic_array_create@17667569505855402249"(ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1", ptr %0) #0 {
+define private void @"dynamic_array_create@17907512829831209369"(ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1", ptr %0) #0 {
 entry:
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %1 = alloca %"struct.dynamic_array_Dynamic_array@12163040539293411600", align 8
+  %1 = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
   %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
   store ptr %"arguments[0].allocator_0", ptr %2, align 8
   %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
@@ -2370,14 +2490,14 @@ condition_fail:                                   ; preds = %entry
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 0
+  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 0
   store ptr null, ptr %9, align 8
-  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 1
+  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 1
   store i64 0, ptr %10, align 8
-  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 2
+  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 2
   store i64 0, ptr %11, align 8
   %12 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
-  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %1, i32 0, i32 3
+  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 3
   store %struct.dynamic_array_Allocator %12, ptr %13, align 8
   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"arguments[0].allocator_0", ptr align 8 %1, i64 40, i1 false)
   ret void
@@ -2389,7 +2509,7 @@ condition_fail2:                                  ; preds = %condition_success
 }
 
 ; Function Attrs: convergent
-define private void @"dynamic_array_push_back@10381242744536279270"(ptr noundef %"arguments[0].instance", i32 noundef %"arguments[1].element") #0 {
+define private void @"dynamic_array_push_back@17441349256315945061"(ptr noundef %"arguments[0].instance", i32 noundef %"arguments[1].element") #0 {
 entry:
   %instance = alloca ptr, align 8
   %element = alloca i32, align 4
@@ -2403,9 +2523,9 @@ entry:
   br i1 %0, label %condition_success, label %condition_fail
 
 condition_success:                                ; preds = %entry
-  %1 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %1 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
   %2 = load i64, ptr %1, align 8
-  %3 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %3 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
   %4 = load i64, ptr %3, align 8
   %5 = icmp eq i64 %2, %4
   br i1 %5, label %if_s0_then, label %if_s1_after
@@ -2416,7 +2536,7 @@ condition_fail:                                   ; preds = %entry
   unreachable
 
 if_s0_then:                                       ; preds = %condition_success
-  %7 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %7 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
   %8 = load i64, ptr %7, align 8
   %9 = add i64 %8, 1
   %10 = mul i64 2, %9
@@ -2424,7 +2544,7 @@ if_s0_then:                                       ; preds = %condition_success
   %11 = load i64, ptr %new_capacity, align 8
   %12 = mul i64 %11, 4
   store i64 %12, ptr %allocation_size_in_bytes, align 8
-  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 3
+  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 3
   %14 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %13, i32 0, i32 0
   %15 = load i64, ptr %allocation_size_in_bytes, align 8
   %16 = call ptr %14(i64 noundef %15, i64 noundef 4)
@@ -2433,25 +2553,25 @@ if_s0_then:                                       ; preds = %condition_success
   br i1 %17, label %condition_success1, label %condition_fail2
 
 if_s1_after:                                      ; preds = %condition_success1, %condition_success
-  %18 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %18 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
   %19 = load i64, ptr %18, align 8
   store i64 %19, ptr %index, align 8
-  %20 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  %20 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
   %21 = load i64, ptr %index, align 8
   %array_element_pointer = getelementptr i32, ptr %20, i64 %21
   %22 = load i32, ptr %element, align 4
   store i32 %22, ptr %array_element_pointer, align 4
-  %23 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
-  %24 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %23 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
+  %24 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
   %25 = load i64, ptr %24, align 8
   %26 = add i64 %25, 1
   store i64 %26, ptr %23, align 8
   ret void
 
 condition_success1:                               ; preds = %if_s0_then
-  %27 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  %27 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
   store ptr %allocation, ptr %27, align 8
-  %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 2
+  %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
   %29 = load i64, ptr %new_capacity, align 8
   store i64 %29, ptr %28, align 8
   br label %if_s1_after
@@ -2463,7 +2583,7 @@ condition_fail2:                                  ; preds = %if_s0_then
 }
 
 ; Function Attrs: convergent
-define private i32 @"dynamic_array_get@9702523150449348026"(ptr noundef %"arguments[0].instance", i64 noundef %"arguments[1].index") #0 {
+define private i32 @"dynamic_array_get@16525916682172407869"(ptr noundef %"arguments[0].instance", i64 noundef %"arguments[1].index") #0 {
 entry:
   %instance = alloca ptr, align 8
   %index = alloca i64, align 8
@@ -2474,7 +2594,7 @@ entry:
 
 condition_success:                                ; preds = %entry
   %1 = load i64, ptr %index, align 8
-  %2 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 1
+  %2 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
   %3 = load i64, ptr %2, align 8
   %4 = icmp ult i64 %1, %3
   br i1 %4, label %condition_success1, label %condition_fail2
@@ -2485,7 +2605,7 @@ condition_fail:                                   ; preds = %entry
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %6 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@12163040539293411600", ptr %instance, i32 0, i32 0
+  %6 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
   %7 = load i64, ptr %index, align 8
   %array_element_pointer = getelementptr i32, ptr %6, i64 %7
   %8 = load i32, ptr %array_element_pointer, align 4
@@ -3704,17 +3824,17 @@ entry:
   %a = alloca i32, align 4
   %b = alloca float, align 4
   %c = alloca i32, align 4
-  %0 = call i32 @"Function_constructor_add@14149227355243257580"(i32 noundef 1, i32 noundef 2)
+  %0 = call i32 @"Function_constructor_add@12872766087933253718"(i32 noundef 1, i32 noundef 2)
   store i32 %0, ptr %a, align 4
-  %1 = call float @"Function_constructor_add@17281024302857637720"(float noundef 3.000000e+00, float noundef 4.000000e+00)
+  %1 = call float @"Function_constructor_add@2587280390906766232"(float noundef 3.000000e+00, float noundef 4.000000e+00)
   store float %1, ptr %b, align 4
-  %2 = call i32 @"Function_constructor_add@4694255509215512488"(i32 noundef 1, i32 noundef 2)
+  %2 = call i32 @"Function_constructor_add@5701317356091045786"(i32 noundef 1, i32 noundef 2)
   store i32 %2, ptr %c, align 4
   ret void
 }
 
 ; Function Attrs: convergent
-define private i32 @"Function_constructor_add@14149227355243257580"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
+define private i32 @"Function_constructor_add@12872766087933253718"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
 entry:
   %first = alloca i32, align 4
   %second = alloca i32, align 4
@@ -3727,7 +3847,7 @@ entry:
 }
 
 ; Function Attrs: convergent
-define private float @"Function_constructor_add@17281024302857637720"(float noundef %"arguments[0].first", float noundef %"arguments[1].second") #0 {
+define private float @"Function_constructor_add@2587280390906766232"(float noundef %"arguments[0].first", float noundef %"arguments[1].second") #0 {
 entry:
   %first = alloca float, align 4
   %second = alloca float, align 4
@@ -3740,7 +3860,7 @@ entry:
 }
 
 ; Function Attrs: convergent
-define private i32 @"Function_constructor_add@4694255509215512488"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
+define private i32 @"Function_constructor_add@5701317356091045786"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
 entry:
   %first = alloca i32, align 4
   %second = alloca i32, align 4
@@ -4003,48 +4123,48 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
-%"struct.Type_constructor_Dynamic_array@9994574774750473214" = type { ptr, i64 }
-%"struct.Type_constructor_Dynamic_array@2641373668420072849" = type { ptr, i64 }
-%struct.Type_constructor_My_struct = type { %"struct.Type_constructor_Dynamic_array@3001456960366960646" }
-%"struct.Type_constructor_Dynamic_array@3001456960366960646" = type { ptr, i64 }
-%"struct.Type_constructor_Dynamic_array@8855203584689900883" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@2616204444652410143" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@9084055025385753601" = type { ptr, i64 }
+%struct.Type_constructor_My_struct = type { %"struct.Type_constructor_Dynamic_array@5206327013959772419" }
+%"struct.Type_constructor_Dynamic_array@5206327013959772419" = type { ptr, i64 }
+%"struct.Type_constructor_Dynamic_array@2428226642254427654" = type { ptr, i64 }
 
 ; Function Attrs: convergent
 define private void @Type_constructor_run(ptr %"arguments[0].instance_0_0", i64 %"arguments[0].instance_0_1") #0 {
 entry:
-  %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@9994574774750473214", align 8
-  %0 = alloca %"struct.Type_constructor_Dynamic_array@2641373668420072849", align 8
-  %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@2641373668420072849", align 8
+  %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@2616204444652410143", align 8
+  %0 = alloca %"struct.Type_constructor_Dynamic_array@9084055025385753601", align 8
+  %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@9084055025385753601", align 8
   %1 = alloca %struct.Type_constructor_My_struct, align 8
-  %2 = alloca %"struct.Type_constructor_Dynamic_array@3001456960366960646", align 8
+  %2 = alloca %"struct.Type_constructor_Dynamic_array@5206327013959772419", align 8
   %instance_2 = alloca %struct.Type_constructor_My_struct, align 8
-  %3 = alloca %"struct.Type_constructor_Dynamic_array@8855203584689900883", align 8
-  %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@8855203584689900883", align 8
+  %3 = alloca %"struct.Type_constructor_Dynamic_array@2428226642254427654", align 8
+  %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@2428226642254427654", align 8
   %4 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
   store ptr %"arguments[0].instance_0_0", ptr %4, align 8
   %5 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
   store i64 %"arguments[0].instance_0_1", ptr %5, align 8
-  %6 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, i32 0, i32 0
+  %6 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, i32 0, i32 0
   store ptr null, ptr %6, align 8
-  %7 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, i32 0, i32 1
+  %7 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, i32 0, i32 1
   store i64 0, ptr %7, align 8
-  %8 = load %"struct.Type_constructor_Dynamic_array@2641373668420072849", ptr %0, align 8
-  store %"struct.Type_constructor_Dynamic_array@2641373668420072849" %8, ptr %instance_1, align 8
-  %9 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, i32 0, i32 0
+  %8 = load %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, align 8
+  store %"struct.Type_constructor_Dynamic_array@9084055025385753601" %8, ptr %instance_1, align 8
+  %9 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, i32 0, i32 0
   store ptr null, ptr %9, align 8
-  %10 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, i32 0, i32 1
+  %10 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, i32 0, i32 1
   store i64 0, ptr %10, align 8
-  %11 = load %"struct.Type_constructor_Dynamic_array@3001456960366960646", ptr %2, align 8
+  %11 = load %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, align 8
   %12 = getelementptr inbounds %struct.Type_constructor_My_struct, ptr %1, i32 0, i32 0
-  store %"struct.Type_constructor_Dynamic_array@3001456960366960646" %11, ptr %12, align 8
+  store %"struct.Type_constructor_Dynamic_array@5206327013959772419" %11, ptr %12, align 8
   %13 = load %struct.Type_constructor_My_struct, ptr %1, align 8
   store %struct.Type_constructor_My_struct %13, ptr %instance_2, align 8
-  %14 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, i32 0, i32 0
+  %14 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, i32 0, i32 0
   store ptr null, ptr %14, align 8
-  %15 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, i32 0, i32 1
+  %15 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, i32 0, i32 1
   store i64 0, ptr %15, align 8
-  %16 = load %"struct.Type_constructor_Dynamic_array@8855203584689900883", ptr %3, align 8
-  store %"struct.Type_constructor_Dynamic_array@8855203584689900883" %16, ptr %instance_3, align 8
+  %16 = load %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, align 8
+  store %"struct.Type_constructor_Dynamic_array@2428226642254427654" %16, ptr %instance_3, align 8
   ret void
 }
 

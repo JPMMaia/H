@@ -40,6 +40,7 @@ module.exports = grammar({
       $.Module_type,
       $.Pointer_type,
       $.Constant_array_type,
+      $.Array_slice_type,
       $.Function_pointer_type,
       $.Type_instance_type
     ),
@@ -48,6 +49,7 @@ module.exports = grammar({
     Module_type_module_name: $ => prec(2, $.Identifier),
     Module_type_type_name: $ => $.Identifier,
     Pointer_type: $ => prec(13, seq("*", optional("mutable"), $.Type)),
+    Array_slice_type: $ => seq("Array_slice", "<", $.Type, ">"),
     Constant_array_type: $ => seq("Constant_array", "<", $.Type, ",", $.Constant_array_length, ">"),
     Constant_array_length: $ => $.Number,
     Function_pointer_type: $ => seq("function", "<", $.Function_pointer_type_input_parameters, "->", $.Function_pointer_type_output_parameters, ">"),
