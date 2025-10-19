@@ -1821,6 +1821,33 @@ namespace h::compiler
         return {};
     }
 
+    std::optional<std::pair<std::string_view, h::Instance_call_expression>> find_builtin_instance_call_expression(
+        h::Statement const& statement,
+        h::Call_expression const& expression
+    )
+    {
+        h::Expression const& left_side_expression = statement.expressions[expression.expression.expression_index];
+
+        if (std::holds_alternative<h::Instance_call_expression>(left_side_expression.data))
+        {
+            h::Instance_call_expression const& instance_call_expression = std::get<h::Instance_call_expression>(left_side_expression.data);
+
+            h::Expression const& instance_call_left_expression = statement.expressions[instance_call_expression.left_hand_side.expression_index];
+
+            if (std::holds_alternative<h::Variable_expression>(instance_call_left_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(instance_call_left_expression.data);
+
+                if (variable_expression.name == "create_stack_array_uninitialized")
+                {
+                    return std::pair<std::string_view, h::Instance_call_expression>{"create_stack_array_uninitialized", instance_call_expression};
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
     h::Function_constructor const* find_function_constructor_using_call_expression(
         std::string_view const current_module_name,
         Declaration_database const& declaration_database,
@@ -1945,6 +1972,57 @@ namespace h::compiler
     )
     {
         std::optional<h::Type_reference> const& callable_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.expression);
+
+        if (callable_type_optional.has_value() && is_builtin_type_reference(callable_type_optional.value()))
+        {
+            h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(callable_type_optional->data);
+            if (builtin_type_reference.value == "create_stack_array_uninitialized")
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format(
+                            "Function expects {} type arguments, but {} were provided.",
+                            1,
+                            0
+                        )
+                    )
+                };
+            }
+        }
+        
+        {
+            std::optional<std::pair<std::string_view, h::Instance_call_expression>> const builtin_instance_call = find_builtin_instance_call_expression(
+                parameters.statement,
+                expression
+            );
+
+            if (builtin_instance_call.has_value())
+            {
+                if (builtin_instance_call->first == "create_stack_array_uninitialized")
+                {
+                    h::Instance_call_expression const& instance_call_expression = builtin_instance_call->second;
+
+                    if (instance_call_expression.arguments.size() != 1)
+                    {
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                source_range,
+                                std::format(
+                                    "Function expects {} type arguments, but {} were provided.",
+                                    1,
+                                    instance_call_expression.arguments.size()
+                                )
+                            )
+                        };
+                    }
+                }
+            }
+        }
 
         Function_constructor const* const function_constructor = find_function_constructor_using_call_expression(
             parameters.core_module.name,
@@ -3123,11 +3201,6 @@ namespace h::compiler
         return {};
     }
 
-    static bool is_builtin_function(std::string_view const name)
-    {
-        return name == "create_array_slice_from_pointer";
-    }
-
     std::pmr::vector<h::compiler::Diagnostic> validate_variable_expression(
         Validate_expression_parameters const& parameters,
         h::Variable_expression const& expression,
@@ -3156,7 +3229,7 @@ namespace h::compiler
         if (import_alias != nullptr)
             return {};
 
-        if (is_builtin_function(expression.name))
+        if (is_builtin_function_name(expression.name))
             return {};
 
         return

@@ -1,0 +1,7 @@
+module Stack_array_entry;
+
+export function foo(length: Uint64) -> ()
+{
+    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
+    mutable array_1: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
+}

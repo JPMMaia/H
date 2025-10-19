@@ -1084,24 +1084,15 @@ namespace h::compiler
                         .type = create_array_slice_type_reference(element_type),
                         .is_mutable = false,
                     };
-
-                    /*h::Function_type function_type
-                    {
-                        .input_parameter_types = {
-                            create_pointer_type_type_reference(element_type, false),
-                            create_integer_type_type_reference(64, false)
-                        },
-                        .output_parameter_types = {
-                            create_array_slice_type_reference(element_type)
-                        },
-                        .is_variadic = false,
-                    };
-
+                }
+                else if (builtin_type_reference.value == "create_stack_array_uninitialized")
+                {
+                    // This will generate a validation error as there is no element type.
                     return Type_info
                     {
-                        .type = create_function_type_type_reference(std::move(function_type), {"data", "length"}, {"array"}),
+                        .type = create_array_slice_type_reference({}),
                         .is_mutable = false,
-                    };*/
+                    };
                 }
             }
             else if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
@@ -1249,6 +1240,42 @@ namespace h::compiler
         else if (std::holds_alternative<h::Instance_call_expression>(expression.data))
         {
             Instance_call_expression const& data = std::get<h::Instance_call_expression>(expression.data);
+
+            // Check builtin functions:
+            {
+                h::Expression const& left_hand_side = statement.expressions[data.left_hand_side.expression_index];
+                if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+                {
+                    h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+                    
+                    if (variable_expression.name == "create_stack_array_uninitialized")
+                    {
+                        std::pmr::vector<h::Type_reference> element_type;
+                        if (data.arguments.size() > 0)
+                        {
+                            h::Statement const argument = data.arguments[0];
+                            if (!argument.expressions.empty() && std::holds_alternative<h::Type_expression>(argument.expressions[0].data))
+                            {
+                                h::Type_expression const& type_expression = std::get<h::Type_expression>(argument.expressions[0].data);
+                                element_type.push_back(type_expression.type);
+                            }
+                        }
+
+                        h::Function_type function_type
+                        {
+                            .input_parameter_types = {create_integer_type_type_reference(64, false)},
+                            .output_parameter_types = {create_array_slice_type_reference(element_type)},
+                            .is_variadic = false,
+                        };
+
+                        return Type_info
+                        {
+                            .type = create_function_type_type_reference(std::move(function_type), {"length"}, {"stack_array"}),
+                            .is_mutable = false,
+                        };
+                    }
+                }
+            }
 
             std::optional<Custom_type_reference> custom_type_reference = get_function_constructor_type_reference(
                 declaration_database,
@@ -1499,7 +1526,7 @@ namespace h::compiler
 
             // Try builtins:
             {
-                if (data.name == "create_array_slice_from_pointer")
+                if (is_builtin_function_name(data.name))
                 {
                     return Type_info
                     {

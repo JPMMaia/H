@@ -704,6 +704,21 @@ namespace h
         return std::make_pair(key, function_expression);
     }
 
+    static bool is_builtin_instance_call(
+        h::Statement const& statement,
+        Instance_call_expression const& expression
+    )
+    {
+        h::Expression const& left_hand_side = statement.expressions[expression.left_hand_side.expression_index];
+        if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+            return is_builtin_function_name(variable_expression.name);
+        }
+
+        return false;
+    }
+
     void add_instance_call_expression_values(
         Declaration_database& declaration_database,
         h::Module const& core_module
@@ -714,6 +729,9 @@ namespace h
             if (std::holds_alternative<Instance_call_expression>(expression.data))
             {
                 Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+
+                if (is_builtin_instance_call(statement, instance_call_expression))
+                    return false;
 
                 // TODO can optimize by checking for the existence of the key first
                 std::pair<Instance_call_key, Function_expression> const pair = create_instance_call_expression_value(

@@ -4090,4 +4090,81 @@ export function run(data: *Int32, length: Uint64) -> ()
 
         test_validate_module(input, {}, expected_diagnostics);
     }
+
+    TEST_CASE("Validates create_stack_array_uninitialized() function signature", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Stack_array;
+
+export function foo(length: Uint64) -> ()
+{
+    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
+    mutable array_1: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(5);
+    mutable array_2: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(5, 6);
+    mutable array_3: Array_slice<Uint32> = create_stack_array_uninitialized<Int32>(length);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 83, 6, 84),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is 'Uint64' but 'Int32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 43, 7, 88),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 2 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 44, 8, 91),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Uint32>'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates create_stack_array_uninitialized() type parameters", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Stack_array;
+
+export function foo(length: Uint64) -> ()
+{
+    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
+    mutable array_1 = create_stack_array_uninitialized(length);
+    mutable array_2 = create_stack_array_uninitialized<Int32, Int64>(length);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 23, 6, 63),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 type arguments, but 0 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 23, 7, 77),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 type arguments, but 2 were provided.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
 }

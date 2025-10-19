@@ -453,6 +453,7 @@ namespace h::compiler
 
         {
             std::pmr::vector<Block_info> block_infos;
+            block_infos.push_back(Block_info{ .block_type = Block_type::None });
             
             std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block;
             defer_expressions_per_block.push_back({});

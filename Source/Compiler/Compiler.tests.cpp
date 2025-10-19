@@ -3307,6 +3307,141 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Stack Array Entry", "[LLVM_IR]")
+  {
+    char const* const input_file = "stack_array_entry.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define void @Stack_array_entry_foo(i64 noundef %"arguments[0].length") #0 {
+entry:
+  %length = alloca i64, align 8
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  store i64 %"arguments[0].length", ptr %length, align 8
+  %2 = load i64, ptr %length, align 8
+  %stack_save_pointer = call ptr @llvm.stacksave.p0()
+  %stack_array = alloca i32, i64 %2, align 16
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %stack_array, ptr %3, align 8
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 %2, ptr %4, align 8
+  %5 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8
+  store %struct.H_Builtin_Generic_array_slice %5, ptr %array_0, align 8
+  %6 = load i64, ptr %length, align 8
+  %stack_array1 = alloca i32, i64 %6, align 16
+  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0
+  store ptr %stack_array1, ptr %7, align 8
+  %8 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1
+  store i64 %6, ptr %8, align 8
+  %9 = load %struct.H_Builtin_Generic_array_slice, ptr %1, align 8
+  store %struct.H_Builtin_Generic_array_slice %9, ptr %array_1, align 8
+  call void @llvm.stackrestore.p0(ptr %stack_save_pointer)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nosync nounwind willreturn
+declare ptr @llvm.stacksave.p0() #1
+
+; Function Attrs: nocallback nofree nosync nounwind willreturn
+declare void @llvm.stackrestore.p0(ptr) #1
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nosync nounwind willreturn }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Stack Array Loop", "[LLVM_IR]")
+  {
+    char const* const input_file = "stack_array_loop.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define void @Stack_array_loop_foo(i64 noundef %"arguments[0].length") #0 {
+entry:
+  %length = alloca i64, align 8
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %index = alloca i64, align 8
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %array_1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  store i64 %"arguments[0].length", ptr %length, align 8
+  %2 = load i64, ptr %length, align 8
+  %stack_save_pointer = call ptr @llvm.stacksave.p0()
+  %stack_array = alloca i32, i64 %2, align 16
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %stack_array, ptr %3, align 8
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 %2, ptr %4, align 8
+  %5 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8
+  store %struct.H_Builtin_Generic_array_slice %5, ptr %array_0, align 8
+  store i64 1, ptr %index, align 8
+  br label %for_loop_condition
+
+for_loop_condition:                               ; preds = %for_loop_update_index, %entry
+  %6 = load i64, ptr %length, align 8
+  %7 = load i64, ptr %index, align 8
+  %8 = icmp ult i64 %7, %6
+  br i1 %8, label %for_loop_then, label %for_loop_after
+
+for_loop_then:                                    ; preds = %for_loop_condition
+  %9 = load i64, ptr %index, align 8
+  %stack_save_pointer1 = call ptr @llvm.stacksave.p0()
+  %stack_array2 = alloca i32, i64 %9, align 16
+  %10 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0
+  store ptr %stack_array2, ptr %10, align 8
+  %11 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1
+  store i64 %9, ptr %11, align 8
+  %12 = load %struct.H_Builtin_Generic_array_slice, ptr %1, align 8
+  store %struct.H_Builtin_Generic_array_slice %12, ptr %array_1, align 8
+  %13 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %array_1, i32 0, i32 0
+  %array_slice_element_pointer = getelementptr i32, ptr %13, i32 0
+  %14 = load i64, ptr %index, align 8
+  %15 = trunc i64 %14 to i32
+  store i32 %15, ptr %array_slice_element_pointer, align 4
+  call void @llvm.stackrestore.p0(ptr %stack_save_pointer1)
+  br label %for_loop_update_index
+
+for_loop_update_index:                            ; preds = %for_loop_then
+  %16 = load i64, ptr %index, align 8
+  %17 = add i64 %16, 1
+  store i64 %17, ptr %index, align 8
+  br label %for_loop_condition
+
+for_loop_after:                                   ; preds = %for_loop_condition
+  call void @llvm.stackrestore.p0(ptr %stack_save_pointer)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nosync nounwind willreturn
+declare ptr @llvm.stacksave.p0() #1
+
+; Function Attrs: nocallback nofree nosync nounwind willreturn
+declare void @llvm.stackrestore.p0(ptr) #1
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nosync nounwind willreturn }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Switch Expressions", "[LLVM_IR]")
   {
     char const* const input_file = "switch_expressions.hltxt";

@@ -1,0 +1,12 @@
+module Stack_array_loop;
+
+export function foo(length: Uint64) -> ()
+{
+    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
+
+    for index in 1u64 to length
+    {
+        mutable array_1: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(index);
+        array_1[0] = index as Int32;
+    }
+}

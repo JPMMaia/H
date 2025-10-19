@@ -1471,7 +1471,7 @@ namespace h::compiler
         llvm::BasicBlock* const target_block = target_block_result.first->after_block;
         Blocks_to_pop_count const blocks_to_pop_count = target_block_result.second;
 
-        create_defer_instructions_pop_blocks(parameters, blocks_to_pop_count);
+        create_instructions_pop_blocks(parameters, blocks_to_pop_count);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -1688,6 +1688,36 @@ namespace h::compiler
         };
     }
 
+    Value_and_type allocate_stack_array(
+        Call_expression const& call_expression,
+        h::Instance_call_expression const& instance_call_expression,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        Value_and_type const element_type_value = create_statement_value(instance_call_expression.arguments[0], parameters);
+        llvm::Type* const element_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, element_type_value.type.value(), parameters.type_database);
+
+        Value_and_type const array_length_value = create_loaded_expression_value(call_expression.arguments[0].expression_index, statement, parameters);
+        
+        Block_info& current_block = parameters.blocks.back();
+
+        llvm::AllocaInst* const stack_array_alloca = create_alloca_dynamic_array_instruction(current_block.stack_save_pointer, parameters.llvm_builder, parameters.llvm_data_layout, parameters.llvm_module, element_llvm_type, "stack_array", array_length_value.value);
+        Value_and_type const stack_array_value
+        {
+            .name = "",
+            .value = stack_array_alloca,
+            .type = create_pointer_type_type_reference({element_type_value.type.value()}, true)
+        };
+
+        return instantiate_array_slice(
+            {element_type_value.type.value()},
+            stack_array_value,
+            array_length_value,
+            parameters
+        );
+    }
+
     std::optional<Value_and_type> create_builtin_call_expression_value(
         Call_expression const& expression,
         Statement const& statement,
@@ -1696,7 +1726,27 @@ namespace h::compiler
     {
         h::Expression const& left_hand_side = statement.expressions[expression.expression.expression_index];
 
-        if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+        if (std::holds_alternative<h::Instance_call_expression>(left_hand_side.data))
+        {
+            h::Instance_call_expression const& instance_call_expression = std::get<h::Instance_call_expression>(left_hand_side.data);
+
+            h::Expression const& instance_call_left_expression = statement.expressions[instance_call_expression.left_hand_side.expression_index];
+            if (std::holds_alternative<h::Variable_expression>(instance_call_left_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(instance_call_left_expression.data);
+                
+                if (variable_expression.name == "create_stack_array_uninitialized")
+                {
+                    return allocate_stack_array(
+                        expression,
+                        instance_call_expression,
+                        statement,
+                        parameters
+                    );
+                }
+            }
+        }
+        else if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
         {
             h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
             
@@ -2213,7 +2263,7 @@ namespace h::compiler
         llvm::BasicBlock* const target_block = target_block_result.first->repeat_block;
         Blocks_to_pop_count const blocks_to_pop_count = target_block_result.second;
 
-        create_defer_instructions_pop_blocks(parameters, blocks_to_pop_count);
+        create_instructions_pop_blocks(parameters, blocks_to_pop_count);
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -2987,7 +3037,7 @@ namespace h::compiler
 
         if (!expression.expression.has_value())
         {
-            create_defer_instructions_at_return(parameters);
+            create_instructions_at_return(parameters);
 
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -3009,7 +3059,7 @@ namespace h::compiler
         new_parameters.expression_type = function_output_type.has_value() ? function_output_type.value() : std::optional<Type_reference>{};
         Value_and_type const temporary = create_expression_value(expression.expression->expression_index, statement, new_parameters);
 
-        create_defer_instructions_at_return(parameters);
+        create_instructions_at_return(parameters);
 
         if (parameters.contract_options != Contract_options::Disabled && parameters.function_declaration.has_value())
         {
@@ -4055,10 +4105,10 @@ namespace h::compiler
         if (create_defer_expressions_at_end && !ends_with_terminator_statement(statements))
         {
             new_parameters.local_variables = all_local_variables;
-            create_defer_instructions_at_end_of_block(new_parameters);
+            create_instructions_at_end_of_block(new_parameters);
         }
     }
-
+    
     void create_defer_instructions_at_end_of_block(
         Expression_parameters const& parameters,
         std::size_t const block_index
@@ -4092,31 +4142,49 @@ namespace h::compiler
         parameters.llvm_builder.SetCurrentDebugLocation(previous_debug_location);
     }
 
-    void create_defer_instructions_at_end_of_block(
+    void create_instructions_at_end_of_block(
+        Expression_parameters const& parameters,
+        std::size_t const block_index
+    )
+    {
+        create_defer_instructions_at_end_of_block(parameters, block_index);
+
+        Block_info const& block = parameters.blocks[block_index];
+        if (block.stack_save_pointer != nullptr)
+            create_free_dynamic_array_instruction(block.stack_save_pointer, parameters.llvm_builder, parameters.llvm_module);
+    }
+
+    void create_instructions_at_end_of_block(
         Expression_parameters const& parameters
     )
     {
-        if (!parameters.defer_expressions_per_block.empty())
-            create_defer_instructions_at_end_of_block(parameters, parameters.defer_expressions_per_block.size() - 1);
+        assert(parameters.blocks.size() == parameters.defer_expressions_per_block.size());
+        
+        if (!parameters.blocks.empty())
+            create_instructions_at_end_of_block(parameters, parameters.blocks.size() - 1);
     }
 
-    void create_defer_instructions_pop_blocks(
+    void create_instructions_pop_blocks(
         Expression_parameters const& parameters,
         std::size_t const blocks_to_pop_count
     )
     {
+        assert(parameters.blocks.size() == parameters.defer_expressions_per_block.size());
+
         for (std::size_t block_index = 0; block_index < blocks_to_pop_count; ++block_index)
         {
-            std::size_t const reverse_block_index = parameters.defer_expressions_per_block.size() - 1 - block_index;
-            create_defer_instructions_at_end_of_block(parameters, reverse_block_index);
+            std::size_t const reverse_block_index = parameters.blocks.size() - 1 - block_index;
+            create_instructions_at_end_of_block(parameters, reverse_block_index);
         }
     }
 
-    void create_defer_instructions_at_return(
+    void create_instructions_at_return(
         Expression_parameters const& parameters
     )
     {
-        create_defer_instructions_pop_blocks(parameters, parameters.defer_expressions_per_block.size());
+        assert(parameters.blocks.size() == parameters.defer_expressions_per_block.size());
+
+        create_instructions_pop_blocks(parameters, parameters.blocks.size());
     }
 
     std::string_view condition_type_to_string(Condition_type const type)

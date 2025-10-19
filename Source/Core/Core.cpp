@@ -571,4 +571,12 @@ namespace h
 
         return h::Expression_index{.expression_index = destination_expression_index};
     }
+
+    bool is_builtin_function_name(
+        std::string_view const name
+    )
+    {
+        return name == "create_array_slice_from_pointer" ||
+               name == "create_stack_array_uninitialized";
+    }
 }

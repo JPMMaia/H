@@ -1289,4 +1289,8 @@ namespace h
         h::Statement const& source_statement,
         h::Expression_index const source_expression_index
     );
+
+    export bool is_builtin_function_name(
+        std::string_view const name
+    );
 }
