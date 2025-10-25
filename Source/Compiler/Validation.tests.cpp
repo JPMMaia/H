@@ -4085,6 +4085,31 @@ export function run(data: *Int32, length: Uint64) -> ()
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 0 type is '*void' but 'Int32' was provided.",
                 .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that null cannot be passed to create_array_slice_from_pointer()", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run() -> ()
+{
+    var f = create_array_slice_from_pointer(null, 0u64);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 45, 5, 49),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot pass 'Null_pointer_type' as first argument to 'create_array_slice_from_pointer'.",
+                .related_information = {},
             }
         };
 

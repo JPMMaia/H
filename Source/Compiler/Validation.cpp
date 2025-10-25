@@ -1933,7 +1933,7 @@ namespace h::compiler
                 if (expression.arguments.size() > 0)
                 {
                     std::optional<Type_info> const first_argument_type_info = get_expression_type_info(parameters.core_module, nullptr, parameters.scope, parameters.statement, parameters.statement.expressions[expression.arguments[0].expression_index], std::nullopt, parameters.declaration_database);
-                    if (first_argument_type_info.has_value() && is_pointer(first_argument_type_info->type))
+                    if (first_argument_type_info.has_value() && std::holds_alternative<h::Pointer_type>(first_argument_type_info->type.data))
                     {
                         std::optional<Type_reference> value_type = remove_pointer(first_argument_type_info->type);
                         if (value_type.has_value())
@@ -1976,7 +1976,32 @@ namespace h::compiler
         if (callable_type_optional.has_value() && is_builtin_type_reference(callable_type_optional.value()))
         {
             h::Builtin_type_reference const& builtin_type_reference = std::get<h::Builtin_type_reference>(callable_type_optional->data);
-            if (builtin_type_reference.value == "create_stack_array_uninitialized")
+            if (builtin_type_reference.value == "create_array_slice_from_pointer")
+            {
+                if (expression.arguments.size() > 1)
+                {
+                    std::optional<h::Type_reference> const& first_argument_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression.arguments[0]);
+
+                    if (!first_argument_type_optional.has_value() || is_null_pointer_type(first_argument_type_optional.value()))
+                    {
+                        h::Expression const& first_argument_expression = parameters.statement.expressions[expression.arguments[0].expression_index];
+                        std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, first_argument_type_optional.value(), parameters.temporaries_allocator, parameters.temporaries_allocator);
+
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                first_argument_expression.source_range,
+                                std::format(
+                                    "Cannot pass '{}' as first argument to 'create_array_slice_from_pointer'.",
+                                    provided_type_name
+                                )
+                            )
+                        };
+                    }
+                }
+            }
+            else if (builtin_type_reference.value == "create_stack_array_uninitialized")
             {
                 return
                 {

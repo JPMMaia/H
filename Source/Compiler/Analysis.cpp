@@ -1071,7 +1071,7 @@ namespace h::compiler
                     if (data.arguments.size() > 0)
                     {
                         std::optional<Type_info> const first_argument_type_info = get_expression_type_info(core_module, nullptr, scope, statement, statement.expressions[data.arguments[0].expression_index], std::nullopt, declaration_database);
-                        if (first_argument_type_info.has_value() && is_pointer(first_argument_type_info->type))
+                        if (first_argument_type_info.has_value() && std::holds_alternative<Pointer_type>(first_argument_type_info->type.data))
                         {
                             std::optional<Type_reference> value_type = remove_pointer(first_argument_type_info->type);
                             if (value_type.has_value())
