@@ -1074,6 +1074,7 @@ namespace h::compiler
 
         llvm::DIType* const llvm_argument_debug_type = type_reference_to_llvm_debug_type(
             *debug_info->llvm_builder,
+            *get_debug_scope(*debug_info),
             llvm_data_layout,
             core_type,
             debug_info->type_database

@@ -1498,6 +1498,74 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
+  TEST_CASE("Compile Debug Information Array Slices", "[LLVM_IR]")
+  {
+    char const* const input_file = "debug_information_array_slices.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%struct.H_Builtin_Generic_array_slice = type {{ ptr, i64 }}
+
+; Function Attrs: convergent
+define void @Debug_information_run(ptr noundef %"arguments[0].data", i64 noundef %"arguments[1].length") #0 !dbg !3 {{
+entry:
+  %data = alloca ptr, align 8
+  %length = alloca i64, align 8
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !12
+  %a = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !13
+  store ptr %"arguments[0].data", ptr %data, align 8
+  call void @llvm.dbg.declare(metadata ptr %data, metadata !10, metadata !DIExpression()), !dbg !14
+  store i64 %"arguments[1].length", ptr %length, align 8
+  call void @llvm.dbg.declare(metadata ptr %length, metadata !11, metadata !DIExpression()), !dbg !15
+  %1 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !12
+  store ptr %data, ptr %1, align 8, !dbg !12
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !12
+  store ptr %length, ptr %2, align 8, !dbg !12
+  %3 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !17, metadata !DIExpression()), !dbg !13
+  store %struct.H_Builtin_Generic_array_slice %3, ptr %a, align 8, !dbg !13
+  ret void, !dbg !13
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
+
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "debug_information_array_slices.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !9)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{null, !6, !8}}
+!6 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !7, size: 64)
+!7 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!8 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
+!9 = !{{!10, !11}}
+!10 = !DILocalVariable(name: "data", arg: 1, scope: !3, file: !2, line: 3, type: !6)
+!11 = !DILocalVariable(name: "length", arg: 2, scope: !3, file: !2, line: 3, type: !8)
+!12 = !DILocation(line: 4, column: 1, scope: !3)
+!13 = !DILocation(line: 5, column: 5, scope: !3)
+!14 = !DILocation(line: 3, column: 21, scope: !3)
+!15 = !DILocation(line: 3, column: 35, scope: !3)
+!16 = !DILocation(line: 5, column: 33, scope: !3)
+!17 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 5, type: !18)
+!18 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !19)
+!19 = !{{!20, !21}}
+!20 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !6, size: 64, align: 8)
+!21 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !8, size: 64, align: 8, offset: 64)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
+  }
+
   TEST_CASE("Compile Debug Information Bit Fields", "[LLVM_IR]")
   {
     char const* const input_file = "debug_information_bit_fields.hltxt";

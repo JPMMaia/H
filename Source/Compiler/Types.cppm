@@ -109,6 +109,7 @@ namespace h::compiler
 
     export llvm::DIType* type_reference_to_llvm_debug_type(
         llvm::DIBuilder& llvm_debug_builder,
+        llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
         Type_reference const& type_reference,
         Debug_type_database const& debug_type_database
@@ -116,6 +117,7 @@ namespace h::compiler
 
     export llvm::DIType* type_reference_to_llvm_debug_type(
         llvm::DIBuilder& llvm_debug_builder,
+        llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
         std::span<Type_reference const> const type_reference,
         Debug_type_database const& debug_type_database
@@ -123,6 +125,7 @@ namespace h::compiler
 
     export std::pmr::vector<llvm::DIType*> type_references_to_llvm_debug_types(
         llvm::DIBuilder& llvm_debug_builder,
+        llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
         std::span<Type_reference const> const type_references,
         Debug_type_database const& debug_type_database,

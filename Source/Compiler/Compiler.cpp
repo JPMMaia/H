@@ -79,6 +79,7 @@ namespace h::compiler
 
     static llvm::DISubroutineType* create_debug_function_type(
         llvm::DIBuilder& llvm_debug_builder,
+        llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
         Module const& core_module,
         std::span<Type_reference const> const input_parameter_types,
@@ -90,8 +91,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, input_parameter_types, debug_type_database, temporaries_allocator);
-        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_data_layout, output_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, input_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, output_parameter_types, debug_type_database, temporaries_allocator);
 
         llvm::DIType* llvm_return_debug_type = [&]() -> llvm::DIType*
         {
@@ -416,6 +417,7 @@ namespace h::compiler
         {
             llvm::DISubroutineType* const llvm_function_debug_type = create_debug_function_type(
                 *debug_info->llvm_builder,
+                *get_debug_scope(*debug_info),
                 llvm_data_layout,
                 core_module,
                 function_declaration.type.input_parameter_types,
@@ -1080,19 +1082,6 @@ namespace h::compiler
             llvm_data_layout
         );
 
-        add_module_debug_types(
-            debug_type_database,
-            *llvm_debug_builder,
-            *llvm_debug_compile_unit,
-            *llvm_debug_file,
-            llvm_debug_files,
-            llvm_data_layout,
-            clang_module_data,
-            core_module,
-            enum_value_constants.map,
-            type_database
-        );
-
         for (std::pair<std::pmr::string const, Module> const& pair : core_module_dependencies)
         {
             Module const& module_dependency = pair.second;
@@ -1119,6 +1108,19 @@ namespace h::compiler
                 type_database
             );
         }
+
+        add_module_debug_types(
+            debug_type_database,
+            *llvm_debug_builder,
+            *llvm_debug_compile_unit,
+            *llvm_debug_file,
+            llvm_debug_files,
+            llvm_data_layout,
+            clang_module_data,
+            core_module,
+            enum_value_constants.map,
+            type_database
+        );
 
         if (!core_module.source_file_path)
             h::common::print_message_and_exit("Module did not contain source file path!");
