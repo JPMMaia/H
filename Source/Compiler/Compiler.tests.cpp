@@ -3106,6 +3106,36 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Instantiate Struct with Enum from Module", "[LLVM_IR]")
+  {
+    char const* const input_file = "instantiate_struct_with_enum_from_module.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+      { "Instantiate_struct_with_enum", parse_and_get_file_path(g_test_source_files_path / "instantiate_struct_with_enum.hltxt") },
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Instantiate_struct_with_enum_My_struct = type { i32 }
+
+; Function Attrs: convergent
+define private void @Instantiate_struct_with_enum_from_module_run() #0 {
+entry:
+  %0 = alloca %struct.Instantiate_struct_with_enum_My_struct, align 4
+  %instance = alloca %struct.Instantiate_struct_with_enum_My_struct, align 4
+  %1 = getelementptr inbounds %struct.Instantiate_struct_with_enum_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = load %struct.Instantiate_struct_with_enum_My_struct, ptr %0, align 4
+  store %struct.Instantiate_struct_with_enum_My_struct %2, ptr %instance, align 4
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
     char const* const input_file = "module_with_dots.hltxt";

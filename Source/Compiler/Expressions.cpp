@@ -34,6 +34,43 @@ import h.compiler.types;
 
 namespace h::compiler
 {
+    template <typename T1, typename T2>
+    inline size_t constexpr offset_of(T1 T2::*member) {
+        constexpr T2 object {};
+        return size_t(&(object.*member)) - size_t(&object);
+    }
+
+    Expression_parameters set_core_module(Expression_parameters const& parameters, h::Module const& core_module)
+    {
+        if (&parameters.core_module == &core_module)
+            return parameters;
+
+        return Expression_parameters
+        {
+            .llvm_context = parameters.llvm_context,
+            .llvm_data_layout = parameters.llvm_data_layout,
+            .llvm_builder = parameters.llvm_builder,
+            .llvm_parent_function = parameters.llvm_parent_function,
+            .llvm_module = parameters.llvm_module,
+            .clang_module_data = parameters.clang_module_data,
+            .core_module = core_module,
+            .core_module_dependencies = parameters.core_module_dependencies,
+            .declaration_database = parameters.declaration_database,
+            .type_database = parameters.type_database,
+            .enum_value_constants = parameters.enum_value_constants,
+            .blocks = parameters.blocks,
+            .defer_expressions_per_block = parameters.defer_expressions_per_block,
+            .function_declaration = parameters.function_declaration,
+            .function_arguments = parameters.function_arguments,
+            .local_variables = parameters.local_variables,
+            .expression_type = parameters.expression_type,
+            .debug_info = parameters.debug_info,
+            .contract_options = parameters.contract_options,
+            .source_position = parameters.source_position,
+            .temporaries_allocator = parameters.temporaries_allocator,
+        };
+    }
+
     std::optional<Module const*> get_module(std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies, std::string_view const name)
     {
         auto const location = core_module_dependencies.find(name.data());
@@ -2662,27 +2699,52 @@ namespace h::compiler
                 Type_reference const& member_type = struct_declaration.member_types[member_index];
 
                 auto const expression_pair_location = std::find_if(expression.members.begin(), expression.members.end(), [member_name](Instantiate_member_value_pair const& pair) { return pair.member_name == member_name; });
-                
-                Expression_parameters new_parameters = parameters;
-                new_parameters.expression_type = member_type;
-                Value_and_type const member_value =
-                    expression_pair_location != expression.members.end() ?
-                    create_loaded_expression_value(expression_pair_location->value.expression_index, statement, new_parameters) :
-                    create_loaded_statement_value(struct_declaration.member_default_values[member_index], new_parameters);
 
-                generate_store_struct_member_instructions(
-                    parameters.clang_module_data,
-                    parameters.llvm_context,
-                    parameters.llvm_builder,
-                    parameters.llvm_data_layout,
-                    struct_alloca,
-                    member_name,
-                    module_name,
-                    struct_declaration,
-                    type_instance,
-                    member_value,
-                    parameters.type_database
-                );
+                if (expression_pair_location != expression.members.end())
+                {
+                    Expression_parameters new_parameters = parameters;
+                    new_parameters.expression_type = member_type;
+                    Value_and_type const member_value = create_loaded_expression_value(expression_pair_location->value.expression_index, statement, new_parameters);
+
+                    generate_store_struct_member_instructions(
+                        parameters.clang_module_data,
+                        parameters.llvm_context,
+                        parameters.llvm_builder,
+                        parameters.llvm_data_layout,
+                        struct_alloca,
+                        member_name,
+                        module_name,
+                        struct_declaration,
+                        type_instance,
+                        member_value,
+                        parameters.type_database
+                    );
+                }
+                else
+                {
+                    h::Module const& struct_core_module =
+                        module_name == parameters.core_module.name ?
+                        parameters.core_module :
+                        parameters.core_module_dependencies.at(module_name.data());
+                    Expression_parameters new_parameters = set_core_module(parameters, struct_core_module);
+                    new_parameters.expression_type = member_type;
+
+                    Value_and_type const member_value = create_loaded_statement_value(struct_declaration.member_default_values[member_index], new_parameters);
+
+                    generate_store_struct_member_instructions(
+                        parameters.clang_module_data,
+                        parameters.llvm_context,
+                        parameters.llvm_builder,
+                        parameters.llvm_data_layout,
+                        struct_alloca,
+                        member_name,
+                        module_name,
+                        struct_declaration,
+                        type_instance,
+                        member_value,
+                        parameters.type_database
+                    );
+                }
             }
 
             return Value_and_type

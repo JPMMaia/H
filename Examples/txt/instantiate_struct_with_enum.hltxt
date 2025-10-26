@@ -1,0 +1,12 @@
+module Instantiate_struct_with_enum;
+
+enum My_enum
+{
+    V0 = 0,
+    V1 = 1,
+}
+
+struct My_struct
+{
+    v0: My_enum = My_enum.V0;
+}

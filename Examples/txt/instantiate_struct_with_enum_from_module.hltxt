@@ -1,0 +1,8 @@
+module Instantiate_struct_with_enum_from_module;
+
+import Instantiate_struct_with_enum as m0;
+
+function run() -> ()
+{
+    var instance: m0.My_struct = {};
+}
