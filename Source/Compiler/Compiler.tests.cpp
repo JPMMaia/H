@@ -859,6 +859,32 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Binary Expressions Types", "[LLVM_IR]")
+  {
+    char const* const input_file = "binary_expressions_types.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define void @Binary_expression_types_run() #0 {
+entry:
+  %p0 = alloca ptr, align 8
+  %v0 = alloca i1, align 1
+  store ptr null, ptr %p0, align 8
+  %0 = icmp eq ptr %p0, null
+  store i1 %0, ptr %v0, align 1
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
 
   TEST_CASE("Compile Bit Fields", "[LLVM_IR]")
   {

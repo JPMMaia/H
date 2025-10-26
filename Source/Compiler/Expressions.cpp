@@ -990,16 +990,21 @@ namespace h::compiler
         Type_reference const& second
     )
     {
-        if ((is_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_pointer(second)))
-            return true;
-
-        if ((is_function_pointer(first) && is_null_pointer_type(second)) || (is_null_pointer_type(first) && is_function_pointer(second)))
-            return true;
-
         std::optional<Type_reference> const underlying_first_optional = get_underlying_type(declaration_database, first);
         std::optional<Type_reference> const underlying_second_optional = get_underlying_type(declaration_database, second);
         if (underlying_first_optional.has_value() && underlying_second_optional.has_value())
-            return underlying_first_optional.value() == underlying_second_optional.value();
+        {
+            Type_reference const& underlying_first = underlying_first_optional.value();
+            Type_reference const& underlying_second = underlying_second_optional.value();
+
+            if ((is_pointer(underlying_first) && is_null_pointer_type(underlying_second)) || (is_null_pointer_type(underlying_first) && is_pointer(underlying_second)))
+                return true;
+
+            if ((is_function_pointer(underlying_first) && is_null_pointer_type(underlying_second)) || (is_null_pointer_type(underlying_first) && is_function_pointer(underlying_second)))
+                return true;
+
+            return underlying_first == underlying_second;
+        }
 
         return first == second;
     }
@@ -1018,7 +1023,8 @@ namespace h::compiler
         if (!are_types_compatible(declaration_database, *left_hand_side.type, *right_hand_side.type))
             throw std::runtime_error{ "Left and right side types do not match!" };
 
-        Type_reference const& type = left_hand_side.type.value();
+        std::optional<Type_reference> const underling_type = get_underlying_type(declaration_database, left_hand_side.type.value());
+        Type_reference const& type = underling_type.has_value() ? underling_type.value() : left_hand_side.type.value();
 
         switch (operation)
         {
@@ -4116,7 +4122,7 @@ namespace h::compiler
 
             h::Expression const& expression = statement.expressions[expression_index];
 
-            if (parameters.debug_info != nullptr)
+            if (parameters.debug_info != nullptr && expression.source_range.has_value())
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);
 
             llvm::Value* const loaded_value = parameters.llvm_builder.CreateLoad(llvm_type, value.value);
