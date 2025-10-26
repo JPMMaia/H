@@ -3402,6 +3402,7 @@ namespace h::compiler
         case Unary_operation::Address_of: {
             std::string_view const variable_name = value_expression.name;
 
+            // Try local variable:
             {
                 std::optional<Value_and_type> location = search_in_function_scope(variable_name, {}, local_variables);
                 if (location.has_value())
@@ -3416,6 +3417,7 @@ namespace h::compiler
                 }
             }
 
+            // Try global variable:
             {
                 std::optional<Global_variable_declaration const*> const declaration = find_global_variable_declaration(parameters.core_module, variable_name);
                 if (declaration.has_value())
@@ -3442,6 +3444,25 @@ namespace h::compiler
                             };
                         }
                     }
+                }
+            }
+
+            // Try access expressions:
+            {
+                h::Expression const& expression_to_get_address_of = statement.expressions[expression.expression.expression_index];
+
+                if (std::holds_alternative<h::Access_expression>(expression_to_get_address_of.data) || std::holds_alternative<h::Access_array_expression>(expression_to_get_address_of.data))
+                {
+                    std::pmr::vector<Type_reference> element_type;
+                    if (value_expression.type.has_value())
+                        element_type.push_back(value_expression.type.value());
+
+                    return
+                    {
+                        .name = "",
+                        .value = value_expression.value,
+                        .type = create_pointer_type_type_reference(std::move(element_type), true)
+                    };
                 }
             }
         }

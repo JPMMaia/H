@@ -166,6 +166,40 @@ namespace h
     h::parser::destroy_parser(std::move(parser));
   }
 
+  TEST_CASE("Compile Address Of", "[LLVM_IR]")
+  {
+    char const* const input_file = "address_of.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Address_of_My_struct = type { i32, i32 }
+
+; Function Attrs: convergent
+define void @Address_of_take(ptr noundef %"arguments[0].integers", i64 noundef %"arguments[1].instance") #0 {
+entry:
+  %integers = alloca ptr, align 8
+  %0 = alloca %struct.Address_of_My_struct, align 4
+  %p0 = alloca ptr, align 8
+  %p1 = alloca ptr, align 8
+  store ptr %"arguments[0].integers", ptr %integers, align 8
+  %1 = getelementptr inbounds %struct.Address_of_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[1].instance", ptr %1, align 4
+  %array_element_pointer = getelementptr i32, ptr %integers, i32 1
+  store ptr %array_element_pointer, ptr %p0, align 8
+  %2 = getelementptr inbounds %struct.Address_of_My_struct, ptr %0, i32 0, i32 1
+  store ptr %2, ptr %p1, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Array Slices", "[LLVM_IR]")
   {
     char const* const input_file = "array_slices.hltxt";
