@@ -359,8 +359,8 @@ namespace h::compiler
 
         auto const enum_value_index = std::distance(declaration.values.begin(), enum_value_location);
 
-        // TODO mangle name
-        Enum_constants const& constants = enum_value_constants.map.at(declaration.name);
+        std::pmr::string const key = std::pmr::string{std::format("{}.{}", module_name, declaration.name)};
+        Enum_constants const& constants = enum_value_constants.map.at(key);
         llvm::Constant* const constant = constants[enum_value_index];
 
         return Value_and_type

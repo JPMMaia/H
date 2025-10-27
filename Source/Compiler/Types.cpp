@@ -314,6 +314,7 @@ namespace h::compiler
         llvm::DIScope& llvm_debug_scope,
         llvm::DIFile& llvm_debug_file,
         std::unordered_map<std::filesystem::path, llvm::DIFile*>& llvm_debug_files,
+        std::string_view const module_name,
         std::span<Enum_declaration const> const enum_declarations,
         std::pmr::unordered_map<std::pmr::string, std::pmr::vector<llvm::Constant*>> const& enum_value_constants,
         LLVM_debug_type_map& llvm_debug_type_map
@@ -325,7 +326,8 @@ namespace h::compiler
             unsigned const number_of_bits = 32;
             llvm::DIType* const underlying_type = llvm_debug_builder.createBasicType("Int32", 32, llvm::dwarf::DW_ATE_signed);
 
-            std::pmr::vector<llvm::Constant*> const& constants = enum_value_constants.at(enum_declaration.name);
+            std::pmr::string const key = std::pmr::string{std::format("{}.{}", module_name, enum_declaration.name)};
+            std::pmr::vector<llvm::Constant*> const& constants = enum_value_constants.at(key);
 
             std::pmr::vector<llvm::Metadata*> elements;
             elements.reserve(enum_declaration.values.size());
@@ -336,7 +338,7 @@ namespace h::compiler
                 llvm::Constant* const enum_constant = constants[index];
                 llvm::ConstantInt* const constant_int = llvm::dyn_cast<llvm::ConstantInt>(enum_constant);
                 if (constant_int == nullptr)
-                    h::common::print_message_and_exit(std::format("In enum '{}', value '{}' is not a constant integer!", enum_declaration.name, enum_value.name));
+                    h::common::print_message_and_exit(std::format("In enum '{}', value '{}' is not a constant integer!", key, enum_value.name));
 
                 std::uint64_t const integer_value = constant_int->getZExtValue();
 
@@ -724,8 +726,8 @@ namespace h::compiler
         LLVM_debug_type_map& llvm_debug_type_map = debug_type_database.name_to_llvm_debug_type[core_module.name];
         LLVM_type_map const& llvm_type_map = type_database.name_to_llvm_type.at(core_module.name);
 
-        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.export_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
-        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.internal_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
+        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.name, core_module.export_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
+        add_enum_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module.name, core_module.internal_declarations.enum_declarations, enum_value_constants, llvm_debug_type_map);
 
         add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.export_declarations.struct_declarations, llvm_debug_type_map);
         add_struct_debug_declarations(llvm_debug_builder, llvm_debug_scope, llvm_debug_file, llvm_debug_files, core_module, core_module.internal_declarations.struct_declarations, llvm_debug_type_map);

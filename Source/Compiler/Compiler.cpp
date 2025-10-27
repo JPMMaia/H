@@ -327,14 +327,15 @@ namespace h::compiler
 
     void add_enum_constants(
         Enum_value_constants& enum_constants,
+        std::string_view const module_name,
         std::span<Enum_declaration const> const declarations,
         Expression_parameters const& parameters
     )
     {
         for (Enum_declaration const& declaration : declarations)
         {
-            // TODO mangle name
-            enum_constants.map[declaration.name] = create_enum_constants(declaration, parameters);
+            std::pmr::string key = std::pmr::string{std::format("{}.{}", module_name, declaration.name)};
+            enum_constants.map[std::move(key)] = create_enum_constants(declaration, parameters);
         }
     }
 
@@ -381,12 +382,12 @@ namespace h::compiler
 
         for (std::pair<std::pmr::string const, Module> const& module : core_module_dependencies)
         {
-            add_enum_constants(enum_value_constants, module.second.export_declarations.enum_declarations, expression_parameters);
-            add_enum_constants(enum_value_constants, module.second.internal_declarations.enum_declarations, expression_parameters);
+            add_enum_constants(enum_value_constants, module.second.name, module.second.export_declarations.enum_declarations, expression_parameters);
+            add_enum_constants(enum_value_constants, module.second.name, module.second.internal_declarations.enum_declarations, expression_parameters);
         }
 
-        add_enum_constants(enum_value_constants, core_module.export_declarations.enum_declarations, expression_parameters);
-        add_enum_constants(enum_value_constants, core_module.internal_declarations.enum_declarations, expression_parameters);
+        add_enum_constants(enum_value_constants, core_module.name, core_module.export_declarations.enum_declarations, expression_parameters);
+        add_enum_constants(enum_value_constants, core_module.name, core_module.internal_declarations.enum_declarations, expression_parameters);
 
         return enum_value_constants;
     }

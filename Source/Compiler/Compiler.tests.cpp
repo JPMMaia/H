@@ -4024,6 +4024,32 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Using Enums Duplicate", "[LLVM_IR]")
+  {
+    char const* const input_file = "using_enums_duplicate.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "Enums", parse_and_get_file_path(g_test_source_files_path / "using_enums.hltxt") },
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define void @Enums_duplicate_use_enums() #0 {
+entry:
+  %v0 = alloca i32, align 4
+  %v1 = alloca i32, align 4
+  store i32 10, ptr %v0, align 4
+  store i32 1, ptr %v1, align 4
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Using Enums From Modules", "[LLVM_IR]")
   {
     char const* const input_file = "using_enums_from_modules.hltxt";
