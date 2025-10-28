@@ -618,6 +618,7 @@ namespace h::compiler
         Artifact const& artifact,
         std::span<Artifact const> const artifacts,
         h::compiler::Target const& target,
+        std::filesystem::path const& build_directory_path,
         h::compiler::Compilation_options const& compilation_options
     )
     {
@@ -651,11 +652,18 @@ namespace h::compiler
             if (location == artifacts.end())
                 continue;
 
+            if (!location->include.empty())
+            {
+                std::filesystem::path const output_path = build_directory_path / "lib" / location->name;
+                artifact_libraries.libraries.push_back(std::pmr::string{output_path.generic_string()});
+            }
+
             add_dependency_libraries(
                 artifact_libraries,
                 *location,
                 artifacts,
                 target,
+                build_directory_path,
                 compilation_options
             );
         }
@@ -665,6 +673,7 @@ namespace h::compiler
         Artifact const& artifact,
         std::span<Artifact const> const artifacts,
         h::compiler::Target const& target,
+        std::filesystem::path const& build_directory_path,
         h::compiler::Compilation_options const& compilation_options,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -681,6 +690,7 @@ namespace h::compiler
             artifact,
             artifacts,
             target,
+            build_directory_path,
             compilation_options
         );
 
@@ -704,9 +714,6 @@ namespace h::compiler
         {
             Artifact const& artifact = artifacts[index];
 
-            if (!artifact.info.has_value())
-                continue;
-
             std::pmr::vector<std::filesystem::path> const bitcode_files = get_artifact_bitcode_files(
                 builder,
                 artifact,
@@ -719,12 +726,13 @@ namespace h::compiler
                 artifact,
                 artifacts,
                 builder.target,
+                builder.build_directory_path,
                 compilation_options,
                 temporaries_allocator,
                 temporaries_allocator
             );
 
-            if (std::holds_alternative<Library_info>(*artifact.info))
+            if (artifact.type == Artifact_type::Library)
             {
                 h::compiler::Linker_options const linker_options
                 {
@@ -736,7 +744,7 @@ namespace h::compiler
                 std::filesystem::path const output = builder.build_directory_path / "lib" / artifact.name;
                 create_directory_if_it_does_not_exist(output.parent_path());
 
-                bool const result = h::compiler::link(
+                bool const result = h::compiler::create_static_library(
                     bitcode_files,
                     artifact_libraries.libraries,
                     output,
@@ -745,7 +753,7 @@ namespace h::compiler
                 if (!result)
                     h::common::print_message_and_exit(std::format("Failed to link static library '{}'.", artifact.name));
             }
-            else if (std::holds_alternative<h::compiler::Executable_info>(*artifact.info))
+            else if (artifact.info.has_value() && std::holds_alternative<h::compiler::Executable_info>(*artifact.info))
             {
                 h::compiler::Executable_info const& executable_info = std::get<h::compiler::Executable_info>(*artifact.info);
 

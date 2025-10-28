@@ -1,0 +1,17 @@
+{
+    "name": "my_app",
+    "version": "0.1.0",
+    "type": "executable",
+    "dependencies": [
+        {
+            "name": "my_library"
+        }
+    ],
+    "include": [
+        "./**/*.hltxt"
+    ],
+    "executable": {
+        "source": "my_app.hltxt",
+        "entry_point": "my_app_main"
+    }
+}

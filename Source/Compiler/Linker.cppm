@@ -30,4 +30,11 @@ namespace h::compiler
         std::filesystem::path const& output,
         Linker_options const& options
     );
+
+    export bool create_static_library(
+        std::span<std::filesystem::path const> const object_file_paths,
+        std::span<std::pmr::string const> const libraries,
+        std::filesystem::path const& output,
+        Linker_options const& options
+    );
 }
