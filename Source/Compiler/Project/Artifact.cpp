@@ -173,16 +173,20 @@ namespace h::compiler
         return map;
     }
 
-    std::pmr::unordered_map<std::pmr::string, std::pmr::string> parse_external_library(nlohmann::json const& json)
+    std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> parse_external_library(nlohmann::json const& json)
     {
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> map;
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> map;
         map.reserve(json.size());
 
         for (auto const& pair : json.items())
         {
-            std::pmr::string key = std::pmr::string{ pair.key() };
-            std::pmr::string value = pair.value().get<std::pmr::string>();
-            map.insert(std::make_pair(std::move(key), std::move(value)));
+            std::pmr::string const key = std::pmr::string{ pair.key() };
+            
+            nlohmann::json const& values = pair.value();
+            for (auto const& value : values)
+            {
+                map.insert(std::make_pair(key, value.get<std::pmr::string>()));
+            }
         }
 
         return map;
@@ -375,7 +379,12 @@ namespace h::compiler
 
                     for (auto const& pair : library_info.external_libraries)
                     {
-                        external_libraries_json[pair.first.c_str()] = pair.second;
+                        nlohmann::json values_json;
+
+                        for (auto const& value : pair.second)
+                            values_json.push_back(value);
+
+                        external_libraries_json[pair.first.c_str()] = values_json;
                     }
 
                     library_json["external_libraries"] = std::move(external_libraries_json);
@@ -852,7 +861,7 @@ namespace h::compiler
     }
 
     std::optional<External_library_info> get_external_library(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         Target const& target,
         bool const prefer_debug,
         bool const prefer_dynamic
@@ -878,13 +887,21 @@ namespace h::compiler
                 bool const is_dynamic = dynamic_priority[dynamic_index];
                 std::string const target_library = std::format("{}-{}-{}", target.operating_system, is_dynamic ? "dynamic" : "static", is_debug ? "debug" : "release");
 
-                auto const location = external_libraries.find(target_library.c_str());
-                if (location != external_libraries.end())
+                auto const range = external_libraries.equal_range(target_library.c_str());
+                if (range.first != external_libraries.end())
                 {
+                    std::pmr::vector<std::pmr::string> names;
+                    names.reserve(std::distance(range.first, range.second));
+
+                    for (auto iterator = range.first; iterator != range.second; ++iterator)
+                    {
+                        names.push_back(iterator->second);
+                    }
+
                     return External_library_info
                     {
                         .key = std::pmr::string{target_library},
-                        .name = location->second,
+                        .names = std::move(names),
                         .is_debug = is_debug,
                         .is_dynamic = is_dynamic,
                     };
@@ -895,17 +912,25 @@ namespace h::compiler
         return std::nullopt;
     }
 
-    std::optional<std::string_view> get_external_library_dll(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+    std::pmr::vector<std::string_view> get_external_library_dlls(
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         std::string_view const key
     )
     {
         std::string const target_library = std::format("{}-dll", key);
 
-        auto const location = external_libraries.find(target_library.c_str());
-        if (location == external_libraries.end())
-            return std::nullopt;
+        auto const range = external_libraries.equal_range(target_library.c_str());
+        if (range.first == external_libraries.end())
+            return {};
+
+        std::pmr::vector<std::string_view> dlls;
+        dlls.reserve(std::distance(range.first, range.second));
+
+        for (auto iterator = range.first; iterator != range.second; ++iterator)
+        {
+            dlls.push_back(iterator->second);
+        }
         
-        return location->second;
+        return dlls;
     }
 }

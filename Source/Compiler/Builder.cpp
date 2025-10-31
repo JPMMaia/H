@@ -631,12 +631,13 @@ namespace h::compiler
                 std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, compilation_options.debug, true);
                 if (external_library.has_value())
                 {
-                    artifact_libraries.libraries.push_back(external_library.value().name);
+                    for (std::pmr::string const& name : external_library->names)
+                        artifact_libraries.libraries.push_back(name);
 
-                    std::optional<std::string_view> const dll_name = h::compiler::get_external_library_dll(library_info.external_libraries, external_library.value().key);
-                    if (dll_name.has_value())
+                    std::pmr::vector<std::string_view> const dll_names = h::compiler::get_external_library_dlls(library_info.external_libraries, external_library.value().key);
+                    for (std::string_view const dll_name : dll_names)
                     {
-                        artifact_libraries.dll_names.push_back(std::pmr::string{dll_name.value()});
+                        artifact_libraries.dll_names.push_back(std::pmr::string{dll_name});
                     }
                 }
             }
@@ -804,7 +805,7 @@ namespace h::compiler
         std::filesystem::copy_options const copy_options = std::filesystem::copy_options::update_existing;
         bool const success = std::filesystem::copy_file(dll_path, destination_path, copy_options);
         if (success)
-            std::printf("Copy dll: copied '%s' to '%s'.", source_string.c_str(), destination_string.c_str());
+            std::printf("Copy dll: copied '%s' to '%s'.\n", source_string.c_str(), destination_string.c_str());
     }
 
     void copy_dlls(
@@ -837,14 +838,14 @@ namespace h::compiler
                 {
                     std::string_view const key = external_library_info.value().key;
 
-                    std::optional<std::string_view> const external_library_dll = get_external_library_dll(
+                    std::pmr::vector<std::string_view> const external_library_dlls = get_external_library_dlls(
                         library_info.external_libraries,
                         key
                     );
 
-                    if (external_library_dll.has_value())
+                    for (std::string_view const dll_name : external_library_dlls)
                     {
-                        copy_dll(external_library_dll.value(), output_directory);
+                        copy_dll(dll_name, output_directory);
                     }
                 }
             }

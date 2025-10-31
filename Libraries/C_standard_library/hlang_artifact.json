@@ -14,8 +14,8 @@
             }
         ],
         "external_library": {
-            "windows-dynamic-debug": "ucrtd.lib",
-            "windows-dynamic-release": "ucrt.lib"
+            "windows-dynamic-debug": ["legacy_stdio_definitions.lib", "msvcrtd.lib", "ucrtd.lib"],
+            "windows-dynamic-release": ["legacy_stdio_definitions.lib", "msvcrt.lib", "ucrt.lib"]
         }
     }
 }

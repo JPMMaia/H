@@ -373,12 +373,13 @@ namespace h::builder
             std::optional<h::compiler::External_library_info> const external_library = h::compiler::get_external_library(library_info.external_libraries, target, compilation_options.debug, true);
             if (external_library.has_value())
             {
-                libraries.push_back(external_library.value().name);
+                for (std::pmr::string const& name : external_library->names)
+                    libraries.push_back(name);
 
-                std::optional<std::string_view> const dll_name = h::compiler::get_external_library_dll(library_info.external_libraries, external_library.value().key);
-                if (dll_name.has_value())
+                std::pmr::vector<std::string_view> const external_dlls = h::compiler::get_external_library_dlls(library_info.external_libraries, external_library.value().key);
+                for (std::string_view const dll_name : external_dlls)
                 {
-                    dll_names.push_back(std::pmr::string{dll_name.value()});
+                    dll_names.push_back(std::pmr::string{dll_name});
                 }
             }
         }

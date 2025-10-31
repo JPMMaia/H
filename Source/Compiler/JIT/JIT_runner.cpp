@@ -596,12 +596,13 @@ namespace h::compiler
                 std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, unprotected_data.compilation_options.debug, true);
                 if (external_library.has_value())
                 {
-                    link_static_library(*unprotected_data.jit_data, external_library->name.c_str());
+                    for (std::pmr::string const& name : external_library->names)
+                        link_static_library(*unprotected_data.jit_data, name.c_str());
 
-                    std::optional<std::string_view> const external_library_dll = get_external_library_dll(library_info.external_libraries, external_library->key);
-                    if (external_library_dll.has_value())
+                    std::pmr::vector<std::string_view> const external_library_dlls = get_external_library_dlls(library_info.external_libraries, external_library->key);
+                    for (std::string_view const& dll_name : external_library_dlls)
                     {
-                        load_platform_dynamic_library(*unprotected_data.jit_data, external_library_dll->data());
+                        load_platform_dynamic_library(*unprotected_data.jit_data, dll_name.data());
                     }
                 }
 

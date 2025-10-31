@@ -59,7 +59,7 @@ namespace h::compiler
     {
         std::pmr::vector<C_header> c_headers;
         std::pmr::unordered_map<std::pmr::string, C_header_options> c_header_options;
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> external_libraries;
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> external_libraries;
     };
 
     export struct Artifact
@@ -133,20 +133,20 @@ namespace h::compiler
     export struct External_library_info
     {
         std::pmr::string key;
-        std::pmr::string name;
+        std::pmr::vector<std::pmr::string> names;
         bool is_debug;
         bool is_dynamic;
     };
 
     export std::optional<External_library_info> get_external_library(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         Target const& target,
         bool prefer_debug,
         bool prefer_dynamic
     );
 
-    export std::optional<std::string_view> get_external_library_dll(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+    export std::pmr::vector<std::string_view> get_external_library_dlls(
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         std::string_view const key
     );
 }

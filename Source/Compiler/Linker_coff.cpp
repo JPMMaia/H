@@ -42,8 +42,6 @@ namespace h::compiler
             arguments_storage.push_back("/subsystem:console");
         }
 
-        arguments_storage.push_back(std::format("/defaultlib:{}", options.debug ? "msvcrtd.lib" : "msvcrt.lib"));
-
         if (options.debug)
             arguments_storage.push_back("/debug:full");
 
@@ -68,6 +66,14 @@ namespace h::compiler
         {
             arguments.push_back(argument.c_str());
         }
+
+        std::fprintf(stdout, "Linking '%s' with arguments: ", output.generic_string().c_str());
+        for (char const* const argument : arguments)
+        {
+            std::fprintf(stdout, "%s ", argument);
+        }
+        std::fprintf(stdout, "\n");
+        std::fflush(stdout);
 
         lld::Result const result = lld::lldMain(arguments, llvm::outs(), llvm::errs(), { {lld::WinLink, &lld::coff::link} });
 
