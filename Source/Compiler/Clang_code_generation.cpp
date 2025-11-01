@@ -777,6 +777,7 @@ namespace h::compiler
     }
 
     Transformed_arguments transform_arguments(
+        std::pmr::vector<bool> const& is_expression_address_of,
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
@@ -871,6 +872,8 @@ namespace h::compiler
                         h::Type_reference const& original_argument_type = function_type.input_parameter_types[argument_index];
                         llvm::Type* const original_argument_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, original_argument_type, type_database);
 
+                        bool const is_taking_adress_of_value = is_expression_address_of[argument_index];
+
                         llvm::Value* transformed_argument = read_from_type(
                             llvm_context,
                             llvm_builder,
@@ -878,6 +881,7 @@ namespace h::compiler
                             llvm_parent_function,
                             original_argument,
                             original_argument_llvm_type,
+                            is_taking_adress_of_value,
                             new_type,
                             std::nullopt,
                             argument_info.info,
@@ -1010,6 +1014,7 @@ namespace h::compiler
     }
 
     llvm::Value* generate_function_call(
+        std::pmr::vector<bool> const& is_expression_address_of,
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
@@ -1020,14 +1025,14 @@ namespace h::compiler
         h::Function_type const& function_type,
         llvm::FunctionType& llvm_function_type,
         llvm::Value& llvm_function_callee,
-        std::span<llvm::Value* const> const arguments,
+        std::span<llvm::Value* const> const llvm_arguments,
         Declaration_database const& declaration_database,
         Type_database const& type_database
     )
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
 
-        Transformed_arguments const transformed_arguments = transform_arguments(llvm_context, llvm_builder, llvm_data_layout, llvm_module, llvm_parent_function, core_module, function_type, function_info, arguments, type_database);
+        Transformed_arguments const transformed_arguments = transform_arguments(is_expression_address_of, llvm_context, llvm_builder, llvm_data_layout, llvm_module, llvm_parent_function, core_module, function_type, function_info, llvm_arguments, type_database);
 
         llvm::CallInst* call_instruction = llvm_builder.CreateCall(&llvm_function_type, &llvm_function_callee, transformed_arguments.values);
 
@@ -1200,6 +1205,7 @@ namespace h::compiler
                             llvm_function,
                             function_argument,
                             function_argument_type,
+                            false,
                             restored_argument_llvm_type,
                             restored_argument_name,
                             argument_info.info,
@@ -1311,6 +1317,7 @@ namespace h::compiler
                     llvm_function,
                     value_to_return.value,
                     original_return_llvm_type,
+                    false,
                     new_return_llvm_type,
                     std::nullopt,
                     return_info,
@@ -1492,6 +1499,7 @@ namespace h::compiler
         llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
+        bool const is_taking_address_of_source_llvm_value,
         llvm::Type* const destination_llvm_type,
         std::optional<std::string_view> const alloca_name,
         clang::CodeGen::ABIArgInfo const& abi_argument_info,
@@ -1515,6 +1523,15 @@ namespace h::compiler
                 }
                 else
                 {
+                    if (llvm::AllocaInst::classof(source_llvm_value))
+                    {
+                        if (!is_taking_address_of_source_llvm_value)
+                        {
+                            llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, destination_llvm_type, source_llvm_value);
+                            return loaded_value;
+                        }
+                    }
+
                     return source_llvm_value;
                 }
             }
@@ -1581,6 +1598,7 @@ namespace h::compiler
                     llvm_parent_function,
                     call_instruction,
                     new_return_llvm_type,
+                    false,
                     original_return_llvm_type,
                     std::nullopt,
                     return_info,

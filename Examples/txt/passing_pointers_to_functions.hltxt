@@ -1,0 +1,23 @@
+module Passing_pointers_to_functions;
+
+function take(v0: *Int32) -> ()
+{
+}
+
+function take_2(p0: **Int32) -> ()
+{
+}
+
+export function run() -> ()
+{
+    take(null);
+
+    var v0_null: *Int32 = null;
+    take(v0_null);
+
+    var v1: Int32 = 1;
+    take(&v1);
+
+    var v2: *Int32 = null;
+    take_2(&v2);
+}

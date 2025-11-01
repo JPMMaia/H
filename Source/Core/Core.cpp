@@ -579,4 +579,17 @@ namespace h
         return name == "create_array_slice_from_pointer" ||
                name == "create_stack_array_uninitialized";
     }
+
+    bool is_expression_address_of(
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Unary_expression>(expression.data))
+        {
+            h::Unary_expression const& unary_expression = std::get<h::Unary_expression>(expression.data);
+            return unary_expression.operation == Unary_operation::Address_of;
+        }
+
+        return false;
+    }
 }

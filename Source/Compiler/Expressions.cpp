@@ -1531,6 +1531,7 @@ namespace h::compiler
     }
 
     Value_and_type create_call_expression_value_common(
+        std::pmr::vector<bool> const& is_expression_address_of,
         llvm::Value* const llvm_function_callee,
         llvm::FunctionType* const llvm_function_type,
         std::span<llvm::Value* const> const llvm_arguments,
@@ -1542,6 +1543,7 @@ namespace h::compiler
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::Value* call_instruction = generate_function_call(
+            is_expression_address_of,
             parameters.llvm_context,
             parameters.llvm_builder,
             parameters.llvm_data_layout,
@@ -1820,6 +1822,28 @@ namespace h::compiler
         return std::nullopt;
     }
 
+    std::pmr::vector<bool> create_is_taking_address_of_expressions_array(
+        Call_expression const& expression,
+        Statement const& statement,
+        bool has_implicit_first_argument
+    )
+    {
+        std::pmr::vector<bool> output;
+        output.reserve(has_implicit_first_argument ? expression.arguments.size() + 1 : expression.arguments.size());
+        
+        if (has_implicit_first_argument)
+            output.push_back(true);
+        
+        for (unsigned i = 0; i < expression.arguments.size(); ++i)
+        {
+            h::Expression const& argument_expression = statement.expressions[expression.arguments[i].expression_index];
+            bool const is_taking_address_of = h::is_expression_address_of(argument_expression);
+            output.push_back(is_taking_address_of);
+        }
+
+        return output;
+    }
+
     Value_and_type create_call_expression_value(
         Call_expression const& expression,
         Statement const& statement,
@@ -1874,7 +1898,14 @@ namespace h::compiler
             llvm_arguments[output_index] = temporary.value;
         }
 
+        std::pmr::vector<bool> const is_taking_address_of_array = create_is_taking_address_of_expressions_array(
+            expression,
+            statement,
+            implicit_first_argument.has_value()
+        );
+
         return create_call_expression_value_common(
+            is_taking_address_of_array,
             left_hand_side.value,
             llvm_function_type,
             llvm_arguments,
@@ -4114,13 +4145,35 @@ namespace h::compiler
             if (std::holds_alternative<Null_pointer_type>(value.type->data))
                 return value;
 
+            h::Expression const& expression = statement.expressions[expression_index];
+
+            if (llvm::AllocaInst::classof(value.value))
+            {
+                if (h::is_expression_address_of(expression))
+                {
+                    return value;
+                }
+                else
+                {
+                    if (parameters.debug_info != nullptr && expression.source_range.has_value())
+                        set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);
+
+                    llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
+                    llvm::Value* const loaded_value = create_load_instruction(parameters.llvm_builder, parameters.llvm_data_layout, destination_llvm_type, value.value);
+                    return Value_and_type
+                    {
+                        .name = value.name,
+                        .value = loaded_value,
+                        .type = value.type
+                    };
+                }
+            }
+
             llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
             if (llvm_type == value.value->getType() || llvm_type->isFunctionTy())
             {
                 return value;
             }
-
-            h::Expression const& expression = statement.expressions[expression_index];
 
             if (parameters.debug_info != nullptr && expression.source_range.has_value())
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);

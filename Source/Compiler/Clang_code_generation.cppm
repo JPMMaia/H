@@ -67,6 +67,7 @@ namespace h::compiler
     };
 
     Transformed_arguments transform_arguments(
+        std::pmr::vector<bool> const& is_expression_address_of,
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
@@ -75,7 +76,7 @@ namespace h::compiler
         llvm::Function& llvm_function,
         h::Module const& core_module,
         h::Function_type const& function_type,
-        std::span<llvm::Value* const> const arguments,
+        std::span<llvm::Value* const> const original_arguments,
         Declaration_database const& declaration_database,
         Type_database const& type_database
     );
@@ -93,6 +94,7 @@ namespace h::compiler
     );
 
     export llvm::Value* generate_function_call(
+        std::pmr::vector<bool> const& is_expression_address_of,
         llvm::LLVMContext& llvm_context,
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,
@@ -103,7 +105,7 @@ namespace h::compiler
         h::Function_type const& function_type,
         llvm::FunctionType& llvm_function_type,
         llvm::Value& llvm_function_callee,
-        std::span<llvm::Value* const> const arguments,
+        std::span<llvm::Value* const> const llvm_arguments,
         Declaration_database const& declaration_database,
         Type_database const& type_database
     );
@@ -237,6 +239,7 @@ namespace h::compiler
         llvm::Function& llvm_parent_function,
         llvm::Value* const source_llvm_value,
         llvm::Type* const source_llvm_type,
+        bool const is_taking_address_of_source_llvm_value,
         llvm::Type* const destination_llvm_type,
         std::optional<std::string_view> const alloca_name,
         clang::CodeGen::ABIArgInfo const& abi_argument_info,

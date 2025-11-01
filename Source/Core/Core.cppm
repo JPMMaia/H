@@ -1293,4 +1293,8 @@ namespace h
     export bool is_builtin_function_name(
         std::string_view const name
     );
+    
+    export bool is_expression_address_of(
+        h::Expression const& expression
+    );
 }
