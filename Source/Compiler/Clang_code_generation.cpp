@@ -54,6 +54,13 @@ namespace h::compiler
 {
     static constexpr std::string_view c_builtin_module_name = "H.Builtin";
 
+    clang::QualType get_opaque_forward_declaration(
+        clang::ASTContext& clang_ast_context
+    )
+    {
+        return clang_ast_context.VoidPtrTy;
+    }
+
     void add_clang_alias_type_declaration(
         std::pmr::unordered_map<std::pmr::string, clang::TypedefDecl*, h::String_hash, h::String_equal>& clang_alias_type_declarations,
         clang::ASTContext& clang_ast_context,
@@ -110,12 +117,17 @@ namespace h::compiler
             );
         }
 
-        clang::QualType const underlying_type = *create_type(
+        std::optional<clang::QualType> const underlying_type_optional = create_type(
             clang_ast_context,
             alias_type_declaration.type,
             declaration_database,
             clang_declaration_database
         );
+
+        clang::QualType const underlying_type =
+            underlying_type_optional.has_value() ?
+            underlying_type_optional.value() :
+            get_opaque_forward_declaration(clang_ast_context);
 
         clang::TypedefDecl* const clang_alias_type_declaration = clang::TypedefDecl::Create(
             clang_ast_context,
