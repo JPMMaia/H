@@ -1457,6 +1457,54 @@ struct My_data
     }
 
 
+    TEST_CASE("Handles opaque handles")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "opaque_handles";
+        std::filesystem::create_directories(root_directory_path);
+
+        std::string const header_content = R"(
+typedef struct My_opaque_type_t* My_opaque_type;
+
+typedef struct My_non_opaque_type {
+} My_non_opaque_type;
+
+typedef const My_non_opaque_type* My_non_opaque_type_alias;
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        CHECK(header_module.export_declarations.struct_declarations.size() == 1);
+        CHECK(header_module.internal_declarations.struct_declarations.empty());
+
+        REQUIRE(header_module.export_declarations.alias_type_declarations.size() == 2);
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
+            CHECK(declaration.name == "My_opaque_type");
+
+            REQUIRE(declaration.type.size() == 1);
+            CHECK(declaration.type[0] == h::create_pointer_type_type_reference({}, false));
+
+            CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 2, 34, 2, 35));
+        }
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[1];
+            CHECK(declaration.name == "My_non_opaque_type_alias");
+
+            REQUIRE(declaration.type.size() == 1);
+            CHECK(declaration.type[0] == h::create_pointer_type_type_reference({h::create_custom_type_reference("c.My_data", "My_non_opaque_type")}, false));
+
+            CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 7, 35, 7, 36));
+        }
+    }
+
+
     TEST_CASE("Include debug information of function declarations")
     {
         std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "debug_information_functions";

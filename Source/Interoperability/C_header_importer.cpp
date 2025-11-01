@@ -385,9 +385,29 @@ namespace h::c
         case CXType_Pointer:
         {
             CXType const pointee_type = type.kind == CXType_Pointer ? clang_getPointeeType(type) : clang_getArrayElementType(type);
-            bool const is_const = clang_isConstQualifiedType(pointee_type);
+
+            CXCursor const pointee_declaration = clang_getTypeDeclaration(pointee_type);
 
             std::optional<Type_reference> element_type = create_type_reference(declarations, cursor, pointee_type);
+
+            if (element_type.has_value() && std::holds_alternative<h::Custom_type_reference>(element_type->data))
+            {
+                if (!clang_isCursorDefinition(pointee_declaration))
+                {
+                    h::Pointer_type opaque_pointer_type
+                    {
+                        .element_type = {},
+                        .is_mutable = false
+                    };
+
+                    return h::Type_reference
+                    {
+                        .data = std::move(opaque_pointer_type)
+                    };
+                }
+            }
+
+            bool const is_const = clang_isConstQualifiedType(pointee_type);
 
             h::Pointer_type pointer_type
             {
@@ -2543,11 +2563,17 @@ namespace h::c
             }
             else if (cursor_kind == CXCursor_StructDecl)
             {
-                declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
+                if (clang_isCursorDefinition(current_cursor))
+                {
+                    declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
+                }
             }
             else if (cursor_kind == CXCursor_UnionDecl)
             {
-                declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+                if (clang_isCursorDefinition(current_cursor))
+                {
+                    declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+                }
             }
             else if (cursor_kind == CXCursor_VarDecl)
             {
