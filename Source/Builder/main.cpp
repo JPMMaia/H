@@ -107,6 +107,13 @@ argparse::Argument& add_no_debug_argument(argparse::ArgumentParser& command)
         .flag();
 }
 
+argparse::Argument& add_output_llvm_ir_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--output-llvm-ir")
+        .help("Output LLVM-IR to a file with .ll extension")
+        .flag();
+}
+
 argparse::Argument& add_function_contract_options_argument(argparse::ArgumentParser& command)
 {
     return command.add_argument("--function-contracts")
@@ -200,6 +207,7 @@ int main(int const argc, char const* const* argv)
     add_header_search_path_argument(build_artifact_command);
     add_repository_argument(build_artifact_command);
     add_no_debug_argument(build_artifact_command);
+    add_output_llvm_ir_argument(build_artifact_command);
     add_function_contract_options_argument(build_artifact_command);
     program.add_subparser(build_artifact_command);
 
@@ -295,12 +303,18 @@ int main(int const argc, char const* const* argv)
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
 
+        h::compiler::Builder_options const builder_options =
+        {
+            .output_llvm_ir = subprogram.get<bool>("--output-llvm-ir"),
+        };
+
         h::compiler::Builder builder = h::compiler::create_builder(
             target,
             build_directory_path,
             header_search_paths,
             repository_paths,
             compilation_options,
+            builder_options,
             {}
         );
 

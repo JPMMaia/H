@@ -63,6 +63,7 @@ namespace h::compiler
         std::span<std::filesystem::path const> header_search_paths,
         std::span<std::filesystem::path const> repository_paths,
         h::compiler::Compilation_options const& compilation_options,
+        Builder_options const& builder_options,
         std::pmr::polymorphic_allocator<> output_allocator
     )
     {
@@ -76,6 +77,7 @@ namespace h::compiler
             .profiler = {},
             .use_profiler = true,
             .output_module_json = false,
+            .output_llvm_ir = builder_options.output_llvm_ir,
         };
     }
 
@@ -550,14 +552,18 @@ namespace h::compiler
             h::Module const& core_module = core_modules[index];
 
             std::filesystem::path const output_assembly_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.{}", core_module.name, extension);
+            std::filesystem::path const output_llvm_ir_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.{}", core_module.name, "ll");
 
             if (std::filesystem::exists(output_assembly_file))
             {
-                std::filesystem::path const& input_module_file = module_name_to_file_path_map.at(core_module.name);
-
-                if (is_file_newer_than(output_assembly_file, input_module_file))
+                if (!builder.output_llvm_ir || std::filesystem::exists(output_llvm_ir_file))
                 {
-                    continue;
+                    std::filesystem::path const& input_module_file = module_name_to_file_path_map.at(core_module.name);
+
+                    if (is_file_newer_than(output_assembly_file, input_module_file))
+                    {
+                        continue;
+                    }
                 }
             }
 
@@ -573,6 +579,9 @@ namespace h::compiler
                 h::compiler::write_object_file(llvm_data, *llvm_module, output_assembly_file);
             else
                 h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
+
+            if (builder.output_llvm_ir)
+                h::compiler::write_llvm_ir_to_file(*llvm_module, output_llvm_ir_file);
         }
 
         end_timer(get_profiler(builder), "compile_and_write_to_bitcode_files");

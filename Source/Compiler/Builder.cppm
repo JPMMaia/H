@@ -18,6 +18,11 @@ import h.compiler.target;
 
 namespace h::compiler
 {
+    export struct Builder_options
+    {
+        bool output_llvm_ir = false;
+    };
+
     export struct Builder
     {
         h::compiler::Target target;
@@ -28,6 +33,7 @@ namespace h::compiler
         Profiler profiler;
         bool use_profiler = true;
         bool output_module_json = false;
+        bool output_llvm_ir = false;
     };
 
     export Builder create_builder(
@@ -36,6 +42,7 @@ namespace h::compiler
         std::span<std::filesystem::path const> header_search_paths,
         std::span<std::filesystem::path const> repository_paths,
         h::compiler::Compilation_options const& compilation_options,
+        Builder_options const& builder_options,
         std::pmr::polymorphic_allocator<> output_allocator
     );
 

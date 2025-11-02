@@ -375,12 +375,17 @@ namespace h::language_server
                 .contract_options = h::compiler::Contract_options::Log_error_and_abort,
             };
 
+            h::compiler::Builder_options const builder_options
+            {
+            };
+
             h::compiler::Builder builder = h::compiler::create_builder(
                 target,
                 build_directory_path,
                 header_search_paths,
                 repository_paths,
                 compilation_options,
+                builder_options,
                 output_allocator
             );
 

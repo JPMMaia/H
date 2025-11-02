@@ -65,12 +65,17 @@ namespace h::compiler
 
         std::filesystem::remove_all(build_directory_path);
 
+        Builder_options const builder_options
+        {
+        };
+
         Builder builder = create_builder(
             target,
             build_directory_path,
             header_search_directories,
             repository_paths,
             compilation_options,
+            builder_options,
             {}
         );
     

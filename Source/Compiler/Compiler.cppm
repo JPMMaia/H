@@ -159,6 +159,11 @@ namespace h::compiler
         std::filesystem::path const& output_file_path
     );
 
+    export void write_llvm_ir_to_file(
+        llvm::Module& llvm_module,
+        std::filesystem::path const& output_file_path
+    );
+
     export void write_object_file(
         LLVM_data const& llvm_data,
         llvm::Module& llvm_module,
