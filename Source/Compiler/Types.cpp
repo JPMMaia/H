@@ -1054,7 +1054,9 @@ namespace h::compiler
         }
         else if (std::holds_alternative<Function_pointer_type>(type_reference.data))
         {
-            Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
+            return llvm::PointerType::get(llvm_context, 0);
+            
+            /*Function_pointer_type const& data = std::get<Function_pointer_type>(type_reference.data);
 
             llvm::FunctionType* const llvm_function_type = create_llvm_function_type(
                 llvm_context,
@@ -1066,7 +1068,7 @@ namespace h::compiler
                 {}
             );
 
-            return llvm_function_type;
+            return llvm_function_type;*/
         }
         else if (std::holds_alternative<Integer_type>(type_reference.data))
         {

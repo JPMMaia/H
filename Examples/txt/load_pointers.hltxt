@@ -1,0 +1,13 @@
+module Load_pointers;
+
+struct My_struct
+{
+    v0: *Int32 = null;
+}
+
+function run(instance: *My_struct) -> ()
+{
+    if instance->v0 != null
+    {
+    }
+}

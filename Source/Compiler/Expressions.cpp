@@ -2369,6 +2369,14 @@ namespace h::compiler
                 std::optional<Type_reference> const value_type = remove_pointer(type_reference);
                 if (value_type.has_value())
                 {
+                    llvm::Value* const load_address = create_load_instruction(parameters.llvm_builder, parameters.llvm_data_layout, llvm::PointerType::get(parameters.llvm_context, 0), left_hand_side_expression.value);
+                    Value_and_type const loaded_left_hand_side
+                    {
+                        .name = "",
+                        .value = load_address,
+                        .type = value_type.value()
+                    };
+
                     if (std::holds_alternative<Custom_type_reference>(value_type.value().data))
                     {
                         Custom_type_reference const& custom_type_reference = std::get<Custom_type_reference>(value_type.value().data);
@@ -2386,7 +2394,7 @@ namespace h::compiler
                             {
                                 Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration_value.data);
                                 return create_access_struct_member(
-                                    left_hand_side_expression,
+                                    loaded_left_hand_side,
                                     dereference_and_access_expression.member_name,
                                     module_name,
                                     struct_declaration,
@@ -2398,7 +2406,7 @@ namespace h::compiler
                             {
                                 Union_declaration const& union_declaration = *std::get<Union_declaration const*>(declaration_value.data);
                                 return create_access_union_member(
-                                    left_hand_side_expression,
+                                    loaded_left_hand_side,
                                     dereference_and_access_expression.member_name,
                                     module_name,
                                     union_declaration,
@@ -2416,7 +2424,7 @@ namespace h::compiler
                         {
                             Struct_declaration const& struct_declaration = std::get<Struct_declaration>(storage.data);
                             return create_access_struct_member(
-                                left_hand_side_expression,
+                                loaded_left_hand_side,
                                 dereference_and_access_expression.member_name,
                                 type_instance.type_constructor.module_reference.name,
                                 struct_declaration,
@@ -2428,7 +2436,7 @@ namespace h::compiler
                         {
                             Union_declaration const& union_declaration = std::get<Union_declaration>(storage.data);
                             return create_access_union_member(
-                                left_hand_side_expression,
+                                loaded_left_hand_side,
                                 dereference_and_access_expression.member_name,
                                 type_instance.type_constructor.module_reference.name,
                                 union_declaration,
@@ -4147,7 +4155,7 @@ namespace h::compiler
 
             h::Expression const& expression = statement.expressions[expression_index];
 
-            if (llvm::AllocaInst::classof(value.value))
+            if (llvm::AllocaInst::classof(value.value) || llvm::GetElementPtrInst::classof(value.value))
             {
                 if (h::is_expression_address_of(expression))
                 {

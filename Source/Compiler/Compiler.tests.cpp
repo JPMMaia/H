@@ -225,22 +225,23 @@ entry:
   %1 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 1
   store i64 %"arguments[0].integers_1", ptr %1, align 8
   %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  store ptr %2, ptr %data, align 8
-  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1
-  %4 = load i64, ptr %3, align 8
-  store i64 %4, ptr %length, align 8
-  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer = getelementptr i32, ptr %5, i32 0
-  %6 = load i32, ptr %array_slice_element_pointer, align 4
-  store i32 %6, ptr %v0, align 4
-  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer1 = getelementptr i32, ptr %7, i32 1
-  %8 = load i32, ptr %array_slice_element_pointer1, align 4
-  store i32 %8, ptr %v1, align 4
-  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer2 = getelementptr i32, ptr %9, i32 2
-  %10 = load i32, ptr %array_slice_element_pointer2, align 4
-  store i32 %10, ptr %v2, align 4
+  %3 = load ptr, ptr %2, align 8
+  store ptr %3, ptr %data, align 8
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1
+  %5 = load i64, ptr %4, align 8
+  store i64 %5, ptr %length, align 8
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer = getelementptr i32, ptr %6, i32 0
+  %7 = load i32, ptr %array_slice_element_pointer, align 4
+  store i32 %7, ptr %v0, align 4
+  %8 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer1 = getelementptr i32, ptr %8, i32 1
+  %9 = load i32, ptr %array_slice_element_pointer1, align 4
+  store i32 %9, ptr %v1, align 4
+  %10 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %array_slice_element_pointer2 = getelementptr i32, ptr %10, i32 2
+  %11 = load i32, ptr %array_slice_element_pointer2, align 4
+  store i32 %11, ptr %v2, align 4
   ret void
 }
 
@@ -2448,9 +2449,10 @@ entry:
   %2 = load %struct.Dereference_and_access_My_struct, ptr %0, align 4
   store %struct.Dereference_and_access_My_struct %2, ptr %instance, align 4
   store ptr %instance, ptr %pointer, align 8
-  %3 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %pointer, i32 0, i32 0
-  %4 = load i32, ptr %3, align 4
-  store i32 %4, ptr %a, align 4
+  %3 = load ptr, ptr %pointer, align 8
+  %4 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %3, i32 0, i32 0
+  %5 = load i32, ptr %4, align 4
+  store i32 %5, ptr %a, align 4
   ret void
 }
 
@@ -2605,34 +2607,36 @@ entry:
   %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
   store ptr %"arguments[0].allocator_1", ptr %3, align 8
   %4 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
-  %5 = icmp ne ptr %4, null
-  br i1 %5, label %condition_success, label %condition_fail
+  %5 = load ptr, ptr %4, align 8
+  %6 = icmp ne ptr %5, null
+  br i1 %6, label %condition_success, label %condition_fail
 
 condition_success:                                ; preds = %entry
-  %6 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
-  %7 = icmp ne ptr %6, null
-  br i1 %7, label %condition_success1, label %condition_fail2
+  %7 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
+  %8 = load ptr, ptr %7, align 8
+  %9 = icmp ne ptr %8, null
+  br i1 %9, label %condition_success1, label %condition_fail2
 
 condition_fail:                                   ; preds = %entry
-  %8 = call i32 @puts(ptr @function_contract_error_string)
+  %10 = call i32 @puts(ptr @function_contract_error_string)
   call void @abort()
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 0
-  store ptr null, ptr %9, align 8
-  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 1
-  store i64 0, ptr %10, align 8
-  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 2
-  store i64 0, ptr %11, align 8
-  %12 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
-  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 3
-  store %struct.dynamic_array_Allocator %12, ptr %13, align 8
+  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 0
+  store ptr null, ptr %11, align 8
+  %12 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 1
+  store i64 0, ptr %12, align 8
+  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 2
+  store i64 0, ptr %13, align 8
+  %14 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
+  %15 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, i32 0, i32 3
+  store %struct.dynamic_array_Allocator %14, ptr %15, align 8
   call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"arguments[0].allocator_0", ptr align 8 %1, i64 40, i1 false)
   ret void
 
 condition_fail2:                                  ; preds = %condition_success
-  %14 = call i32 @puts(ptr @function_contract_error_string.1)
+  %16 = call i32 @puts(ptr @function_contract_error_string.1)
   call void @abort()
   unreachable
 }
@@ -2653,63 +2657,73 @@ entry:
   br i1 %1, label %condition_success, label %condition_fail
 
 condition_success:                                ; preds = %entry
-  %2 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
-  %3 = load i64, ptr %2, align 8
-  %4 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
-  %5 = load i64, ptr %4, align 8
-  %6 = icmp eq i64 %3, %5
-  br i1 %6, label %if_s0_then, label %if_s1_after
+  %2 = load ptr, ptr %instance, align 8
+  %3 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %2, i32 0, i32 1
+  %4 = load i64, ptr %3, align 8
+  %5 = load ptr, ptr %instance, align 8
+  %6 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %5, i32 0, i32 2
+  %7 = load i64, ptr %6, align 8
+  %8 = icmp eq i64 %4, %7
+  br i1 %8, label %if_s0_then, label %if_s1_after
 
 condition_fail:                                   ; preds = %entry
-  %7 = call i32 @puts(ptr @function_contract_error_string.2)
+  %9 = call i32 @puts(ptr @function_contract_error_string.2)
   call void @abort()
   unreachable
 
 if_s0_then:                                       ; preds = %condition_success
-  %8 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
-  %9 = load i64, ptr %8, align 8
-  %10 = add i64 %9, 1
-  %11 = mul i64 2, %10
-  store i64 %11, ptr %new_capacity, align 8
-  %12 = load i64, ptr %new_capacity, align 8
-  %13 = mul i64 %12, 4
-  store i64 %13, ptr %allocation_size_in_bytes, align 8
-  %14 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 3
-  %15 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %14, i32 0, i32 0
-  %16 = load i64, ptr %allocation_size_in_bytes, align 8
-  %17 = call ptr %15(i64 noundef %16, i64 noundef 4)
-  store ptr %17, ptr %allocation, align 8
-  %18 = load ptr, ptr %allocation, align 8
-  %19 = icmp ne ptr %18, null
-  br i1 %19, label %condition_success1, label %condition_fail2
+  %10 = load ptr, ptr %instance, align 8
+  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %10, i32 0, i32 2
+  %12 = load i64, ptr %11, align 8
+  %13 = add i64 %12, 1
+  %14 = mul i64 2, %13
+  store i64 %14, ptr %new_capacity, align 8
+  %15 = load i64, ptr %new_capacity, align 8
+  %16 = mul i64 %15, 4
+  store i64 %16, ptr %allocation_size_in_bytes, align 8
+  %17 = load ptr, ptr %instance, align 8
+  %18 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %17, i32 0, i32 3
+  %19 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %18, i32 0, i32 0
+  %20 = load i64, ptr %allocation_size_in_bytes, align 8
+  %21 = call ptr %19(i64 noundef %20, i64 noundef 4)
+  store ptr %21, ptr %allocation, align 8
+  %22 = load ptr, ptr %allocation, align 8
+  %23 = icmp ne ptr %22, null
+  br i1 %23, label %condition_success1, label %condition_fail2
 
 if_s1_after:                                      ; preds = %condition_success1, %condition_success
-  %20 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
-  %21 = load i64, ptr %20, align 8
-  store i64 %21, ptr %index, align 8
-  %22 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
-  %23 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %22, i64 %23
-  %24 = load i32, ptr %element, align 4
-  store i32 %24, ptr %array_element_pointer, align 4
-  %25 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
-  %26 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
-  %27 = load i64, ptr %26, align 8
-  %28 = add i64 %27, 1
-  store i64 %28, ptr %25, align 8
+  %24 = load ptr, ptr %instance, align 8
+  %25 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %24, i32 0, i32 1
+  %26 = load i64, ptr %25, align 8
+  store i64 %26, ptr %index, align 8
+  %27 = load ptr, ptr %instance, align 8
+  %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %27, i32 0, i32 0
+  %29 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %28, i64 %29
+  %30 = load i32, ptr %element, align 4
+  store i32 %30, ptr %array_element_pointer, align 4
+  %31 = load ptr, ptr %instance, align 8
+  %32 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %31, i32 0, i32 1
+  %33 = load ptr, ptr %instance, align 8
+  %34 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %33, i32 0, i32 1
+  %35 = load i64, ptr %34, align 8
+  %36 = add i64 %35, 1
+  store i64 %36, ptr %32, align 8
   ret void
 
 condition_success1:                               ; preds = %if_s0_then
-  %29 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
-  %30 = load ptr, ptr %allocation, align 8
-  store ptr %30, ptr %29, align 8
-  %31 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 2
-  %32 = load i64, ptr %new_capacity, align 8
-  store i64 %32, ptr %31, align 8
+  %37 = load ptr, ptr %instance, align 8
+  %38 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %37, i32 0, i32 0
+  %39 = load ptr, ptr %allocation, align 8
+  store ptr %39, ptr %38, align 8
+  %40 = load ptr, ptr %instance, align 8
+  %41 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %40, i32 0, i32 2
+  %42 = load i64, ptr %new_capacity, align 8
+  store i64 %42, ptr %41, align 8
   br label %if_s1_after
 
 condition_fail2:                                  ; preds = %if_s0_then
-  %33 = call i32 @puts(ptr @function_contract_error_string.3)
+  %43 = call i32 @puts(ptr @function_contract_error_string.3)
   call void @abort()
   unreachable
 }
@@ -2727,25 +2741,27 @@ entry:
 
 condition_success:                                ; preds = %entry
   %2 = load i64, ptr %index, align 8
-  %3 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 1
-  %4 = load i64, ptr %3, align 8
-  %5 = icmp ult i64 %2, %4
-  br i1 %5, label %condition_success1, label %condition_fail2
+  %3 = load ptr, ptr %instance, align 8
+  %4 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %3, i32 0, i32 1
+  %5 = load i64, ptr %4, align 8
+  %6 = icmp ult i64 %2, %5
+  br i1 %6, label %condition_success1, label %condition_fail2
 
 condition_fail:                                   ; preds = %entry
-  %6 = call i32 @puts(ptr @function_contract_error_string.4)
+  %7 = call i32 @puts(ptr @function_contract_error_string.4)
   call void @abort()
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %7 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %instance, i32 0, i32 0
-  %8 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %7, i64 %8
-  %9 = load i32, ptr %array_element_pointer, align 4
-  ret i32 %9
+  %8 = load ptr, ptr %instance, align 8
+  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %8, i32 0, i32 0
+  %10 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %9, i64 %10
+  %11 = load i32, ptr %array_element_pointer, align 4
+  ret i32 %11
 
 condition_fail2:                                  ; preds = %condition_success
-  %10 = call i32 @puts(ptr @function_contract_error_string.5)
+  %12 = call i32 @puts(ptr @function_contract_error_string.5)
   call void @abort()
   unreachable
 }
@@ -3166,6 +3182,43 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
+
+
+  TEST_CASE("Compile Load Pointers", "[LLVM_IR]")
+  {
+    char const* const input_file = "load_pointers.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Load_pointers_My_struct = type { ptr }
+
+; Function Attrs: convergent
+define private void @Load_pointers_run(ptr noundef %"arguments[0].instance") #0 {
+entry:
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  %0 = load ptr, ptr %instance, align 8
+  %1 = getelementptr inbounds %struct.Load_pointers_My_struct, ptr %0, i32 0, i32 0
+  %2 = load ptr, ptr %1, align 8
+  %3 = icmp ne ptr %2, null
+  br i1 %3, label %if_s0_then, label %if_s1_after
+
+if_s0_then:                                       ; preds = %entry
+  br label %if_s1_after
+
+if_s1_after:                                      ; preds = %if_s0_then, %entry
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
 
   TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
