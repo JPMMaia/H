@@ -1,5 +1,11 @@
 module Passing_pointers_to_functions;
 
+struct My_struct
+{
+    v0: Int32 = 0;
+    v1: *Int32 = null;
+}
+
 function take(v0: *Int32) -> ()
 {
 }
@@ -20,4 +26,9 @@ export function run() -> ()
 
     var v2: *Int32 = null;
     take_2(&v2);
+
+    var instance: My_struct = {};
+    take(&instance.v0);
+    take(instance.v1);
+    take_2(&instance.v1);
 }

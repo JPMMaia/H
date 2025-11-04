@@ -3505,20 +3505,37 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
+%struct.Passing_pointers_to_functions_My_struct = type { i32, ptr }
+
 ; Function Attrs: convergent
 define void @Passing_pointers_to_functions_run() #0 {
 entry:
   %v0_null = alloca ptr, align 8
   %v1 = alloca i32, align 4
   %v2 = alloca ptr, align 8
+  %0 = alloca %struct.Passing_pointers_to_functions_My_struct, align 8
+  %instance = alloca %struct.Passing_pointers_to_functions_My_struct, align 8
   call void @Passing_pointers_to_functions_take(ptr noundef null)
   store ptr null, ptr %v0_null, align 8
-  %0 = load ptr, ptr %v0_null, align 8
-  call void @Passing_pointers_to_functions_take(ptr noundef %0)
+  %1 = load ptr, ptr %v0_null, align 8
+  call void @Passing_pointers_to_functions_take(ptr noundef %1)
   store i32 1, ptr %v1, align 4
   call void @Passing_pointers_to_functions_take(ptr noundef %v1)
   store ptr null, ptr %v2, align 8
   call void @Passing_pointers_to_functions_take_2(ptr noundef %v2)
+  %2 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %2, align 4
+  %3 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %0, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = load %struct.Passing_pointers_to_functions_My_struct, ptr %0, align 8
+  store %struct.Passing_pointers_to_functions_My_struct %4, ptr %instance, align 8
+  %5 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 0
+  call void @Passing_pointers_to_functions_take(ptr noundef %5)
+  %6 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
+  %7 = load ptr, ptr %6, align 8
+  call void @Passing_pointers_to_functions_take(ptr noundef %7)
+  %8 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
+  call void @Passing_pointers_to_functions_take_2(ptr noundef %8)
   ret void
 }
 

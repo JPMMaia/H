@@ -1523,7 +1523,7 @@ namespace h::compiler
                 }
                 else
                 {
-                    if (llvm::AllocaInst::classof(source_llvm_value))
+                    if (llvm::AllocaInst::classof(source_llvm_value) || llvm::GetElementPtrInst::classof(source_llvm_value))
                     {
                         if (!is_taking_address_of_source_llvm_value)
                         {
