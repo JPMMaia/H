@@ -281,13 +281,14 @@ namespace h::compiler
         llvm::Type* const type
     )
     {
-        if (llvm::AllocaInst::classof(value) || llvm::GetElementPtrInst::classof(value))
-        {
-            return create_load_instruction(llvm_builder, llvm_data_layout, type, value);
-        }
-        else if (value->getType() == type)
+        if (value->getType() == type)
         {
             return value;
+        }
+
+        if (value->getType()->isPointerTy())
+        {
+            return create_load_instruction(llvm_builder, llvm_data_layout, type, value);
         }
 
         throw std::runtime_error{ "Could not load variable!" };
@@ -2082,7 +2083,7 @@ namespace h::compiler
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
 
                 std::uint8_t const data = expression.data == "true" ? 1 : 0;
-                llvm::APInt const value{ 8, data, false };
+                llvm::APInt const value{ 1, data, false };
 
                 llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
 

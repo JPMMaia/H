@@ -839,7 +839,7 @@ namespace h::compiler
         switch (type)
         {
         case Fundamental_type::Bool:
-            return llvm::Type::getInt8Ty(llvm_context);
+            return llvm::Type::getInt1Ty(llvm_context);
         case Fundamental_type::Byte:
             return llvm::Type::getInt8Ty(llvm_context);
         case Fundamental_type::Float16:
