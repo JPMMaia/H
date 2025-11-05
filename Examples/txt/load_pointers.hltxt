@@ -3,6 +3,7 @@ module Load_pointers;
 struct My_struct
 {
     v0: *Int32 = null;
+    v1: Int32 = 0;
 }
 
 function run(instance: *My_struct) -> ()
@@ -10,4 +11,7 @@ function run(instance: *My_struct) -> ()
     if instance->v0 != null
     {
     }
+
+    var negative_v0 = -(*instance->v0);
+    var negative_v1 = -instance->v1;
 }

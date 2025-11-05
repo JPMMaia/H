@@ -760,32 +760,30 @@ entry:
 ; Function Attrs: convergent
 define void @Binary_expressions_boolean_operations(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") #0 {
 entry:
-  %first_boolean = alloca i1, align 1
-  %second_boolean = alloca i1, align 1
+  %first_boolean = alloca i8, align 1
+  %second_boolean = alloca i8, align 1
   %equal = alloca i1, align 1
   %not_equal = alloca i1, align 1
-  %logical_and = alloca i1, align 1
-  %logical_or = alloca i1, align 1
-  %0 = trunc i8 %"arguments[0].first_boolean" to i1
-  store i1 %0, ptr %first_boolean, align 1
-  %1 = trunc i8 %"arguments[1].second_boolean" to i1
-  store i1 %1, ptr %second_boolean, align 1
-  %2 = load i1, ptr %first_boolean, align 1
-  %3 = load i1, ptr %second_boolean, align 1
-  %4 = icmp eq i1 %2, %3
-  store i1 %4, ptr %equal, align 1
-  %5 = load i1, ptr %first_boolean, align 1
-  %6 = load i1, ptr %second_boolean, align 1
-  %7 = icmp ne i1 %5, %6
-  store i1 %7, ptr %not_equal, align 1
-  %8 = load i1, ptr %first_boolean, align 1
-  %9 = load i1, ptr %second_boolean, align 1
-  %10 = and i1 %8, %9
-  store i1 %10, ptr %logical_and, align 1
-  %11 = load i1, ptr %first_boolean, align 1
-  %12 = load i1, ptr %second_boolean, align 1
-  %13 = or i1 %11, %12
-  store i1 %13, ptr %logical_or, align 1
+  %logical_and = alloca i8, align 1
+  %logical_or = alloca i8, align 1
+  store i8 %"arguments[0].first_boolean", ptr %first_boolean, align 1
+  store i8 %"arguments[1].second_boolean", ptr %second_boolean, align 1
+  %0 = load i8, ptr %first_boolean, align 1
+  %1 = load i8, ptr %second_boolean, align 1
+  %2 = icmp eq i8 %0, %1
+  store i1 %2, ptr %equal, align 1
+  %3 = load i8, ptr %first_boolean, align 1
+  %4 = load i8, ptr %second_boolean, align 1
+  %5 = icmp ne i8 %3, %4
+  store i1 %5, ptr %not_equal, align 1
+  %6 = load i8, ptr %first_boolean, align 1
+  %7 = load i8, ptr %second_boolean, align 1
+  %8 = and i8 %6, %7
+  store i8 %8, ptr %logical_and, align 1
+  %9 = load i8, ptr %first_boolean, align 1
+  %10 = load i8, ptr %second_boolean, align 1
+  %11 = or i8 %9, %10
+  store i8 %11, ptr %logical_or, align 1
   ret void
 }
 
@@ -1102,10 +1100,10 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define void @Booleans_foo() #0 {
 entry:
-  %my_true_boolean = alloca i1, align 1
-  %my_false_boolean = alloca i1, align 1
-  store i1 true, ptr %my_true_boolean, align 1
-  store i1 false, ptr %my_false_boolean, align 1
+  %my_true_boolean = alloca i8, align 1
+  %my_false_boolean = alloca i8, align 1
+  store i8 1, ptr %my_true_boolean, align 1
+  store i8 0, ptr %my_false_boolean, align 1
   ret void
 }
 
@@ -2224,7 +2222,7 @@ entry:
 ; Function Attrs: convergent
 define private void @Defer_expressions_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 {
 entry:
-  %condition = alloca i1, align 1
+  %condition = alloca i8, align 1
   %value = alloca i32, align 4
   %v2 = alloca i32, align 4
   %v3 = alloca i32, align 4
@@ -2238,10 +2236,10 @@ entry:
   %v10 = alloca i32, align 4
   %i = alloca i32, align 4
   %j = alloca i32, align 4
-  %0 = trunc i8 %"arguments[0].condition" to i1
-  store i1 %0, ptr %condition, align 1
+  store i8 %"arguments[0].condition", ptr %condition, align 1
   store i32 %"arguments[1].value", ptr %value, align 4
-  %1 = load i1, ptr %condition, align 1
+  %0 = load i8, ptr %condition, align 1
+  %1 = trunc i8 %0 to i1
   br i1 %1, label %if_s0_then, label %if_s1_else
 
 if_s0_then:                                       ; preds = %entry
@@ -2271,8 +2269,9 @@ if_s3_else:                                       ; preds = %if_s1_else
   br label %if_s4_after
 
 if_s4_after:                                      ; preds = %if_s3_else, %if_s2_then, %if_s0_then
-  %7 = load i1, ptr %condition, align 1
-  br i1 %7, label %if_s0_then1, label %if_s1_after
+  %7 = load i8, ptr %condition, align 1
+  %8 = trunc i8 %7 to i1
+  br i1 %8, label %if_s0_then1, label %if_s1_after
 
 if_s0_then1:                                      ; preds = %if_s4_after
   call void @Defer_expressions_do_defer(i32 noundef 1)
@@ -2283,13 +2282,14 @@ if_s1_after:                                      ; preds = %if_s4_after
   br label %while_loop_condition
 
 while_loop_condition:                             ; preds = %while_loop_then, %if_s1_after
-  %8 = load i1, ptr %condition, align 1
-  br i1 %8, label %while_loop_then, label %while_loop_after
+  %9 = load i8, ptr %condition, align 1
+  %10 = trunc i8 %9 to i1
+  br i1 %10, label %while_loop_then, label %while_loop_after
 
 while_loop_then:                                  ; preds = %while_loop_condition
   store i32 5, ptr %v5, align 4
-  %9 = load i32, ptr %v5, align 4
-  call void @Defer_expressions_do_defer(i32 noundef %9)
+  %11 = load i32, ptr %v5, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %11)
   call void @Defer_expressions_do_defer(i32 noundef 5)
   br label %while_loop_condition
 
@@ -2297,8 +2297,9 @@ while_loop_after:                                 ; preds = %while_loop_conditio
   br label %while_loop_condition2
 
 while_loop_condition2:                            ; preds = %while_loop_then3, %while_loop_after
-  %10 = load i1, ptr %condition, align 1
-  br i1 %10, label %while_loop_then3, label %while_loop_after4
+  %12 = load i8, ptr %condition, align 1
+  %13 = trunc i8 %12 to i1
+  br i1 %13, label %while_loop_then3, label %while_loop_after4
 
 while_loop_then3:                                 ; preds = %while_loop_condition2
   store i32 6, ptr %v6, align 4
@@ -2309,8 +2310,9 @@ while_loop_after4:                                ; preds = %while_loop_conditio
   br label %while_loop_condition5
 
 while_loop_condition5:                            ; preds = %while_loop_after4
-  %11 = load i1, ptr %condition, align 1
-  br i1 %11, label %while_loop_then6, label %while_loop_after7
+  %14 = load i8, ptr %condition, align 1
+  %15 = trunc i8 %14 to i1
+  br i1 %15, label %while_loop_then6, label %while_loop_after7
 
 while_loop_then6:                                 ; preds = %while_loop_condition5
   store i32 7, ptr %v7, align 4
@@ -2322,59 +2324,59 @@ while_loop_after7:                                ; preds = %while_loop_then6, %
   br label %for_loop_condition
 
 for_loop_condition:                               ; preds = %for_loop_update_index, %while_loop_after7
-  %12 = load i32, ptr %index, align 4
-  %13 = icmp slt i32 %12, 10
-  br i1 %13, label %for_loop_then, label %for_loop_after
+  %16 = load i32, ptr %index, align 4
+  %17 = icmp slt i32 %16, 10
+  br i1 %17, label %for_loop_then, label %for_loop_after
 
 for_loop_then:                                    ; preds = %for_loop_condition
   store i32 8, ptr %v8, align 4
-  %14 = load i32, ptr %v8, align 4
-  call void @Defer_expressions_do_defer(i32 noundef %14)
+  %18 = load i32, ptr %v8, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %18)
   call void @Defer_expressions_do_defer(i32 noundef 8)
   br label %for_loop_update_index
 
 for_loop_update_index:                            ; preds = %for_loop_then
-  %15 = load i32, ptr %index, align 4
-  %16 = add i32 %15, 1
-  store i32 %16, ptr %index, align 4
+  %19 = load i32, ptr %index, align 4
+  %20 = add i32 %19, 1
+  store i32 %20, ptr %index, align 4
   br label %for_loop_condition
 
 for_loop_after:                                   ; preds = %for_loop_condition
-  %17 = load i32, ptr %value, align 4
-  switch i32 %17, label %switch_after [
+  %21 = load i32, ptr %value, align 4
+  switch i32 %21, label %switch_after [
     i32 0, label %switch_case_i0_
   ]
 
 switch_after:                                     ; preds = %switch_case_i0_, %for_loop_after
   store i32 10, ptr %v10, align 4
-  %18 = load i32, ptr %v10, align 4
-  call void @Defer_expressions_do_defer(i32 noundef %18)
+  %22 = load i32, ptr %v10, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %22)
   call void @Defer_expressions_do_defer(i32 noundef 10)
   store i32 0, ptr %i, align 4
   br label %for_loop_condition8
 
 switch_case_i0_:                                  ; preds = %for_loop_after
   store i32 9, ptr %v9, align 4
-  %19 = load i32, ptr %v9, align 4
-  call void @Defer_expressions_do_defer(i32 noundef %19)
+  %23 = load i32, ptr %v9, align 4
+  call void @Defer_expressions_do_defer(i32 noundef %23)
   call void @Defer_expressions_do_defer(i32 noundef 9)
   br label %switch_after
 
 for_loop_condition8:                              ; preds = %for_loop_update_index10, %switch_after
-  %20 = load i32, ptr %i, align 4
-  %21 = icmp slt i32 %20, 10
-  br i1 %21, label %for_loop_then9, label %for_loop_after11
+  %24 = load i32, ptr %i, align 4
+  %25 = icmp slt i32 %24, 10
+  br i1 %25, label %for_loop_then9, label %for_loop_after11
 
 for_loop_then9:                                   ; preds = %for_loop_condition8
-  %22 = load i32, ptr %i, align 4
-  %23 = srem i32 %22, 2
-  %24 = icmp eq i32 %23, 0
-  br i1 %24, label %if_s0_then12, label %if_s1_after13
+  %26 = load i32, ptr %i, align 4
+  %27 = srem i32 %26, 2
+  %28 = icmp eq i32 %27, 0
+  br i1 %28, label %if_s0_then12, label %if_s1_after13
 
 for_loop_update_index10:                          ; preds = %if_s1_after13
-  %25 = load i32, ptr %i, align 4
-  %26 = add i32 %25, 1
-  store i32 %26, ptr %i, align 4
+  %29 = load i32, ptr %i, align 4
+  %30 = add i32 %29, 1
+  store i32 %30, ptr %i, align 4
   br label %for_loop_condition8
 
 for_loop_after11:                                 ; preds = %if_s0_then18, %for_loop_condition8
@@ -2391,20 +2393,20 @@ if_s1_after13:                                    ; preds = %for_loop_after17, %
   br label %for_loop_update_index10
 
 for_loop_condition14:                             ; preds = %for_loop_update_index16, %if_s0_then12
-  %27 = load i32, ptr %j, align 4
-  %28 = icmp slt i32 %27, 10
-  br i1 %28, label %for_loop_then15, label %for_loop_after17
+  %31 = load i32, ptr %j, align 4
+  %32 = icmp slt i32 %31, 10
+  br i1 %32, label %for_loop_then15, label %for_loop_after17
 
 for_loop_then15:                                  ; preds = %for_loop_condition14
-  %29 = load i32, ptr %j, align 4
-  %30 = srem i32 %29, 2
-  %31 = icmp eq i32 %30, 0
-  br i1 %31, label %if_s0_then18, label %if_s1_after19
+  %33 = load i32, ptr %j, align 4
+  %34 = srem i32 %33, 2
+  %35 = icmp eq i32 %34, 0
+  br i1 %35, label %if_s0_then18, label %if_s1_after19
 
 for_loop_update_index16:                          ; preds = %if_s1_after19
-  %32 = load i32, ptr %j, align 4
-  %33 = add i32 %32, 1
-  store i32 %33, ptr %j, align 4
+  %36 = load i32, ptr %j, align 4
+  %37 = add i32 %36, 1
+  store i32 %37, ptr %j, align 4
   br label %for_loop_condition14
 
 for_loop_after17:                                 ; preds = %for_loop_condition14
@@ -2483,11 +2485,10 @@ entry:
 ; Function Attrs: convergent
 define private void @Defer_expressions_with_debug_information_run(i8 noundef zeroext %"arguments[0].condition", i32 noundef %"arguments[1].value") #0 !dbg !11 {{
 entry:
-  %condition = alloca i1, align 1
+  %condition = alloca i8, align 1
   %value = alloca i32, align 4
   %value_2 = alloca i32, align 4, !dbg !18
-  %0 = trunc i8 %"arguments[0].condition" to i1
-  store i1 %0, ptr %condition, align 1
+  store i8 %"arguments[0].condition", ptr %condition, align 1
   call void @llvm.dbg.declare(metadata ptr %condition, metadata !16, metadata !DIExpression()), !dbg !19
   store i32 %"arguments[1].value", ptr %value, align 4
   call void @llvm.dbg.declare(metadata ptr %value, metadata !17, metadata !DIExpression()), !dbg !20
@@ -3193,12 +3194,14 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
-%struct.Load_pointers_My_struct = type { ptr }
+%struct.Load_pointers_My_struct = type { ptr, i32 }
 
 ; Function Attrs: convergent
 define private void @Load_pointers_run(ptr noundef %"arguments[0].instance") #0 {
 entry:
   %instance = alloca ptr, align 8
+  %negative_v0 = alloca i32, align 4
+  %negative_v1 = alloca i32, align 4
   store ptr %"arguments[0].instance", ptr %instance, align 8
   %0 = load ptr, ptr %instance, align 8
   %1 = getelementptr inbounds %struct.Load_pointers_My_struct, ptr %0, i32 0, i32 0
@@ -3210,6 +3213,17 @@ if_s0_then:                                       ; preds = %entry
   br label %if_s1_after
 
 if_s1_after:                                      ; preds = %if_s0_then, %entry
+  %4 = load ptr, ptr %instance, align 8
+  %5 = getelementptr inbounds %struct.Load_pointers_My_struct, ptr %4, i32 0, i32 0
+  %6 = load ptr, ptr %5, align 8
+  %7 = load i32, ptr %6, align 4
+  %8 = sub i32 0, %7
+  store i32 %8, ptr %negative_v0, align 4
+  %9 = load ptr, ptr %instance, align 8
+  %10 = getelementptr inbounds %struct.Load_pointers_My_struct, ptr %9, i32 0, i32 1
+  %11 = load i32, ptr %10, align 4
+  %12 = sub i32 0, %11
+  store i32 %12, ptr %negative_v1, align 4
   ret void
 }
 
@@ -3812,8 +3826,8 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define void @Ternary_condition_expressions_run_ternary_conditions(i8 noundef zeroext %"arguments[0].first_boolean", i8 noundef zeroext %"arguments[1].second_boolean") #0 {
 entry:
-  %first_boolean = alloca i1, align 1
-  %second_boolean = alloca i1, align 1
+  %first_boolean = alloca i8, align 1
+  %second_boolean = alloca i8, align 1
   %a = alloca i32, align 4
   %b = alloca i32, align 4
   %c = alloca i32, align 4
@@ -3824,12 +3838,11 @@ entry:
   %f = alloca i32, align 4
   %c_boolean = alloca i8, align 1
   %g = alloca i32, align 4
-  %0 = trunc i8 %"arguments[0].first_boolean" to i1
-  store i1 %0, ptr %first_boolean, align 1
-  %1 = trunc i8 %"arguments[1].second_boolean" to i1
-  store i1 %1, ptr %second_boolean, align 1
-  %2 = load i1, ptr %first_boolean, align 1
-  br i1 %2, label %ternary_condition_then, label %ternary_condition_else
+  store i8 %"arguments[0].first_boolean", ptr %first_boolean, align 1
+  store i8 %"arguments[1].second_boolean", ptr %second_boolean, align 1
+  %0 = load i8, ptr %first_boolean, align 1
+  %1 = trunc i8 %0 to i1
+  br i1 %1, label %ternary_condition_then, label %ternary_condition_else
 
 ternary_condition_then:                           ; preds = %entry
   br label %ternary_condition_end
@@ -3838,11 +3851,11 @@ ternary_condition_else:                           ; preds = %entry
   br label %ternary_condition_end
 
 ternary_condition_end:                            ; preds = %ternary_condition_else, %ternary_condition_then
-  %3 = phi i32 [ 1, %ternary_condition_then ], [ 0, %ternary_condition_else ]
-  store i32 %3, ptr %a, align 4
-  %4 = load i1, ptr %first_boolean, align 1
-  %5 = icmp eq i1 %4, false
-  br i1 %5, label %ternary_condition_then1, label %ternary_condition_else2
+  %2 = phi i32 [ 1, %ternary_condition_then ], [ 0, %ternary_condition_else ]
+  store i32 %2, ptr %a, align 4
+  %3 = load i8, ptr %first_boolean, align 1
+  %4 = icmp eq i8 %3, 0
+  br i1 %4, label %ternary_condition_then1, label %ternary_condition_else2
 
 ternary_condition_then1:                          ; preds = %ternary_condition_end
   br label %ternary_condition_end3
@@ -3851,10 +3864,11 @@ ternary_condition_else2:                          ; preds = %ternary_condition_e
   br label %ternary_condition_end3
 
 ternary_condition_end3:                           ; preds = %ternary_condition_else2, %ternary_condition_then1
-  %6 = phi i32 [ 1, %ternary_condition_then1 ], [ 0, %ternary_condition_else2 ]
-  store i32 %6, ptr %b, align 4
-  %7 = load i1, ptr %first_boolean, align 1
-  %8 = xor i1 %7, true
+  %5 = phi i32 [ 1, %ternary_condition_then1 ], [ 0, %ternary_condition_else2 ]
+  store i32 %5, ptr %b, align 4
+  %6 = load i8, ptr %first_boolean, align 1
+  %7 = xor i8 %6, -1
+  %8 = trunc i8 %7 to i1
   br i1 %8, label %ternary_condition_then4, label %ternary_condition_else5
 
 ternary_condition_then4:                          ; preds = %ternary_condition_end3
@@ -3866,21 +3880,24 @@ ternary_condition_else5:                          ; preds = %ternary_condition_e
 ternary_condition_end6:                           ; preds = %ternary_condition_else5, %ternary_condition_then4
   %9 = phi i32 [ 1, %ternary_condition_then4 ], [ 0, %ternary_condition_else5 ]
   store i32 %9, ptr %c, align 4
-  %10 = load i1, ptr %first_boolean, align 1
-  br i1 %10, label %ternary_condition_then7, label %ternary_condition_else8
+  %10 = load i8, ptr %first_boolean, align 1
+  %11 = trunc i8 %10 to i1
+  br i1 %11, label %ternary_condition_then7, label %ternary_condition_else8
 
 ternary_condition_then7:                          ; preds = %ternary_condition_end6
-  %11 = load i1, ptr %second_boolean, align 1
-  br i1 %11, label %ternary_condition_then10, label %ternary_condition_else11
+  %12 = load i8, ptr %second_boolean, align 1
+  %13 = trunc i8 %12 to i1
+  br i1 %13, label %ternary_condition_then10, label %ternary_condition_else11
 
 ternary_condition_else8:                          ; preds = %ternary_condition_end6
   br label %ternary_condition_end9
 
 ternary_condition_end9:                           ; preds = %ternary_condition_else8, %ternary_condition_end12
-  %12 = phi i32 [ %14, %ternary_condition_end12 ], [ 0, %ternary_condition_else8 ]
-  store i32 %12, ptr %d, align 4
-  %13 = load i1, ptr %first_boolean, align 1
-  br i1 %13, label %ternary_condition_then13, label %ternary_condition_else14
+  %14 = phi i32 [ %17, %ternary_condition_end12 ], [ 0, %ternary_condition_else8 ]
+  store i32 %14, ptr %d, align 4
+  %15 = load i8, ptr %first_boolean, align 1
+  %16 = trunc i8 %15 to i1
+  br i1 %16, label %ternary_condition_then13, label %ternary_condition_else14
 
 ternary_condition_then10:                         ; preds = %ternary_condition_then7
   br label %ternary_condition_end12
@@ -3889,23 +3906,25 @@ ternary_condition_else11:                         ; preds = %ternary_condition_t
   br label %ternary_condition_end12
 
 ternary_condition_end12:                          ; preds = %ternary_condition_else11, %ternary_condition_then10
-  %14 = phi i32 [ 2, %ternary_condition_then10 ], [ 1, %ternary_condition_else11 ]
+  %17 = phi i32 [ 2, %ternary_condition_then10 ], [ 1, %ternary_condition_else11 ]
   br label %ternary_condition_end9
 
 ternary_condition_then13:                         ; preds = %ternary_condition_end9
   br label %ternary_condition_end15
 
 ternary_condition_else14:                         ; preds = %ternary_condition_end9
-  %15 = load i1, ptr %second_boolean, align 1
-  br i1 %15, label %ternary_condition_then16, label %ternary_condition_else17
+  %18 = load i8, ptr %second_boolean, align 1
+  %19 = trunc i8 %18 to i1
+  br i1 %19, label %ternary_condition_then16, label %ternary_condition_else17
 
 ternary_condition_end15:                          ; preds = %ternary_condition_end18, %ternary_condition_then13
-  %16 = phi i32 [ 2, %ternary_condition_then13 ], [ %18, %ternary_condition_end18 ]
-  store i32 %16, ptr %e, align 4
+  %20 = phi i32 [ 2, %ternary_condition_then13 ], [ %23, %ternary_condition_end18 ]
+  store i32 %20, ptr %e, align 4
   store i32 0, ptr %first, align 4
   store i32 1, ptr %second, align 4
-  %17 = load i1, ptr %first_boolean, align 1
-  br i1 %17, label %ternary_condition_then19, label %ternary_condition_else20
+  %21 = load i8, ptr %first_boolean, align 1
+  %22 = trunc i8 %21 to i1
+  br i1 %22, label %ternary_condition_then19, label %ternary_condition_else20
 
 ternary_condition_then16:                         ; preds = %ternary_condition_else14
   br label %ternary_condition_end18
@@ -3914,24 +3933,24 @@ ternary_condition_else17:                         ; preds = %ternary_condition_e
   br label %ternary_condition_end18
 
 ternary_condition_end18:                          ; preds = %ternary_condition_else17, %ternary_condition_then16
-  %18 = phi i32 [ 1, %ternary_condition_then16 ], [ 0, %ternary_condition_else17 ]
+  %23 = phi i32 [ 1, %ternary_condition_then16 ], [ 0, %ternary_condition_else17 ]
   br label %ternary_condition_end15
 
 ternary_condition_then19:                         ; preds = %ternary_condition_end15
-  %19 = load i32, ptr %first, align 4
+  %24 = load i32, ptr %first, align 4
   br label %ternary_condition_end21
 
 ternary_condition_else20:                         ; preds = %ternary_condition_end15
-  %20 = load i32, ptr %second, align 4
+  %25 = load i32, ptr %second, align 4
   br label %ternary_condition_end21
 
 ternary_condition_end21:                          ; preds = %ternary_condition_else20, %ternary_condition_then19
-  %21 = phi i32 [ %19, %ternary_condition_then19 ], [ %20, %ternary_condition_else20 ]
-  store i32 %21, ptr %f, align 4
+  %26 = phi i32 [ %24, %ternary_condition_then19 ], [ %25, %ternary_condition_else20 ]
+  store i32 %26, ptr %f, align 4
   store i8 1, ptr %c_boolean, align 1
-  %22 = load i8, ptr %c_boolean, align 1
-  %23 = trunc i8 %22 to i1
-  br i1 %23, label %ternary_condition_then22, label %ternary_condition_else23
+  %27 = load i8, ptr %c_boolean, align 1
+  %28 = trunc i8 %27 to i1
+  br i1 %28, label %ternary_condition_then22, label %ternary_condition_else23
 
 ternary_condition_then22:                         ; preds = %ternary_condition_end21
   br label %ternary_condition_end24
@@ -3940,8 +3959,8 @@ ternary_condition_else23:                         ; preds = %ternary_condition_e
   br label %ternary_condition_end24
 
 ternary_condition_end24:                          ; preds = %ternary_condition_else23, %ternary_condition_then22
-  %24 = phi i32 [ 1, %ternary_condition_then22 ], [ 0, %ternary_condition_else23 ]
-  store i32 %24, ptr %g, align 4
+  %29 = phi i32 [ 1, %ternary_condition_then22 ], [ 0, %ternary_condition_else23 ]
+  store i32 %29, ptr %g, align 4
   ret void
 }
 
@@ -3964,30 +3983,29 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean") #0 {
 entry:
   %my_integer = alloca i32, align 4
-  %my_boolean = alloca i1, align 1
-  %not_variable = alloca i1, align 1
+  %my_boolean = alloca i8, align 1
+  %not_variable = alloca i8, align 1
   %bitwise_not_variable = alloca i32, align 4
   %minus_variable = alloca i32, align 4
   %my_mutable_integer = alloca i32, align 4
   %address_of_variable = alloca ptr, align 8
   %indirection_variable = alloca i32, align 4
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
-  %0 = trunc i8 %"arguments[1].my_boolean" to i1
-  store i1 %0, ptr %my_boolean, align 1
-  %1 = load i1, ptr %my_boolean, align 1
-  %2 = xor i1 %1, true
-  store i1 %2, ptr %not_variable, align 1
-  %3 = load i32, ptr %my_integer, align 4
-  %4 = xor i32 %3, -1
-  store i32 %4, ptr %bitwise_not_variable, align 4
-  %5 = load i32, ptr %my_integer, align 4
-  %6 = sub i32 0, %5
-  store i32 %6, ptr %minus_variable, align 4
+  store i8 %"arguments[1].my_boolean", ptr %my_boolean, align 1
+  %0 = load i8, ptr %my_boolean, align 1
+  %1 = xor i8 %0, -1
+  store i8 %1, ptr %not_variable, align 1
+  %2 = load i32, ptr %my_integer, align 4
+  %3 = xor i32 %2, -1
+  store i32 %3, ptr %bitwise_not_variable, align 4
+  %4 = load i32, ptr %my_integer, align 4
+  %5 = sub i32 0, %4
+  store i32 %5, ptr %minus_variable, align 4
   store i32 1, ptr %my_mutable_integer, align 4
   store ptr %my_mutable_integer, ptr %address_of_variable, align 8
-  %7 = load ptr, ptr %address_of_variable, align 8
-  %8 = load i32, ptr %7, align 4
-  store i32 %8, ptr %indirection_variable, align 4
+  %6 = load ptr, ptr %address_of_variable, align 8
+  %7 = load i32, ptr %6, align 4
+  store i32 %7, ptr %indirection_variable, align 4
   ret void
 }
 
