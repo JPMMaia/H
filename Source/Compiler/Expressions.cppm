@@ -96,6 +96,13 @@ namespace h::compiler
         Expression_parameters const& parameters
     );
 
+    export Value_and_type load_if_needed(
+        Value_and_type const& value,
+        std::size_t const expression_index,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    );
+
     export Value_and_type create_loaded_expression_value(
         std::size_t expression_index,
         Statement const& statement,

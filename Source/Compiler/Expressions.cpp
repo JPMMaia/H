@@ -274,26 +274,6 @@ namespace h::compiler
         return {};
     }
 
-    llvm::Value* load_if_needed(
-        llvm::IRBuilder<>& llvm_builder,
-        llvm::DataLayout const& llvm_data_layout,
-        llvm::Value* const value,
-        llvm::Type* const type
-    )
-    {
-        if (value->getType() == type)
-        {
-            return value;
-        }
-
-        if (value->getType()->isPointerTy())
-        {
-            return create_load_instruction(llvm_builder, llvm_data_layout, type, value);
-        }
-
-        throw std::runtime_error{ "Could not load variable!" };
-    }
-
     llvm::Constant* fold_constant(
         llvm::Value* const value,
         llvm::DataLayout const& llvm_data_layout
@@ -3447,8 +3427,7 @@ namespace h::compiler
         case Unary_operation::Not: {
             if (is_bool(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(value_expression, expression.expression.expression_index, statement, parameters).value;
                 return Value_and_type
                 {
                     .name = "",
@@ -3461,8 +3440,7 @@ namespace h::compiler
         case Unary_operation::Bitwise_not: {
             if (is_integer(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(value_expression, expression.expression.expression_index, statement, parameters).value;
                 return Value_and_type
                 {
                     .name = "",
@@ -3475,8 +3453,7 @@ namespace h::compiler
         case Unary_operation::Minus: {
             if (is_integer(type))
             {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, value_expression.type.value(), type_database);
-                llvm::Value* const loaded_value = load_if_needed(llvm_builder, llvm_data_layout, value_expression.value, llvm_type);
+                llvm::Value* const loaded_value = load_if_needed(value_expression, expression.expression.expression_index, statement, parameters).value;
                 return Value_and_type
                 {
                     .name = "",
@@ -4168,14 +4145,13 @@ namespace h::compiler
         return false;
     }
 
-    Value_and_type create_loaded_expression_value(
+    Value_and_type load_if_needed(
+        Value_and_type const& value,
         std::size_t const expression_index,
         Statement const& statement,
         Expression_parameters const& parameters
     )
     {
-        Value_and_type value = create_expression_value(expression_index, statement, parameters);
-
         if (value.value != nullptr && value.type.has_value() && value.value->getType()->isPointerTy())
         {
             if (std::holds_alternative<Null_pointer_type>(value.type->data))
@@ -4226,6 +4202,16 @@ namespace h::compiler
         {
             return value;
         }
+    }
+
+    Value_and_type create_loaded_expression_value(
+        std::size_t const expression_index,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    )
+    {
+        Value_and_type value = create_expression_value(expression_index, statement, parameters);
+        return load_if_needed(value, expression_index, statement, parameters);
     }
 
     Value_and_type create_expression_value(
