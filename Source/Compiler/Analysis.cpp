@@ -1007,6 +1007,18 @@ namespace h::compiler
                     .is_mutable = lhs_type_info->is_mutable,
                 };
             }
+            else if (std::holds_alternative<h::Pointer_type>(lhs_type_reference->data))
+            {
+                h::Pointer_type const& pointer_type = std::get<h::Pointer_type>(lhs_type_reference->data);
+                if (pointer_type.element_type.empty())
+                    return std::nullopt;
+                
+                return Type_info
+                {
+                    .type = pointer_type.element_type[0],
+                    .is_mutable = pointer_type.is_mutable,
+                };
+            }
 
             return std::nullopt;
         }

@@ -10,4 +10,7 @@ function run(instance: *My_struct) -> ()
     if instance->v0 != null
     {
     }
+
+    var p0 = &instance[0];
+    var v0 = instance[0];
 }

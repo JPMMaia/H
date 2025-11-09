@@ -187,10 +187,11 @@ entry:
   store ptr %"arguments[0].integers", ptr %integers, align 8
   %1 = getelementptr inbounds %struct.Address_of_My_struct, ptr %0, i32 0, i32 0
   store i64 %"arguments[1].instance", ptr %1, align 4
-  %array_element_pointer = getelementptr i32, ptr %integers, i32 1
+  %2 = load ptr, ptr %integers, align 8
+  %array_element_pointer = getelementptr i32, ptr %2, i32 1
   store ptr %array_element_pointer, ptr %p0, align 8
-  %2 = getelementptr inbounds %struct.Address_of_My_struct, ptr %0, i32 0, i32 1
-  store ptr %2, ptr %p1, align 8
+  %3 = getelementptr inbounds %struct.Address_of_My_struct, ptr %0, i32 0, i32 1
+  store ptr %3, ptr %p1, align 8
   ret void
 }
 
@@ -231,17 +232,20 @@ entry:
   %5 = load i64, ptr %4, align 8
   store i64 %5, ptr %length, align 8
   %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer = getelementptr i32, ptr %6, i32 0
-  %7 = load i32, ptr %array_slice_element_pointer, align 4
-  store i32 %7, ptr %v0, align 4
-  %8 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer1 = getelementptr i32, ptr %8, i32 1
-  %9 = load i32, ptr %array_slice_element_pointer1, align 4
-  store i32 %9, ptr %v1, align 4
-  %10 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %array_slice_element_pointer2 = getelementptr i32, ptr %10, i32 2
-  %11 = load i32, ptr %array_slice_element_pointer2, align 4
-  store i32 %11, ptr %v2, align 4
+  %7 = load ptr, ptr %6, align 8
+  %array_slice_element_pointer = getelementptr i32, ptr %7, i32 0
+  %8 = load i32, ptr %array_slice_element_pointer, align 4
+  store i32 %8, ptr %v0, align 4
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %10 = load ptr, ptr %9, align 8
+  %array_slice_element_pointer1 = getelementptr i32, ptr %10, i32 1
+  %11 = load i32, ptr %array_slice_element_pointer1, align 4
+  store i32 %11, ptr %v1, align 4
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
+  %13 = load ptr, ptr %12, align 8
+  %array_slice_element_pointer2 = getelementptr i32, ptr %13, i32 2
+  %14 = load i32, ptr %array_slice_element_pointer2, align 4
+  store i32 %14, ptr %v2, align 4
   ret void
 }
 
@@ -2698,32 +2702,33 @@ if_s1_after:                                      ; preds = %condition_success1,
   store i64 %26, ptr %index, align 8
   %27 = load ptr, ptr %instance, align 8
   %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %27, i32 0, i32 0
-  %29 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %28, i64 %29
-  %30 = load i32, ptr %element, align 4
-  store i32 %30, ptr %array_element_pointer, align 4
-  %31 = load ptr, ptr %instance, align 8
-  %32 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %31, i32 0, i32 1
-  %33 = load ptr, ptr %instance, align 8
-  %34 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %33, i32 0, i32 1
-  %35 = load i64, ptr %34, align 8
-  %36 = add i64 %35, 1
-  store i64 %36, ptr %32, align 8
+  %29 = load ptr, ptr %28, align 8
+  %30 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %29, i64 %30
+  %31 = load i32, ptr %element, align 4
+  store i32 %31, ptr %array_element_pointer, align 4
+  %32 = load ptr, ptr %instance, align 8
+  %33 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %32, i32 0, i32 1
+  %34 = load ptr, ptr %instance, align 8
+  %35 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %34, i32 0, i32 1
+  %36 = load i64, ptr %35, align 8
+  %37 = add i64 %36, 1
+  store i64 %37, ptr %33, align 8
   ret void
 
 condition_success1:                               ; preds = %if_s0_then
-  %37 = load ptr, ptr %instance, align 8
-  %38 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %37, i32 0, i32 0
-  %39 = load ptr, ptr %allocation, align 8
-  store ptr %39, ptr %38, align 8
-  %40 = load ptr, ptr %instance, align 8
-  %41 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %40, i32 0, i32 2
-  %42 = load i64, ptr %new_capacity, align 8
-  store i64 %42, ptr %41, align 8
+  %38 = load ptr, ptr %instance, align 8
+  %39 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %38, i32 0, i32 0
+  %40 = load ptr, ptr %allocation, align 8
+  store ptr %40, ptr %39, align 8
+  %41 = load ptr, ptr %instance, align 8
+  %42 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %41, i32 0, i32 2
+  %43 = load i64, ptr %new_capacity, align 8
+  store i64 %43, ptr %42, align 8
   br label %if_s1_after
 
 condition_fail2:                                  ; preds = %if_s0_then
-  %43 = call i32 @puts(ptr @function_contract_error_string.3)
+  %44 = call i32 @puts(ptr @function_contract_error_string.3)
   call void @abort()
   unreachable
 }
@@ -2755,13 +2760,14 @@ condition_fail:                                   ; preds = %entry
 condition_success1:                               ; preds = %condition_success
   %8 = load ptr, ptr %instance, align 8
   %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %8, i32 0, i32 0
-  %10 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %9, i64 %10
-  %11 = load i32, ptr %array_element_pointer, align 4
-  ret i32 %11
+  %10 = load ptr, ptr %9, align 8
+  %11 = load i64, ptr %index, align 8
+  %array_element_pointer = getelementptr i32, ptr %10, i64 %11
+  %12 = load i32, ptr %array_element_pointer, align 4
+  ret i32 %12
 
 condition_fail2:                                  ; preds = %condition_success
-  %12 = call i32 @puts(ptr @function_contract_error_string.5)
+  %13 = call i32 @puts(ptr @function_contract_error_string.5)
   call void @abort()
   unreachable
 }
@@ -3199,6 +3205,8 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define private void @Load_pointers_run(ptr noundef %"arguments[0].instance") #0 {
 entry:
   %instance = alloca ptr, align 8
+  %p0 = alloca ptr, align 8
+  %v0 = alloca %struct.Load_pointers_My_struct, align 8
   store ptr %"arguments[0].instance", ptr %instance, align 8
   %0 = load ptr, ptr %instance, align 8
   %1 = getelementptr inbounds %struct.Load_pointers_My_struct, ptr %0, i32 0, i32 0
@@ -3210,6 +3218,13 @@ if_s0_then:                                       ; preds = %entry
   br label %if_s1_after
 
 if_s1_after:                                      ; preds = %if_s0_then, %entry
+  %4 = load ptr, ptr %instance, align 8
+  %array_element_pointer = getelementptr %struct.Load_pointers_My_struct, ptr %4, i32 0
+  store ptr %array_element_pointer, ptr %p0, align 8
+  %5 = load ptr, ptr %instance, align 8
+  %array_element_pointer1 = getelementptr %struct.Load_pointers_My_struct, ptr %5, i32 0
+  %6 = load %struct.Load_pointers_My_struct, ptr %array_element_pointer1, align 8
+  store %struct.Load_pointers_My_struct %6, ptr %v0, align 8
   ret void
 }
 
@@ -3694,17 +3709,18 @@ for_loop_then:                                    ; preds = %for_loop_condition
   %12 = load %struct.H_Builtin_Generic_array_slice, ptr %1, align 8
   store %struct.H_Builtin_Generic_array_slice %12, ptr %array_1, align 8
   %13 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %array_1, i32 0, i32 0
-  %array_slice_element_pointer = getelementptr i32, ptr %13, i32 0
-  %14 = load i64, ptr %index, align 8
-  %15 = trunc i64 %14 to i32
-  store i32 %15, ptr %array_slice_element_pointer, align 4
+  %14 = load ptr, ptr %13, align 8
+  %array_slice_element_pointer = getelementptr i32, ptr %14, i32 0
+  %15 = load i64, ptr %index, align 8
+  %16 = trunc i64 %15 to i32
+  store i32 %16, ptr %array_slice_element_pointer, align 4
   call void @llvm.stackrestore.p0(ptr %stack_save_pointer1)
   br label %for_loop_update_index
 
 for_loop_update_index:                            ; preds = %for_loop_then
-  %16 = load i64, ptr %index, align 8
-  %17 = add i64 %16, 1
-  store i64 %17, ptr %index, align 8
+  %17 = load i64, ptr %index, align 8
+  %18 = add i64 %17, 1
+  store i64 %18, ptr %index, align 8
   br label %for_loop_condition
 
 for_loop_after:                                   ; preds = %for_loop_condition

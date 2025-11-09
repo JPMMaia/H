@@ -781,11 +781,13 @@ namespace h::compiler
         if (h::is_array_slice_type_reference(*left_hand_side_expression_value.type))
         {
             llvm::Type* const array_slice_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, left_hand_side_expression_value.type.value(), type_database);
-            llvm::Value* const data_pointer = llvm_builder.CreateStructGEP(
+            llvm::Value* const pointer_to_data_pointer = llvm_builder.CreateStructGEP(
                 array_slice_llvm_type,
                 left_hand_side_expression_value.value,
                 0
             );
+
+            llvm::Value* const data_pointer = create_load_instruction(llvm_builder, llvm_data_layout, llvm::PointerType::get(llvm_context, 0), pointer_to_data_pointer);
             
             llvm::Type* const element_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, element_type.value(), type_database);
 
@@ -809,11 +811,14 @@ namespace h::compiler
 
         bool const using_pointer = is_pointer(*left_hand_side_expression_value.type);
         Type_reference const& type_reference_to_use =
-        using_pointer ?
+            using_pointer ?
             element_type.value() :
             *left_hand_side_expression_value.type;
         llvm::Type* const array_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type_reference_to_use, type_database);
-        llvm::Value* const array_pointer = left_hand_side_expression_value.value;
+        llvm::Value* const array_pointer =
+            using_pointer ?
+            create_load_instruction(llvm_builder, llvm_data_layout, llvm::PointerType::get(llvm_context, 0), left_hand_side_expression_value.value) :
+            left_hand_side_expression_value.value;
 
         Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
         llvm::Value* const index_llvm_value = index_value.value;
