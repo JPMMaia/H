@@ -220,6 +220,14 @@ namespace h::json
         {
             return "Explicit";
         }
+        else if (value == Instantiate_expression_type::Uninitialized)
+        {
+            return "Uninitialized";
+        }
+        else if (value == Instantiate_expression_type::Zero_initialized)
+        {
+            return "Zero_initialized";
+        }
 
         throw std::runtime_error{ "Failed to write enum 'Instantiate_expression_type'!\n" };
     }

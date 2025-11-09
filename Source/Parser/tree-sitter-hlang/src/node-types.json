@@ -2684,6 +2684,10 @@
     "named": false
   },
   {
+    "type": "uninitialized",
+    "named": false
+  },
+  {
     "type": "union",
     "named": false
   },
@@ -2697,6 +2701,10 @@
   },
   {
     "type": "while",
+    "named": false
+  },
+  {
+    "type": "zero_initialized",
     "named": false
   },
   {

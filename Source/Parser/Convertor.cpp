@@ -2675,6 +2675,28 @@ namespace h::parser
         return output;
     }
 
+    h::Instantiate_expression_type calculate_instantiate_expression_type(
+        Parse_tree const& tree,
+        Parse_node const& node
+    )
+    {
+        std::optional<Parse_node> const mode_node = get_child_node(tree, node, 0);
+
+        if (!mode_node.has_value())
+            return h::Instantiate_expression_type::Default;
+
+        std::string_view const mode_value = get_node_value(tree, mode_node.value());
+
+        if (mode_value == "explicit")
+            return h::Instantiate_expression_type::Explicit;
+        else if (mode_value == "uninitialized")
+            return h::Instantiate_expression_type::Uninitialized;
+        else if (mode_value == "zero_initialized")
+            return h::Instantiate_expression_type::Zero_initialized;
+        else
+            return h::Instantiate_expression_type::Default;
+    }
+
     h::Instantiate_expression node_to_expression_instantiate(
         h::Statement& statement,
         Module_info const& module_info,
@@ -2686,11 +2708,7 @@ namespace h::parser
     {
         h::Instantiate_expression output;
 
-        std::optional<Parse_node> const explicit_node = get_child_node(tree, node, "explicit");
-        bool const is_explicit = explicit_node.has_value();
-        output.type = is_explicit ? 
-            h::Instantiate_expression_type::Explicit : 
-            h::Instantiate_expression_type::Default;
+        output.type = calculate_instantiate_expression_type(tree, node);
         
         std::pmr::vector<Parse_node> const member_nodes = get_child_nodes_of_parent(tree, node, "Expression_instantiate_members", "Expression_instantiate_member", temporaries_allocator);
         for (Parse_node const& member_node : member_nodes)

@@ -3189,6 +3189,65 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+   TEST_CASE("Compile Instantiate Uninitialized", "[LLVM_IR]")
+  {
+    char const* const input_file = "instantiate_uninitialized.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Instantiate_uninitialized_My_struct = type { i32, i32 }
+
+; Function Attrs: convergent
+define private void @Instantiate_uninitialized_run() #0 {
+entry:
+  %0 = alloca %struct.Instantiate_uninitialized_My_struct, align 4
+  %instance = alloca %struct.Instantiate_uninitialized_My_struct, align 4
+  %1 = load %struct.Instantiate_uninitialized_My_struct, ptr %0, align 4
+  store %struct.Instantiate_uninitialized_My_struct %1, ptr %instance, align 4
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Instantiate Zero Initialized", "[LLVM_IR]")
+  {
+    char const* const input_file = "instantiate_zero_initialized.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Instantiate_zero_initialized_My_struct = type { i32, i32 }
+
+; Function Attrs: convergent
+define private void @Instantiate_zero_initialized_run() #0 {
+entry:
+  %0 = alloca %struct.Instantiate_zero_initialized_My_struct, align 4
+  %instance = alloca %struct.Instantiate_zero_initialized_My_struct, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %0, i8 0, i64 8, i1 false)
+  %1 = load %struct.Instantiate_zero_initialized_My_struct, ptr %0, align 4
+  store %struct.Instantiate_zero_initialized_My_struct %1, ptr %instance, align 4
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #1
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
 
   TEST_CASE("Compile Load Pointers", "[LLVM_IR]")
   {

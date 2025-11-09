@@ -2649,8 +2649,21 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "STRING",
-              "value": "explicit"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "explicit"
+                },
+                {
+                  "type": "STRING",
+                  "value": "uninitialized"
+                },
+                {
+                  "type": "STRING",
+                  "value": "zero_initialized"
+                }
+              ]
             },
             {
               "type": "BLANK"

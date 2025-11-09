@@ -293,6 +293,16 @@ namespace h::json
             output = Instantiate_expression_type::Explicit;
             return true;
         }
+        else if (value == "Uninitialized")
+        {
+            output = Instantiate_expression_type::Uninitialized;
+            return true;
+        }
+        else if (value == "Zero_initialized")
+        {
+            output = Instantiate_expression_type::Zero_initialized;
+            return true;
+        }
 
         std::cerr << std::format("Failed to read enum 'Instantiate_expression_type' with value '{}'\n", value);
         return false;

@@ -376,6 +376,18 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts instantiate_uninitialized.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "instantiate_uninitialized.hltxt";
+        test_convertor(input_file);
+    }
+    
+    TEST_CASE("Converts instantiate_zero_initialized.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "instantiate_zero_initialized.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts if_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "if_expressions.hltxt";

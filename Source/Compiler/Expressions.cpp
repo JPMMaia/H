@@ -2845,6 +2845,29 @@ namespace h::compiler
                 .type = struct_type_reference
             };
         }
+        else if (expression.type == Instantiate_expression_type::Uninitialized)
+        {
+            return Value_and_type
+            {
+                .name = "",
+                .value = struct_alloca,
+                .type = struct_type_reference
+            };
+        }
+        else if (expression.type == Instantiate_expression_type::Zero_initialized)
+        {
+            std::uint64_t const alloc_size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(llvm_struct_type);
+            llvm::Align const alignment = parameters.llvm_data_layout.getABITypeAlign(llvm_struct_type);
+
+            create_memset_to_0_call(parameters.llvm_builder, struct_alloca, alloc_size_in_bytes, alignment);
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = struct_alloca,
+                .type = struct_type_reference
+            };
+        }
         else
         {
             throw std::runtime_error{ "Instantiate_expression_type not handled!" };

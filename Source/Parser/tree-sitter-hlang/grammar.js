@@ -205,7 +205,7 @@ module.exports = grammar({
       $.Expression_constant,
       $.Expression_type
     ),
-    Expression_instantiate: $ => seq(optional("explicit"), $.Expression_instantiate_members),
+    Expression_instantiate: $ => seq(optional(choice("explicit", "uninitialized", "zero_initialized")), $.Expression_instantiate_members),
     Expression_instantiate_members: $ => seq("{", optional(seq($.Expression_instantiate_member, repeat(seq(",", $.Expression_instantiate_member)))), "}"),
     Expression_instantiate_member: $ => seq($.Expression_instantiate_member_name, ":", $.Generic_expression_or_instantiate),
     Expression_instantiate_member_name: $ => $.Identifier,

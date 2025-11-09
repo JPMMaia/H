@@ -842,7 +842,9 @@ namespace h
     export enum class Instantiate_expression_type
     {
         Default,
-        Explicit
+        Explicit,
+        Uninitialized,
+        Zero_initialized
     };
 
     export struct Instantiate_member_value_pair

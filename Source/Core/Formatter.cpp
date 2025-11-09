@@ -1141,6 +1141,10 @@ namespace h
 
         if (expression.type == Instantiate_expression_type::Explicit)
             add_text(buffer, "explicit ");
+        else if (expression.type == Instantiate_expression_type::Uninitialized)
+            add_text(buffer, "uninitialized ");
+        else if (expression.type == Instantiate_expression_type::Zero_initialized)
+            add_text(buffer, "zero_initialized ");
             
         add_text(buffer, "{");
         if (!expression.members.empty())

@@ -1,0 +1,12 @@
+module Instantiate_uninitialized;
+
+struct My_struct
+{
+    v0: Int32 = 1;
+    v1: Int32 = 2;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = uninitialized {};
+}
