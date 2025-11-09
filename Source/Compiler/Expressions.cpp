@@ -3646,11 +3646,31 @@ namespace h::compiler
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = core_type;
         
-        Value_and_type const right_hand_side = create_loaded_expression_value(
+        Value_and_type const right_hand_side = create_expression_value(
             expression.right_hand_side.expression_index,
             statement,
             new_parameters
         );
+
+        h::Expression const& right_hand_side_expression = statement.expressions[expression.right_hand_side.expression_index];
+        if (std::holds_alternative<h::Instantiate_expression>(right_hand_side_expression.data) && llvm::AllocaInst::classof(right_hand_side.value))
+        {
+            llvm::AllocaInst* const alloca_instruction = static_cast<llvm::AllocaInst*>(right_hand_side.value);
+            alloca_instruction->setName(expression.name.c_str());
+
+            if (parameters.debug_info != nullptr)
+                create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca_instruction, core_type);
+
+            return Value_and_type
+            {
+                .name = expression.name,
+                .value = alloca_instruction,
+                .type = std::move(core_type)
+            };
+        }
+
+        bool const store_value = can_store(core_type);
+        llvm::Value* const loaded_value = store_value ? load_if_needed(right_hand_side, expression.right_hand_side.expression_index, statement, new_parameters).value : right_hand_side.value;
 
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -3660,8 +3680,8 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);
 
-        if (can_store(core_type))
-            create_store_instruction(llvm_builder, llvm_data_layout, right_hand_side.value, alloca);
+        if (store_value)
+            create_store_instruction(llvm_builder, llvm_data_layout, loaded_value, alloca);
 
         return Value_and_type
         {

@@ -912,150 +912,141 @@ entry:
   %c = alloca i32, align 4
   %d = alloca i32, align 4
   %e = alloca i32, align 4
-  %1 = alloca %struct.bit_fields_My_struct, align 8
   %mutable_instance = alloca %struct.bit_fields_My_struct, align 8
-  %2 = alloca %struct.bit_fields_My_struct, align 8
   %instance = alloca %struct.bit_fields_My_struct, align 8
-  %3 = alloca %struct.bit_fields_My_struct, align 8
   %instance_2 = alloca %struct.bit_fields_My_struct, align 8
-  %4 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  store i64 %"arguments[0].parameter", ptr %4, align 8
-  %5 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %6 = load i32, ptr %5, align 4
-  %7 = lshr i32 %6, 0
-  %8 = and i32 %7, 16777215
-  store i32 %8, ptr %a, align 4
-  %9 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %10 = load i32, ptr %9, align 4
-  %11 = lshr i32 %10, 24
-  %12 = and i32 %11, 255
-  store i32 %12, ptr %b, align 4
-  %13 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %14 = load i32, ptr %13, align 4
-  %15 = lshr i32 %14, 32
-  %16 = and i32 %15, 4095
-  store i32 %16, ptr %c, align 4
-  %17 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %18 = load i32, ptr %17, align 4
-  %19 = lshr i32 %18, 44
-  %20 = and i32 %19, 255
-  store i32 %20, ptr %d, align 4
-  %21 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
-  %22 = load i32, ptr %21, align 4
-  %23 = lshr i32 %22, 52
-  %24 = and i32 %23, 4095
-  store i32 %24, ptr %e, align 4
-  %25 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %26 = load i32, ptr %25, align 4
-  %27 = and i32 %26, -16777216
-  %28 = or i32 %27, 0
-  store i32 %28, ptr %25, align 4
-  %29 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %30 = load i32, ptr %29, align 4
-  %31 = and i32 %30, 16777215
-  %32 = or i32 %31, 0
-  store i32 %32, ptr %29, align 4
-  %33 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %34 = load i32, ptr %33, align 4
-  %35 = and i32 %34, -4096
-  %36 = or i32 %35, poison
-  store i32 %36, ptr %33, align 4
-  %37 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %38 = load i32, ptr %37, align 4
-  %39 = and i32 %38, -1044481
-  %40 = or i32 %39, poison
-  store i32 %40, ptr %37, align 4
-  %41 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %1, i32 0, i32 0
-  %42 = load i32, ptr %41, align 4
-  %43 = and i32 %42, 1048575
-  %44 = or i32 %43, poison
-  store i32 %44, ptr %41, align 4
-  %45 = load %struct.bit_fields_My_struct, ptr %1, align 8
-  store %struct.bit_fields_My_struct %45, ptr %mutable_instance, align 8
+  %1 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[0].parameter", ptr %1, align 8
+  %2 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  %4 = lshr i32 %3, 0
+  %5 = and i32 %4, 16777215
+  store i32 %5, ptr %a, align 4
+  %6 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %7 = load i32, ptr %6, align 4
+  %8 = lshr i32 %7, 24
+  %9 = and i32 %8, 255
+  store i32 %9, ptr %b, align 4
+  %10 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %11 = load i32, ptr %10, align 4
+  %12 = lshr i32 %11, 32
+  %13 = and i32 %12, 4095
+  store i32 %13, ptr %c, align 4
+  %14 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %15 = load i32, ptr %14, align 4
+  %16 = lshr i32 %15, 44
+  %17 = and i32 %16, 255
+  store i32 %17, ptr %d, align 4
+  %18 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %0, i32 0, i32 0
+  %19 = load i32, ptr %18, align 4
+  %20 = lshr i32 %19, 52
+  %21 = and i32 %20, 4095
+  store i32 %21, ptr %e, align 4
+  %22 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %23 = load i32, ptr %22, align 4
+  %24 = and i32 %23, -16777216
+  %25 = or i32 %24, 0
+  store i32 %25, ptr %22, align 4
+  %26 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %27 = load i32, ptr %26, align 4
+  %28 = and i32 %27, 16777215
+  %29 = or i32 %28, 0
+  store i32 %29, ptr %26, align 4
+  %30 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %31 = load i32, ptr %30, align 4
+  %32 = and i32 %31, -4096
+  %33 = or i32 %32, poison
+  store i32 %33, ptr %30, align 4
+  %34 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %35 = load i32, ptr %34, align 4
+  %36 = and i32 %35, -1044481
+  %37 = or i32 %36, poison
+  store i32 %37, ptr %34, align 4
+  %38 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %39 = load i32, ptr %38, align 4
+  %40 = and i32 %39, 1048575
+  %41 = or i32 %40, poison
+  store i32 %41, ptr %38, align 4
+  %42 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %43 = load i32, ptr %42, align 4
+  %44 = lshr i32 %43, 0
+  %45 = and i32 %44, 16777215
   %46 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
   %47 = load i32, ptr %46, align 4
-  %48 = lshr i32 %47, 0
-  %49 = and i32 %48, 16777215
+  %48 = and i32 %47, -16777216
+  %49 = or i32 %48, 1
+  store i32 %49, ptr %46, align 4
   %50 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
   %51 = load i32, ptr %50, align 4
-  %52 = and i32 %51, -16777216
-  %53 = or i32 %52, 1
-  store i32 %53, ptr %50, align 4
+  %52 = lshr i32 %51, 24
+  %53 = and i32 %52, 255
   %54 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
   %55 = load i32, ptr %54, align 4
-  %56 = lshr i32 %55, 24
-  %57 = and i32 %56, 255
+  %56 = and i32 %55, 16777215
+  %57 = or i32 %56, 33554432
+  store i32 %57, ptr %54, align 4
   %58 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
   %59 = load i32, ptr %58, align 4
-  %60 = and i32 %59, 16777215
-  %61 = or i32 %60, 33554432
-  store i32 %61, ptr %58, align 4
+  %60 = lshr i32 %59, 32
+  %61 = and i32 %60, 4095
   %62 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
   %63 = load i32, ptr %62, align 4
-  %64 = lshr i32 %63, 32
-  %65 = and i32 %64, 4095
-  %66 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %mutable_instance, i32 0, i32 0
+  %64 = and i32 %63, -4096
+  %65 = or i32 %64, poison
+  store i32 %65, ptr %62, align 4
+  %66 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
   %67 = load i32, ptr %66, align 4
-  %68 = and i32 %67, -4096
-  %69 = or i32 %68, poison
+  %68 = and i32 %67, -16777216
+  %69 = or i32 %68, 1
   store i32 %69, ptr %66, align 4
-  %70 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %70 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
   %71 = load i32, ptr %70, align 4
-  %72 = and i32 %71, -16777216
-  %73 = or i32 %72, 1
+  %72 = and i32 %71, 16777215
+  %73 = or i32 %72, 33554432
   store i32 %73, ptr %70, align 4
-  %74 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %74 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
   %75 = load i32, ptr %74, align 4
-  %76 = and i32 %75, 16777215
-  %77 = or i32 %76, 33554432
+  %76 = and i32 %75, -4096
+  %77 = or i32 %76, poison
   store i32 %77, ptr %74, align 4
-  %78 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %78 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
   %79 = load i32, ptr %78, align 4
-  %80 = and i32 %79, -4096
+  %80 = and i32 %79, -1044481
   %81 = or i32 %80, poison
   store i32 %81, ptr %78, align 4
-  %82 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %82 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
   %83 = load i32, ptr %82, align 4
-  %84 = and i32 %83, -1044481
+  %84 = and i32 %83, 1048575
   %85 = or i32 %84, poison
   store i32 %85, ptr %82, align 4
-  %86 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %2, i32 0, i32 0
+  %86 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance_2, i32 0, i32 0
   %87 = load i32, ptr %86, align 4
-  %88 = and i32 %87, 1048575
-  %89 = or i32 %88, poison
+  %88 = and i32 %87, -16777216
+  %89 = or i32 %88, 1
   store i32 %89, ptr %86, align 4
-  %90 = load %struct.bit_fields_My_struct, ptr %2, align 8
-  store %struct.bit_fields_My_struct %90, ptr %instance, align 8
-  %91 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
-  %92 = load i32, ptr %91, align 4
-  %93 = and i32 %92, -16777216
-  %94 = or i32 %93, 1
-  store i32 %94, ptr %91, align 4
-  %95 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
-  %96 = load i32, ptr %95, align 4
-  %97 = and i32 %96, 16777215
-  %98 = or i32 %97, 0
-  store i32 %98, ptr %95, align 4
-  %99 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
-  %100 = load i32, ptr %99, align 4
-  %101 = and i32 %100, -4096
-  %102 = or i32 %101, poison
-  store i32 %102, ptr %99, align 4
-  %103 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
-  %104 = load i32, ptr %103, align 4
-  %105 = and i32 %104, -1044481
-  %106 = or i32 %105, poison
-  store i32 %106, ptr %103, align 4
-  %107 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %3, i32 0, i32 0
-  %108 = load i32, ptr %107, align 4
-  %109 = and i32 %108, 1048575
-  %110 = or i32 %109, poison
-  store i32 %110, ptr %107, align 4
-  %111 = load %struct.bit_fields_My_struct, ptr %3, align 8
-  store %struct.bit_fields_My_struct %111, ptr %instance_2, align 8
-  %112 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
-  %113 = load i64, ptr %112, align 8
-  ret i64 %113
+  %90 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance_2, i32 0, i32 0
+  %91 = load i32, ptr %90, align 4
+  %92 = and i32 %91, 16777215
+  %93 = or i32 %92, 0
+  store i32 %93, ptr %90, align 4
+  %94 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance_2, i32 0, i32 0
+  %95 = load i32, ptr %94, align 4
+  %96 = and i32 %95, -4096
+  %97 = or i32 %96, poison
+  store i32 %97, ptr %94, align 4
+  %98 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance_2, i32 0, i32 0
+  %99 = load i32, ptr %98, align 4
+  %100 = and i32 %99, -1044481
+  %101 = or i32 %100, poison
+  store i32 %101, ptr %98, align 4
+  %102 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance_2, i32 0, i32 0
+  %103 = load i32, ptr %102, align 4
+  %104 = and i32 %103, 1048575
+  %105 = or i32 %104, poison
+  store i32 %105, ptr %102, align 4
+  %106 = getelementptr inbounds %struct.bit_fields_My_struct, ptr %instance, i32 0, i32 0
+  %107 = load i64, ptr %106, align 8
+  ret i64 %107
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
@@ -1402,9 +1393,8 @@ entry:
   %array = alloca [4 x i32], i64 4, align 4
   %c = alloca [4 x i32], align 4
   %d = alloca i32, align 4
-  %0 = alloca %struct.Constant_array_expressions_My_struct, align 4
-  %array7 = alloca [4 x i32], i64 4, align 4
   %instance = alloca %struct.Constant_array_expressions_My_struct, align 4
+  %array7 = alloca [4 x i32], i64 4, align 4
   %e = alloca i32, align 4
   %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
   store i32 0, ptr %array_element_pointer, align 4
@@ -1414,15 +1404,15 @@ entry:
   store i32 2, ptr %array_element_pointer2, align 4
   %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
   store i32 3, ptr %array_element_pointer3, align 4
-  %1 = load [4 x i32], ptr %array, align 4
-  store [4 x i32] %1, ptr %c, align 4
+  %0 = load [4 x i32], ptr %array, align 4
+  store [4 x i32] %0, ptr %c, align 4
   %array_element_pointer4 = getelementptr [4 x i32], ptr %c, i32 0, i32 0
   store i32 0, ptr %array_element_pointer4, align 4
   %array_element_pointer5 = getelementptr [4 x i32], ptr %c, i32 0, i32 1
   store i32 1, ptr %array_element_pointer5, align 4
   %array_element_pointer6 = getelementptr [4 x i32], ptr %c, i32 0, i32 3
-  %2 = load i32, ptr %array_element_pointer6, align 4
-  store i32 %2, ptr %d, align 4
+  %1 = load i32, ptr %array_element_pointer6, align 4
+  store i32 %1, ptr %d, align 4
   %array_element_pointer8 = getelementptr [4 x i32], ptr %array7, i32 0, i32 0
   store i32 0, ptr %array_element_pointer8, align 4
   %array_element_pointer9 = getelementptr [4 x i32], ptr %array7, i32 0, i32 1
@@ -1431,15 +1421,13 @@ entry:
   store i32 4, ptr %array_element_pointer10, align 4
   %array_element_pointer11 = getelementptr [4 x i32], ptr %array7, i32 0, i32 3
   store i32 6, ptr %array_element_pointer11, align 4
-  %3 = load [4 x i32], ptr %array7, align 4
-  %4 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %0, i32 0, i32 0
-  store [4 x i32] %3, ptr %4, align 4
-  %5 = load %struct.Constant_array_expressions_My_struct, ptr %0, align 4
-  store %struct.Constant_array_expressions_My_struct %5, ptr %instance, align 4
-  %6 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
-  %array_element_pointer12 = getelementptr [4 x i32], ptr %6, i32 0, i32 0
-  %7 = load i32, ptr %array_element_pointer12, align 4
-  store i32 %7, ptr %e, align 4
+  %2 = load [4 x i32], ptr %array7, align 4
+  %3 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
+  store [4 x i32] %2, ptr %3, align 4
+  %4 = getelementptr inbounds %struct.Constant_array_expressions_My_struct, ptr %instance, i32 0, i32 0
+  %array_element_pointer12 = getelementptr [4 x i32], ptr %4, i32 0, i32 0
+  %5 = load i32, ptr %array_element_pointer12, align 4
+  store i32 %5, ptr %e, align 4
   ret void
 }
 
@@ -1483,42 +1471,36 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
 ; Function Attrs: convergent
 define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
-  %0 = alloca %struct.Vector2i, align 4, !dbg !8
-  %a = alloca %struct.Vector2i, align 4, !dbg !9
-  %1 = alloca %struct.Vector2i, align 4, !dbg !9
-  %b = alloca %struct.Vector2i, align 4, !dbg !10
-  %2 = alloca %struct.Vector2i, align 4, !dbg !11
-  %c = alloca %struct.Vector2i, align 4, !dbg !12
-  %3 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !8
-  store i32 1, ptr %3, align 4, !dbg !8
-  %4 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 1, !dbg !8
-  store i32 -1, ptr %4, align 4, !dbg !8
-  %5 = load %struct.Vector2i, ptr %0, align 4, !dbg !13
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !14, metadata !DIExpression()), !dbg !9
-  store %struct.Vector2i %5, ptr %a, align 4, !dbg !9
-  %6 = getelementptr inbounds %struct.Vector2i, ptr %1, i32 0, i32 0, !dbg !9
-  store i32 2, ptr %6, align 4, !dbg !9
-  %7 = getelementptr inbounds %struct.Vector2i, ptr %1, i32 0, i32 1, !dbg !9
-  store i32 -2, ptr %7, align 4, !dbg !9
-  %8 = load %struct.Vector2i, ptr %1, align 4, !dbg !20
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !21, metadata !DIExpression()), !dbg !10
-  store %struct.Vector2i %8, ptr %b, align 4, !dbg !10
-  %9 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !11
-  %10 = load i64, ptr %9, align 4, !dbg !11
-  %11 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !11
-  %12 = load i64, ptr %11, align 4, !dbg !11
-  %13 = call i64 @add(i64 noundef %10, i64 noundef %12), !dbg !11
-  %14 = getelementptr inbounds %struct.Vector2i, ptr %2, i32 0, i32 0, !dbg !11
-  store i64 %13, ptr %14, align 4, !dbg !11
-  %15 = load %struct.Vector2i, ptr %2, align 4, !dbg !11
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !22, metadata !DIExpression()), !dbg !12
-  store %struct.Vector2i %15, ptr %c, align 4, !dbg !12
-  %16 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !12
-  %17 = load i32, ptr %16, align 4, !dbg !23
-  %18 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !23
-  %19 = load i32, ptr %18, align 4, !dbg !24
-  %20 = add i32 %17, %19, !dbg !23
-  ret i32 %20, !dbg !25
+  %a = alloca %struct.Vector2i, align 4, !dbg !8
+  %b = alloca %struct.Vector2i, align 4, !dbg !8
+  %0 = alloca %struct.Vector2i, align 4, !dbg !9
+  %c = alloca %struct.Vector2i, align 4, !dbg !10
+  %1 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !8
+  store i32 1, ptr %1, align 4, !dbg !8
+  %2 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 1, !dbg !8
+  store i32 -1, ptr %2, align 4, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !11, metadata !DIExpression()), !dbg !17
+  %3 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !8
+  store i32 2, ptr %3, align 4, !dbg !8
+  %4 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 1, !dbg !8
+  store i32 -2, ptr %4, align 4, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !18, metadata !DIExpression()), !dbg !19
+  %5 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !9
+  %6 = load i64, ptr %5, align 4, !dbg !9
+  %7 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !9
+  %8 = load i64, ptr %7, align 4, !dbg !9
+  %9 = call i64 @add(i64 noundef %6, i64 noundef %8), !dbg !9
+  %10 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !9
+  store i64 %9, ptr %10, align 4, !dbg !9
+  %11 = load %struct.Vector2i, ptr %0, align 4, !dbg !9
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !DIExpression()), !dbg !10
+  store %struct.Vector2i %11, ptr %c, align 4, !dbg !10
+  %12 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !10
+  %13 = load i32, ptr %12, align 4, !dbg !21
+  %14 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !21
+  %15 = load i32, ptr %14, align 4, !dbg !22
+  %16 = add i32 %13, %15, !dbg !21
+  ret i32 %16, !dbg !23
 }}
 
 ; Function Attrs: convergent
@@ -1542,23 +1524,21 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !6 = !DIBasicType(name: "c_int", size: 32, encoding: DW_ATE_signed)
 !7 = !{{}}
 !8 = !DILocation(line: 6, column: 1, scope: !3)
-!9 = !DILocation(line: 7, column: 5, scope: !3)
-!10 = !DILocation(line: 8, column: 5, scope: !3)
-!11 = !DILocation(line: 9, column: 13, scope: !3)
-!12 = !DILocation(line: 9, column: 5, scope: !3)
-!13 = !DILocation(line: 7, column: 32, scope: !3)
-!14 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !15)
-!15 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !16, line: 2, size: 64, align: 8, elements: !17)
-!16 = !DIFile(filename: "vector2i.h", directory: "{}")
-!17 = !{{!18, !19}}
-!18 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !16, line: 4, baseType: !6, size: 32, align: 32)
-!19 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !16, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
-!20 = !DILocation(line: 8, column: 32, scope: !3)
-!21 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !15)
-!22 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !15)
-!23 = !DILocation(line: 10, column: 12, scope: !3)
-!24 = !DILocation(line: 10, column: 18, scope: !3)
-!25 = !DILocation(line: 10, column: 5, scope: !3)
+!9 = !DILocation(line: 9, column: 13, scope: !3)
+!10 = !DILocation(line: 9, column: 5, scope: !3)
+!11 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !12)
+!12 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !13, line: 2, size: 64, align: 8, elements: !14)
+!13 = !DIFile(filename: "vector2i.h", directory: "{}")
+!14 = !{{!15, !16}}
+!15 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !13, line: 4, baseType: !6, size: 32, align: 32)
+!16 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !13, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
+!17 = !DILocation(line: 7, column: 5, scope: !3)
+!18 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !12)
+!19 = !DILocation(line: 8, column: 5, scope: !3)
+!20 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !12)
+!21 = !DILocation(line: 10, column: 12, scope: !3)
+!22 = !DILocation(line: 10, column: 18, scope: !3)
+!23 = !DILocation(line: 10, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1646,26 +1626,23 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
-  %0 = alloca %struct.Debug_information_My_struct, align 4, !dbg !13
-  %instance = alloca %struct.Debug_information_My_struct, align 4, !dbg !14
-  %1 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 0, !dbg !13
-  store i32 1, ptr %1, align 4, !dbg !13
-  %2 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
-  %3 = load i32, ptr %2, align 4, !dbg !13
-  %4 = and i32 %3, -16777216, !dbg !13
-  %5 = or i32 %4, 1, !dbg !13
-  store i32 %5, ptr %2, align 4, !dbg !13
-  %6 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %0, i32 0, i32 1, !dbg !13
-  %7 = load i32, ptr %6, align 4, !dbg !13
-  %8 = and i32 %7, 16777215, !dbg !13
-  %9 = or i32 %8, 33554432, !dbg !13
-  store i32 %9, ptr %6, align 4, !dbg !13
-  %10 = load %struct.Debug_information_My_struct, ptr %0, align 4, !dbg !15
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !16, metadata !DIExpression()), !dbg !14
-  store %struct.Debug_information_My_struct %10, ptr %instance, align 4, !dbg !14
-  %11 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !17
-  %12 = load i64, ptr %11, align 4, !dbg !17
-  ret i64 %12, !dbg !17
+  %instance = alloca %struct.Debug_information_My_struct, align 4, !dbg !13
+  %0 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !13
+  store i32 1, ptr %0, align 4, !dbg !13
+  %1 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 1, !dbg !13
+  %2 = load i32, ptr %1, align 4, !dbg !13
+  %3 = and i32 %2, -16777216, !dbg !13
+  %4 = or i32 %3, 1, !dbg !13
+  store i32 %4, ptr %1, align 4, !dbg !13
+  %5 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 1, !dbg !13
+  %6 = load i32, ptr %5, align 4, !dbg !13
+  %7 = and i32 %6, 16777215, !dbg !13
+  %8 = or i32 %7, 33554432, !dbg !13
+  store i32 %8, ptr %5, align 4, !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !15
+  %9 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !16
+  %10 = load i64, ptr %9, align 4, !dbg !16
+  ret i64 %10, !dbg !16
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1691,10 +1668,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !11 = !DIDerivedType(tag: DW_TAG_member, name: "c", file: !2, line: 7, baseType: !9, size: 8, align: 32, offset: 56, flags: DIFlagBitField)
 !12 = !{{}}
 !13 = !DILocation(line: 11, column: 1, scope: !3)
-!14 = !DILocation(line: 12, column: 5, scope: !3)
-!15 = !DILocation(line: 12, column: 31, scope: !3)
-!16 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 12, type: !6)
-!17 = !DILocation(line: 13, column: 5, scope: !3)
+!14 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 12, type: !6)
+!15 = !DILocation(line: 12, column: 5, scope: !3)
+!16 = !DILocation(line: 13, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1925,18 +1901,15 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private i64 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
-  %0 = alloca %struct.Debug_information_Vector2i, align 4, !dbg !12
-  %instance = alloca %struct.Debug_information_Vector2i, align 4, !dbg !13
-  %1 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %0, i32 0, i32 0, !dbg !12
-  store i32 1, ptr %1, align 4, !dbg !12
-  %2 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %0, i32 0, i32 1, !dbg !12
-  store i32 2, ptr %2, align 4, !dbg !12
-  %3 = load %struct.Debug_information_Vector2i, ptr %0, align 4, !dbg !14
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !15, metadata !DIExpression()), !dbg !13
-  store %struct.Debug_information_Vector2i %3, ptr %instance, align 4, !dbg !13
-  %4 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !16
-  %5 = load i64, ptr %4, align 4, !dbg !16
-  ret i64 %5, !dbg !16
+  %instance = alloca %struct.Debug_information_Vector2i, align 4, !dbg !12
+  %0 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !12
+  store i32 1, ptr %0, align 4, !dbg !12
+  %1 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 1, !dbg !12
+  store i32 2, ptr %1, align 4, !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !14
+  %2 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !15
+  %3 = load i64, ptr %2, align 4, !dbg !15
+  ret i64 %3, !dbg !15
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1961,10 +1934,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 32, offset: 32)
 !11 = !{{}}
 !12 = !DILocation(line: 10, column: 1, scope: !3)
-!13 = !DILocation(line: 11, column: 5, scope: !3)
-!14 = !DILocation(line: 11, column: 30, scope: !3)
-!15 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
-!16 = !DILocation(line: 12, column: 5, scope: !3)
+!13 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!14 = !DILocation(line: 11, column: 5, scope: !3)
+!15 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -2048,15 +2020,12 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private i32 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
-  %0 = alloca %union.Debug_information_My_int, align 4, !dbg !13
-  %instance = alloca %union.Debug_information_My_int, align 4, !dbg !14
-  store i32 0, ptr %0, align 4, !dbg !13
-  %1 = load %union.Debug_information_My_int, ptr %0, align 4, !dbg !13
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !15, metadata !DIExpression()), !dbg !14
-  store %union.Debug_information_My_int %1, ptr %instance, align 4, !dbg !14
-  %2 = getelementptr inbounds %union.Debug_information_My_int, ptr %instance, i32 0, i32 0, !dbg !16
-  %3 = load i32, ptr %2, align 4, !dbg !16
-  ret i32 %3, !dbg !16
+  %instance = alloca %union.Debug_information_My_int, align 4, !dbg !13
+  store i32 0, ptr %instance, align 4, !dbg !13
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !15
+  %0 = getelementptr inbounds %union.Debug_information_My_int, ptr %instance, i32 0, i32 0, !dbg !16
+  %1 = load i32, ptr %0, align 4, !dbg !16
+  ret i32 %1, !dbg !16
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2082,8 +2051,8 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !11 = !DIBasicType(name: "Float32", size: 32, encoding: DW_ATE_float)
 !12 = !{{}}
 !13 = !DILocation(line: 11, column: 28, scope: !3)
-!14 = !DILocation(line: 11, column: 5, scope: !3)
-!15 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!14 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
+!15 = !DILocation(line: 11, column: 5, scope: !3)
 !16 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
@@ -2444,19 +2413,16 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define void @Dereference_and_access_run() #0 {
 entry:
-  %0 = alloca %struct.Dereference_and_access_My_struct, align 4
   %instance = alloca %struct.Dereference_and_access_My_struct, align 4
   %pointer = alloca ptr, align 8
   %a = alloca i32, align 4
-  %1 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %0, i32 0, i32 0
-  store i32 0, ptr %1, align 4
-  %2 = load %struct.Dereference_and_access_My_struct, ptr %0, align 4
-  store %struct.Dereference_and_access_My_struct %2, ptr %instance, align 4
+  %0 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
   store ptr %instance, ptr %pointer, align 8
-  %3 = load ptr, ptr %pointer, align 8
-  %4 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %3, i32 0, i32 0
-  %5 = load i32, ptr %4, align 4
-  store i32 %5, ptr %a, align 4
+  %1 = load ptr, ptr %pointer, align 8
+  %2 = getelementptr inbounds %struct.Dereference_and_access_My_struct, ptr %1, i32 0, i32 0
+  %3 = load i32, ptr %2, align 4
+  store i32 %3, ptr %a, align 4
   ret void
 }
 
@@ -2577,27 +2543,24 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 ; Function Attrs: convergent
 define private void @dynamic_array_usage_run() #0 {
 entry:
-  %0 = alloca %struct.dynamic_array_Allocator, align 8
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %1 = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
+  %0 = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
   %instance = alloca %"struct.dynamic_array_Dynamic_array@9566610295894871722", align 8
   %element = alloca i32, align 4
-  %2 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %0, i32 0, i32 0
+  %1 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
+  store ptr null, ptr %1, align 8
+  %2 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
   store ptr null, ptr %2, align 8
-  %3 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %0, i32 0, i32 1
-  store ptr null, ptr %3, align 8
-  %4 = load %struct.dynamic_array_Allocator, ptr %0, align 8
-  store %struct.dynamic_array_Allocator %4, ptr %allocator, align 8
-  %5 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  %4 = load ptr, ptr %3, align 8
+  %5 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
   %6 = load ptr, ptr %5, align 8
-  %7 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
-  %8 = load ptr, ptr %7, align 8
-  call void @"dynamic_array_create@17907512829831209369"(ptr noundef %1, ptr %6, ptr %8)
-  %9 = load %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %1, align 8
-  store %"struct.dynamic_array_Dynamic_array@9566610295894871722" %9, ptr %instance, align 8
+  call void @"dynamic_array_create@17907512829831209369"(ptr noundef %0, ptr %4, ptr %6)
+  %7 = load %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %0, align 8
+  store %"struct.dynamic_array_Dynamic_array@9566610295894871722" %7, ptr %instance, align 8
   call void @"dynamic_array_push_back@17441349256315945061"(ptr noundef %instance, i32 noundef 1)
-  %10 = call i32 @"dynamic_array_get@16525916682172407869"(ptr noundef %instance, i64 noundef 0)
-  store i32 %10, ptr %element, align 4
+  %8 = call i32 @"dynamic_array_get@16525916682172407869"(ptr noundef %instance, i64 noundef 0)
+  store i32 %8, ptr %element, align 4
   ret void
 }
 
@@ -2943,21 +2906,18 @@ define void @Function_pointers_run() #0 {
 entry:
   %a = alloca ptr, align 8
   %r0 = alloca i32, align 4
-  %0 = alloca %struct.Function_pointers_My_struct, align 8
   %b = alloca %struct.Function_pointers_My_struct, align 8
   %r1 = alloca i32, align 4
   store ptr @Function_pointers_add, ptr %a, align 8
-  %1 = call i32 %a(i32 noundef 1, i32 noundef 2)
-  store i32 %1, ptr %r0, align 4
-  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %0, i32 0, i32 0
-  store ptr @Function_pointers_add, ptr %2, align 8
-  %3 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %0, i32 0, i32 1
-  store ptr null, ptr %3, align 8
-  %4 = load %struct.Function_pointers_My_struct, ptr %0, align 8
-  store %struct.Function_pointers_My_struct %4, ptr %b, align 8
-  %5 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
-  %6 = call i32 %5(i32 noundef 3, i32 noundef 4)
-  store i32 %6, ptr %r1, align 4
+  %0 = call i32 %a(i32 noundef 1, i32 noundef 2)
+  store i32 %0, ptr %r0, align 4
+  %1 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  store ptr @Function_pointers_add, ptr %1, align 8
+  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  %4 = call i32 %3(i32 noundef 3, i32 noundef 4)
+  store i32 %4, ptr %r1, align 4
   ret void
 }
 
@@ -3174,12 +3134,9 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @Instantiate_struct_with_enum_from_module_run() #0 {
 entry:
-  %0 = alloca %struct.Instantiate_struct_with_enum_My_struct, align 4
   %instance = alloca %struct.Instantiate_struct_with_enum_My_struct, align 4
-  %1 = getelementptr inbounds %struct.Instantiate_struct_with_enum_My_struct, ptr %0, i32 0, i32 0
-  store i32 0, ptr %1, align 4
-  %2 = load %struct.Instantiate_struct_with_enum_My_struct, ptr %0, align 4
-  store %struct.Instantiate_struct_with_enum_My_struct %2, ptr %instance, align 4
+  %0 = getelementptr inbounds %struct.Instantiate_struct_with_enum_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
   ret void
 }
 
@@ -3203,10 +3160,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @Instantiate_uninitialized_run() #0 {
 entry:
-  %0 = alloca %struct.Instantiate_uninitialized_My_struct, align 4
   %instance = alloca %struct.Instantiate_uninitialized_My_struct, align 4
-  %1 = load %struct.Instantiate_uninitialized_My_struct, ptr %0, align 4
-  store %struct.Instantiate_uninitialized_My_struct %1, ptr %instance, align 4
   ret void
 }
 
@@ -3230,11 +3184,8 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @Instantiate_zero_initialized_run() #0 {
 entry:
-  %0 = alloca %struct.Instantiate_zero_initialized_My_struct, align 4
   %instance = alloca %struct.Instantiate_zero_initialized_My_struct, align 4
-  call void @llvm.memset.p0.i64(ptr align 4 %0, i8 0, i64 8, i1 false)
-  %1 = load %struct.Instantiate_zero_initialized_My_struct, ptr %0, align 4
-  store %struct.Instantiate_zero_initialized_My_struct %1, ptr %instance, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %instance, i8 0, i64 8, i1 false)
   ret void
 }
 
@@ -3587,29 +3538,26 @@ entry:
   %v0_null = alloca ptr, align 8
   %v1 = alloca i32, align 4
   %v2 = alloca ptr, align 8
-  %0 = alloca %struct.Passing_pointers_to_functions_My_struct, align 8
   %instance = alloca %struct.Passing_pointers_to_functions_My_struct, align 8
   call void @Passing_pointers_to_functions_take(ptr noundef null)
   store ptr null, ptr %v0_null, align 8
-  %1 = load ptr, ptr %v0_null, align 8
-  call void @Passing_pointers_to_functions_take(ptr noundef %1)
+  %0 = load ptr, ptr %v0_null, align 8
+  call void @Passing_pointers_to_functions_take(ptr noundef %0)
   store i32 1, ptr %v1, align 4
   call void @Passing_pointers_to_functions_take(ptr noundef %v1)
   store ptr null, ptr %v2, align 8
   call void @Passing_pointers_to_functions_take_2(ptr noundef %v2)
-  %2 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %0, i32 0, i32 0
-  store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %0, i32 0, i32 1
-  store ptr null, ptr %3, align 8
-  %4 = load %struct.Passing_pointers_to_functions_My_struct, ptr %0, align 8
-  store %struct.Passing_pointers_to_functions_My_struct %4, ptr %instance, align 8
-  %5 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 0
+  %1 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
+  store ptr null, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 0
+  call void @Passing_pointers_to_functions_take(ptr noundef %3)
+  %4 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
+  %5 = load ptr, ptr %4, align 8
   call void @Passing_pointers_to_functions_take(ptr noundef %5)
   %6 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
-  %7 = load ptr, ptr %6, align 8
-  call void @Passing_pointers_to_functions_take(ptr noundef %7)
-  %8 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
-  call void @Passing_pointers_to_functions_take_2(ptr noundef %8)
+  call void @Passing_pointers_to_functions_take_2(ptr noundef %6)
   ret void
 }
 
@@ -4470,138 +4418,120 @@ define void @Structs_use_structs(i64 noundef %"arguments[0].my_struct") #0 {
 entry:
   %0 = alloca %struct.Structs_My_struct, align 4
   %a = alloca i32, align 4
-  %1 = alloca %struct.Structs_My_struct, align 4
   %instance_0 = alloca %struct.Structs_My_struct, align 4
-  %2 = alloca %struct.Structs_My_struct, align 4
   %instance_1 = alloca %struct.Structs_My_struct, align 4
-  %3 = alloca %struct.Structs_My_struct_2, align 4
+  %instance_2 = alloca %struct.Structs_My_struct_2, align 4
+  %1 = alloca %struct.Structs_My_struct, align 4
+  %2 = alloca %struct.Structs_My_struct, align 4
+  %3 = alloca %struct.Structs_My_struct, align 4
+  %instance_3 = alloca %struct.Structs_My_struct_2, align 4
   %4 = alloca %struct.Structs_My_struct, align 4
   %5 = alloca %struct.Structs_My_struct, align 4
   %6 = alloca %struct.Structs_My_struct, align 4
-  %instance_2 = alloca %struct.Structs_My_struct_2, align 4
-  %7 = alloca %struct.Structs_My_struct_2, align 4
+  %nested_b_a = alloca i32, align 4
+  %instance_4 = alloca %struct.Structs_My_struct, align 4
+  %7 = alloca %struct.Structs_My_struct, align 4
   %8 = alloca %struct.Structs_My_struct, align 4
   %9 = alloca %struct.Structs_My_struct, align 4
-  %10 = alloca %struct.Structs_My_struct, align 4
-  %instance_3 = alloca %struct.Structs_My_struct_2, align 4
-  %nested_b_a = alloca i32, align 4
-  %11 = alloca %struct.Structs_My_struct, align 4
-  %instance_4 = alloca %struct.Structs_My_struct, align 4
-  %12 = alloca %struct.Structs_My_struct, align 4
-  %13 = alloca %struct.Structs_My_struct, align 4
-  %14 = alloca %struct.Structs_My_struct, align 4
   %instance_5 = alloca %struct.Structs_My_struct, align 4
-  %15 = alloca %struct.Structs_My_struct_3, align 4
-  %16 = alloca %struct.Structs_My_struct, align 4
-  %17 = alloca %union.Structs_My_Union, align 4
   %instance_6 = alloca %struct.Structs_My_struct_3, align 4
-  %18 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
-  store i64 %"arguments[0].my_struct", ptr %18, align 4
-  %19 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
-  %20 = load i32, ptr %19, align 4
-  store i32 %20, ptr %a, align 4
-  %21 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 0
-  store i32 1, ptr %21, align 4
-  %22 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 1
-  store i32 2, ptr %22, align 4
-  %23 = load %struct.Structs_My_struct, ptr %1, align 4
-  store %struct.Structs_My_struct %23, ptr %instance_0, align 4
-  %24 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 0
-  store i32 1, ptr %24, align 4
-  %25 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 1
-  store i32 3, ptr %25, align 4
-  %26 = load %struct.Structs_My_struct, ptr %2, align 4
-  store %struct.Structs_My_struct %26, ptr %instance_1, align 4
-  %27 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 0
-  store i32 1, ptr %27, align 4
-  %28 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 1
-  store i32 2, ptr %28, align 4
-  %29 = load %struct.Structs_My_struct, ptr %4, align 4
-  %30 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 0
+  %10 = alloca %struct.Structs_My_struct, align 4
+  %11 = alloca %union.Structs_My_Union, align 4
+  %12 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
+  store i64 %"arguments[0].my_struct", ptr %12, align 4
+  %13 = getelementptr inbounds %struct.Structs_My_struct, ptr %0, i32 0, i32 0
+  %14 = load i32, ptr %13, align 4
+  store i32 %14, ptr %a, align 4
+  %15 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_0, i32 0, i32 0
+  store i32 1, ptr %15, align 4
+  %16 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_0, i32 0, i32 1
+  store i32 2, ptr %16, align 4
+  %17 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_1, i32 0, i32 0
+  store i32 1, ptr %17, align 4
+  %18 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_1, i32 0, i32 1
+  store i32 3, ptr %18, align 4
+  %19 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 0
+  store i32 1, ptr %19, align 4
+  %20 = getelementptr inbounds %struct.Structs_My_struct, ptr %1, i32 0, i32 1
+  store i32 2, ptr %20, align 4
+  %21 = load %struct.Structs_My_struct, ptr %1, align 4
+  %22 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_2, i32 0, i32 0
+  store %struct.Structs_My_struct %21, ptr %22, align 4
+  %23 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 0
+  store i32 2, ptr %23, align 4
+  %24 = getelementptr inbounds %struct.Structs_My_struct, ptr %2, i32 0, i32 1
+  store i32 2, ptr %24, align 4
+  %25 = load %struct.Structs_My_struct, ptr %2, align 4
+  %26 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_2, i32 0, i32 1
+  store %struct.Structs_My_struct %25, ptr %26, align 4
+  %27 = getelementptr inbounds %struct.Structs_My_struct, ptr %3, i32 0, i32 0
+  store i32 3, ptr %27, align 4
+  %28 = getelementptr inbounds %struct.Structs_My_struct, ptr %3, i32 0, i32 1
+  store i32 4, ptr %28, align 4
+  %29 = load %struct.Structs_My_struct, ptr %3, align 4
+  %30 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_2, i32 0, i32 2
   store %struct.Structs_My_struct %29, ptr %30, align 4
-  %31 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 0
-  store i32 2, ptr %31, align 4
-  %32 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 1
+  %31 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 0
+  store i32 1, ptr %31, align 4
+  %32 = getelementptr inbounds %struct.Structs_My_struct, ptr %4, i32 0, i32 1
   store i32 2, ptr %32, align 4
-  %33 = load %struct.Structs_My_struct, ptr %5, align 4
-  %34 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 1
+  %33 = load %struct.Structs_My_struct, ptr %4, align 4
+  %34 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 0
   store %struct.Structs_My_struct %33, ptr %34, align 4
-  %35 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 0
-  store i32 3, ptr %35, align 4
-  %36 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 1
-  store i32 4, ptr %36, align 4
-  %37 = load %struct.Structs_My_struct, ptr %6, align 4
-  %38 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %3, i32 0, i32 2
+  %35 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 0
+  store i32 1, ptr %35, align 4
+  %36 = getelementptr inbounds %struct.Structs_My_struct, ptr %5, i32 0, i32 1
+  store i32 2, ptr %36, align 4
+  %37 = load %struct.Structs_My_struct, ptr %5, align 4
+  %38 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
   store %struct.Structs_My_struct %37, ptr %38, align 4
-  %39 = load %struct.Structs_My_struct_2, ptr %3, align 4
-  store %struct.Structs_My_struct_2 %39, ptr %instance_2, align 4
-  %40 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 0
+  %39 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 0
+  store i32 0, ptr %39, align 4
+  %40 = getelementptr inbounds %struct.Structs_My_struct, ptr %6, i32 0, i32 1
   store i32 1, ptr %40, align 4
-  %41 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 1
-  store i32 2, ptr %41, align 4
-  %42 = load %struct.Structs_My_struct, ptr %8, align 4
-  %43 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 0
-  store %struct.Structs_My_struct %42, ptr %43, align 4
-  %44 = getelementptr inbounds %struct.Structs_My_struct, ptr %9, i32 0, i32 0
-  store i32 1, ptr %44, align 4
-  %45 = getelementptr inbounds %struct.Structs_My_struct, ptr %9, i32 0, i32 1
-  store i32 2, ptr %45, align 4
-  %46 = load %struct.Structs_My_struct, ptr %9, align 4
-  %47 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 1
-  store %struct.Structs_My_struct %46, ptr %47, align 4
-  %48 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 0
-  store i32 0, ptr %48, align 4
-  %49 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 1
-  store i32 1, ptr %49, align 4
-  %50 = load %struct.Structs_My_struct, ptr %10, align 4
-  %51 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %7, i32 0, i32 2
-  store %struct.Structs_My_struct %50, ptr %51, align 4
-  %52 = load %struct.Structs_My_struct_2, ptr %7, align 4
-  store %struct.Structs_My_struct_2 %52, ptr %instance_3, align 4
-  %53 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
-  %54 = getelementptr inbounds %struct.Structs_My_struct, ptr %53, i32 0, i32 0
-  %55 = load i32, ptr %54, align 4
-  store i32 %55, ptr %nested_b_a, align 4
-  %56 = getelementptr inbounds %struct.Structs_My_struct, ptr %11, i32 0, i32 0
-  store i32 1, ptr %56, align 4
-  %57 = getelementptr inbounds %struct.Structs_My_struct, ptr %11, i32 0, i32 1
-  store i32 2, ptr %57, align 4
-  %58 = load %struct.Structs_My_struct, ptr %11, align 4
-  store %struct.Structs_My_struct %58, ptr %instance_4, align 4
-  %59 = getelementptr inbounds %struct.Structs_My_struct, ptr %12, i32 0, i32 0
-  store i32 10, ptr %59, align 4
-  %60 = getelementptr inbounds %struct.Structs_My_struct, ptr %12, i32 0, i32 1
-  store i32 11, ptr %60, align 4
-  %61 = load %struct.Structs_My_struct, ptr %12, align 4
-  store %struct.Structs_My_struct %61, ptr %instance_4, align 4
-  %62 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
-  %63 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
-  store i32 0, ptr %63, align 4
-  %64 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 0
-  store i32 1, ptr %64, align 4
-  %65 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 1
-  store i32 2, ptr %65, align 4
-  %66 = getelementptr inbounds %struct.Structs_My_struct, ptr %13, i32 0, i32 0
-  %67 = load i64, ptr %66, align 4
-  call void @Structs_pass_struct(i64 noundef %67)
-  %68 = call i64 @Structs_return_struct()
-  %69 = getelementptr inbounds %struct.Structs_My_struct, ptr %14, i32 0, i32 0
-  store i64 %68, ptr %69, align 4
-  %70 = load %struct.Structs_My_struct, ptr %14, align 4
-  store %struct.Structs_My_struct %70, ptr %instance_5, align 4
-  %71 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %15, i32 0, i32 0
-  store i32 4, ptr %71, align 4
-  %72 = getelementptr inbounds %struct.Structs_My_struct, ptr %16, i32 0, i32 0
-  store i32 1, ptr %72, align 4
-  %73 = getelementptr inbounds %struct.Structs_My_struct, ptr %16, i32 0, i32 1
-  store i32 2, ptr %73, align 4
-  %74 = load %struct.Structs_My_struct, ptr %16, align 4
-  store %struct.Structs_My_struct %74, ptr %17, align 4
-  %75 = load %union.Structs_My_Union, ptr %17, align 4
-  %76 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %15, i32 0, i32 1
-  store %union.Structs_My_Union %75, ptr %76, align 4
-  %77 = load %struct.Structs_My_struct_3, ptr %15, align 4
-  store %struct.Structs_My_struct_3 %77, ptr %instance_6, align 4
+  %41 = load %struct.Structs_My_struct, ptr %6, align 4
+  %42 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 2
+  store %struct.Structs_My_struct %41, ptr %42, align 4
+  %43 = getelementptr inbounds %struct.Structs_My_struct_2, ptr %instance_3, i32 0, i32 1
+  %44 = getelementptr inbounds %struct.Structs_My_struct, ptr %43, i32 0, i32 0
+  %45 = load i32, ptr %44, align 4
+  store i32 %45, ptr %nested_b_a, align 4
+  %46 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
+  store i32 1, ptr %46, align 4
+  %47 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 1
+  store i32 2, ptr %47, align 4
+  %48 = getelementptr inbounds %struct.Structs_My_struct, ptr %7, i32 0, i32 0
+  store i32 10, ptr %48, align 4
+  %49 = getelementptr inbounds %struct.Structs_My_struct, ptr %7, i32 0, i32 1
+  store i32 11, ptr %49, align 4
+  %50 = load %struct.Structs_My_struct, ptr %7, align 4
+  store %struct.Structs_My_struct %50, ptr %instance_4, align 4
+  %51 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
+  %52 = getelementptr inbounds %struct.Structs_My_struct, ptr %instance_4, i32 0, i32 0
+  store i32 0, ptr %52, align 4
+  %53 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 0
+  store i32 1, ptr %53, align 4
+  %54 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 1
+  store i32 2, ptr %54, align 4
+  %55 = getelementptr inbounds %struct.Structs_My_struct, ptr %8, i32 0, i32 0
+  %56 = load i64, ptr %55, align 4
+  call void @Structs_pass_struct(i64 noundef %56)
+  %57 = call i64 @Structs_return_struct()
+  %58 = getelementptr inbounds %struct.Structs_My_struct, ptr %9, i32 0, i32 0
+  store i64 %57, ptr %58, align 4
+  %59 = load %struct.Structs_My_struct, ptr %9, align 4
+  store %struct.Structs_My_struct %59, ptr %instance_5, align 4
+  %60 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %instance_6, i32 0, i32 0
+  store i32 4, ptr %60, align 4
+  %61 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 0
+  store i32 1, ptr %61, align 4
+  %62 = getelementptr inbounds %struct.Structs_My_struct, ptr %10, i32 0, i32 1
+  store i32 2, ptr %62, align 4
+  %63 = load %struct.Structs_My_struct, ptr %10, align 4
+  store %struct.Structs_My_struct %63, ptr %11, align 4
+  %64 = load %union.Structs_My_Union, ptr %11, align 4
+  %65 = getelementptr inbounds %struct.Structs_My_struct_3, ptr %instance_6, i32 0, i32 1
+  store %union.Structs_My_Union %64, ptr %65, align 4
   ret void
 }
 
@@ -4652,38 +4582,29 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 define private void @Type_constructor_run(ptr %"arguments[0].instance_0_0", i64 %"arguments[0].instance_0_1") #0 {
 entry:
   %instance_0 = alloca %"struct.Type_constructor_Dynamic_array@2616204444652410143", align 8
-  %0 = alloca %"struct.Type_constructor_Dynamic_array@9084055025385753601", align 8
   %instance_1 = alloca %"struct.Type_constructor_Dynamic_array@9084055025385753601", align 8
-  %1 = alloca %struct.Type_constructor_My_struct, align 8
-  %2 = alloca %"struct.Type_constructor_Dynamic_array@5206327013959772419", align 8
   %instance_2 = alloca %struct.Type_constructor_My_struct, align 8
-  %3 = alloca %"struct.Type_constructor_Dynamic_array@2428226642254427654", align 8
+  %0 = alloca %"struct.Type_constructor_Dynamic_array@5206327013959772419", align 8
   %instance_3 = alloca %"struct.Type_constructor_Dynamic_array@2428226642254427654", align 8
-  %4 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
-  store ptr %"arguments[0].instance_0_0", ptr %4, align 8
-  %5 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
-  store i64 %"arguments[0].instance_0_1", ptr %5, align 8
-  %6 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, i32 0, i32 0
-  store ptr null, ptr %6, align 8
-  %7 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, i32 0, i32 1
-  store i64 0, ptr %7, align 8
-  %8 = load %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %0, align 8
-  store %"struct.Type_constructor_Dynamic_array@9084055025385753601" %8, ptr %instance_1, align 8
-  %9 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, i32 0, i32 0
+  %1 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 0
+  store ptr %"arguments[0].instance_0_0", ptr %1, align 8
+  %2 = getelementptr inbounds { ptr, i64 }, ptr %instance_0, i32 0, i32 1
+  store i64 %"arguments[0].instance_0_1", ptr %2, align 8
+  %3 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %instance_1, i32 0, i32 0
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@9084055025385753601", ptr %instance_1, i32 0, i32 1
+  store i64 0, ptr %4, align 8
+  %5 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %0, i32 0, i32 0
+  store ptr null, ptr %5, align 8
+  %6 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %0, i32 0, i32 1
+  store i64 0, ptr %6, align 8
+  %7 = load %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %0, align 8
+  %8 = getelementptr inbounds %struct.Type_constructor_My_struct, ptr %instance_2, i32 0, i32 0
+  store %"struct.Type_constructor_Dynamic_array@5206327013959772419" %7, ptr %8, align 8
+  %9 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %instance_3, i32 0, i32 0
   store ptr null, ptr %9, align 8
-  %10 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, i32 0, i32 1
+  %10 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %instance_3, i32 0, i32 1
   store i64 0, ptr %10, align 8
-  %11 = load %"struct.Type_constructor_Dynamic_array@5206327013959772419", ptr %2, align 8
-  %12 = getelementptr inbounds %struct.Type_constructor_My_struct, ptr %1, i32 0, i32 0
-  store %"struct.Type_constructor_Dynamic_array@5206327013959772419" %11, ptr %12, align 8
-  %13 = load %struct.Type_constructor_My_struct, ptr %1, align 8
-  store %struct.Type_constructor_My_struct %13, ptr %instance_2, align 8
-  %14 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, i32 0, i32 0
-  store ptr null, ptr %14, align 8
-  %15 = getelementptr inbounds %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, i32 0, i32 1
-  store i64 0, ptr %15, align 8
-  %16 = load %"struct.Type_constructor_Dynamic_array@2428226642254427654", ptr %3, align 8
-  store %"struct.Type_constructor_Dynamic_array@2428226642254427654" %16, ptr %instance_3, align 8
   ret void
 }
 
@@ -4714,105 +4635,78 @@ entry:
   %my_union_tag = alloca i32, align 4
   %a = alloca i32, align 4
   %b = alloca float, align 4
-  %1 = alloca %union.Unions_My_union, align 4
   %instance_0 = alloca %union.Unions_My_union, align 4
-  %2 = alloca %union.Unions_My_union, align 4
   %instance_1 = alloca %union.Unions_My_union, align 4
-  %3 = alloca %union.Unions_My_union_2, align 8
   %instance_2 = alloca %union.Unions_My_union_2, align 8
-  %4 = alloca %union.Unions_My_union_2, align 8
   %instance_3 = alloca %union.Unions_My_union_2, align 8
-  %5 = alloca %union.Unions_My_union_3, align 8
   %instance_4 = alloca %union.Unions_My_union_3, align 8
-  %6 = alloca %struct.Unions_My_struct, align 4
-  %7 = alloca %union.Unions_My_union_3, align 8
+  %1 = alloca %struct.Unions_My_struct, align 4
   %instance_5 = alloca %union.Unions_My_union_3, align 8
-  %8 = alloca %struct.Unions_My_struct, align 4
-  %9 = alloca %union.Unions_My_union_3, align 8
+  %2 = alloca %struct.Unions_My_struct, align 4
   %instance_6 = alloca %union.Unions_My_union_3, align 8
   %nested_b_a = alloca i32, align 4
-  %10 = alloca %union.Unions_My_union, align 4
   %instance_7 = alloca %union.Unions_My_union, align 4
-  %11 = alloca %union.Unions_My_union, align 4
-  %12 = alloca %union.Unions_My_union, align 4
-  %13 = alloca %union.Unions_My_union, align 4
+  %3 = alloca %union.Unions_My_union, align 4
+  %4 = alloca %union.Unions_My_union, align 4
+  %5 = alloca %union.Unions_My_union, align 4
   %instance_8 = alloca %union.Unions_My_union, align 4
-  %14 = alloca %union.Unions_My_union, align 4
   %instance_9 = alloca %union.Unions_My_union, align 4
-  %15 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  store i32 %"arguments[0].my_union", ptr %15, align 4
+  %6 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  store i32 %"arguments[0].my_union", ptr %6, align 4
   store i32 %"arguments[1].my_union_tag", ptr %my_union_tag, align 4
-  %16 = load i32, ptr %my_union_tag, align 4
-  %17 = icmp eq i32 %16, 0
-  br i1 %17, label %if_s0_then, label %if_s1_else
+  %7 = load i32, ptr %my_union_tag, align 4
+  %8 = icmp eq i32 %7, 0
+  br i1 %8, label %if_s0_then, label %if_s1_else
 
 if_s0_then:                                       ; preds = %entry
-  %18 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  %19 = load i32, ptr %18, align 4
-  store i32 %19, ptr %a, align 4
+  %9 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  %10 = load i32, ptr %9, align 4
+  store i32 %10, ptr %a, align 4
   br label %if_s3_after
 
 if_s1_else:                                       ; preds = %entry
-  %20 = load i32, ptr %my_union_tag, align 4
-  %21 = icmp eq i32 %20, 1
-  br i1 %21, label %if_s2_then, label %if_s3_after
+  %11 = load i32, ptr %my_union_tag, align 4
+  %12 = icmp eq i32 %11, 1
+  br i1 %12, label %if_s2_then, label %if_s3_after
 
 if_s2_then:                                       ; preds = %if_s1_else
-  %22 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
-  %23 = load float, ptr %22, align 4
-  store float %23, ptr %b, align 4
+  %13 = getelementptr inbounds %union.Unions_My_union, ptr %0, i32 0, i32 0
+  %14 = load float, ptr %13, align 4
+  store float %14, ptr %b, align 4
   br label %if_s3_after
 
 if_s3_after:                                      ; preds = %if_s2_then, %if_s1_else, %if_s0_then
-  store i32 2, ptr %1, align 4
-  %24 = load %union.Unions_My_union, ptr %1, align 4
-  store %union.Unions_My_union %24, ptr %instance_0, align 4
-  store float 3.000000e+00, ptr %2, align 4
-  %25 = load %union.Unions_My_union, ptr %2, align 4
-  store %union.Unions_My_union %25, ptr %instance_1, align 4
+  store i32 2, ptr %instance_0, align 4
+  store float 3.000000e+00, ptr %instance_1, align 4
+  store i32 2, ptr %instance_2, align 4
+  store i64 3, ptr %instance_3, align 8
+  store i64 3, ptr %instance_4, align 8
+  %15 = getelementptr inbounds %struct.Unions_My_struct, ptr %1, i32 0, i32 0
+  store i32 1, ptr %15, align 4
+  %16 = load %struct.Unions_My_struct, ptr %1, align 4
+  store %struct.Unions_My_struct %16, ptr %instance_5, align 4
+  %17 = getelementptr inbounds %struct.Unions_My_struct, ptr %2, i32 0, i32 0
+  store i32 2, ptr %17, align 4
+  %18 = load %struct.Unions_My_struct, ptr %2, align 4
+  store %struct.Unions_My_struct %18, ptr %instance_6, align 4
+  %19 = getelementptr inbounds %union.Unions_My_union_3, ptr %instance_6, i32 0, i32 0
+  %20 = getelementptr inbounds %struct.Unions_My_struct, ptr %19, i32 0, i32 0
+  %21 = load i32, ptr %20, align 4
+  store i32 %21, ptr %nested_b_a, align 4
+  store i32 1, ptr %instance_7, align 4
   store i32 2, ptr %3, align 4
-  %26 = load %union.Unions_My_union_2, ptr %3, align 8
-  store %union.Unions_My_union_2 %26, ptr %instance_2, align 8
-  store i64 3, ptr %4, align 8
-  %27 = load %union.Unions_My_union_2, ptr %4, align 8
-  store %union.Unions_My_union_2 %27, ptr %instance_3, align 8
-  store i64 3, ptr %5, align 8
-  %28 = load %union.Unions_My_union_3, ptr %5, align 8
-  store %union.Unions_My_union_3 %28, ptr %instance_4, align 8
-  %29 = getelementptr inbounds %struct.Unions_My_struct, ptr %6, i32 0, i32 0
-  store i32 1, ptr %29, align 4
-  %30 = load %struct.Unions_My_struct, ptr %6, align 4
-  store %struct.Unions_My_struct %30, ptr %7, align 4
-  %31 = load %union.Unions_My_union_3, ptr %7, align 8
-  store %union.Unions_My_union_3 %31, ptr %instance_5, align 8
-  %32 = getelementptr inbounds %struct.Unions_My_struct, ptr %8, i32 0, i32 0
-  store i32 2, ptr %32, align 4
-  %33 = load %struct.Unions_My_struct, ptr %8, align 4
-  store %struct.Unions_My_struct %33, ptr %9, align 4
-  %34 = load %union.Unions_My_union_3, ptr %9, align 8
-  store %union.Unions_My_union_3 %34, ptr %instance_6, align 8
-  %35 = getelementptr inbounds %union.Unions_My_union_3, ptr %instance_6, i32 0, i32 0
-  %36 = getelementptr inbounds %struct.Unions_My_struct, ptr %35, i32 0, i32 0
-  %37 = load i32, ptr %36, align 4
-  store i32 %37, ptr %nested_b_a, align 4
-  store i32 1, ptr %10, align 4
-  %38 = load %union.Unions_My_union, ptr %10, align 4
-  store %union.Unions_My_union %38, ptr %instance_7, align 4
-  store i32 2, ptr %11, align 4
-  %39 = load %union.Unions_My_union, ptr %11, align 4
-  store %union.Unions_My_union %39, ptr %instance_7, align 4
-  store i32 4, ptr %12, align 4
-  %40 = getelementptr inbounds %union.Unions_My_union, ptr %12, i32 0, i32 0
-  %41 = load i32, ptr %40, align 4
-  call void @Unions_pass_union(i32 noundef %41)
-  %42 = call i32 @Unions_return_union()
-  %43 = getelementptr inbounds %union.Unions_My_union, ptr %13, i32 0, i32 0
-  store i32 %42, ptr %43, align 4
-  %44 = load %union.Unions_My_union, ptr %13, align 4
-  store %union.Unions_My_union %44, ptr %instance_8, align 4
-  call void @llvm.memset.p0.i64(ptr align 4 %14, i8 0, i64 4, i1 false)
-  %45 = load %union.Unions_My_union, ptr %14, align 4
-  store %union.Unions_My_union %45, ptr %instance_9, align 4
+  %22 = load %union.Unions_My_union, ptr %3, align 4
+  store %union.Unions_My_union %22, ptr %instance_7, align 4
+  store i32 4, ptr %4, align 4
+  %23 = getelementptr inbounds %union.Unions_My_union, ptr %4, i32 0, i32 0
+  %24 = load i32, ptr %23, align 4
+  call void @Unions_pass_union(i32 noundef %24)
+  %25 = call i32 @Unions_return_union()
+  %26 = getelementptr inbounds %union.Unions_My_union, ptr %5, i32 0, i32 0
+  store i32 %25, ptr %26, align 4
+  %27 = load %union.Unions_My_union, ptr %5, align 4
+  store %union.Unions_My_union %27, ptr %instance_8, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %instance_9, i8 0, i64 4, i1 false)
   ret void
 }
 
@@ -5213,23 +5107,20 @@ void foo(My_struct argument);
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.My_struct, align 4
   %instance = alloca %struct.My_struct, align 4
-  %1 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %1, align 4
-  %2 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 2
+  %3 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %4, align 4
-  %5 = load %struct.My_struct, ptr %0, align 4
-  store %struct.My_struct %5, ptr %instance, align 4
-  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %4 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %5 = load i64, ptr %4, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
   %7 = load i64, ptr %6, align 4
-  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %9 = load i64, ptr %8, align 4
-  call void @foo(i64 %7, i64 %9)
+  call void @foo(i64 %5, i64 %7)
   ret void
 }
 
@@ -5250,21 +5141,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.My_struct, align 4
   %instance = alloca %struct.My_struct, align 4
-  %1 = alloca %struct.My_struct, align 4
-  %2 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 0
+  %0 = alloca %struct.My_struct, align 4
+  %1 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %5, align 4
-  %6 = load %struct.My_struct, ptr %0, align 4
-  store %struct.My_struct %6, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
-  call void @foo(ptr noundef %1)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
+  call void @foo(ptr noundef %0)
   ret void
 }
 
@@ -5331,24 +5219,21 @@ entry:
 ; Function Attrs: convergent
 define private i32 @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %1, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %4, align 4
-  %5 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %5, ptr %instance, align 4
-  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %4 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %5 = load i64, ptr %4, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
   %7 = load i64, ptr %6, align 4
-  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %9 = load i64, ptr %8, align 4
-  %10 = call i32 @c_interoperability_add_all(i64 %7, i64 %9)
-  ret i32 %10
+  %8 = call i32 @c_interoperability_add_all(i64 %5, i64 %7)
+  ret i32 %8
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
@@ -5384,22 +5269,19 @@ entry:
 ; Function Attrs: convergent
 define private i32 @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %5, align 4
-  %6 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %6, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
-  %7 = call i32 @c_interoperability_add_all(ptr noundef %1)
-  ret i32 %7
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
+  %5 = call i32 @c_interoperability_add_all(ptr noundef %0)
+  ret i32 %5
 }
 
 ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -5856,23 +5738,20 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 4
   store i32 0, ptr %5, align 4
-  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
-  store i32 0, ptr %6, align 4
-  %7 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %7, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
-  call void @c_interoperability_foo(ptr noundef %1)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %0)
   ret void
 }
 
@@ -5902,23 +5781,20 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 4
   store i32 0, ptr %5, align 4
-  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
-  store i32 0, ptr %6, align 4
-  %7 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %7, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
-  call void @c_interoperability_foo(ptr noundef %1)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr noundef %0)
   ret void
 }
 
@@ -5946,10 +5822,7 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 1
   %instance = alloca %struct.c_interoperability_My_struct, align 1
-  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 1
-  store %struct.c_interoperability_My_struct %1, ptr %instance, align 1
   call void @c_interoperability_foo()
   ret void
 }
@@ -5977,13 +5850,10 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 1
   %instance = alloca %struct.c_interoperability_My_struct, align 1
-  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 1
-  store %struct.c_interoperability_My_struct %1, ptr %instance, align 1
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
-  %3 = load i32, ptr %2, align 1
-  call void @c_interoperability_foo(i32 noundef %3)
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %1 = load i32, ptr %0, align 1
+  call void @c_interoperability_foo(i32 noundef %1)
   ret void
 }
 
@@ -6112,23 +5982,20 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %1, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %4, align 4
-  %5 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %5, ptr %instance, align 4
-  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %4 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 0
+  %5 = load i64, ptr %4, align 4
+  %6 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
   %7 = load i64, ptr %6, align 4
-  %8 = getelementptr inbounds { i64, i64 }, ptr %instance, i32 0, i32 1
-  %9 = load i64, ptr %8, align 4
-  call void @c_interoperability_foo(i64 %7, i64 %9)
+  call void @c_interoperability_foo(i64 %5, i64 %7)
   ret void
 }
 
@@ -6154,21 +6021,18 @@ entry:
 ; Function Attrs: convergent
 define private void @c_interoperability_run() #0 {
 entry:
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
-  store i32 0, ptr %5, align 4
-  %6 = load %struct.c_interoperability_My_struct, ptr %0, align 4
-  store %struct.c_interoperability_My_struct %6, ptr %instance, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 16, i1 false)
-  call void @c_interoperability_foo(ptr noundef %1)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 16, i1 false)
+  call void @c_interoperability_foo(ptr noundef %0)
   ret void
 }
 
