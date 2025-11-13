@@ -11,5 +11,14 @@ export function run() -> (result: Int32)
         index += 1;
     }
 
+    while true
+    {
+        index += 1;
+        if index >= 20
+        {
+            break;
+        }
+    }
+
     return value;
 }

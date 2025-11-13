@@ -575,13 +575,13 @@ namespace h::compiler
                 compilation_options
             );
 
+            if (builder.output_llvm_ir)
+                h::compiler::write_llvm_ir_to_file(*llvm_module, output_llvm_ir_file);
+
             if (use_objects)
                 h::compiler::write_object_file(llvm_data, *llvm_module, output_assembly_file);
             else
                 h::compiler::write_bitcode_to_file(llvm_data, *llvm_module, output_assembly_file);
-
-            if (builder.output_llvm_ir)
-                h::compiler::write_llvm_ir_to_file(*llvm_module, output_llvm_ir_file);
         }
 
         end_timer(get_profiler(builder), "compile_and_write_to_bitcode_files");

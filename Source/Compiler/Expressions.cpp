@@ -3913,6 +3913,72 @@ namespace h::compiler
         throw std::runtime_error{ std::format("Undefined variable '{}'", variable_name) };
     }
 
+    bool is_true_constant(h::Statement const& statement)
+    {
+        if (statement.expressions.size() != 1)
+            return false;
+
+        h::Expression const& expression = statement.expressions[0];
+        if (std::holds_alternative<h::Constant_expression>(expression.data))
+        {
+            h::Constant_expression const& constant_expression = std::get<h::Constant_expression>(expression.data);
+            if (is_bool(constant_expression.type))
+            {
+                return constant_expression.data == "true";
+            }
+            else if (is_c_bool(constant_expression.type))
+            {
+                if (constant_expression.data == "false")
+                    return false;
+                return constant_expression.data != "0";
+            }
+        }
+
+        return false;
+    }
+
+    void create_while_loop_then_block(
+        While_loop_expression const& expression,
+        Expression_parameters const& parameters,
+        std::span<Block_info> const all_block_infos,
+        llvm::BasicBlock* const condition_block,
+        llvm::BasicBlock* const then_block,
+        llvm::BasicBlock* const after_block
+    )
+    {
+        llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
+
+        std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
+
+        Expression_parameters then_block_parameters = parameters;
+        then_block_parameters.blocks = all_block_infos;
+        then_block_parameters.defer_expressions_per_block = defer_expressions_per_block;
+
+        llvm_builder.SetInsertPoint(then_block);
+
+        if (parameters.debug_info != nullptr)
+            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
+
+        create_statement_values(
+            expression.then_statements,
+            then_block_parameters,
+            true
+        );
+        if (!ends_with_terminator_statement(expression.then_statements))
+        {
+            h::Expression const& condition_expression = expression.condition.expressions[0];
+            if (parameters.debug_info != nullptr && condition_expression.source_range.has_value())
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, condition_expression.source_range->start.line, condition_expression.source_range->start.column);
+
+            llvm_builder.CreateBr(condition_block);
+        }
+
+        if (parameters.debug_info != nullptr)
+            pop_debug_scope(*parameters.debug_info);
+
+        llvm_builder.SetInsertPoint(after_block);
+    }
+
 
     Value_and_type create_while_loop_expression_value(
         While_loop_expression const& expression,
@@ -3923,6 +3989,44 @@ namespace h::compiler
         llvm::IRBuilder<>& llvm_builder = parameters.llvm_builder;
         llvm::Function* const llvm_parent_function = parameters.llvm_parent_function;
         std::span<Block_info const> block_infos = parameters.blocks;
+
+        if (is_true_constant(expression.condition))
+        {
+            llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "while_loop_then", llvm_parent_function);
+            llvm::BasicBlock* const after_block = llvm::BasicBlock::Create(llvm_context, "while_loop_after", llvm_parent_function);
+
+            std::pmr::vector<Block_info> all_block_infos{ block_infos.begin(), block_infos.end() };
+            all_block_infos.push_back(
+                Block_info
+                {
+                    .block_type = Block_type::While_loop,
+                    .repeat_block = then_block,
+                    .after_block = after_block,
+                }
+            );
+
+            h::Expression const& condition_expression = expression.condition.expressions[0];
+            if (parameters.debug_info != nullptr && condition_expression.source_range.has_value())
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, condition_expression.source_range->start.line, condition_expression.source_range->start.column);
+
+            llvm_builder.CreateBr(then_block);
+
+            create_while_loop_then_block(
+                expression,
+                parameters,
+                all_block_infos,
+                then_block,
+                then_block,
+                after_block
+            );
+
+            return Value_and_type
+            {
+                .name = "",
+                .value = after_block,
+                .type = std::nullopt
+            };
+        }
 
         llvm::BasicBlock* const condition_block = llvm::BasicBlock::Create(llvm_context, "while_loop_condition", llvm_parent_function);
         llvm::BasicBlock* const then_block = llvm::BasicBlock::Create(llvm_context, "while_loop_then", llvm_parent_function);
@@ -3947,29 +4051,14 @@ namespace h::compiler
         llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
         llvm_builder.CreateCondBr(condition_converted_value, then_block, after_block);
 
-        std::pmr::vector<std::pmr::vector<Statement>> defer_expressions_per_block = create_defer_block(parameters.defer_expressions_per_block);
-
-        Expression_parameters then_block_parameters = parameters;
-        then_block_parameters.blocks = all_block_infos;
-        then_block_parameters.defer_expressions_per_block = defer_expressions_per_block;
-
-        llvm_builder.SetInsertPoint(then_block);
-
-        if (parameters.debug_info != nullptr)
-            push_debug_lexical_block_scope(*parameters.debug_info, *parameters.source_position);
-
-        create_statement_values(
-            expression.then_statements,
-            then_block_parameters,
-            true
+        create_while_loop_then_block(
+            expression,
+            parameters,
+            all_block_infos,
+            condition_block,
+            then_block,
+            after_block
         );
-        if (!ends_with_terminator_statement(expression.then_statements))
-            llvm_builder.CreateBr(condition_block);
-
-        if (parameters.debug_info != nullptr)
-            pop_debug_scope(*parameters.debug_info);
-
-        llvm_builder.SetInsertPoint(after_block);
 
         return Value_and_type
         {

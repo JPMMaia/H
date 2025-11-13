@@ -2138,11 +2138,28 @@ while_loop_then:                                  ; preds = %while_loop_conditio
   %5 = load i32, ptr %index, align 4, !dbg !16
   %6 = add i32 %5, 1, !dbg !16
   store i32 %6, ptr %index, align 4, !dbg !16
-  br label %while_loop_condition, !dbg !16
+  br label %while_loop_condition, !dbg !17
 
 while_loop_after:                                 ; preds = %while_loop_condition
-  %7 = load i32, ptr %value, align 4, !dbg !17
-  ret i32 %7, !dbg !17
+  br label %while_loop_then1, !dbg !18
+
+while_loop_then1:                                 ; preds = %if_s1_after, %while_loop_after
+  %7 = load i32, ptr %index, align 4, !dbg !19
+  %8 = add i32 %7, 1, !dbg !19
+  store i32 %8, ptr %index, align 4, !dbg !19
+  %9 = load i32, ptr %index, align 4, !dbg !21
+  %10 = icmp sge i32 %9, 20, !dbg !21
+  br i1 %10, label %if_s0_then, label %if_s1_after, !dbg !21
+
+while_loop_after2:                                ; preds = %if_s0_then
+  %11 = load i32, ptr %value, align 4, !dbg !22
+  ret i32 %11, !dbg !22
+
+if_s0_then:                                       ; preds = %while_loop_then1
+  br label %while_loop_after2, !dbg !23
+
+if_s1_after:                                      ; preds = %while_loop_then1
+  br label %while_loop_then1, !dbg !25
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2171,7 +2188,15 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !14 = distinct !DILexicalBlock(scope: !3, file: !2, line: 8, column: 5)
 !15 = !DILocation(line: 10, column: 18, scope: !14)
 !16 = !DILocation(line: 11, column: 9, scope: !14)
-!17 = !DILocation(line: 14, column: 5, scope: !3)
+!17 = !DILocation(line: 8, column: 11, scope: !14)
+!18 = !DILocation(line: 14, column: 11, scope: !3)
+!19 = !DILocation(line: 16, column: 9, scope: !20)
+!20 = distinct !DILexicalBlock(scope: !3, file: !2, line: 14, column: 5)
+!21 = !DILocation(line: 17, column: 12, scope: !20)
+!22 = !DILocation(line: 23, column: 5, scope: !3)
+!23 = !DILocation(line: 19, column: 13, scope: !24)
+!24 = distinct !DILexicalBlock(scope: !20, file: !2, line: 18, column: 9)
+!25 = !DILocation(line: 14, column: 11, scope: !20)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
