@@ -750,6 +750,9 @@ namespace h::compiler
         Module const core_module = parameters.core_module;
         Type_database const& type_database = parameters.type_database;
 
+        Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
+        llvm::Value* const index_llvm_value = index_value.value;
+
         Value_and_type const left_hand_side_expression_value = create_expression_value(expression.expression.expression_index, statement, parameters);
         if (!left_hand_side_expression_value.type.has_value())
             throw std::runtime_error{"Could not deduce type of left hand side."};
@@ -757,6 +760,9 @@ namespace h::compiler
         std::optional<Type_reference> element_type = get_element_or_pointee_type(*left_hand_side_expression_value.type);
         if (!element_type.has_value())
             throw std::runtime_error{"Cannot find element type of array access."};
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         if (h::is_array_slice_type_reference(*left_hand_side_expression_value.type))
         {
@@ -770,9 +776,6 @@ namespace h::compiler
             llvm::Value* const data_pointer = create_load_instruction(llvm_builder, llvm_data_layout, llvm::PointerType::get(llvm_context, 0), pointer_to_data_pointer);
             
             llvm::Type* const element_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, element_type.value(), type_database);
-
-            Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
-            llvm::Value* const index_llvm_value = index_value.value;
 
             llvm::Value* const element_pointer = llvm_builder.CreateGEP(
                 element_llvm_type,
@@ -799,9 +802,6 @@ namespace h::compiler
             using_pointer ?
             create_load_instruction(llvm_builder, llvm_data_layout, llvm::PointerType::get(llvm_context, 0), left_hand_side_expression_value.value) :
             left_hand_side_expression_value.value;
-
-        Value_and_type const index_value = create_loaded_expression_value(expression.index.expression_index, statement, parameters);
-        llvm::Value* const index_llvm_value = index_value.value;
         
         llvm::Value* const element_pointer = llvm_builder.CreateGEP(
             array_llvm_type,

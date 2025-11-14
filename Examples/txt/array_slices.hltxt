@@ -8,6 +8,9 @@ export function take(integers: Array_slice<Int32>) -> ()
     var v0: Int32 = integers[0];
     var v1: Int32 = integers[1];
     var v2: Int32 = integers[2];
+
+    var index = 3;
+    var v3: Int32 = integers[index];
 }
 
 export function run() -> ()

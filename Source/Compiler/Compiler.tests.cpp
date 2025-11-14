@@ -209,120 +209,215 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     {
     };
 
-    char const* const expected_llvm_ir = R"(
-%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+    std::string const expected_llvm_ir =  std::format(R"(
+%struct.H_Builtin_Generic_array_slice = type {{ ptr, i64 }}
 
 ; Function Attrs: convergent
-define void @Array_slices_take(ptr %"arguments[0].integers_0", i64 %"arguments[0].integers_1") #0 {
+define void @Array_slices_take(ptr %"arguments[0].integers_0", i64 %"arguments[0].integers_1") #0 !dbg !3 {{
 entry:
   %integers = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %data = alloca ptr, align 8
-  %length = alloca i64, align 8
-  %v0 = alloca i32, align 4
-  %v1 = alloca i32, align 4
-  %v2 = alloca i32, align 4
-  %0 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 0
+  call void @llvm.dbg.declare(metadata ptr %integers, metadata !14, metadata !DIExpression()), !dbg !19
+  %data = alloca ptr, align 8, !dbg !20
+  %length = alloca i64, align 8, !dbg !21
+  %v0 = alloca i32, align 4, !dbg !22
+  %v1 = alloca i32, align 4, !dbg !23
+  %v2 = alloca i32, align 4, !dbg !24
+  %index = alloca i32, align 4, !dbg !25
+  %v3 = alloca i32, align 4, !dbg !26
+  %0 = getelementptr inbounds {{ ptr, i64 }}, ptr %integers, i32 0, i32 0
   store ptr %"arguments[0].integers_0", ptr %0, align 8
-  %1 = getelementptr inbounds { ptr, i64 }, ptr %integers, i32 0, i32 1
+  %1 = getelementptr inbounds {{ ptr, i64 }}, ptr %integers, i32 0, i32 1
   store i64 %"arguments[0].integers_1", ptr %1, align 8
-  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %3 = load ptr, ptr %2, align 8
-  store ptr %3, ptr %data, align 8
-  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1
-  %5 = load i64, ptr %4, align 8
-  store i64 %5, ptr %length, align 8
-  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %7 = load ptr, ptr %6, align 8
-  %array_slice_element_pointer = getelementptr i32, ptr %7, i32 0
-  %8 = load i32, ptr %array_slice_element_pointer, align 4
-  store i32 %8, ptr %v0, align 4
-  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %10 = load ptr, ptr %9, align 8
-  %array_slice_element_pointer1 = getelementptr i32, ptr %10, i32 1
-  %11 = load i32, ptr %array_slice_element_pointer1, align 4
-  store i32 %11, ptr %v1, align 4
-  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0
-  %13 = load ptr, ptr %12, align 8
-  %array_slice_element_pointer2 = getelementptr i32, ptr %13, i32 2
-  %14 = load i32, ptr %array_slice_element_pointer2, align 4
-  store i32 %14, ptr %v2, align 4
-  ret void
-}
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !27
+  %3 = load ptr, ptr %2, align 8, !dbg !28
+  call void @llvm.dbg.declare(metadata ptr %data, metadata !29, metadata !DIExpression()), !dbg !20
+  store ptr %3, ptr %data, align 8, !dbg !20
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1, !dbg !20
+  %5 = load i64, ptr %4, align 8, !dbg !30
+  call void @llvm.dbg.declare(metadata ptr %length, metadata !31, metadata !DIExpression()), !dbg !21
+  store i64 %5, ptr %length, align 8, !dbg !21
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !32
+  %7 = load ptr, ptr %6, align 8, !dbg !32
+  %array_slice_element_pointer = getelementptr i32, ptr %7, i32 0, !dbg !32
+  %8 = load i32, ptr %array_slice_element_pointer, align 4, !dbg !32
+  call void @llvm.dbg.declare(metadata ptr %v0, metadata !33, metadata !DIExpression()), !dbg !22
+  store i32 %8, ptr %v0, align 4, !dbg !22
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !34
+  %10 = load ptr, ptr %9, align 8, !dbg !34
+  %array_slice_element_pointer1 = getelementptr i32, ptr %10, i32 1, !dbg !34
+  %11 = load i32, ptr %array_slice_element_pointer1, align 4, !dbg !34
+  call void @llvm.dbg.declare(metadata ptr %v1, metadata !35, metadata !DIExpression()), !dbg !23
+  store i32 %11, ptr %v1, align 4, !dbg !23
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !36
+  %13 = load ptr, ptr %12, align 8, !dbg !36
+  %array_slice_element_pointer2 = getelementptr i32, ptr %13, i32 2, !dbg !36
+  %14 = load i32, ptr %array_slice_element_pointer2, align 4, !dbg !36
+  call void @llvm.dbg.declare(metadata ptr %v2, metadata !37, metadata !DIExpression()), !dbg !24
+  store i32 %14, ptr %v2, align 4, !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %index, metadata !38, metadata !DIExpression()), !dbg !25
+  store i32 3, ptr %index, align 4, !dbg !25
+  %15 = load i32, ptr %index, align 4, !dbg !39
+  %16 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !40
+  %17 = load ptr, ptr %16, align 8, !dbg !40
+  %array_slice_element_pointer3 = getelementptr i32, ptr %17, i32 %15, !dbg !40
+  %18 = load i32, ptr %array_slice_element_pointer3, align 4, !dbg !40
+  call void @llvm.dbg.declare(metadata ptr %v3, metadata !41, metadata !DIExpression()), !dbg !26
+  store i32 %18, ptr %v3, align 4, !dbg !26
+  ret void, !dbg !26
+}}
 
 ; Function Attrs: convergent
-define void @Array_slices_run() #0 {
+define void @Array_slices_run() #0 !dbg !42 {{
 entry:
-  %array = alloca [4 x i32], i64 4, align 4
-  %a = alloca [4 x i32], align 4
-  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %array4 = alloca [1 x i32], i64 1, align 4
-  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %b = alloca i32, align 4
-  %c = alloca ptr, align 8
-  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8
-  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
-  store i32 0, ptr %array_element_pointer, align 4
-  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1
-  store i32 1, ptr %array_element_pointer1, align 4
-  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2
-  store i32 2, ptr %array_element_pointer2, align 4
-  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3
-  store i32 3, ptr %array_element_pointer3, align 4
-  %4 = load [4 x i32], ptr %array, align 4
-  store [4 x i32] %4, ptr %a, align 4
-  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0
-  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
-  store ptr %data_pointer, ptr %5, align 8
-  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
-  store i64 4, ptr %6, align 8
-  %7 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 0
-  %8 = load ptr, ptr %7, align 8
-  %9 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 1
-  %10 = load i64, ptr %9, align 8
-  call void @Array_slices_take(ptr %8, i64 %10)
-  %11 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0
-  store ptr null, ptr %11, align 8
-  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1
-  store i64 0, ptr %12, align 8
-  %13 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 0
-  %14 = load ptr, ptr %13, align 8
-  %15 = getelementptr inbounds { ptr, i64 }, ptr %1, i32 0, i32 1
-  %16 = load i64, ptr %15, align 8
-  call void @Array_slices_take(ptr %14, i64 %16)
-  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
-  store i32 4, ptr %array_element_pointer5, align 4
-  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0
-  %17 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0
-  store ptr %data_pointer6, ptr %17, align 8
-  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1
-  store i64 1, ptr %18, align 8
-  %19 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 0
-  %20 = load ptr, ptr %19, align 8
-  %21 = getelementptr inbounds { ptr, i64 }, ptr %2, i32 0, i32 1
-  %22 = load i64, ptr %21, align 8
-  call void @Array_slices_take(ptr %20, i64 %22)
-  store i32 0, ptr %b, align 4
-  store ptr %b, ptr %c, align 8
-  %23 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0
-  store ptr %c, ptr %23, align 8
-  %24 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1
-  store i64 1, ptr %24, align 8
-  %25 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8
-  store %struct.H_Builtin_Generic_array_slice %25, ptr %d, align 8
-  %26 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 0
-  %27 = load ptr, ptr %26, align 8
-  %28 = getelementptr inbounds { ptr, i64 }, ptr %d, i32 0, i32 1
-  %29 = load i64, ptr %28, align 8
-  call void @Array_slices_take(ptr %27, i64 %29)
-  ret void
-}
+  %array = alloca [4 x i32], i64 4, align 4, !dbg !46
+  %a = alloca [4 x i32], align 4, !dbg !47
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !47
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !48
+  %array4 = alloca [1 x i32], i64 1, align 4, !dbg !49
+  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !49
+  %b = alloca i32, align 4, !dbg !50
+  %c = alloca ptr, align 8, !dbg !51
+  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !51
+  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !52
+  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0, !dbg !46
+  store i32 0, ptr %array_element_pointer, align 4, !dbg !46
+  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1, !dbg !46
+  store i32 1, ptr %array_element_pointer1, align 4, !dbg !46
+  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2, !dbg !46
+  store i32 2, ptr %array_element_pointer2, align 4, !dbg !46
+  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3, !dbg !46
+  store i32 3, ptr %array_element_pointer3, align 4, !dbg !46
+  %4 = load [4 x i32], ptr %array, align 4, !dbg !53
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !54, metadata !DIExpression()), !dbg !47
+  store [4 x i32] %4, ptr %a, align 4, !dbg !47
+  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0, !dbg !47
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !47
+  store ptr %data_pointer, ptr %5, align 8, !dbg !47
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !47
+  store i64 4, ptr %6, align 8, !dbg !47
+  %7 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 0, !dbg !48
+  %8 = load ptr, ptr %7, align 8, !dbg !48
+  %9 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 1, !dbg !48
+  %10 = load i64, ptr %9, align 8, !dbg !48
+  call void @Array_slices_take(ptr %8, i64 %10), !dbg !48
+  %11 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0, !dbg !48
+  store ptr null, ptr %11, align 8, !dbg !48
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1, !dbg !48
+  store i64 0, ptr %12, align 8, !dbg !48
+  %13 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 0, !dbg !49
+  %14 = load ptr, ptr %13, align 8, !dbg !49
+  %15 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 1, !dbg !49
+  %16 = load i64, ptr %15, align 8, !dbg !49
+  call void @Array_slices_take(ptr %14, i64 %16), !dbg !49
+  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !49
+  store i32 4, ptr %array_element_pointer5, align 4, !dbg !49
+  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !49
+  %17 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0, !dbg !49
+  store ptr %data_pointer6, ptr %17, align 8, !dbg !49
+  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1, !dbg !49
+  store i64 1, ptr %18, align 8, !dbg !49
+  %19 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 0, !dbg !56
+  %20 = load ptr, ptr %19, align 8, !dbg !56
+  %21 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 1, !dbg !56
+  %22 = load i64, ptr %21, align 8, !dbg !56
+  call void @Array_slices_take(ptr %20, i64 %22), !dbg !56
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !57, metadata !DIExpression()), !dbg !50
+  store i32 0, ptr %b, align 4, !dbg !50
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !58, metadata !DIExpression()), !dbg !51
+  store ptr %b, ptr %c, align 8, !dbg !51
+  %23 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0, !dbg !51
+  store ptr %c, ptr %23, align 8, !dbg !51
+  %24 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1, !dbg !51
+  store i64 1, ptr %24, align 8, !dbg !51
+  %25 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8, !dbg !59
+  call void @llvm.dbg.declare(metadata ptr %d, metadata !60, metadata !DIExpression()), !dbg !52
+  store %struct.H_Builtin_Generic_array_slice %25, ptr %d, align 8, !dbg !52
+  %26 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 0, !dbg !65
+  %27 = load ptr, ptr %26, align 8, !dbg !65
+  %28 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 1, !dbg !65
+  %29 = load i64, ptr %28, align 8, !dbg !65
+  call void @Array_slices_take(ptr %27, i64 %29), !dbg !65
+  ret void, !dbg !65
+}}
 
-attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
-)";
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "array_slices.hltxt", directory: "C:/Users/JPMMa/Desktop/source/H/Examples/txt")
+!3 = distinct !DISubprogram(name: "take", linkageName: "Array_slices_take", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !13)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{null, !6}}
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", size: 128, align: 8, elements: !7)
+!7 = !{{!8, !11}}
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !9, size: 64, align: 8)
+!9 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !10, size: 64)
+!10 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!11 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !12, size: 64, align: 8, offset: 64)
+!12 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
+!13 = !{{!14}}
+!14 = !DILocalVariable(name: "integers", arg: 1, scope: !3, file: !2, line: 3, type: !15)
+!15 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !16)
+!16 = !{{!17, !18}}
+!17 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !9, size: 64, align: 8)
+!18 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !12, size: 64, align: 8, offset: 64)
+!19 = !DILocation(line: 3, column: 22, scope: !3)
+!20 = !DILocation(line: 5, column: 5, scope: !3)
+!21 = !DILocation(line: 6, column: 5, scope: !3)
+!22 = !DILocation(line: 8, column: 5, scope: !3)
+!23 = !DILocation(line: 9, column: 5, scope: !3)
+!24 = !DILocation(line: 10, column: 5, scope: !3)
+!25 = !DILocation(line: 12, column: 5, scope: !3)
+!26 = !DILocation(line: 13, column: 5, scope: !3)
+!27 = !DILocation(line: 4, column: 1, scope: !3)
+!28 = !DILocation(line: 5, column: 24, scope: !3)
+!29 = !DILocalVariable(name: "data", scope: !3, file: !2, line: 5, type: !9)
+!30 = !DILocation(line: 6, column: 18, scope: !3)
+!31 = !DILocalVariable(name: "length", scope: !3, file: !2, line: 6, type: !12)
+!32 = !DILocation(line: 8, column: 21, scope: !3)
+!33 = !DILocalVariable(name: "v0", scope: !3, file: !2, line: 8, type: !10)
+!34 = !DILocation(line: 9, column: 21, scope: !3)
+!35 = !DILocalVariable(name: "v1", scope: !3, file: !2, line: 9, type: !10)
+!36 = !DILocation(line: 10, column: 21, scope: !3)
+!37 = !DILocalVariable(name: "v2", scope: !3, file: !2, line: 10, type: !10)
+!38 = !DILocalVariable(name: "index", scope: !3, file: !2, line: 12, type: !10)
+!39 = !DILocation(line: 13, column: 30, scope: !3)
+!40 = !DILocation(line: 13, column: 21, scope: !3)
+!41 = !DILocalVariable(name: "v3", scope: !3, file: !2, line: 13, type: !10)
+!42 = distinct !DISubprogram(name: "run", linkageName: "Array_slices_run", scope: null, file: !2, line: 16, type: !43, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !45)
+!43 = !DISubroutineType(types: !44)
+!44 = !{{null}}
+!45 = !{{}}
+!46 = !DILocation(line: 17, column: 1, scope: !42)
+!47 = !DILocation(line: 18, column: 5, scope: !42)
+!48 = !DILocation(line: 19, column: 5, scope: !42)
+!49 = !DILocation(line: 20, column: 5, scope: !42)
+!50 = !DILocation(line: 23, column: 5, scope: !42)
+!51 = !DILocation(line: 24, column: 5, scope: !42)
+!52 = !DILocation(line: 25, column: 5, scope: !42)
+!53 = !DILocation(line: 18, column: 39, scope: !42)
+!54 = !DILocalVariable(name: "a", scope: !42, file: !2, line: 18, type: !55)
+!55 = !DICompositeType(tag: DW_TAG_array_type, baseType: !10, size: 4)
+!56 = !DILocation(line: 21, column: 5, scope: !42)
+!57 = !DILocalVariable(name: "b", scope: !42, file: !2, line: 23, type: !10)
+!58 = !DILocalVariable(name: "c", scope: !42, file: !2, line: 24, type: !9)
+!59 = !DILocation(line: 25, column: 13, scope: !42)
+!60 = !DILocalVariable(name: "d", scope: !42, file: !2, line: 25, type: !61)
+!61 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !42, size: 128, align: 8, elements: !62)
+!62 = !{{!63, !64}}
+!63 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !42, baseType: !9, size: 64, align: 8)
+!64 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !42, baseType: !12, size: 64, align: 8, offset: 64)
+!65 = !DILocation(line: 26, column: 5, scope: !42)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
@@ -2688,11 +2783,11 @@ if_s1_after:                                      ; preds = %condition_success1,
   %25 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %24, i32 0, i32 1
   %26 = load i64, ptr %25, align 8
   store i64 %26, ptr %index, align 8
-  %27 = load ptr, ptr %instance, align 8
-  %28 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %27, i32 0, i32 0
-  %29 = load ptr, ptr %28, align 8
-  %30 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %29, i64 %30
+  %27 = load i64, ptr %index, align 8
+  %28 = load ptr, ptr %instance, align 8
+  %29 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %28, i32 0, i32 0
+  %30 = load ptr, ptr %29, align 8
+  %array_element_pointer = getelementptr i32, ptr %30, i64 %27
   %31 = load i32, ptr %element, align 4
   store i32 %31, ptr %array_element_pointer, align 4
   %32 = load ptr, ptr %instance, align 8
@@ -2746,11 +2841,11 @@ condition_fail:                                   ; preds = %entry
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %8 = load ptr, ptr %instance, align 8
-  %9 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %8, i32 0, i32 0
-  %10 = load ptr, ptr %9, align 8
-  %11 = load i64, ptr %index, align 8
-  %array_element_pointer = getelementptr i32, ptr %10, i64 %11
+  %8 = load i64, ptr %index, align 8
+  %9 = load ptr, ptr %instance, align 8
+  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@9566610295894871722", ptr %9, i32 0, i32 0
+  %11 = load ptr, ptr %10, align 8
+  %array_element_pointer = getelementptr i32, ptr %11, i64 %8
   %12 = load i32, ptr %array_element_pointer, align 4
   ret i32 %12
 
