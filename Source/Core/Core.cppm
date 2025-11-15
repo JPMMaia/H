@@ -166,6 +166,7 @@ namespace h
     export struct Array_slice_type
     {
         std::pmr::vector<Type_reference> element_type;
+        bool is_mutable;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Array_slice_type const& lhs, Array_slice_type const& rhs) = default;

@@ -1561,6 +1561,10 @@ namespace h
         {
             Array_slice_type const& value = std::get<Array_slice_type>(type.data);
             add_text(buffer, "Array_slice<");
+
+            if (value.is_mutable)
+                add_text(buffer, "mutable ");
+
             add_format_type_name(buffer, value.element_type, options);
             add_text(buffer, ">");
         }

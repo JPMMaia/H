@@ -3940,6 +3940,47 @@ using My_uint = Uint65;
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates access to Constant_array", "[Validation][Constant_array]")
+    {
+        std::string_view const input = R"(module Constant_arrays;
+
+export function run() -> ()
+{
+    var a: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    a[0] = 1;
+    var p0: *Int32 = &a[0];
+    var p1: *mutable Int32 = &a[0];
+
+    mutable b: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    b[0] = 1;
+    var p2: *Int32 = &b[0];
+    var p3: *mutable Int32 = &b[0];
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 5, 6, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify non-mutable value.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 30, 8, 35),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
     TEST_CASE("Validates that Constant_array can be implicitly converted to Array_slice", "[Validation][Array_slices]")
     {
         std::string_view const input = R"(module Array_slices;
@@ -3991,10 +4032,16 @@ export function run() -> ()
     {
         std::string_view const input = R"(module Array_slices;
 
-export function run(integers: Array_slice<Int32>) -> ()
+export function run(integers: Array_slice<Int32>, mutable_integers: Array_slice<mutable Int32>) -> ()
 {
     var a: Int32 = integers[0];
     var b: Int64 = integers[0];
+
+    var p0: *Int32 = &integers[0];
+    var p1: *mutable Int32 = &integers[0];
+
+    var p2: *Int32 = &mutable_integers[0];
+    var p3: *mutable Int32 = &mutable_integers[0];
 }
 )";
 
@@ -4008,6 +4055,14 @@ export function run(integers: Array_slice<Int32>) -> ()
                 .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Int32' does not match expected type 'Int64'.",
                 .related_information = {},
+            },
+            {
+                .range = create_source_range(9, 30, 9, 42),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
             }
         };
 
@@ -4018,11 +4073,14 @@ export function run(integers: Array_slice<Int32>) -> ()
     {
         std::string_view const input = R"(module Array_slices;
 
-export function run(integers: Array_slice<Int32>) -> ()
+export function run(integers: Array_slice<Int32>, mutable_integers: Array_slice<mutable Int32>) -> ()
 {
     var data: *Int32 = integers.data;
     var length: Uint64 = integers.length;
     var random = integers.random;
+
+    var mutable_data_0: *mutable Int32 = integers.data;
+    var mutable_data_1: *mutable Int32 = mutable_integers.data;
 }
 )";
 
@@ -4034,6 +4092,41 @@ export function run(integers: Array_slice<Int32>) -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Member 'random' does not exist in the type 'Array_slice<Int32>'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(9, 42, 9, 55),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Array_slice with immutable value type cannot be assigned to Array_slice with mutable value type", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run(integers: Array_slice<Int32>, mutable_integers: Array_slice<mutable Int32>) -> ()
+{
+    var a: Array_slice<Int32> = mutable_integers;
+    var b: Array_slice<mutable Int32> = integers;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 41, 6, 49),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<mutable Int32>'.",
                 .related_information = {},
             }
         };
@@ -4122,10 +4215,10 @@ export function run() -> ()
 
 export function foo(length: Uint64) -> ()
 {
-    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
-    mutable array_1: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(5);
-    mutable array_2: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(5, 6);
-    mutable array_3: Array_slice<Uint32> = create_stack_array_uninitialized<Int32>(length);
+    var array_0: Array_slice<mutable Int32> = create_stack_array_uninitialized<Int32>(length);
+    var array_1: Array_slice<mutable Int32> = create_stack_array_uninitialized<Int32>(5);
+    var array_2: Array_slice<mutable Int32> = create_stack_array_uninitialized<Int32>(5, 6);
+    var array_3: Array_slice<mutable Uint32> = create_stack_array_uninitialized<Int32>(length);
 }
 )";
 
@@ -4133,25 +4226,25 @@ export function foo(length: Uint64) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 83, 6, 84),
+                .range = create_source_range(6, 87, 6, 88),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 0 type is 'Uint64' but 'Int32' was provided.",
                 .related_information = {},
             },
             {
-                .range = create_source_range(7, 43, 7, 88),
+                .range = create_source_range(7, 47, 7, 92),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function expects 1 arguments, but 2 were provided.",
                 .related_information = {},
             },
             {
-                .range = create_source_range(8, 44, 8, 91),
+                .range = create_source_range(8, 48, 8, 95),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Uint32>'.",
+                .message = "Expression type 'Array_slice<mutable Int32>' does not match expected type 'Array_slice<mutable Uint32>'.",
                 .related_information = {},
             }
         };
@@ -4165,9 +4258,9 @@ export function foo(length: Uint64) -> ()
 
 export function foo(length: Uint64) -> ()
 {
-    mutable array_0: Array_slice<Int32> = create_stack_array_uninitialized<Int32>(length);
-    mutable array_1 = create_stack_array_uninitialized(length);
-    mutable array_2 = create_stack_array_uninitialized<Int32, Int64>(length);
+    var array_0: Array_slice<mutable Int32> = create_stack_array_uninitialized<Int32>(length);
+    var array_1 = create_stack_array_uninitialized(length);
+    var array_2 = create_stack_array_uninitialized<Int32, Int64>(length);
 }
 )";
 
@@ -4175,14 +4268,14 @@ export function foo(length: Uint64) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 23, 6, 63),
+                .range = create_source_range(6, 19, 6, 59),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function expects 1 type arguments, but 0 were provided.",
                 .related_information = {},
             },
             {
-                .range = create_source_range(7, 23, 7, 77),
+                .range = create_source_range(7, 19, 7, 73),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Function expects 1 type arguments, but 2 were provided.",

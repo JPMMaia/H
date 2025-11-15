@@ -952,6 +952,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("element_type");
         write_object(writer, output.element_type);
+        writer.Key("is_mutable");
+        writer.Bool(output.is_mutable);
         writer.EndObject();
     }
 

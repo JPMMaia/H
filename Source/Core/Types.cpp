@@ -18,13 +18,14 @@ import h.core;
 
 namespace h
 {
-    Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type)
+    Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type, bool const is_mutable)
     {
         return
         {
             .data = h::Array_slice_type
             {
-                .element_type = std::move(element_type)
+                .element_type = std::move(element_type),
+                .is_mutable = is_mutable,
             }
         };
     }

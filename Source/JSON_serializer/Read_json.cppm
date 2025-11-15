@@ -699,6 +699,17 @@ namespace h::json
             };
         }
 
+        if (key == "is_mutable")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_mutable,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
+        }
+
         return {};
     }
 

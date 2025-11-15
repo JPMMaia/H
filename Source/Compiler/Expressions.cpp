@@ -1676,7 +1676,7 @@ namespace h::compiler
         Expression_parameters const& parameters
     )
     {
-        h::Type_reference const array_slice_type_reference = h::create_array_slice_type_reference(element_type);
+        h::Type_reference const array_slice_type_reference = h::create_array_slice_type_reference(element_type, true);
         llvm::Type* const llvm_array_slice_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, array_slice_type_reference, parameters.type_database);
 
         llvm::AllocaInst* const struct_alloca = create_alloca_instruction(parameters.llvm_builder, parameters.llvm_data_layout, *parameters.llvm_parent_function, llvm_array_slice_type);

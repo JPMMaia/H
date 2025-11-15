@@ -15,7 +15,7 @@ import h.core;
 
 namespace h
 {
-    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type);
+    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type, bool is_mutable);
     export bool is_array_slice_type_reference(Type_reference const& type);
 
     export Type_reference create_bool_type_reference();

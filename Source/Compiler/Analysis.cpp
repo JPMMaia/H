@@ -873,7 +873,7 @@ namespace h::compiler
                 {
                     return Type_info
                     {
-                        .type = create_pointer_type_type_reference(array_slice_type.element_type, false),
+                        .type = create_pointer_type_type_reference(array_slice_type.element_type, array_slice_type.is_mutable),
                         .is_mutable = false,
                     };
                 }
@@ -992,7 +992,7 @@ namespace h::compiler
                 return Type_info
                 {
                     .type = array_type.element_type[0],
-                    .is_mutable = lhs_type_info->is_mutable,
+                    .is_mutable = array_type.is_mutable,
                 };
             }
             else if (std::holds_alternative<h::Constant_array_type>(lhs_type_reference->data))
@@ -1079,21 +1079,25 @@ namespace h::compiler
                 if (builtin_type_reference.value == "create_array_slice_from_pointer")
                 {
                     std::pmr::vector<h::Type_reference> element_type;
+                    bool is_mutable = false;
 
                     if (data.arguments.size() > 0)
                     {
                         std::optional<Type_info> const first_argument_type_info = get_expression_type_info(core_module, nullptr, scope, statement, statement.expressions[data.arguments[0].expression_index], std::nullopt, declaration_database);
                         if (first_argument_type_info.has_value() && std::holds_alternative<Pointer_type>(first_argument_type_info->type.data))
                         {
-                            std::optional<Type_reference> value_type = remove_pointer(first_argument_type_info->type);
-                            if (value_type.has_value())
-                                element_type.push_back(std::move(value_type.value()));
+                            Pointer_type const& pointer_type = std::get<Pointer_type>(first_argument_type_info->type.data);
+
+                            if (!pointer_type.element_type.empty())
+                                element_type.push_back(pointer_type.element_type[0]);
+
+                            is_mutable = pointer_type.is_mutable;
                         }
                     }
 
                     return Type_info
                     {
-                        .type = create_array_slice_type_reference(element_type),
+                        .type = create_array_slice_type_reference(element_type, is_mutable),
                         .is_mutable = false,
                     };
                 }
@@ -1102,7 +1106,7 @@ namespace h::compiler
                     // This will generate a validation error as there is no element type.
                     return Type_info
                     {
-                        .type = create_array_slice_type_reference({}),
+                        .type = create_array_slice_type_reference({}, true),
                         .is_mutable = false,
                     };
                 }
@@ -1276,7 +1280,7 @@ namespace h::compiler
                         h::Function_type function_type
                         {
                             .input_parameter_types = {create_integer_type_type_reference(64, false)},
-                            .output_parameter_types = {create_array_slice_type_reference(element_type)},
+                            .output_parameter_types = {create_array_slice_type_reference(element_type, true)},
                             .is_variadic = false,
                         };
 

@@ -97,12 +97,14 @@ namespace h::binary_serializer
     void serialize(Serializer& serializer, Array_slice_type const& value)
     {
         serialize(serializer, value.element_type);
+        serialize(serializer, value.is_mutable);
     }
 
     export template <>
     void deserialize(Deserializer& deserializer, Array_slice_type& value)
     {
         deserialize(deserializer, value.element_type);
+        deserialize(deserializer, value.is_mutable);
     }
 
     export template <>

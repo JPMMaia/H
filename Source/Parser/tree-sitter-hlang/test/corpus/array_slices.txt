@@ -9,6 +9,10 @@ export function run() -> ()
     var a = 0;
     var b: *Int32 = &a;
     var c: Array_slice<Int32> = create_array_slice_from_pointer(b, 1);
+
+    mutable d = 0;
+    var e: *mutable Int32 = &d;
+    var f: Array_slice<mutable Int32> = create_array_slice_from_pointer(e, 1);
 }
 
 
@@ -29,6 +33,61 @@ export function run() -> ()
         (Function_output_parameters))
       (Function_definition
         (Block
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_constant
+                  (Number)))))
+          (Statement
+            (Expression_variable_declaration_with_type
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Expression_variable_declaration_type
+                (Type
+                  (Pointer_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_unary
+                    (Expression_unary_symbol)
+                    (Generic_expression
+                      (Expression_variable
+                        (Variable_name
+                          (Identifier)))))))))
+          (Statement
+            (Expression_variable_declaration_with_type
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Expression_variable_declaration_type
+                (Type
+                  (Array_slice_type
+                    (Type
+                      (Type_name
+                        (Identifier))))))
+              (Generic_expression_or_instantiate
+                (Generic_expression
+                  (Expression_call
+                    (Generic_expression
+                      (Expression_variable
+                        (Variable_name
+                          (Identifier))))
+                    (Expression_call_arguments
+                      (Generic_expression_or_instantiate
+                        (Generic_expression
+                          (Expression_variable
+                            (Variable_name
+                              (Identifier)))))
+                      (Generic_expression_or_instantiate
+                        (Generic_expression
+                          (Expression_constant
+                            (Number))))))))))
           (Statement
             (Expression_variable_declaration
               (Expression_variable_mutability)

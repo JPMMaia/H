@@ -24,4 +24,10 @@ export function run() -> ()
     var c: *Int32 = &b;
     var d = create_array_slice_from_pointer(c, 1u64);
     take(d);
+
+    mutable f = 0;
+    var g: *mutable Int32 = &f;
+    var h: Array_slice<mutable Int32> = create_array_slice_from_pointer(g, 1u64);
+    var i: *mutable Int32 = h.data;
+    var j: *mutable Int32 = &h.data[0];
 }

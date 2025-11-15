@@ -145,6 +145,9 @@ namespace h::compiler
             if (destination_pointer_type.element_type.empty() && source_pointer_type.element_type.empty())
                 return true;
 
+            if (destination_pointer_type.element_type.empty() || source_pointer_type.element_type.empty())
+                return false;
+
             return can_assign_type(declaration_database, destination_pointer_type.element_type[0], source_pointer_type.element_type[0]);
         }
 
@@ -153,16 +156,34 @@ namespace h::compiler
 
         if (std::holds_alternative<h::Array_slice_type>(destination_type.data))
         {
-            h::Array_slice_type const& array_slice_type = std::get<h::Array_slice_type>(destination_type.data);
+            h::Array_slice_type const& destination_array_slice_type = std::get<h::Array_slice_type>(destination_type.data);
 
-            if (std::holds_alternative<h::Constant_array_type>(source_type.data))
+            if (std::holds_alternative<h::Array_slice_type>(source_type.data))
+            {
+                h::Array_slice_type const& source_array_slice_type = std::get<h::Array_slice_type>(source_type.data);
+
+                if (destination_array_slice_type.is_mutable && !source_array_slice_type.is_mutable)
+                    return false;
+
+                if (destination_array_slice_type.element_type.empty() && source_array_slice_type.element_type.empty())
+                    return true;
+
+                if (destination_array_slice_type.element_type.empty() || source_array_slice_type.element_type.empty())
+                    return false;
+
+                return destination_array_slice_type.element_type[0] == source_array_slice_type.element_type[0];
+            }
+            else if (std::holds_alternative<h::Constant_array_type>(source_type.data))
             {
                 h::Constant_array_type const& constant_array_type = std::get<h::Constant_array_type>(source_type.data);
 
-                if (array_slice_type.element_type.empty() && constant_array_type.value_type.empty())
+                if (destination_array_slice_type.element_type.empty() && constant_array_type.value_type.empty())
                     return true;
 
-                return array_slice_type.element_type[0] == constant_array_type.value_type[0];
+                if (destination_array_slice_type.element_type.empty() || constant_array_type.value_type.empty())
+                    return false;
+
+                return destination_array_slice_type.element_type[0] == constant_array_type.value_type[0];
             }
         }
 
@@ -1948,7 +1969,7 @@ namespace h::compiler
                         create_integer_type_type_reference(64, false)
                     },
                     .output_parameter_types = {
-                        create_array_slice_type_reference(element_type)
+                        create_array_slice_type_reference(element_type, true)
                     },
                     .is_variadic = false,
                 };

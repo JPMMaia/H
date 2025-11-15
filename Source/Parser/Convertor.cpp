@@ -754,7 +754,10 @@ namespace h::parser
         {
             h::Array_slice_type output = {};
 
-            std::optional<Parse_node> const element_type_node = get_child_node(tree, child, 2);
+            std::optional<Parse_node> const mutable_node = get_child_node(tree, child, "mutable");
+            output.is_mutable = mutable_node.has_value();
+
+            std::optional<Parse_node> const element_type_node = get_child_node(tree, child, "Type");
             if (element_type_node.has_value())
             {
                 std::optional<h::Type_reference> element_type = node_to_type_reference(
