@@ -42,12 +42,9 @@ namespace h::language_server
             lsp::io::Socket socket = socket_listener.listen();
 
             if (!socket.isOpen())
-                break;
+                continue;
 
-            std::thread([socket = std::move(socket)]() mutable -> void
-            {
-                run_message_handler(std::move(socket));
-            }).detach();
+            run_message_handler(std::move(socket));
         } 
     }
 
