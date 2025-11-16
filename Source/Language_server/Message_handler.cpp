@@ -55,7 +55,22 @@ namespace h::language_server
         lsp::Connection connection{socket};
         lsp::MessageHandler message_handler{connection};
 
-        Server server = create_server();
+        auto const window_log_message = [&message_handler](lsp::LogMessageParams&& parameters)
+        {
+            message_handler.sendNotification<lsp::notifications::Window_LogMessage>(std::move(parameters));
+        };
+
+        auto const window_show_message = [&message_handler](lsp::ShowMessageParams&& parameters)
+        {
+            message_handler.sendNotification<lsp::notifications::Window_ShowMessage>(std::move(parameters));
+        };
+
+        Server_logger const server_logger =
+        {
+            .window_log_message = window_log_message,
+            .window_show_message = window_show_message,
+        };
+        Server server = create_server(server_logger);
 
         bool has_configuration_capability = false;
         bool has_workspace_diagnostic_refresh_capability = false;

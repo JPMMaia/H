@@ -34,7 +34,9 @@ namespace h::language_server
 {
     static constexpr bool g_debug = true;
 
-    Server create_server()
+    Server create_server(
+        Server_logger logger
+    )
     {
         h::parser::Parser parser = h::parser::create_parser();
 
@@ -42,7 +44,8 @@ namespace h::language_server
         {
             .workspace_folders = {},
             .workspaces_data = {},
-            .parser = std::move(parser)
+            .parser = std::move(parser),
+            .logger = std::move(logger),
         };
     }
 
@@ -261,6 +264,29 @@ namespace h::language_server
         return repository_paths;
     }
 
+    static bool validate_paths(
+        Server& server,
+        std::span<std::filesystem::path const> const paths
+    )
+    {
+        for (std::filesystem::path const& path : paths)
+        {
+            if (!std::filesystem::exists(path))
+            {
+                lsp::ShowMessageParams parameters
+                {
+                    .type = lsp::MessageType::Error,
+                    .message = std::format("Could not find path: '{}'.", path.generic_string()),
+                };
+
+                server.logger.window_show_message(std::move(parameters));
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     static std::pmr::vector<h::parser::Parse_tree> parse_source_files(
         h::parser::Parser const& parser,
         std::span<std::filesystem::path const> const source_files_paths,
@@ -366,6 +392,12 @@ namespace h::language_server
 
             std::pmr::vector<std::filesystem::path> const header_search_paths = get_header_search_paths_from_configuration(workspace_configuration);
             std::pmr::vector<std::filesystem::path> const repository_paths = get_repository_paths_from_configuration(workspace_folder_path, workspace_configuration);
+
+            if (!validate_paths(server, header_search_paths))
+                return;
+
+            if (!validate_paths(server, repository_paths))
+                return;
 
             h::compiler::Compilation_options const compilation_options
             {
