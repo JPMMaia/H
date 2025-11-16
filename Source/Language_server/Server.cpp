@@ -4,6 +4,7 @@ module;
 #include <filesystem>
 #include <memory_resource>
 #include <span>
+#include <sstream>
 #include <vector>
 
 #include <lsp/types.h>
@@ -213,6 +214,61 @@ namespace h::language_server
         server.workspace_folders.assign(workspace_folders.begin(), workspace_folders.end());
     }
 
+    std::optional<std::pmr::string> resolve_vscode_variable_value(
+        std::filesystem::path const& workspace_folder_path,
+        std::string_view const variable_name
+    )
+    {
+        if (variable_name == "workspaceFolder")
+            return std::pmr::string{workspace_folder_path.generic_string()};
+
+        return std::nullopt;
+    }
+
+    std::pmr::string resolve_vscode_variables(
+        std::filesystem::path const& workspace_folder_path,
+        std::string_view const value
+    )
+    {
+        using String_stream = std::basic_stringstream<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>>;
+        String_stream stream;
+
+        std::size_t index = 0;
+        while (index < value.size())
+        {
+            using namespace std::literals;
+            std::size_t const begin = value.find("${"sv, index);
+            if (begin == value.npos)
+                break;
+
+            std::size_t const end = value.find("}"sv, begin);
+            if (end == value.npos)
+                break;
+
+            std::size_t const count = end - begin;
+            std::string_view const variable_name = value.substr(begin + 2, count - 2);
+
+            std::optional<std::pmr::string> const variable_value = resolve_vscode_variable_value(workspace_folder_path, variable_name);
+            if (variable_value.has_value())
+            {
+                stream << variable_value.value();
+            }
+            else
+            {
+                stream << value.substr(index, end + 1 - index);
+            }
+
+            index = end + 1;
+        }
+
+        if (index >= value.size())
+            return stream.str();
+
+        std::string_view const rest = value.substr(index, value.size() - index);
+        stream << rest;
+        return stream.str();
+    }
+
     static std::pmr::vector<std::filesystem::path> get_header_search_paths_from_configuration(
         lsp::json::Any const& configuration
     )
@@ -248,7 +304,12 @@ namespace h::language_server
             if (!repository_json.isString())
                 continue;
 
-            std::filesystem::path repository_path = repository_json.string();
+            std::pmr::string const resolved_repository_path_string = resolve_vscode_variables(
+                workspace_folder_path,
+                repository_json.string()
+            );
+
+            std::filesystem::path repository_path = resolved_repository_path_string;
 
             if (repository_path.is_absolute())
             {
