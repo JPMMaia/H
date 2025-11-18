@@ -1786,14 +1786,14 @@ namespace h::compiler
                 if (expression.arguments.size() != 2)
                     throw std::runtime_error{"create_array_slice_from_pointer() expects two arguments!"};
 
-                Value_and_type const data_value = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
+                Value_and_type const data_value = create_loaded_expression_value(expression.arguments[0].expression_index, statement, parameters);
                 if (!data_value.type.has_value())
                     throw std::runtime_error{"Cannot find deduce argument 0 type of create_array_slice_from_pointer()"};
 
                 std::optional<h::Type_reference> element_type_optional = remove_pointer(data_value.type.value());
                 std::pmr::vector<h::Type_reference> const element_type = element_type_optional.has_value() ? std::pmr::vector<h::Type_reference>{element_type_optional.value()} : std::pmr::vector<h::Type_reference>{};
 
-                Value_and_type const length_value = create_expression_value(expression.arguments[1].expression_index, statement, parameters);
+                Value_and_type const length_value = create_loaded_expression_value(expression.arguments[1].expression_index, statement, parameters);
 
                 return instantiate_array_slice(
                     element_type,
