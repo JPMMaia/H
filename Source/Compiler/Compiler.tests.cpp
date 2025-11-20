@@ -2721,7 +2721,7 @@ entry:
   %4 = load ptr, ptr %3, align 8
   %5 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
   %6 = load ptr, ptr %5, align 8
-  call void @"dynamic_array_create@9190698639914732028"(ptr noundef %0, ptr %4, ptr %6)
+  call void @"dynamic_array_create@9190698639914732028"(ptr dead_on_unwind noalias writable sret(%"struct.dynamic_array_Dynamic_array@10870525800499546629") align 8 %0, ptr %4, ptr %6)
   %7 = load %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %0, align 8
   store %"struct.dynamic_array_Dynamic_array@10870525800499546629" %7, ptr %instance, align 8
   call void @"dynamic_array_push_back@15363871578545837817"(ptr noundef %instance, i32 noundef 1)
@@ -2731,45 +2731,45 @@ entry:
 }
 
 ; Function Attrs: convergent
-define private void @"dynamic_array_create@9190698639914732028"(ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1", ptr %0) #0 {
+define private void @"dynamic_array_create@9190698639914732028"(ptr dead_on_unwind noalias writable sret(%"struct.dynamic_array_Dynamic_array@10870525800499546629") align 8 %return.instance, ptr %"arguments[0].allocator_0", ptr %"arguments[0].allocator_1") #0 {
 entry:
   %allocator = alloca %struct.dynamic_array_Allocator, align 8
-  %1 = alloca %"struct.dynamic_array_Dynamic_array@10870525800499546629", align 8
-  %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
-  store ptr %"arguments[0].allocator_0", ptr %2, align 8
-  %3 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
-  store ptr %"arguments[0].allocator_1", ptr %3, align 8
-  %4 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
-  %5 = load ptr, ptr %4, align 8
-  %6 = icmp ne ptr %5, null
-  br i1 %6, label %condition_success, label %condition_fail
+  %0 = alloca %"struct.dynamic_array_Dynamic_array@10870525800499546629", align 8
+  %1 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 0
+  store ptr %"arguments[0].allocator_0", ptr %1, align 8
+  %2 = getelementptr inbounds { ptr, ptr }, ptr %allocator, i32 0, i32 1
+  store ptr %"arguments[0].allocator_1", ptr %2, align 8
+  %3 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 0
+  %4 = load ptr, ptr %3, align 8
+  %5 = icmp ne ptr %4, null
+  br i1 %5, label %condition_success, label %condition_fail
 
 condition_success:                                ; preds = %entry
-  %7 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
-  %8 = load ptr, ptr %7, align 8
-  %9 = icmp ne ptr %8, null
-  br i1 %9, label %condition_success1, label %condition_fail2
+  %6 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %allocator, i32 0, i32 1
+  %7 = load ptr, ptr %6, align 8
+  %8 = icmp ne ptr %7, null
+  br i1 %8, label %condition_success1, label %condition_fail2
 
 condition_fail:                                   ; preds = %entry
-  %10 = call i32 @puts(ptr @function_contract_error_string)
+  %9 = call i32 @puts(ptr @function_contract_error_string)
   call void @abort()
   unreachable
 
 condition_success1:                               ; preds = %condition_success
-  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %1, i32 0, i32 0
-  store ptr null, ptr %11, align 8
-  %12 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %1, i32 0, i32 1
+  %10 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %0, i32 0, i32 0
+  store ptr null, ptr %10, align 8
+  %11 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %0, i32 0, i32 1
+  store i64 0, ptr %11, align 8
+  %12 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %0, i32 0, i32 2
   store i64 0, ptr %12, align 8
-  %13 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %1, i32 0, i32 2
-  store i64 0, ptr %13, align 8
-  %14 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
-  %15 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %1, i32 0, i32 3
-  store %struct.dynamic_array_Allocator %14, ptr %15, align 8
-  call void @llvm.memcpy.p0.p0.i64(ptr align 8 %"arguments[0].allocator_0", ptr align 8 %1, i64 40, i1 false)
+  %13 = load %struct.dynamic_array_Allocator, ptr %allocator, align 8
+  %14 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %0, i32 0, i32 3
+  store %struct.dynamic_array_Allocator %13, ptr %14, align 8
+  call void @llvm.memcpy.p0.p0.i64(ptr align 8 %return.instance, ptr align 8 %0, i64 40, i1 false)
   ret void
 
 condition_fail2:                                  ; preds = %condition_success
-  %16 = call i32 @puts(ptr @function_contract_error_string.1)
+  %15 = call i32 @puts(ptr @function_contract_error_string.1)
   call void @abort()
   unreachable
 }
@@ -5416,17 +5416,15 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private i32 @c_interoperability_add_all(ptr noundef %"arguments[0].instance") #0 {
 entry:
-  %instance = alloca ptr, align 8
-  store ptr %"arguments[0].instance", ptr %instance, align 8
-  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %"arguments[0].instance", i32 0, i32 0
   %1 = load i32, ptr %0, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %"arguments[0].instance", i32 0, i32 1
   %3 = load i32, ptr %2, align 4
   %4 = add i32 %1, %3
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %"arguments[0].instance", i32 0, i32 2
   %6 = load i32, ptr %5, align 4
   %7 = add i32 %4, %6
-  %8 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
+  %8 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %"arguments[0].instance", i32 0, i32 3
   %9 = load i32, ptr %8, align 4
   %10 = add i32 %7, %9
   ret i32 %10
@@ -5559,6 +5557,90 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     test_c_interoperability_common("c_interoperability_call_function_that_returns_bool.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
+
+  TEST_CASE("C Interoperability - function_with_big_struct_and_return x86_64-pc-linux-gnu", "[LLVM_IR]")
+  {
+    char const* const expected_llvm_ir = R"(
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+; Function Attrs: convergent
+define private void @c_interoperability_foo(ptr dead_on_unwind noalias writable sret(%struct.c_interoperability_My_struct) align 4 %return.result, ptr noundef byval(%struct.c_interoperability_My_struct) align 8 %"arguments[0].instance") #0 {
+entry:
+  %value = alloca %struct.c_interoperability_My_struct, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %value, i8 0, i64 20, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %return.result, ptr align 4 %value, i64 20, i1 false)
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @c_interoperability_run() #0 {
+entry:
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %result = alloca %struct.c_interoperability_My_struct, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %instance, i8 0, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr dead_on_unwind noalias writable sret(%struct.c_interoperability_My_struct) align 4 %0, ptr noundef byval(%struct.c_interoperability_My_struct) align 8 %instance)
+  %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %1, ptr %result, align 4
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #1
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #2
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
+attributes #2 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
+
+    test_c_interoperability_common("c_interoperability_function_with_big_struct_and_return.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_big_struct_and_return x86_64-pc-windows-msvc", "[LLVM_IR]")
+  {
+    char const* const expected_llvm_ir = R"(
+%struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
+
+; Function Attrs: convergent
+define private void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %return.result, ptr noundef %"arguments[0].instance") #0 {
+entry:
+  %value = alloca %struct.c_interoperability_My_struct, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %value, i8 0, i64 20, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %return.result, ptr align 4 %value, i64 20, i1 false)
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @c_interoperability_run() #0 {
+entry:
+  %instance = alloca %struct.c_interoperability_My_struct, align 4
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = alloca %struct.c_interoperability_My_struct, align 4
+  %result = alloca %struct.c_interoperability_My_struct, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %instance, i8 0, i64 20, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %1, ptr align 4 %instance, i64 20, i1 false)
+  call void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %0, ptr noundef %1)
+  %2 = load %struct.c_interoperability_My_struct, ptr %0, align 4
+  store %struct.c_interoperability_My_struct %2, ptr %result, align 4
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #1
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #2
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
+attributes #2 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
+
+    test_c_interoperability_common("c_interoperability_function_with_big_struct_and_return.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
   
   TEST_CASE("C Interoperability - function_return_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {
@@ -5566,20 +5648,20 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 ; Function Attrs: convergent
-define private void @c_interoperability_foo(ptr %0) #0 {
+define private void @c_interoperability_foo(ptr dead_on_unwind noalias writable sret(%struct.c_interoperability_My_struct) align 4 %return.result) #0 {
 entry:
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
   store i32 0, ptr %5, align 4
-  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 4
-  store i32 0, ptr %6, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 20, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %return.result, ptr align 4 %0, i64 20, i1 false)
   ret void
 }
 
@@ -5588,7 +5670,7 @@ define private void @c_interoperability_run() #0 {
 entry:
   %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  call void @c_interoperability_foo(ptr noundef %0)
+  call void @c_interoperability_foo(ptr dead_on_unwind noalias writable sret(%struct.c_interoperability_My_struct) align 4 %0)
   %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
   store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
@@ -5610,20 +5692,20 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 ; Function Attrs: convergent
-define private void @c_interoperability_foo(ptr %0) #0 {
+define private void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %return.result) #0 {
 entry:
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
+  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 4
   store i32 0, ptr %5, align 4
-  %6 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 4
-  store i32 0, ptr %6, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 20, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %return.result, ptr align 4 %0, i64 20, i1 false)
   ret void
 }
 
@@ -5632,7 +5714,7 @@ define private void @c_interoperability_run() #0 {
 entry:
   %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  call void @c_interoperability_foo(ptr noundef %0)
+  call void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %0)
   %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
   store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
@@ -5852,18 +5934,18 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32 }
 
 ; Function Attrs: convergent
-define private void @c_interoperability_foo(ptr %0) #0 {
+define private void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %return.result) #0 {
 entry:
-  %1 = alloca %struct.c_interoperability_My_struct, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 0
+  %0 = alloca %struct.c_interoperability_My_struct, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 0
+  store i32 0, ptr %1, align 4
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 1
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 1
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 2
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 2
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %0, i32 0, i32 3
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %1, i32 0, i32 3
-  store i32 0, ptr %5, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %1, i64 16, i1 false)
+  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %return.result, ptr align 4 %0, i64 16, i1 false)
   ret void
 }
 
@@ -5872,7 +5954,7 @@ define private void @c_interoperability_run() #0 {
 entry:
   %0 = alloca %struct.c_interoperability_My_struct, align 4
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  call void @c_interoperability_foo(ptr noundef %0)
+  call void @c_interoperability_foo(ptr dead_on_unwind noalias writable align 4 %0)
   %1 = load %struct.c_interoperability_My_struct, ptr %0, align 4
   store %struct.c_interoperability_My_struct %1, ptr %instance, align 4
   ret void
@@ -5894,10 +5976,8 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 %struct.c_interoperability_My_struct = type { i32, i32, i32, i32, i32 }
 
 ; Function Attrs: convergent
-define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") #0 {
+define private void @c_interoperability_foo(ptr noundef byval(%struct.c_interoperability_My_struct) align 8 %"arguments[0].instance") #0 {
 entry:
-  %instance = alloca ptr, align 8
-  store ptr %"arguments[0].instance", ptr %instance, align 8
   ret void
 }
 
@@ -5905,27 +5985,21 @@ entry:
 define private void @c_interoperability_run() #0 {
 entry:
   %instance = alloca %struct.c_interoperability_My_struct, align 4
-  %0 = alloca %struct.c_interoperability_My_struct, align 4
-  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  %0 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 0
+  store i32 0, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
   store i32 0, ptr %1, align 4
-  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 1
+  %2 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
   store i32 0, ptr %2, align 4
-  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 2
+  %3 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
   store i32 0, ptr %3, align 4
-  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 3
+  %4 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 4
   store i32 0, ptr %4, align 4
-  %5 = getelementptr inbounds %struct.c_interoperability_My_struct, ptr %instance, i32 0, i32 4
-  store i32 0, ptr %5, align 4
-  call void @llvm.memcpy.p0.p0.i64(ptr align 4 %0, ptr align 4 %instance, i64 20, i1 false)
-  call void @c_interoperability_foo(ptr noundef %0)
+  call void @c_interoperability_foo(ptr noundef byval(%struct.c_interoperability_My_struct) align 8 %instance)
   ret void
 }
 
-; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
-declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
-
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
-attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
 )";
 
     test_c_interoperability_common("c_interoperability_function_with_big_struct.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
@@ -5939,8 +6013,6 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 ; Function Attrs: convergent
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") #0 {
 entry:
-  %instance = alloca ptr, align 8
-  store ptr %"arguments[0].instance", ptr %instance, align 8
   ret void
 }
 
@@ -6179,8 +6251,6 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 ; Function Attrs: convergent
 define private void @c_interoperability_foo(ptr noundef %"arguments[0].instance") #0 {
 entry:
-  %instance = alloca ptr, align 8
-  store ptr %"arguments[0].instance", ptr %instance, align 8
   ret void
 }
 

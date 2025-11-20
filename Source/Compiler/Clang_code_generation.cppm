@@ -53,10 +53,13 @@ namespace h::compiler
     );
 
     export void set_llvm_function_argument_names(
+        llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         h::Function_declaration const& function_declaration,
         llvm::Function& llvm_function,
-        Declaration_database const& declaration_database
+        Declaration_database const& declaration_database,
+        Type_database const& type_database
     );
 
     struct Transformed_arguments

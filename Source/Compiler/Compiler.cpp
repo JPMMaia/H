@@ -157,10 +157,12 @@ namespace h::compiler
 
     llvm::Function& to_function(
         llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
         Clang_module_data& clang_module_data,
         std::string_view const module_name,
         llvm::FunctionType& llvm_function_type,
         Function_declaration const& function_declaration,
+        Type_database const& type_database,
         Declaration_database const& declaration_database
     )
     {
@@ -181,10 +183,13 @@ namespace h::compiler
         }
 
         set_llvm_function_argument_names(
+            llvm_context,
+            llvm_data_layout,
             clang_module_data,
             function_declaration,
             *llvm_function,
-            declaration_database
+            declaration_database,
+            type_database
         );
 
         llvm_function->setCallingConv(llvm::CallingConv::C);
@@ -213,10 +218,12 @@ namespace h::compiler
 
         llvm::Function& llvm_function = to_function(
             llvm_context,
+            llvm_data_layout,
             clang_module_data,
             core_module.name,
             *llvm_function_type,
             function_declaration,
+            type_database,
             declaration_database
         );
 
@@ -950,8 +957,10 @@ namespace h::compiler
 
     void add_instance_call_declarations(
         llvm::LLVMContext& llvm_context,
+        llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         Clang_module_data& clang_module_data,
+        Type_database& type_database,
         Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
@@ -979,10 +988,12 @@ namespace h::compiler
 
             llvm::Function& llvm_function = to_function(
                 llvm_context,
+                llvm_data_layout,
                 clang_module_data,
                 key.module_name,
                 *llvm_function_type,
                 function_declaration,
+                type_database,
                 declaration_database
             );
 
@@ -1152,7 +1163,7 @@ namespace h::compiler
 
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, {});
         add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, {});
-        add_instance_call_declarations(llvm_context, *llvm_module, clang_module_data, declaration_database, {});
+        add_instance_call_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, core_module, core_module_dependencies, {});
 
