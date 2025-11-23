@@ -4285,4 +4285,43 @@ export function foo(length: Uint64) -> ()
 
         test_validate_module(input, {}, expected_diagnostics);
     }
+
+    TEST_CASE("Validates that types with the same unique name from different modules match", "[Validation][Unique_name]")
+    {
+        std::string_view const module_a = R"(module Module_a;
+
+@unique_name("My_unique_type")
+struct My_unique_type
+{
+}
+)";
+
+        std::string_view const module_b = R"(module Module_b;
+
+@unique_name("My_unique_type")
+struct My_unique_type
+{
+}
+)";
+
+        std::string_view const input = R"(module Module_c;
+
+import Module_a as module_a;
+import Module_b as module_b;
+
+function run(a: module_a.My_unique_type, b: module_b.My_unique_type) -> ()
+{
+    var v0: module_a.My_unique_type = b;
+    var v1: module_b.My_unique_type = a;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        std::pmr::vector<std::string_view> const dependencies = { module_a, module_b };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
 }

@@ -233,6 +233,15 @@ namespace h
 
     export template <typename Function_t>
     bool visit_type_references(
+        h::Forward_declaration const& declaration,
+        Function_t predicate
+    )
+    {
+        return false;
+    }
+
+    export template <typename Function_t>
+    bool visit_type_references(
         h::Global_variable_declaration const& declaration,
         Function_t predicate
     )

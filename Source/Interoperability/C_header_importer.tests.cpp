@@ -1469,6 +1469,9 @@ typedef struct My_non_opaque_type {
 } My_non_opaque_type;
 
 typedef const My_non_opaque_type* My_non_opaque_type_alias;
+
+#define DEFINE_HANDLE(object) typedef struct object##_t* object;
+DEFINE_HANDLE(My_macro_type)
 )";
 
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
@@ -1481,14 +1484,16 @@ typedef const My_non_opaque_type* My_non_opaque_type_alias;
         CHECK(header_module.export_declarations.struct_declarations.size() == 1);
         CHECK(header_module.internal_declarations.struct_declarations.empty());
 
-        REQUIRE(header_module.export_declarations.alias_type_declarations.size() == 2);
+        REQUIRE(header_module.export_declarations.alias_type_declarations.size() == 3);
+
+        REQUIRE(header_module.export_declarations.forward_declarations.size() == 2);
 
         {
             h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
             CHECK(declaration.name == "My_opaque_type");
 
             REQUIRE(declaration.type.size() == 1);
-            CHECK(declaration.type[0] == h::create_pointer_type_type_reference({}, false));
+            CHECK(declaration.type[0] == h::create_pointer_type_type_reference({h::create_custom_type_reference("c.My_data", "My_opaque_type_t")}, true));
 
             CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 2, 34, 2, 35));
         }
@@ -1501,6 +1506,32 @@ typedef const My_non_opaque_type* My_non_opaque_type_alias;
             CHECK(declaration.type[0] == h::create_pointer_type_type_reference({h::create_custom_type_reference("c.My_data", "My_non_opaque_type")}, false));
 
             CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 7, 35, 7, 36));
+        }
+
+        {
+            h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[2];
+            CHECK(declaration.name == "My_macro_type");
+
+            REQUIRE(declaration.type.size() == 1);
+            CHECK(declaration.type[0] == h::create_pointer_type_type_reference({h::create_custom_type_reference("c.My_data", "My_macro_type_t")}, true));
+
+            CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 10, 15, 10, 16));
+        }
+
+        {
+            h::Forward_declaration const& declaration = header_module.export_declarations.forward_declarations[0];
+            CHECK(declaration.name == "My_opaque_type_t");
+            CHECK(declaration.unique_name == "My_opaque_type_t");
+
+            CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 2, 16, 2, 17));
+        }
+
+        {
+            h::Forward_declaration const& declaration = header_module.export_declarations.forward_declarations[1];
+            CHECK(declaration.name == "My_macro_type_t");
+            CHECK(declaration.unique_name == "My_macro_type_t");
+
+            CHECK(declaration.source_location == h::create_source_range_location(header_file_path, 10, 1, 10, 2));
         }
     }
 

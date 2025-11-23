@@ -26,6 +26,7 @@ namespace h::c
         std::pmr::string module_name;
         std::pmr::vector<h::Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<h::Enum_declaration> enum_declarations;
+        std::pmr::vector<h::Forward_declaration> forward_declarations;
         std::pmr::vector<h::Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<h::Struct_declaration> struct_declarations;
         std::pmr::vector<h::Union_declaration> union_declarations;

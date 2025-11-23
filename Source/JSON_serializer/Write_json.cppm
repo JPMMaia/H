@@ -415,6 +415,12 @@ namespace h::json
     export template<typename Writer_type>
         void write_object(
             Writer_type& writer,
+            Forward_declaration const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
             Struct_declaration const& input
         );
 
@@ -1289,6 +1295,20 @@ namespace h::json
         writer.Key("values");
         write_object(writer, output.values);
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Forward_declaration const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
@@ -2402,6 +2422,8 @@ namespace h::json
         write_object(writer, output.alias_type_declarations);
         writer.Key("enum_declarations");
         write_object(writer, output.enum_declarations);
+        writer.Key("forward_declarations");
+        write_object(writer, output.forward_declarations);
         writer.Key("global_variable_declarations");
         write_object(writer, output.global_variable_declarations);
         writer.Key("struct_declarations");

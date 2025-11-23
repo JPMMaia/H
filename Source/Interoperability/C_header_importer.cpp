@@ -390,23 +390,6 @@ namespace h::c
 
             std::optional<Type_reference> element_type = create_type_reference(declarations, cursor, pointee_type);
 
-            if (element_type.has_value() && std::holds_alternative<h::Custom_type_reference>(element_type->data))
-            {
-                if (!clang_isCursorDefinition(pointee_declaration))
-                {
-                    h::Pointer_type opaque_pointer_type
-                    {
-                        .element_type = {},
-                        .is_mutable = false
-                    };
-
-                    return h::Type_reference
-                    {
-                        .data = std::move(opaque_pointer_type)
-                    };
-                }
-            }
-
             bool const is_const = clang_isConstQualifiedType(pointee_type);
 
             h::Pointer_type pointer_type
@@ -677,6 +660,24 @@ namespace h::c
             .name = std::pmr::string{enum_type_name},
             .unique_name = std::pmr::string{enum_type_name},
             .values = std::move(values),
+            .source_location = cursor_location.source_location,
+        };
+    }
+
+    h::Forward_declaration create_forward_declaration(C_declarations const& declarations, CXCursor const cursor)
+    {
+        CXType const type = clang_getCursorType(cursor);
+        String const type_spelling = { clang_getTypeSpelling(type) };
+        std::string_view const type_name = remove_type(type_spelling.string_view());
+
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
+        return h::Forward_declaration
+        {
+            .name = std::pmr::string{type_name},
+            .unique_name = std::pmr::string{type_name},
             .source_location = cursor_location.source_location,
         };
     }
@@ -2124,6 +2125,14 @@ namespace h::c
                 internal_declarations.enum_declarations.push_back(declaration);
         }
 
+        for (h::Forward_declaration const& declaration : declarations.forward_declarations)
+        {
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
+                export_declarations.forward_declarations.push_back(declaration);
+            else
+                internal_declarations.forward_declarations.push_back(declaration);
+        }
+
         for (h::Global_variable_declaration const& declaration : declarations.global_variable_declarations)
         {
             if (is_public_declaration(*declaration.unique_name, public_prefixes))
@@ -2393,6 +2402,9 @@ namespace h::c
         for (h::Alias_type_declaration& declaration : declarations.alias_type_declarations)
             transform_name(declaration, remove_prefixes);
 
+        for (h::Forward_declaration& declaration : declarations.forward_declarations)
+            transform_name(declaration, remove_prefixes);
+
         for (h::Global_variable_declaration& declaration : declarations.global_variable_declarations)
             transform_name(declaration, remove_prefixes);
 
@@ -2567,12 +2579,20 @@ namespace h::c
                 {
                     declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
                 }
+                else
+                {
+                    declarations->forward_declarations.push_back(create_forward_declaration(*declarations, current_cursor));
+                }
             }
             else if (cursor_kind == CXCursor_UnionDecl)
             {
                 if (clang_isCursorDefinition(current_cursor))
                 {
                     declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+                }
+                else
+                {
+                    declarations->forward_declarations.push_back(create_forward_declaration(*declarations, current_cursor));
                 }
             }
             else if (cursor_kind == CXCursor_VarDecl)
@@ -2613,6 +2633,7 @@ namespace h::c
             header_name,
             declarations_with_fixed_width_integers.alias_type_declarations,
             declarations_with_fixed_width_integers.enum_declarations,
+            declarations_with_fixed_width_integers.forward_declarations,
             declarations_with_fixed_width_integers.global_variable_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
             declarations_with_fixed_width_integers.union_declarations,

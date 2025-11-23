@@ -457,6 +457,7 @@ namespace h::json
     export std::optional<Stack_state> get_next_state_alias_type_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_value(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_enum_declaration(Stack_state* state, std::string_view const key);
+    export std::optional<Stack_state> get_next_state_forward_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_struct_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_union_declaration(Stack_state* state, std::string_view const key);
     export std::optional<Stack_state> get_next_state_function_condition(Stack_state* state, std::string_view const key);
@@ -1585,6 +1586,46 @@ namespace h::json
             return Stack_state
             {
                 .pointer = &parent->comment.value(),
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "source_location")
+        {
+            parent->source_location = Source_range_location{};
+            return Stack_state
+            {
+                .pointer = &parent->source_location.value(),
+                .type = "Source_range_location",
+                .get_next_state = get_next_state_source_range_location
+            };
+        }
+
+        return {};
+    }
+
+    export std::optional<Stack_state> get_next_state_forward_declaration(Stack_state* state, std::string_view const key)
+    {
+        h::Forward_declaration* parent = static_cast<h::Forward_declaration*>(state->pointer);
+
+        if (key == "name")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->name,
+                .type = "std::pmr::string",
+                .get_next_state = nullptr,
+            };
+        }
+
+        if (key == "unique_name")
+        {
+            parent->unique_name = std::pmr::string{};
+            return Stack_state
+            {
+                .pointer = &parent->unique_name.value(),
                 .type = "std::pmr::string",
                 .get_next_state = nullptr,
             };
@@ -4503,6 +4544,31 @@ namespace h::json
             };
         }
 
+        if (key == "forward_declarations")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Forward_declaration>* parent = static_cast<std::pmr::vector<Forward_declaration>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Forward_declaration>* parent = static_cast<std::pmr::vector<Forward_declaration>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->forward_declarations,
+                .type = "std::pmr::vector<Forward_declaration>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_forward_declaration
+            };
+        }
+
         if (key == "global_variable_declarations")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
@@ -5024,6 +5090,16 @@ namespace h::json
                 .pointer = output,
                 .type = "Enum_declaration",
                 .get_next_state = get_next_state_enum_declaration
+            };
+        }
+
+        if constexpr (std::is_same_v<Struct_type, h::Forward_declaration>)
+        {
+            return Stack_state
+            {
+                .pointer = output,
+                .type = "Forward_declaration",
+                .get_next_state = get_next_state_forward_declaration
             };
         }
 

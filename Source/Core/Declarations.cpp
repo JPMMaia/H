@@ -58,6 +58,7 @@ namespace h
         std::string_view const module_name,
         std::span<h::Alias_type_declaration const> const alias_type_declarations,
         std::span<h::Enum_declaration const> const enum_declarations,
+        std::span<h::Forward_declaration const> forward_declarations,
         std::span<h::Global_variable_declaration const> global_variable_declarations,
         std::span<h::Struct_declaration const> const struct_declarations,
         std::span<h::Union_declaration const> const union_declarations,
@@ -67,6 +68,11 @@ namespace h
     )
     {
         Declaration_map& map = database.map[module_name.data()];
+
+        for (Forward_declaration const& declaration : forward_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+        }
 
         for (Alias_type_declaration const& declaration : alias_type_declarations)
         {
@@ -119,6 +125,7 @@ namespace h
             core_module.name,
             core_module.export_declarations.alias_type_declarations,
             core_module.export_declarations.enum_declarations,
+            core_module.export_declarations.forward_declarations,
             core_module.export_declarations.global_variable_declarations,
             core_module.export_declarations.struct_declarations,
             core_module.export_declarations.union_declarations,
@@ -132,6 +139,7 @@ namespace h
             core_module.name,
             core_module.internal_declarations.alias_type_declarations,
             core_module.internal_declarations.enum_declarations,
+            core_module.internal_declarations.forward_declarations,
             core_module.internal_declarations.global_variable_declarations,
             core_module.internal_declarations.struct_declarations,
             core_module.internal_declarations.union_declarations,

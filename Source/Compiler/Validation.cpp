@@ -77,6 +77,59 @@ namespace h::compiler
         };
     }
 
+    std::optional<std::string_view> find_type_unique_name(
+        Declaration_database const& declaration_database,
+        h::Type_reference const& type
+    )
+    {
+        if (std::holds_alternative<h::Custom_type_reference>(type.data))
+        {
+            std::optional<Declaration> const declaration_optional = find_declaration(declaration_database, type);
+            if (declaration_optional.has_value())
+            {
+                Declaration const& declaration = declaration_optional.value();
+
+                if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+                {
+                    Alias_type_declaration const& value = *std::get<Alias_type_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Enum_declaration const*>(declaration.data))
+                {
+                    Enum_declaration const& value = *std::get<Enum_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Forward_declaration const*>(declaration.data))
+                {
+                    Forward_declaration const& value = *std::get<Forward_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Function_declaration const*>(declaration.data))
+                {
+                    Function_declaration const& value = *std::get<Function_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Global_variable_declaration const*>(declaration.data))
+                {
+                    Global_variable_declaration const& value = *std::get<Global_variable_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+                {
+                    Struct_declaration const& value = *std::get<Struct_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+                else if (std::holds_alternative<Union_declaration const*>(declaration.data))
+                {
+                    Union_declaration const& value = *std::get<Union_declaration const*>(declaration.data);
+                    return value.unique_name;
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
     bool are_compatible_types(
         Declaration_database const& declaration_database,
         std::optional<h::Type_reference> const& first,
@@ -93,6 +146,18 @@ namespace h::compiler
         std::optional<h::Type_reference> const second_underlying_type = get_underlying_type(declaration_database, second.value());
         if (!second_underlying_type.has_value())
             return false;
+
+        {
+            std::optional<std::string_view> const first_unique_name = find_type_unique_name(declaration_database, first_underlying_type.value());
+            if (first_unique_name.has_value())
+            {
+                std::optional<std::string_view> const second_unique_name = find_type_unique_name(declaration_database, second_underlying_type.value());
+                if (second_unique_name.has_value())
+                {
+                    return first_unique_name.value() == second_unique_name.value();
+                }
+            }
+        }
         
         if (is_pointer(first_underlying_type.value()) && is_null_pointer_type(second_underlying_type.value()))
             return true;
@@ -127,6 +192,18 @@ namespace h::compiler
         if (!source_underlying_type.has_value())
             return false;
         h::Type_reference const& source_type = source_underlying_type.value();
+
+        {
+            std::optional<std::string_view> const destination_unique_name = find_type_unique_name(declaration_database, destination_type);
+            if (destination_unique_name.has_value())
+            {
+                std::optional<std::string_view> const source_unique_name = find_type_unique_name(declaration_database, source_type);
+                if (source_unique_name.has_value())
+                {
+                    return destination_unique_name.value() == source_unique_name.value();
+                }
+            }
+        }
 
         if (is_pointer(destination_type))
         {

@@ -419,6 +419,19 @@ namespace h
 #endif
     };
 
+    export struct Forward_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        std::optional<Source_range_location> source_location;
+
+#if HACK_SPACESHIP_OPERATOR
+        friend std::strong_ordering operator<=>(Forward_declaration const&, Forward_declaration const&) = default;
+#else
+        friend auto operator<=>(Forward_declaration const&, Forward_declaration const&) = default;
+#endif
+    };
+
     export struct Struct_declaration
     {
         std::pmr::string name;
@@ -1215,6 +1228,7 @@ namespace h
     {
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<Enum_declaration> enum_declarations;
+        std::pmr::vector<Forward_declaration> forward_declarations;
         std::pmr::vector<Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Union_declaration> union_declarations;
@@ -1276,6 +1290,7 @@ namespace h
 
     export std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view name);
     export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
+    export std::optional<Forward_declaration const*> find_forward_declaration(Module const& module, std::string_view name);
     export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
     export std::optional<Function_definition const*> find_function_definition(Module const& module, std::string_view name);
     export std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name);

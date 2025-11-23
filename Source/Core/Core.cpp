@@ -347,6 +347,11 @@ namespace h
         return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
     }
 
+    std::optional<Forward_declaration const*> find_forward_declaration(h::Module const& module, std::string_view const name)
+    {
+        return get_value(name, module.export_declarations.forward_declarations, module.internal_declarations.forward_declarations);
+    }
+
     std::optional<Global_variable_declaration const*> find_global_variable_declaration(h::Module const& module, std::string_view name)
     {
         return get_value(name, module.export_declarations.global_variable_declarations, module.internal_declarations.global_variable_declarations);
