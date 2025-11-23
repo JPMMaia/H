@@ -4195,8 +4195,10 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
+@my_unique_global = global i32 0
+
 ; Function Attrs: convergent
-define void @my_unique_name() #0 {
+define void @my_unique_function() #0 {
 entry:
   ret void
 }

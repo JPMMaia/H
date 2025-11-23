@@ -1,6 +1,28 @@
 module Unique_name;
 
-@unique_name("my_unique_name")
+@unique_name("My_unique_alias")
+export using My_alias = Int32;
+
+@unique_name("My_unique_enum")
+export enum My_enum
+{
+    V0 = 0,
+}
+
+@unique_name("my_unique_global")
+mutable my_global = 0;
+
+@unique_name("my_unique_function")
 export function my_function() -> ()
+{
+}
+
+@unique_name("my_unique_struct")
+export struct My_struct
+{
+}
+
+@unique_name("my_unique_union")
+export union My_union
 {
 }
