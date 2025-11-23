@@ -3425,14 +3425,14 @@ namespace h::compiler
         switch (operation)
         {
         case Unary_operation::Not: {
-            if (is_bool(type))
+            if (is_bool(type) || is_c_bool(type))
             {
                 llvm::Value* const loaded_value = load_if_needed(value_expression, expression.expression.expression_index, statement, parameters).value;
                 return Value_and_type
                 {
                     .name = "",
                     .value = llvm_builder.CreateNot(loaded_value),
-                    .type = create_bool_type_reference()
+                    .type = type
                 };
             }
             break;

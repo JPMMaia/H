@@ -3154,6 +3154,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 @global_7 = internal constant [9 x i8] c"positive\00"
 @global_8 = internal constant [5 x i8] c"zero\00"
 @global_9 = internal constant [5 x i8] c"true\00"
+@global_10 = internal constant [6 x i8] c"false\00"
 
 ; Function Attrs: convergent
 define void @If_expressions_run_ifs(i32 noundef %"arguments[0].value") #0 {
@@ -3233,6 +3234,16 @@ if_s0_then7:                                      ; preds = %if_s4_after
   br label %if_s1_after8
 
 if_s1_after8:                                     ; preds = %if_s0_then7, %if_s4_after
+  %14 = load i8, ptr %c_boolean, align 1
+  %15 = xor i8 %14, -1
+  %16 = trunc i8 %15 to i1
+  br i1 %16, label %if_s0_then9, label %if_s1_after10
+
+if_s0_then9:                                      ; preds = %if_s1_after8
+  call void @If_expressions_print_message(ptr noundef @global_10)
+  br label %if_s1_after10
+
+if_s1_after10:                                    ; preds = %if_s0_then9, %if_s1_after8
   ret void
 }
 
@@ -4150,33 +4161,40 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     char const* const expected_llvm_ir = R"(
 ; Function Attrs: convergent
-define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean") #0 {
+define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean", i1 noundef zeroext %"arguments[2].my_c_boolean") #0 {
 entry:
   %my_integer = alloca i32, align 4
   %my_boolean = alloca i1, align 1
+  %my_c_boolean = alloca i8, align 1
   %not_variable = alloca i1, align 1
   %bitwise_not_variable = alloca i32, align 4
   %minus_variable = alloca i32, align 4
   %my_mutable_integer = alloca i32, align 4
   %address_of_variable = alloca ptr, align 8
   %indirection_variable = alloca i32, align 4
+  %not_c_variable = alloca i8, align 1
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
   %0 = trunc i8 %"arguments[1].my_boolean" to i1
   store i1 %0, ptr %my_boolean, align 1
-  %1 = load i1, ptr %my_boolean, align 1
-  %2 = xor i1 %1, true
-  store i1 %2, ptr %not_variable, align 1
-  %3 = load i32, ptr %my_integer, align 4
-  %4 = xor i32 %3, -1
-  store i32 %4, ptr %bitwise_not_variable, align 4
-  %5 = load i32, ptr %my_integer, align 4
-  %6 = sub i32 0, %5
-  store i32 %6, ptr %minus_variable, align 4
+  %1 = zext i1 %"arguments[2].my_c_boolean" to i8
+  store i8 %1, ptr %my_c_boolean, align 1
+  %2 = load i1, ptr %my_boolean, align 1
+  %3 = xor i1 %2, true
+  store i1 %3, ptr %not_variable, align 1
+  %4 = load i32, ptr %my_integer, align 4
+  %5 = xor i32 %4, -1
+  store i32 %5, ptr %bitwise_not_variable, align 4
+  %6 = load i32, ptr %my_integer, align 4
+  %7 = sub i32 0, %6
+  store i32 %7, ptr %minus_variable, align 4
   store i32 1, ptr %my_mutable_integer, align 4
   store ptr %my_mutable_integer, ptr %address_of_variable, align 8
-  %7 = load ptr, ptr %address_of_variable, align 8
-  %8 = load i32, ptr %7, align 4
-  store i32 %8, ptr %indirection_variable, align 4
+  %8 = load ptr, ptr %address_of_variable, align 8
+  %9 = load i32, ptr %8, align 4
+  store i32 %9, ptr %indirection_variable, align 4
+  %10 = load i8, ptr %my_c_boolean, align 1
+  %11 = xor i8 %10, -1
+  store i8 %11, ptr %not_c_variable, align 1
   ret void
 }
 

@@ -2,7 +2,8 @@ module Unary_expressions;
 
 export function unary_operations(
     my_integer: Int32,
-    my_boolean: Bool
+    my_boolean: Bool,
+    my_c_boolean: C_bool
 ) -> ()
 {
     var not_variable = !my_boolean;
@@ -12,4 +13,6 @@ export function unary_operations(
     mutable my_mutable_integer = 1;
     var address_of_variable = &my_mutable_integer;
     var indirection_variable = *address_of_variable;
+
+    var not_c_variable = !my_c_boolean;
 }

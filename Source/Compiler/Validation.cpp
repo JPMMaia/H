@@ -3083,7 +3083,7 @@ namespace h::compiler
         {
             case Unary_operation::Not:
             {
-                if (!is_bool(type))
+                if (!is_bool(type) && !is_c_bool(type))
                 {
                     return
                     {
