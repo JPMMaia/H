@@ -253,7 +253,7 @@ module.exports = grammar({
     Boolean: $ => choice("true", "false"),
     Integer_without_suffix: $ => /\d+/,
     Number: $ => /\d+([.]\d+)?[a-z0-9]*/,
-    String: $ => /".*"[a-z0-9]*/,
+    String: $ => /"(?:(?:\\")|[^"])*"[a-z0-9]*/,
     Comment: $ => prec.left(0, repeat1(token(seq("//", /.*/)))),
   }
 });
