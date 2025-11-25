@@ -248,7 +248,7 @@ namespace h::compiler
                 if (destination_array_slice_type.element_type.empty() || source_array_slice_type.element_type.empty())
                     return false;
 
-                return destination_array_slice_type.element_type[0] == source_array_slice_type.element_type[0];
+                return can_assign_type(declaration_database, destination_array_slice_type.element_type[0], source_array_slice_type.element_type[0]);
             }
             else if (std::holds_alternative<h::Constant_array_type>(source_type.data))
             {
@@ -260,7 +260,7 @@ namespace h::compiler
                 if (destination_array_slice_type.element_type.empty() || constant_array_type.value_type.empty())
                     return false;
 
-                return destination_array_slice_type.element_type[0] == constant_array_type.value_type[0];
+                return can_assign_type(declaration_database, destination_array_slice_type.element_type[0], constant_array_type.value_type[0]);
             }
         }
 
@@ -3430,6 +3430,31 @@ namespace h::compiler
         return {};
     }
 
+    static std::optional<h::Type_reference> get_expected_expression_type(
+        h::Statement const& statement,
+        std::optional<h::Type_reference> const expected_statement_type,
+        std::size_t const expression_index
+    )
+    {
+        if (expected_statement_type.has_value())
+            return expected_statement_type.value();
+
+        if (expression_index >= statement.expressions.size())
+            return std::nullopt;
+
+        if (expression_index == 1)
+        {
+            h::Expression const& expression = statement.expressions[0];
+            if (std::holds_alternative<h::Variable_declaration_with_type_expression>(expression.data))
+            {
+                h::Variable_declaration_with_type_expression const& data = std::get<h::Variable_declaration_with_type_expression>(expression.data);
+                return data.type;
+            }
+        }
+
+        return std::nullopt;
+    }
+
     std::pmr::vector<std::optional<Type_info>> calculate_expression_type_infos_of_statement(
         h::Module const& core_module,
         h::Function_declaration const* const function_declaration,
@@ -3446,6 +3471,7 @@ namespace h::compiler
         for (std::size_t expression_index = 0; expression_index < statement.expressions.size(); ++expression_index)
         {
             h::Expression const& expression = statement.expressions[expression_index];
+            std::optional<h::Type_reference> const expected_expression_type = get_expected_expression_type(statement, expected_statement_type, expression_index);
             
             expression_types[expression_index] = get_expression_type_info(
                 core_module,
@@ -3453,7 +3479,7 @@ namespace h::compiler
                 scope,
                 statement,
                 expression,
-                expected_statement_type,
+                expected_expression_type,
                 declaration_database
             );
         }

@@ -4002,6 +4002,22 @@ export function run() -> ()
 
     var c: Array_slice<Int64> = a;
     take_int64(a);
+
+    mutable d: Constant_array<Int32, 4> = [0, 1, 2, 3];
+
+    var e: Array_slice<mutable Int32> = d;
+    var f: Array_slice<Int32> = d;
+    take_int32(d);
+
+    mutable g: Constant_array<*C_char, 2> = ["Hello"c, "world!"c];
+
+    var h: Array_slice<*mutable C_char> = g;
+    var i: Array_slice<*C_char> = g;
+
+    mutable c0: Constant_array<*mutable C_char, 0> = [];
+
+    var a0: Array_slice<*mutable C_char> = c0;
+    var a1: Array_slice<*C_char> = c0;
 }
 )";
 
@@ -4021,6 +4037,14 @@ export function run() -> ()
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "Argument 0 type is 'Array_slice<Int64>' but 'Constant_array<Int32, 4>' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(29, 43, 29, 44),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Constant_array<*C_char, 2>' does not match expected type 'Array_slice<*mutable C_char>'.",
                 .related_information = {},
             }
         };
@@ -4115,6 +4139,10 @@ export function run(integers: Array_slice<Int32>, mutable_integers: Array_slice<
 {
     var a: Array_slice<Int32> = mutable_integers;
     var b: Array_slice<mutable Int32> = integers;
+
+    var string_data: **mutable C_char = null;
+    var string_array_slice = create_array_slice_from_pointer(string_data, 0u64);
+    var string_array_slice_copy: Array_slice<*C_char> = string_array_slice;
 }
 )";
 
