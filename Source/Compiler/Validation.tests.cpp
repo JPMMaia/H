@@ -3010,6 +3010,34 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that cannot assign constant c string to mutable c string", "[Validation][String]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var s0: *C_char = "abc"c;
+    var s1: *mutable C_char = "abc"c;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 31, 6, 37),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*C_char' does not match expected type '*mutable C_char'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
     {
         std::string_view const input = R"(module Test;
