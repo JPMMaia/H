@@ -2248,12 +2248,6 @@ namespace h::compiler
             Constant_array_type const& requested_array_type = std::get<Constant_array_type>(parameters.expression_type->data);
             if (requested_array_type.size != expression.array_data.size())
                 throw std::runtime_error{std::format("Expected initializer list with size {} but got {} elements.", requested_array_type.size, expression.array_data.size())};
-
-            if (array_data_values.size() > 0)
-            {
-                if (*array_data_values[0].type != requested_array_type.value_type[0])
-                    throw std::runtime_error{"Cannot assign initializer list to array due to type mismatch."};
-            }
         }
 
         if (expression.array_data.empty())
@@ -3737,43 +3731,39 @@ namespace h::compiler
                     return array_slice;
                 }
 
-                std::optional<Type_reference> const source_element_type = get_element_or_pointee_type(source_type);
                 std::optional<Type_reference> const expected_element_type = get_element_or_pointee_type(expected_type);
 
-                if (source_element_type == expected_element_type)
+                std::pmr::vector<h::Type_reference> const element_type{expected_element_type.value()};
+
+                llvm::Type* const constant_array_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
+
+                Value_and_type const data_value
                 {
-                    std::pmr::vector<h::Type_reference> const element_type{expected_element_type.value()};
+                    .name = "",
+                    .value = llvm_builder.CreateGEP(
+                        constant_array_llvm_type,
+                        value.value,
+                        {llvm_builder.getInt32(0), llvm_builder.getInt32(0)},
+                        "data_pointer"
+                    ),
+                    .type = std::nullopt,
+                };
 
-                    llvm::Type* const constant_array_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
+                Value_and_type const length_value
+                {
+                    .name = "",
+                    .value = llvm_builder.getInt64(array_length),
+                    .type = create_integer_type_type_reference(64, false),
+                };
 
-                    Value_and_type const data_value
-                    {
-                        .name = "",
-                        .value = llvm_builder.CreateGEP(
-                            constant_array_llvm_type,
-                            value.value,
-                            {llvm_builder.getInt32(0), llvm_builder.getInt32(0)},
-                            "data_pointer"
-                        ),
-                        .type = std::nullopt,
-                    };
+                Value_and_type const array_slice = instantiate_array_slice(
+                    element_type,
+                    data_value,
+                    length_value,
+                    parameters
+                );
 
-                    Value_and_type const length_value
-                    {
-                        .name = "",
-                        .value = llvm_builder.getInt64(array_length),
-                        .type = create_integer_type_type_reference(64, false),
-                    };
-
-                    Value_and_type const array_slice = instantiate_array_slice(
-                        element_type,
-                        data_value,
-                        length_value,
-                        parameters
-                    );
-
-                    return array_slice;
-                }
+                return array_slice;
             }
         }
 

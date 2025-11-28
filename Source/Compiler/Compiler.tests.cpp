@@ -5989,6 +5989,97 @@ attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 
     test_c_interoperability_common("c_interoperability_function_return_small_struct.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
   }
+
+  TEST_CASE("C Interoperability - function_with_array_slice x86_64-pc-linux-gnu", "[LLVM_IR]")
+  {
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define private void @c_interoperability_take(ptr %"arguments[0].a0_0", i64 %"arguments[0].a0_1") #0 {
+entry:
+  %a0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %0 = getelementptr inbounds { ptr, i64 }, ptr %a0, i32 0, i32 0
+  store ptr %"arguments[0].a0_0", ptr %0, align 8
+  %1 = getelementptr inbounds { ptr, i64 }, ptr %a0, i32 0, i32 1
+  store i64 %"arguments[0].a0_1", ptr %1, align 8
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @c_interoperability_run() #0 {
+entry:
+  %v0 = alloca i32, align 4
+  %array = alloca [1 x ptr], i64 1, align 8
+  %array1 = alloca [1 x ptr], align 8
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  store i32 0, ptr %v0, align 4
+  %array_element_pointer = getelementptr [1 x ptr], ptr %array, i32 0, i32 0
+  store ptr %v0, ptr %array_element_pointer, align 8
+  %1 = load [1 x ptr], ptr %array, align 8
+  store [1 x ptr] %1, ptr %array1, align 8
+  %data_pointer = getelementptr [1 x ptr], ptr %array1, i32 0, i32 0
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %data_pointer, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 1, ptr %3, align 8
+  %4 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 0
+  %5 = load ptr, ptr %4, align 8
+  %6 = getelementptr inbounds { ptr, i64 }, ptr %0, i32 0, i32 1
+  %7 = load i64, ptr %6, align 8
+  call void @c_interoperability_take(ptr %5, i64 %7)
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_c_interoperability_common("c_interoperability_function_with_array_slice.hltxt", "x86_64-pc-linux-gnu", expected_llvm_ir);
+  }
+
+  TEST_CASE("C Interoperability - function_with_array_slice x86_64-pc-windows-msvc", "[LLVM_IR]")
+  {
+    char const* const expected_llvm_ir = R"(
+%struct.H_Builtin_Generic_array_slice = type { ptr, i64 }
+
+; Function Attrs: convergent
+define private void @c_interoperability_take(ptr noundef %"arguments[0].a0") #0 {
+entry:
+  ret void
+}
+
+; Function Attrs: convergent
+define private void @c_interoperability_run() #0 {
+entry:
+  %v0 = alloca i32, align 4
+  %array = alloca [1 x ptr], i64 1, align 8
+  %array1 = alloca [1 x ptr], align 8
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8
+  store i32 0, ptr %v0, align 4
+  %array_element_pointer = getelementptr [1 x ptr], ptr %array, i32 0, i32 0
+  store ptr %v0, ptr %array_element_pointer, align 8
+  %2 = load [1 x ptr], ptr %array, align 8
+  store [1 x ptr] %2, ptr %array1, align 8
+  %data_pointer = getelementptr [1 x ptr], ptr %array1, i32 0, i32 0
+  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0
+  store ptr %data_pointer, ptr %3, align 8
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1
+  store i64 1, ptr %4, align 8
+  call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 16, i1 false)
+  call void @c_interoperability_take(ptr noundef %1)
+  ret void
+}
+
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly, ptr noalias nocapture readonly, i64, i1 immarg) #1
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+)";
+
+    test_c_interoperability_common("c_interoperability_function_with_array_slice.hltxt", "x86_64-pc-windows-msvc", expected_llvm_ir);
+  }
   
   TEST_CASE("C Interoperability - function_with_big_struct x86_64-pc-linux-gnu", "[LLVM_IR]")
   {

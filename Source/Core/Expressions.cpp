@@ -19,6 +19,18 @@ namespace h
         };
     }
 
+    h::Expression create_call_expression(std::uint64_t const left_hand_side_expression, std::pmr::vector<Expression_index> arguments)
+    {
+        return h::Expression
+        {
+            .data = h::Call_expression
+            {
+                .expression = {.expression_index = left_hand_side_expression},
+                .arguments = std::move(arguments)
+            }
+        };
+    }
+
     h::Expression create_constant_expression(Type_reference type_reference, std::string_view const data)
     {
         return h::Expression
@@ -90,5 +102,16 @@ namespace h
     h::Expression create_null_pointer_expression()
     {
         return create_expression(h::Null_pointer_expression{});
+    }
+
+    h::Expression create_variable_expression(std::pmr::string name)
+    {
+        return h::Expression
+        {
+            .data = h::Variable_expression
+            {
+                .name = std::move(name),
+            }
+        };
     }
 }

@@ -21,6 +21,8 @@ namespace h
 
     export h::Statement create_statement(std::pmr::vector<h::Expression> expressions);
 
+    export h::Expression create_call_expression(std::uint64_t const left_hand_side_expression, std::pmr::vector<Expression_index> arguments);
+
     export h::Expression create_constant_expression(Type_reference type_reference, std::string_view const data);
 
     export h::Expression create_constant_array_expression(std::pmr::vector<h::Statement> array_data);
@@ -32,4 +34,6 @@ namespace h
     export h::Expression create_instantiate_expression(Instantiate_expression_type type, std::pmr::vector<Instantiate_member_value_pair> members);
 
     export h::Expression create_null_pointer_expression();
+
+    export h::Expression create_variable_expression(std::pmr::string name);
 }
