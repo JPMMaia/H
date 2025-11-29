@@ -2670,6 +2670,49 @@ function run() -> ()
         test_validate_module(input, dependencies, expected_diagnostics);
     }
 
+    TEST_CASE("Validates assignment of pointers to instantiate members", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: *Int32 = null;
+    b: *mutable Int32 = null;
+}
+
+function run() -> ()
+{
+    var p0: *Int32 = null;
+    var p1: *mutable Int32 = null;
+
+    var instance_0: My_struct = {
+        a: p0,
+        b: p0
+    };
+
+    var instance_1: My_struct = {
+        a: p1,
+        b: p1
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 12, 16, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Cannot assign value of type '*Int32' to member 'My_struct.b' of type '*mutable Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that cannot assign to non-mutable variable", "[Validation][Mutability]")
     {

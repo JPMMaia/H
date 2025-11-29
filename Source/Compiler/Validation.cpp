@@ -2681,7 +2681,7 @@ namespace h::compiler
                 parameters.declaration_database
             );
 
-            if (!are_compatible_types(parameters.declaration_database, member_type, assigned_value_type))
+            if (!can_assign_type(parameters.declaration_database, member_type, assigned_value_type))
             {
                 std::pmr::string const provided_type_name = h::format_type_reference(parameters.core_module, assigned_value_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
                 std::pmr::string const expected_type_name = h::format_type_reference(parameters.core_module, member_type, parameters.temporaries_allocator, parameters.temporaries_allocator);
