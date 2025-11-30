@@ -219,10 +219,10 @@ namespace h::compiler
             if (destination_pointer_type.is_mutable && !source_pointer_type.is_mutable)
                 return false;
 
-            if (destination_pointer_type.element_type.empty() && source_pointer_type.element_type.empty())
+            if (destination_pointer_type.element_type.empty())
                 return true;
 
-            if (destination_pointer_type.element_type.empty() || source_pointer_type.element_type.empty())
+            if (source_pointer_type.element_type.empty())
                 return false;
 
             return can_assign_type(declaration_database, destination_pointer_type.element_type[0], source_pointer_type.element_type[0]);

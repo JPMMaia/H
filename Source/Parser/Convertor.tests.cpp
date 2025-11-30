@@ -544,6 +544,12 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts void_pointer.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "void_pointer.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts while_loop_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "while_loop_expressions.hltxt";

@@ -687,6 +687,9 @@ namespace h::parser
 
             std::string_view const type_name = get_node_value(tree, type_name_node.value());
 
+            if (type_name == "Void")
+                return {};
+
             if (type_name == "Type")
                 return create_builtin_type_reference(create_string("Type", output_allocator));
 

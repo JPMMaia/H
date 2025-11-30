@@ -1685,7 +1685,7 @@ namespace h
     {
         if (types.empty())
         {
-            add_text(buffer, "void");
+            add_text(buffer, "Void");
             return;
         }
 
@@ -2343,7 +2343,7 @@ namespace h
         }
         else
         {
-            add_text(buffer, "void");
+            add_text(buffer, "Void");
         }
         
         return to_string(buffer);

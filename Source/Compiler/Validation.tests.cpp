@@ -590,7 +590,7 @@ struct My_struct_1
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Expression type 'void' does not match expected type 'Int32'.",
+                .message = "Expression type 'Void' does not match expected type 'Int32'.",
                 .related_information = {},
             }
         };
@@ -3114,7 +3114,7 @@ function run_int32(value: Int32) -> (result: Int32)
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Function 'run_void' expects a return value of type 'void', but 'Int32' was provided.",
+                .message = "Function 'run_void' expects a return value of type 'Void', but 'Int32' was provided.",
                 .related_information = {},
             },
             {
@@ -3228,7 +3228,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(43, 12, 43, 19),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Switch condition type is 'void' but expected an integer or an enum value.",
+                .message = "Switch condition type is 'Void' but expected an integer or an enum value.",
                 .related_information = {},
             },
         };
@@ -3912,6 +3912,47 @@ function run(a: Int32) -> ()
     }
 
 
+    TEST_CASE("Validates that can assign any pointer to *Void", "[Validation][Void_pointer]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var v0 = 0;
+    var p0: *Void = &v0;
+    var p1: *Void = v0;
+    var p2: *mutable Void = &v0;
+
+    mutable v1 = 0;
+    var p3: *mutable void = &v1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 21, 7, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Int32' does not match expected type '*Void'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 29, 8, 32),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Void'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][While_loop_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -4275,7 +4316,7 @@ export function run(data: *Int32, length: Uint64) -> ()
                 .range = create_source_range(15, 45, 15, 59),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Argument 0 type is '*void' but 'Int32' was provided.",
+                .message = "Argument 0 type is '*Void' but 'Int32' was provided.",
                 .related_information = {},
             },
         };
