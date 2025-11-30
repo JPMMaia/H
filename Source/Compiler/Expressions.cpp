@@ -2055,17 +2055,24 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
         Module const& core_module,
+        Declaration_database const& declaration_database,
         Type_database const& type_database
     )
     {
-        if (std::holds_alternative<Fundamental_type>(expression.type.data))
+        std::optional<Type_reference> const underlying_type_optional = get_underlying_type(declaration_database, expression.type);
+        if (!underlying_type_optional.has_value())
+            throw std::runtime_error{ "Could not find underlying constant type!" };
+
+        Type_reference const& type = underlying_type_optional.value();
+
+        if (std::holds_alternative<Fundamental_type>(type.data))
         {
-            Fundamental_type const fundamental_type = std::get<Fundamental_type>(expression.type.data);
+            Fundamental_type const fundamental_type = std::get<Fundamental_type>(type.data);
 
             switch (fundamental_type)
             {
             case Fundamental_type::Bool: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 std::uint8_t const data = expression.data == "true" ? 1 : 0;
                 llvm::APInt const value{ 1, data, false };
@@ -2076,11 +2083,11 @@ namespace h::compiler
                 {
                     .name = "",
                     .value = instruction,
-                    .type = expression.type
+                    .type = type
                 };
             }
             case Fundamental_type::Float16: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
@@ -2091,11 +2098,11 @@ namespace h::compiler
                 {
                     .name = "",
                     .value = instruction,
-                    .type = expression.type
+                    .type = type
                 };
             }
             case Fundamental_type::Float32: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 char* end;
                 float const value = std::strtof(expression.data.c_str(), &end);
@@ -2106,11 +2113,11 @@ namespace h::compiler
                 {
                     .name = "",
                     .value = instruction,
-                    .type = expression.type
+                    .type = type
                 };
             }
             case Fundamental_type::Float64: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 char* end;
                 double const value = std::strtod(expression.data.c_str(), &end);
@@ -2121,7 +2128,7 @@ namespace h::compiler
                 {
                     .name = "",
                     .value = instruction,
-                    .type = expression.type
+                    .type = type
                 };
             }
             case Fundamental_type::C_bool:
@@ -2136,7 +2143,7 @@ namespace h::compiler
             case Fundamental_type::C_ulong:
             case Fundamental_type::C_longlong:
             case Fundamental_type::C_ulonglong: {
-                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+                llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 char* end;
                 std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
@@ -2151,18 +2158,18 @@ namespace h::compiler
                 {
                     .name = "",
                     .value = instruction,
-                    .type = expression.type
+                    .type = type
                 };
             }
             default:
                 break;
             }
         }
-        else if (std::holds_alternative<Integer_type>(expression.type.data))
+        else if (std::holds_alternative<Integer_type>(type.data))
         {
-            Integer_type const& integer_type = std::get<Integer_type>(expression.type.data);
+            Integer_type const& integer_type = std::get<Integer_type>(type.data);
 
-            llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, expression.type, type_database);
+            llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
             char* end;
             std::uint64_t const data = std::strtoull(expression.data.c_str(), &end, 0);
@@ -2174,10 +2181,10 @@ namespace h::compiler
             {
                 .name = "",
                 .value = instruction,
-                .type = expression.type
+                .type = type
             };
         }
-        else if (is_c_string(expression.type))
+        else if (is_c_string(type))
         {
             std::pmr::string const& string_data = expression.data;
 
@@ -2202,7 +2209,7 @@ namespace h::compiler
             {
                 .name = "",
                 .value = instruction,
-                .type = expression.type
+                .type = type
             };
         }
 
@@ -2541,7 +2548,7 @@ namespace h::compiler
             Value_and_type const step_by_value =
                 expression.step_by.has_value() ?
                 create_loaded_expression_value(expression.step_by.value().expression_index, statement, parameters) :
-                create_constant_expression_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, core_module, type_database);
+                create_constant_expression_value(default_step_constant, llvm_context, llvm_data_layout, llvm_module, core_module, parameters.declaration_database, type_database);
 
             if (parameters.debug_info != nullptr)
                 set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
@@ -4120,7 +4127,7 @@ namespace h::compiler
         else if (std::holds_alternative<Constant_expression>(expression.data))
         {
             Constant_expression const& data = std::get<Constant_expression>(expression.data);
-            return create_constant_expression_value(data, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.core_module, new_parameters.type_database);
+            return create_constant_expression_value(data, new_parameters.llvm_context, new_parameters.llvm_data_layout, new_parameters.llvm_module, new_parameters.core_module, new_parameters.declaration_database, new_parameters.type_database);
         }
         else if (std::holds_alternative<Constant_array_expression>(expression.data))
         {

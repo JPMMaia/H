@@ -80,6 +80,23 @@ namespace h
     return output_file_path;
   }
 
+  std::filesystem::path create_and_import_c_header(
+    std::string_view const header_content,
+    std::string_view const header_filename,
+    std::string_view const header_module_filename,
+    std::string_view const header_module_name,
+    std::filesystem::path const output_directory
+  )
+  {
+    std::filesystem::path const header_file_path = output_directory / header_filename;
+    h::common::write_to_file(header_file_path, header_content);
+
+    std::filesystem::path const header_module_file_path = output_directory / header_module_filename;
+    h::c::import_header_and_write_to_file(header_module_name, header_file_path, header_module_file_path, {});
+
+    return header_module_file_path;
+  }
+
   std::filesystem::path parse_and_get_file_path(
     std::filesystem::path const& source_file_path
   )
@@ -1512,6 +1529,41 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Constant Expressions", "[LLVM_IR]")
+  {
+    char const* const input_file = "constant_expressions.hltxt";
+    
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "constant_expressions";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+
+typedef unsigned long long My_flags;
+static const My_flags g_global = 0x800000000ULL;
+)";
+
+    std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "my_header.h", "my_header.hltxt", "my_module", root_directory_path);
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+        { "my_module", header_module_file_path }
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define void @Constant_expressions_run() #0 {
+entry:
+  %v0 = alloca i64, align 8
+  store i64 34359738368, ptr %v0, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Constant Arrays", "[LLVM_IR]")
   {
     char const* const input_file = "constant_array_expressions.hltxt";
@@ -1592,11 +1644,7 @@ struct Vector2i
 Vector2i add(Vector2i lhs, Vector2i rhs);
 )";
 
-    std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
-    h::common::write_to_file(header_file_path, header_content);
-
-    std::filesystem::path const header_module_file_path = root_directory_path / "vector2i.hltxt";
-    h::c::import_header_and_write_to_file("c.vector2i", header_file_path, header_module_file_path, {});
+    std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "vector2i.h", "vector2i.hltxt", "c.vector2i", root_directory_path);
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -4543,11 +4591,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 float my_global = 0.0f;
 )";
 
-    std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
-    h::common::write_to_file(header_file_path, header_content);
-
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
-    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
+    std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "my_header.h", "my_header.hltxt", "my_module", root_directory_path);
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
@@ -5210,13 +5254,10 @@ struct My_struct
 };
 )";
 
+std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "my_struct.h", "my_struct.hltxt", "my_module", root_directory_path);
+
     std::filesystem::path const header_file_path = root_directory_path / "my_struct.h";
-    h::common::write_to_file(header_file_path, header_content);
-
     h::Struct_layout const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
-
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_struct.hltxt";
-    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
 
     std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
     REQUIRE(core_module.has_value());
@@ -5266,11 +5307,7 @@ typedef struct My_struct
 void foo(My_struct argument);
 )";
 
-    std::filesystem::path const header_file_path = root_directory_path / "my_header.h";
-    h::common::write_to_file(header_file_path, header_content);
-
-    std::filesystem::path const header_module_file_path = root_directory_path / "my_header.hltxt";
-    h::c::import_header_and_write_to_file("my_module", header_file_path, header_module_file_path, {});
+    std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "my_header.h", "my_header.hltxt", "my_module", root_directory_path);
 
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
