@@ -102,7 +102,8 @@ namespace h::language_server
         {
             .triggerCharacters = lsp::Array<lsp::String>{
                 ".",
-                " "
+                " ",
+                ">"
             },
         };
 
