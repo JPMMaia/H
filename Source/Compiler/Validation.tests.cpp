@@ -502,6 +502,8 @@ struct My_struct
     {
         std::string_view const input = R"(module Test;
 
+import Module_a as ma;
+
 function get_value() -> (result: Int32)
 {
     return 0;
@@ -511,22 +513,38 @@ struct My_struct
 {
     a: Int32 = 0;
     b: Int32 = get_value();
+    c: Int32 = ma.g_constant;
+    d: Int32 = ma.g_non_constant;
 }
 )";
+
+        std::string_view const module_a = R"(module Module_a;
+var g_constant = 0;
+mutable g_non_constant = 0;
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { module_a };
 
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(11, 16, 11, 27),
+                .range = create_source_range(13, 16, 13, 27),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'My_struct.b' must be computable at compile-time.",
                 .related_information = {},
+            },
+            {
+                .range = create_source_range(15, 16, 15, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'My_struct.d' must be computable at compile-time.",
+                .related_information = {},
             }
         };
 
-        test_validate_module(input, {}, expected_diagnostics);
+        test_validate_module(input, dependencies, expected_diagnostics);
     }
 
     TEST_CASE("Validates that member default values are values, not types", "[Validation][Struct]")

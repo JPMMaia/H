@@ -3619,9 +3619,34 @@ namespace h::compiler
     {
         if (std::holds_alternative<h::Access_expression>(expression.data))
         {
-            if (expression_type.has_value() && is_enum_type(declaration_database, expression_type.value()))
+            h::Access_expression const& access_expression = std::get<h::Access_expression>(expression.data);
+
+            if (expression_type.has_value())
             {
-                return true;
+                if (is_enum_type(declaration_database, expression_type.value()))
+                    return true;
+
+                h::Expression const& left_hand_side = statement.expressions[access_expression.expression.expression_index];
+
+                if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+                {
+                    h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+
+                    std::optional<Declaration> const declaration = find_declaration_using_import_alias(
+                        declaration_database,
+                        core_module,
+                        variable_expression.name,
+                        access_expression.member_name
+                    );
+                    if (declaration.has_value())
+                    {
+                        if (std::holds_alternative<h::Global_variable_declaration const*>(declaration->data))
+                        {
+                            h::Global_variable_declaration const& global_variable_declaration = *std::get<h::Global_variable_declaration const*>(declaration->data);
+                            return !global_variable_declaration.is_mutable;
+                        }
+                    }
+                }
             }
         }
         else if (std::holds_alternative<h::Binary_expression>(expression.data))
