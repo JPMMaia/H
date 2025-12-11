@@ -7,8 +7,13 @@
             "name": "my_library"
         }
     ],
-    "include": [
-        "./**/*.hltxt"
+    "sources": [
+        {
+            "type": "hlang",
+            "include": [
+                "./**/*.hltxt"
+            ]
+        }
     ],
     "executable": {
         "source": "my_app.hltxt",

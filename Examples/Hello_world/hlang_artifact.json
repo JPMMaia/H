@@ -7,8 +7,13 @@
             "name": "C_standard_library"
         }
     ],
-    "include": [
-        "./**/*.hltxt"
+    "sources": [
+        {
+            "type": "hlang",
+            "include": [
+                "./**/*.hltxt"
+            ]
+        }
     ],
     "executable": {
         "source": "hello_world.hltxt",

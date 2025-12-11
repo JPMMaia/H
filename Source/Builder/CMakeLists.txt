@@ -8,14 +8,6 @@ target_link_libraries(H_builder PUBLIC H::Core H::Common H::Compiler H::C_header
 find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries(H_builder PRIVATE nlohmann_json::nlohmann_json)
 
-target_sources(H_builder
-   PUBLIC FILE_SET modules TYPE CXX_MODULES
-      FILES
-         "Builder.cppm"
-   PRIVATE
-      "Builder.cpp"
-)
-
 
 add_executable(H_builder_executable)
 add_executable(H::Builder_executable ALIAS H_builder_executable)

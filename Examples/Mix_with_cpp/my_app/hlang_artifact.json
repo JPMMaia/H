@@ -1,0 +1,40 @@
+{
+    "name": "my_app",
+    "version": "0.1.0",
+    "type": "executable",
+    "dependencies": [
+        {
+            "name": "external_library"
+        }
+    ],
+    "sources": [
+        {
+            "type": "c_header",
+            "headers": [
+                {
+                    "name": "C_interface",
+                    "header": "c_interface.h"
+                }        
+            ]
+        },
+        {
+            "type": "c++",
+            "include": [
+                "./**/*.cpp"
+            ],
+            "additional_flags": [
+                "-std=c++23"        
+            ]
+        },
+        {
+            "type": "hlang",
+            "include": [
+                "./**/*.hltxt"
+            ]
+        }
+    ],
+    "executable": {
+        "source": "my_app.hltxt",
+        "entry_point": "my_app_main"
+    }
+}

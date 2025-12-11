@@ -90,8 +90,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -180,8 +184,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -263,8 +271,12 @@ namespace h
                     .artifact_name = "C_standard_library"
                 }
             },
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -339,8 +351,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -452,8 +468,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -533,8 +553,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -632,8 +656,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -723,8 +751,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {
@@ -831,8 +863,12 @@ namespace h
             },
             .type = h::compiler::Artifact_type::Executable,
             .dependencies = {},
-            .include = {
-                "./**/*.hltxt"
+            .sources = {
+                h::compiler::Source_group
+                {
+                    .data = h::compiler::Hlang_source_group{},
+                    .include = "./**/*.hltxt"
+                }
             },
             .info = h::compiler::Executable_info
             {

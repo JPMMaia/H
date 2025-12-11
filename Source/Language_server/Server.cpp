@@ -497,15 +497,9 @@ namespace h::language_server
                 temporaries_allocator
             );
 
-            std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
-                artifacts,
-                output_allocator,
-                temporaries_allocator
-            );
-
             std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
                 builder,
-                c_headers_and_options,
+                artifacts,
                 output_allocator,
                 temporaries_allocator
             );

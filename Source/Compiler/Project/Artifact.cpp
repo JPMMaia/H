@@ -94,6 +94,15 @@ namespace h::compiler
         return includes;
     }
 
+    std::pmr::vector<std::pmr::string> parse_string_array_at(nlohmann::json const& json, std::string_view const key)
+    {
+        if (!json.contains(key))
+            return {};
+
+        nlohmann::json const& json_array = json.at(key);        
+        return parse_string_array(json_array);
+    }
+
     std::pmr::vector<std::filesystem::path> parse_path_array(nlohmann::json const& json)
     {
         std::pmr::vector<std::filesystem::path> includes;
@@ -130,47 +139,12 @@ namespace h::compiler
             {
                 .module_name = element.at("name").get<std::pmr::string>(),
                 .header = element.at("header").get<std::pmr::string>(),
-                .options_key = {}
             };
-
-            if (element.contains("options"))
-                header.options_key = element.at("options").get<std::pmr::string>();
 
             headers.push_back(std::move(header));
         }
 
         return headers;
-    }
-
-    C_header_options parse_c_header_options(nlohmann::json const& json)
-    {
-        C_header_options options;
-
-        if (json.contains("search_paths"))
-            options.search_paths = parse_path_array(json.at("search_paths"));
-
-        if (json.contains("public_prefixes"))
-            options.public_prefixes = parse_string_array(json.at("public_prefixes"));
-
-        if (json.contains("remove_prefixes"))
-            options.remove_prefixes = parse_string_array(json.at("remove_prefixes"));
-
-        return options;
-    }
-
-    std::pmr::unordered_map<std::pmr::string, C_header_options> parse_c_header_options_map(nlohmann::json const& json)
-    {
-        std::pmr::unordered_map<std::pmr::string, C_header_options> map;
-        map.reserve(json.size());
-
-        for (auto const& pair : json.items())
-        {
-            std::pmr::string key = std::pmr::string{ pair.key() };
-            C_header_options value = parse_c_header_options(pair.value());
-            map.insert(std::make_pair(std::move(key), std::move(value)));
-        }
-
-        return map;
     }
 
     std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> parse_external_library(nlohmann::json const& json)
@@ -196,16 +170,80 @@ namespace h::compiler
     {
         Library_info library_info;
 
-        if (json.contains("c_headers"))
-            library_info.c_headers = parse_c_headers(json.at("c_headers"));
-
-        if (json.contains("c_header_options"))
-            library_info.c_header_options = parse_c_header_options_map(json.at("c_header_options"));
-
         if (json.contains("external_library"))
             library_info.external_libraries = parse_external_library(json.at("external_library"));
 
         return library_info;
+    }
+
+    std::optional<Source_group::Data_type> parse_source_group_data(nlohmann::json const& json)
+    {
+        std::pmr::string const type = json.at("type").get<std::pmr::string>();
+
+        if (type == "c_header")
+        {
+            C_header_source_group data = {};
+
+            if (json.contains("headers"))
+                data.c_headers = parse_c_headers(json.at("headers"));
+
+            if (json.contains("search_paths"))
+                data.search_paths = parse_path_array(json.at("search_paths"));
+
+            if (json.contains("public_prefixes"))
+                data.public_prefixes = parse_string_array(json.at("public_prefixes"));
+
+            if (json.contains("remove_prefixes"))
+                data.remove_prefixes = parse_string_array(json.at("remove_prefixes"));
+
+            return data;
+        }
+        else if (type == "c++")
+        {
+            return Cpp_source_group{};
+        }
+        else if (type == "hlang")
+        {
+            return Hlang_source_group{};
+        }
+        else
+        {
+            return std::nullopt;
+        }
+    }
+
+    std::pmr::vector<Source_group> parse_source_groups(nlohmann::json const& json)
+    {
+        if (!json.contains("sources"))
+            return {};
+
+        nlohmann::json const& groups_json = json.at("sources");
+
+        std::pmr::vector<Source_group> groups;
+        groups.reserve(json.size());
+
+        for (std::size_t index = 0; index < groups_json.size(); ++index)
+        {
+            nlohmann::json const& group_json = groups_json[index];
+
+            if (!group_json.contains("type"))
+                continue;
+
+            std::optional<Source_group::Data_type> data = parse_source_group_data(group_json);
+            std::pmr::vector<std::pmr::string> include = parse_string_array_at(group_json, "include");
+            std::pmr::vector<std::pmr::string> additional_flags = parse_string_array_at(group_json, "additional_flags");
+
+            groups.push_back(
+                Source_group
+                {
+                    .data = std::move(data),
+                    .include = std::move(include),
+                    .additional_flags = std::move(additional_flags),
+                }
+            );
+        }
+
+        return groups;
     }
 
     std::optional<std::variant<Executable_info, Library_info>> parse_info(nlohmann::json const& json)
@@ -240,7 +278,7 @@ namespace h::compiler
 
         std::pmr::vector<Dependency> dependencies = parse_dependencies(json);
 
-        std::pmr::vector<std::pmr::string> include = json.contains("include") ? parse_string_array(json.at("include")) : std::pmr::vector<std::pmr::string>{};
+        std::pmr::vector<Source_group> source_groups = parse_source_groups(json);
 
         std::optional<std::variant<Executable_info, Library_info>> info = parse_info(json);
 
@@ -251,9 +289,23 @@ namespace h::compiler
             .version = version,
             .type = type,
             .dependencies = std::move(dependencies),
-            .include = std::move(include),
+            .sources = std::move(source_groups),
             .info = std::move(info),
         };
+    }
+
+    nlohmann::json path_array_to_json(
+        std::span<std::filesystem::path const> const array
+    )
+    {
+        nlohmann::json json;
+
+        for (std::filesystem::path const& value : array)
+        {
+            json.push_back(value.generic_string());
+        }
+
+        return json;
     }
 
     void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path)
@@ -286,16 +338,66 @@ namespace h::compiler
             json["dependencies"] = std::move(dependencies_json);
         }
 
-        if (!artifact.include.empty())
+        if (!artifact.sources.empty())
         {
-            nlohmann::json include_json;
+            nlohmann::json groups_json;
 
-            for (std::pmr::string const& include : artifact.include)
+            for (Source_group const& group : artifact.sources)
             {
-                include_json.push_back(std::move(include));
+                nlohmann::json group_json;
+
+                if (group.data.has_value())
+                {
+                    if (std::holds_alternative<C_header_source_group>(*group.data))
+                        group_json["type"] = "c_header";
+                    else if (std::holds_alternative<Cpp_source_group>(*group.data))
+                        group_json["type"] = "c++";
+                    else if (std::holds_alternative<Hlang_source_group>(*group.data))
+                        group_json["type"] = "hlang";
+
+                    if (std::holds_alternative<C_header_source_group>(*group.data))
+                    {
+                        C_header_source_group const& c_headers_group = std::get<C_header_source_group>(*group.data);
+                        
+                        if (!c_headers_group.c_headers.empty())
+                        {
+                            nlohmann::json c_headers_json;
+
+                            for (C_header const& c_header : c_headers_group.c_headers)
+                            {
+                                nlohmann::json c_header_json
+                                {
+                                    { "name", c_header.module_name },
+                                    { "header", c_header.header },
+                                };
+
+                                c_headers_json.push_back(std::move(c_header_json));
+                            }
+
+                            group_json["headers"] = std::move(c_headers_json);
+                        }
+                        
+                        if (!c_headers_group.search_paths.empty())
+                            group_json["search_paths"] = path_array_to_json(c_headers_group.search_paths);
+                        
+                        if (!c_headers_group.public_prefixes.empty())
+                            group_json["public_prefixes"] = c_headers_group.public_prefixes;
+
+                        if (!c_headers_group.remove_prefixes.empty())
+                            group_json["remove_prefixes"] = c_headers_group.remove_prefixes;
+                    }
+                }
+
+                if (!group.include.empty())
+                    group_json["include"] = group.include;
+
+                if (!group.additional_flags.empty())
+                    group_json["additional_flags"] = group.additional_flags;
+
+                groups_json.push_back(std::move(group_json));
             }
 
-            json["include"] = std::move(include_json);
+            json["sources"] = std::move(groups_json);
         }
 
         if (artifact.info.has_value())
@@ -317,61 +419,6 @@ namespace h::compiler
                 Library_info const& library_info = std::get<Library_info>(*artifact.info);
 
                 nlohmann::json library_json;
-
-                if (!library_info.c_headers.empty())
-                {
-                    nlohmann::json c_headers_json;
-
-                    for (C_header const& c_header : library_info.c_headers)
-                    {
-                        nlohmann::json c_header_json
-                        {
-                            { "name", c_header.module_name },
-                            { "header", c_header.header },
-                        };
-
-                        if (c_header.options_key.has_value())
-                            json["options"] = c_header.options_key.value();
-
-                        c_headers_json.push_back(std::move(c_header_json));
-                    }
-
-                    library_json["c_headers"] = std::move(c_headers_json);
-                }
-
-                if (!library_info.c_header_options.empty())
-                {
-                    nlohmann::json c_header_options_map_json;
-
-                    for (auto const& pair : library_info.c_header_options)
-                    {
-                        nlohmann::json c_header_options_json;
-
-                        C_header_options const& options = pair.second;
-
-                        if (!options.search_paths.empty())
-                        {
-                            nlohmann::json search_paths_json;
-
-                            for (std::filesystem::path const& search_path : options.search_paths)
-                            {
-                                search_paths_json.push_back(search_path.generic_string());
-                            }
-
-                            c_header_options_json["search_paths"] = std::move(search_paths_json);
-                        }
-
-                        if (!options.public_prefixes.empty())
-                            c_header_options_json["public_prefixes"] = options.public_prefixes;
-
-                        if (!options.remove_prefixes.empty())
-                            c_header_options_json["remove_prefixes"] = options.remove_prefixes;
-                        
-                        c_header_options_map_json[pair.first.c_str()] = c_header_options_json;
-                    }
-
-                    library_json["c_header_options"] = std::move(c_header_options_map_json);
-                }
 
                 if (!library_info.external_libraries.empty())
                 {
@@ -399,73 +446,74 @@ namespace h::compiler
         h::common::write_to_file(artifact_file_path, json_string);
     }
 
-
-    std::span<C_header const> get_c_headers(Artifact const& artifact)
+    std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
     {
-        if (artifact.info.has_value())
+        std::pmr::vector<Source_group const*> groups{output_allocator};
+        groups.reserve(artifact.sources.size());
+
+        for (Source_group const& group : artifact.sources)
         {
-            if (std::holds_alternative<Library_info>(*artifact.info))
+            if (std::holds_alternative<C_header_source_group>(*group.data))
             {
-                Library_info const& library_info = std::get<Library_info>(*artifact.info);
-                return library_info.c_headers;
+                groups.push_back(&group);
             }
         }
 
-        return {};
+        return groups;
     }
 
-    h::compiler::C_header_options const* get_c_header_options(
-        h::compiler::Library_info const& library_info,
-        h::compiler::C_header const& c_header
-    )
+    
+    bool contains_any_compilable_source(Artifact const& artifact)
     {
-        if (c_header.options_key.has_value())
+        for (Source_group const& group : artifact.sources)
         {
-            auto const location = library_info.c_header_options.find(*c_header.options_key);
-            if (location != library_info.c_header_options.end())
+            if (group.data.has_value())
             {
-                return &location->second;
+                if (std::holds_alternative<Cpp_source_group>(*group.data) || std::holds_alternative<Hlang_source_group>(*group.data))
+                    return true;
             }
         }
 
-        return nullptr;
+        return false;
+    }
+
+
+    std::pmr::vector<C_header> get_c_headers(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
+    {
+        std::pmr::vector<C_header> headers{output_allocator};
+
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<C_header_source_group>(*group.data))
+            {
+                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+
+                headers.insert(headers.end(), c_header_group.c_headers.begin(), c_header_group.c_headers.end());
+            }
+        }
+
+        return headers;
     }
 
     C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name)
     {
-        if (artifact.info.has_value() && std::holds_alternative<Library_info>(*artifact.info))
+        for (Source_group const& group : artifact.sources)
         {
-            Library_info const& library_info = std::get<Library_info>(*artifact.info);
-
-            auto const is_c_header = [&](C_header const& c_header) -> bool
+            if (std::holds_alternative<C_header_source_group>(*group.data))
             {
-                return c_header.module_name == module_name;
-            };
+                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
 
-            auto const location = std::find_if(library_info.c_headers.begin(), library_info.c_headers.end(), is_c_header);
-            if (location != library_info.c_headers.end())
-            {
-                C_header const& c_header = *location;
-                return &c_header;
-            }
-        }
+                auto const is_c_header = [&](C_header const& c_header) -> bool
+                {
+                    return c_header.module_name == module_name;
+                };
 
-        return nullptr;
-    }
-
-    C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name)
-    {
-        if (artifact.info.has_value() && std::holds_alternative<Library_info>(*artifact.info))
-        {
-            Library_info const& library_info = std::get<Library_info>(*artifact.info);
-
-            C_header const* const c_header = find_c_header(artifact, module_name);
-            if (c_header != nullptr)
-            {
-                return get_c_header_options(
-                    library_info,
-                    *c_header
-                );
+                auto const location = std::find_if(c_header_group.c_headers.begin(), c_header_group.c_headers.end(), is_c_header);
+                if (location != c_header_group.c_headers.end())
+                {
+                    C_header const& c_header = *location;
+                    return &c_header;
+                }
             }
         }
 
@@ -613,11 +661,17 @@ namespace h::compiler
         std::function<bool(std::filesystem::path)> const& predicate
     )
     {
-        for (std::string_view const regular_expression : artifact.include)
+        for (Source_group const& group : artifact.sources)
         {
-            bool const done = visit_included_files(artifact.file_path.parent_path(), regular_expression, predicate);
-            if (done)
-                return true;
+            if (std::holds_alternative<Hlang_source_group>(*group.data))
+            {
+                for (std::string_view const regular_expression : group.include)
+                {
+                    bool const done = visit_included_files(artifact.file_path.parent_path(), regular_expression, predicate);
+                    if (done)
+                        return true;
+                }
+            }
         }
 
         return false;
@@ -668,23 +722,34 @@ namespace h::compiler
 
     std::pmr::vector<std::filesystem::path> find_included_files(
         Artifact const& artifact,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::monotonic_buffer_resource temporaries_buffer_resource;
-        std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
+        std::pmr::vector<std::filesystem::path> all_included_files{temporaries_allocator};
 
-        return find_included_files(artifact.file_path.parent_path(), artifact.include, output_allocator);
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<Hlang_source_group>(*group.data))
+            {
+                std::pmr::vector<std::filesystem::path> included_files = find_included_files(artifact.file_path.parent_path(), group.include, temporaries_allocator);
+                all_included_files.insert(all_included_files.end(), included_files.begin(), included_files.end());
+            }
+        }
+
+        return std::pmr::vector<std::filesystem::path>{all_included_files.begin(), all_included_files.end(), output_allocator};
     }
 
     std::pmr::vector<std::filesystem::path> get_artifact_source_files(
         Artifact const& artifact,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
         return find_included_files(
             artifact,
-            output_allocator
+            output_allocator,
+            temporaries_allocator
         );
     }
 
@@ -747,13 +812,22 @@ namespace h::compiler
 
     std::pmr::vector<std::filesystem::path> find_root_include_directories(
         Artifact const& artifact,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::monotonic_buffer_resource temporaries_buffer_resource;
-        std::pmr::polymorphic_allocator<> temporaries_allocator{ &temporaries_buffer_resource };
+        std::pmr::vector<std::filesystem::path> all_included_files{temporaries_allocator};
 
-        return find_root_include_directories(artifact.file_path.parent_path(), artifact.include, output_allocator);
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<Hlang_source_group>(*group.data))
+            {
+                std::pmr::vector<std::filesystem::path> included_files = find_root_include_directories(artifact.file_path.parent_path(), group.include, temporaries_allocator);
+                all_included_files.insert(all_included_files.end(), included_files.begin(), included_files.end());
+            }
+        }
+
+        return std::pmr::vector<std::filesystem::path>{all_included_files.begin(), all_included_files.end(), output_allocator};
     }
 
     std::optional<std::size_t> find_artifact_index_that_includes_source_file(
@@ -766,7 +840,7 @@ namespace h::compiler
         {
             Artifact const& artifact = artifacts[index];
 
-            std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator);
+            std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator, temporaries_allocator);
             for (std::filesystem::path const& current_source_file : source_files)
             {
                 if (current_source_file == source_file_path)
@@ -828,8 +902,8 @@ namespace h::compiler
             }
         };
 
-        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator);
-        std::span<C_header const> const c_headers = get_c_headers(artifact);
+        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator, temporaries_allocator);
+        std::span<C_header const> const c_headers = get_c_headers(artifact, temporaries_allocator);
 
         add_modules(source_files);
         add_headers(c_headers);
@@ -850,8 +924,8 @@ namespace h::compiler
 
             Artifact const& dependency_artifact = *dependency_artifact_location;
 
-            std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_source_files(dependency_artifact, temporaries_allocator);
-            std::span<C_header const> const dependency_c_headers = get_c_headers(dependency_artifact);
+            std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_source_files(dependency_artifact, temporaries_allocator, temporaries_allocator);
+            std::span<C_header const> const dependency_c_headers = get_c_headers(dependency_artifact, temporaries_allocator);
             
             add_modules(dependency_source_files);
             add_headers(dependency_c_headers);

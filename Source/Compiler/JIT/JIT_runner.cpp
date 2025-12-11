@@ -145,7 +145,7 @@ namespace h::compiler
             if (found)
                 return module_source_file_path;
 
-            std::span<C_header const> const c_headers = get_c_headers(pair.second);
+            std::pmr::vector<C_header> const c_headers = get_c_headers(pair.second, {});
             for (C_header const& c_header : c_headers)
             {
                 if (c_header.module_name == module_name)
@@ -164,7 +164,7 @@ namespace h::compiler
                 if (found)
                     return module_source_file_path;
 
-                std::span<C_header const> const c_headers = get_c_headers(artifact);
+                std::pmr::vector<C_header> const c_headers = get_c_headers(artifact, {});
                 for (C_header const& c_header : c_headers)
                 {
                     if (c_header.module_name == module_name)
@@ -208,24 +208,37 @@ namespace h::compiler
         if (!artifact.has_value())
             return {};
 
-        C_header_options const* const c_header_options = find_c_header_options(*artifact, module_name);
-        if (c_header_options == nullptr)
+        for (Source_group const& group : artifact->sources)
         {
-            return
+            if (std::holds_alternative<C_header_source_group>(*group.data))
             {
-                .target_triple = std::nullopt,
-                .include_directories = {},
-                .public_prefixes = {},
-                .remove_prefixes = {},
-            };
+                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+
+                auto const is_c_header = [&](C_header const& c_header) -> bool
+                {
+                    return c_header.module_name == module_name;
+                };
+
+                auto const location = std::find_if(c_header_group.c_headers.begin(), c_header_group.c_headers.end(), is_c_header);
+                if (location != c_header_group.c_headers.end())
+                {
+                    return
+                    {
+                        .target_triple = std::nullopt,
+                        .include_directories = c_header_group.search_paths,
+                        .public_prefixes = c_header_group.public_prefixes,
+                        .remove_prefixes = c_header_group.remove_prefixes,
+                    };
+                }
+            }
         }
 
         return
         {
             .target_triple = std::nullopt,
-            .include_directories = c_header_options->search_paths,
-            .public_prefixes = c_header_options->public_prefixes,
-            .remove_prefixes = c_header_options->remove_prefixes,
+            .include_directories = {},
+            .public_prefixes = {},
+            .remove_prefixes = {},
         };
     }
 
@@ -550,6 +563,15 @@ namespace h::compiler
         {
             add_artifact_for_compilation(dependency_file_path, unprotected_data, protected_data, file_watcher);
         }
+        
+        {
+            std::pmr::vector<C_header> const c_headers = get_c_headers(artifact, {});
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            for (C_header const& c_header : c_headers)
+            {
+                protected_data.module_name_to_artifact_path.insert(std::make_pair(c_header.module_name, artifact_configuration_file_path));
+            }
+        }
 
         if (artifact.info.has_value())
         {
@@ -603,14 +625,6 @@ namespace h::compiler
                     for (std::string_view const& dll_name : external_library_dlls)
                     {
                         load_platform_dynamic_library(*unprotected_data.jit_data, dll_name.data());
-                    }
-                }
-
-                {
-                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
-                    for (C_header const& c_header : library_info.c_headers)
-                    {
-                        protected_data.module_name_to_artifact_path.insert(std::make_pair(c_header.module_name, artifact_configuration_file_path));
                     }
                 }
             }

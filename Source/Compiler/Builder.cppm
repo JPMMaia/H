@@ -51,22 +51,9 @@ namespace h::compiler
         std::filesystem::path const& artifact_file_path
     );
 
-    export struct C_header_and_options
-    {
-        h::compiler::C_header c_header = {};
-        std::optional<std::filesystem::path> artifact_parent_path = std::nullopt;
-        h::compiler::C_header_options const* options = nullptr;
-    };
-
     export std::pmr::vector<Artifact> get_sorted_artifacts(
         std::span<std::filesystem::path const> const artifact_file_paths,
         std::span<Repository const> repositories,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
-
-    export std::pmr::vector<C_header_and_options> get_artifacts_c_headers(
-        std::span<Artifact const> const artifacts,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -79,7 +66,7 @@ namespace h::compiler
 
     export std::pmr::vector<h::Module> parse_c_headers_and_cache(
         Builder& builder,
-        std::span<C_header_and_options const> const c_headers,
+        std::span<Artifact const> const artifacts,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -130,5 +117,11 @@ namespace h::compiler
     bool is_file_newer_than(
         std::filesystem::path const& first,
         std::filesystem::path const& second
+    );
+
+    export void print_struct_layout(
+        std::filesystem::path const input_file_path,
+        std::string_view const struct_name,
+        std::optional<std::string_view> const target_triple
     );
 }

@@ -41,6 +41,19 @@ namespace h::compiler
         return std::pmr::string{name} + ".a";
     }
 
+    static std::pmr::string get_object_name(
+        std::string_view const name,
+        h::compiler::Target const& target
+    )
+    {
+        if (target.operating_system == "windows")
+        {
+            return std::pmr::string{name} + ".obj";
+        }
+
+        return std::pmr::string{name} + ".o";
+    }
+
     void test_builder(
         std::string_view const project_name,
         std::filesystem::path const& main_artifact_path,
@@ -116,5 +129,27 @@ namespace h::compiler
         };
 
         test_builder("Link_with_library", "my_app/hlang_artifact.json", target, repository_paths, expected_output_paths);
+    }
+
+    TEST_CASE("Build Mix_with_cpp", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+            g_examples_directory / "Mix_with_cpp" / "hlang_repository.json"
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"artifacts"} / get_object_name("my_app.cpp_implementation", target),
+            std::filesystem::path{"artifacts"} / get_object_name("my_app", target),
+            std::filesystem::path{"artifacts/C_interface.hlb"},
+            std::filesystem::path{"bin"} / get_binary_name("my_app", target)
+        };
+
+        test_builder("Mix_with_cpp", "my_app/hlang_artifact.json", target, repository_paths, expected_output_paths);
+
+        // TODO test that compile_commands.json outputs to the build folder
     }
 }
