@@ -2,7 +2,7 @@ module my_app;
 
 import C_interface as c_interface;
 
-function main() -> (result: Int32)
+export function main() -> (result: Int32)
 {
     c_interface.foo();
     return 0;

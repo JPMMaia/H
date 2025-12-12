@@ -20,6 +20,7 @@ import h.common;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.clang_code_generation;
+import h.compiler.clang_compiler;
 import h.compiler.linker;
 import h.compiler.profiler;
 import h.compiler.repository;
@@ -52,6 +53,19 @@ namespace h::compiler
         {
             std::filesystem::create_directories(path);
         }
+    }
+
+    static std::pmr::vector<std::pmr::string> convert_path_to_string(std::span<std::filesystem::path const> const values, std::pmr::polymorphic_allocator<> output_allocator)
+    {
+        std::pmr::vector<std::pmr::string> output{output_allocator};
+        output.reserve(values.size());
+
+        for (std::filesystem::path const& value : values)
+        {
+            output.push_back(std::pmr::string{value.generic_string()});
+        }
+
+        return output;
     }
 
     Profiler* get_profiler(Builder& builder)
@@ -137,6 +151,9 @@ namespace h::compiler
         LLVM_data llvm_data = initialize_llvm(
             compilation_options
         );
+
+        if (!compile_cpp_and_write_to_bitcode_files(builder, artifacts, llvm_data, compilation_options, temporaries_allocator))
+            h::common::print_message_and_exit(std::format("Failed to compile c++."));
 
         start_timer(get_profiler(builder), "process_modules_and_create_compilation_database");
 
@@ -265,7 +282,7 @@ namespace h::compiler
 
         for (Artifact const& artifact : artifacts)
         {
-            std::pmr::vector<std::filesystem::path> artifact_source_files = get_artifact_source_files(
+            std::pmr::vector<std::filesystem::path> artifact_source_files = get_artifact_hlang_source_files(
                 artifact,
                 temporaries_allocator,
                 temporaries_allocator
@@ -351,7 +368,7 @@ namespace h::compiler
                             if (!header_module.has_value())
                                 h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_header_module_path.generic_string()));
 
-                            header_modules[header_index] = std::move(header_module.value());
+                            header_modules.push_back(std::move(header_module.value()));
 
                             continue;
                         }
@@ -382,6 +399,95 @@ namespace h::compiler
         end_timer(get_profiler(builder), "parse_c_headers_and_cache");
 
         return header_modules;
+    }
+
+    bool compile_cpp_and_write_to_bitcode_files(
+        Builder& builder,
+        std::span<Artifact const> const artifacts,
+        LLVM_data& llvm_data,
+        Compilation_options const& compilation_options,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        start_timer(get_profiler(builder), "compile_cpp_and_write_to_bitcode_files");
+
+        bool const use_objects = builder.compilation_options.output_debug_code_view;
+        std::string_view const extension = use_objects ? "obj" : "bc";
+        std::filesystem::path const build_directory_path = get_hl_build_directory(builder.build_directory_path);
+
+        bool const use_clang_cl = builder.target.operating_system == "windows";
+
+        std::pmr::vector<std::filesystem::path> const cpp_source_files;
+
+        for (Artifact const& artifact : artifacts)
+        {
+            std::pmr::vector<std::filesystem::path> const public_include_directories = get_public_include_directories(artifact, artifacts, temporaries_allocator, temporaries_allocator);
+            std::pmr::vector<std::pmr::string> const public_include_directories_strings = convert_path_to_string(public_include_directories, temporaries_allocator);
+
+            for (Source_group const& group : artifact.sources)
+            {
+                if (!group.data.has_value() || !std::holds_alternative<Cpp_source_group>(*group.data))
+                    continue;
+
+                std::pmr::vector<std::filesystem::path> const source_file_paths = find_included_files(
+                    artifact.file_path.parent_path(),
+                    group.include,
+                    temporaries_allocator,
+                    temporaries_allocator
+                );
+
+                for (std::filesystem::path const& source_file_path : source_file_paths)
+                {
+                    std::filesystem::path const output_assembly_file = build_directory_path / std::format("{}.{}.{}", artifact.name, source_file_path.stem().generic_string(), extension);
+                    std::filesystem::path const output_llvm_ir_file = build_directory_path / std::format("{}.{}.ll", artifact.name, source_file_path.stem().generic_string());
+                    std::filesystem::path const output_dependency_file = build_directory_path / std::format("{}.{}.d", artifact.name, source_file_path.stem().generic_string());
+
+                    // TODO use -MMD -MF to generate a dependency file.
+                    // TODO here, we read the dependency file and check if any input is newer than then output
+
+                    if (builder.output_llvm_ir)
+                    {
+                        std::filesystem::path const output_file_path = build_directory_path / std::format("{}.{}.{}", artifact.name, source_file_path.stem().generic_string(), "ll");
+                        bool const success = compile_cpp(
+                            *llvm_data.clang_data.compiler_instance,
+                            llvm_data.target_triple,
+                            source_file_path,
+                            output_llvm_ir_file,
+                            std::nullopt,
+                            public_include_directories_strings,
+                            group.additional_flags,
+                            use_clang_cl,
+                            temporaries_allocator
+                        );
+                        if (!success)
+                        {
+                            end_timer(get_profiler(builder), "compile_cpp_and_write_to_bitcode_files");
+                            return false;
+                        } 
+                    }
+
+                    bool const success = compile_cpp(
+                        *llvm_data.clang_data.compiler_instance,
+                        llvm_data.target_triple,
+                        source_file_path,
+                        output_assembly_file,
+                        output_dependency_file,
+                        public_include_directories_strings,
+                        group.additional_flags,
+                        use_clang_cl,
+                        temporaries_allocator
+                    );
+                    if (!success)
+                    {
+                        end_timer(get_profiler(builder), "compile_cpp_and_write_to_bitcode_files");
+                        return false;
+                    }
+                }
+            }
+        }
+
+        end_timer(get_profiler(builder), "compile_cpp_and_write_to_bitcode_files");
+        return true;
     }
 
     void add_builtin_module(
@@ -570,7 +676,9 @@ namespace h::compiler
     {
         std::pmr::vector<std::filesystem::path> bitcode_files{temporaries_allocator};
 
-        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(
+        std::filesystem::path const build_directory_path = get_hl_build_directory(builder.build_directory_path);
+
+        std::pmr::vector<std::filesystem::path> const hlang_source_files = get_artifact_hlang_source_files(
             artifact,
             temporaries_allocator,
             temporaries_allocator
@@ -579,15 +687,27 @@ namespace h::compiler
         bool const use_objects = builder.compilation_options.output_debug_code_view;
         std::string_view const extension = use_objects ? "obj" : "bc";
 
-        for (std::filesystem::path const& source_file_path : source_files)
+        for (std::filesystem::path const& source_file_path : hlang_source_files)
         {
             std::optional<std::pmr::string> const module_name = h::parser::read_module_name(source_file_path);
             if (!module_name.has_value())
                 h::common::print_message_and_exit(std::format("Could not read module name of source file {}.", source_file_path.generic_string()));
 
-            std::filesystem::path bitcode_file = get_bitcode_build_directory(builder.build_directory_path) / std::format("{}.{}", module_name.value(), extension);
+            std::filesystem::path bitcode_file = build_directory_path / std::format("{}.{}", module_name.value(), extension);
             bitcode_files.push_back(std::move(bitcode_file));
-        }        
+        }
+        
+        std::pmr::vector<std::filesystem::path> const cpp_source_files = get_artifact_cpp_source_files(
+            artifact,
+            temporaries_allocator,
+            temporaries_allocator
+        );
+
+        for (std::filesystem::path const& source_file_path : cpp_source_files)
+        {
+            std::filesystem::path bitcode_file = build_directory_path / std::format("{}.{}.{}", artifact.name, source_file_path.stem().generic_string(), extension);
+            bitcode_files.push_back(std::move(bitcode_file));
+        }
 
         return bitcode_files;
     }

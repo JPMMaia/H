@@ -142,8 +142,8 @@ namespace h::compiler
 
         std::pmr::vector<std::filesystem::path> const expected_output_paths
         {
-            std::filesystem::path{"artifacts"} / get_object_name("my_app.cpp_implementation", target),
-            std::filesystem::path{"artifacts"} / get_object_name("my_app", target),
+            std::filesystem::path{"artifacts"} / "my_app.cpp_implementation.bc",
+            std::filesystem::path{"artifacts"} / "my_app.bc",
             std::filesystem::path{"artifacts/C_interface.hlb"},
             std::filesystem::path{"bin"} / get_binary_name("my_app", target)
         };

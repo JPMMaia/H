@@ -2,6 +2,7 @@ module;
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <filesystem>
 #include <memory_resource>
 #include <optional>
@@ -116,6 +117,38 @@ namespace h::compiler
         }
 
         return includes;
+    }
+
+    std::pmr::vector<std::filesystem::path> parse_path_array_at(nlohmann::json const& json, std::string_view const key)
+    {
+        if (!json.contains(key))
+            return {};
+
+        nlohmann::json const& json_array = json.at(key);        
+        return parse_path_array(json_array);
+    }
+
+    std::pmr::vector<std::filesystem::path> convert_paths_to_absolute(std::span<std::filesystem::path const> const values, std::filesystem::path const& root_directory, std::pmr::polymorphic_allocator<> const& output_allocator)
+    {
+        std::pmr::vector<std::filesystem::path> output{output_allocator};
+
+        for (std::filesystem::path const& value : values)
+        {
+            if (value.is_absolute())
+            {
+                output.push_back(
+                    value.lexically_normal()
+                );
+            }
+            else
+            {
+                output.push_back(
+                    (root_directory / value).lexically_normal()
+                );
+            }
+        }
+
+        return output;
     }
 
 
@@ -280,6 +313,8 @@ namespace h::compiler
 
         std::pmr::vector<Source_group> source_groups = parse_source_groups(json);
 
+        std::pmr::vector<std::filesystem::path> public_include_directories = parse_path_array_at(json, "public_include_directories");
+
         std::optional<std::variant<Executable_info, Library_info>> info = parse_info(json);
 
         return Artifact
@@ -290,6 +325,7 @@ namespace h::compiler
             .type = type,
             .dependencies = std::move(dependencies),
             .sources = std::move(source_groups),
+            .public_include_directories = std::move(public_include_directories),
             .info = std::move(info),
         };
     }
@@ -400,6 +436,9 @@ namespace h::compiler
             json["sources"] = std::move(groups_json);
         }
 
+        if (!artifact.public_include_directories.empty())
+            json["public_include_directories"] = path_array_to_json(artifact.public_include_directories);
+
         if (artifact.info.has_value())
         {
             if (std::holds_alternative<Executable_info>(*artifact.info))
@@ -444,6 +483,25 @@ namespace h::compiler
 
         std::string const json_string = json.dump(4);
         h::common::write_to_file(artifact_file_path, json_string);
+    }
+
+    std::pmr::vector<std::filesystem::path> get_public_include_directories(Artifact const& artifact, std::span<Artifact const> const artifacts, std::pmr::polymorphic_allocator<> const& output_allocator, std::pmr::polymorphic_allocator<> const& temporaries_allocator)
+    {
+        std::pmr::vector<Artifact const*> const dependencies = get_artifact_dependencies(artifact, artifacts, true, temporaries_allocator, temporaries_allocator);
+
+        std::pmr::vector<std::filesystem::path> public_include_directories{temporaries_allocator};
+        for (Artifact const* const dependency : dependencies)
+        {
+            std::filesystem::path const root_directory = dependency->file_path.parent_path();
+            std::pmr::vector<std::filesystem::path> const directories = convert_paths_to_absolute(dependency->public_include_directories, root_directory, temporaries_allocator);
+            public_include_directories.insert(public_include_directories.end(), directories.begin(), directories.end());
+        }
+
+        std::filesystem::path const root_directory = artifact.file_path.parent_path();
+        std::pmr::vector<std::filesystem::path> const directories = convert_paths_to_absolute(artifact.public_include_directories, root_directory, temporaries_allocator);
+        public_include_directories.insert(public_include_directories.end(), directories.begin(), directories.end());
+
+        return std::pmr::vector<std::filesystem::path>{public_include_directories, output_allocator};
     }
 
     std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
@@ -699,6 +757,29 @@ namespace h::compiler
     std::pmr::vector<std::filesystem::path> find_included_files(
         std::filesystem::path const& root_path,
         std::span<std::pmr::string const> const regular_expressions,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<std::filesystem::path> found_paths{ temporaries_allocator };
+
+        for (std::pmr::string const& regular_expression : regular_expressions)
+        {
+            std::pmr::vector<std::filesystem::path> included_files = find_included_files(
+                root_path,
+                regular_expression,
+                temporaries_allocator
+            );
+
+            found_paths.insert(found_paths.end(), included_files.begin(), included_files.end());
+        }
+
+        return std::pmr::vector<std::filesystem::path>{found_paths, output_allocator};
+    }
+
+    std::pmr::vector<std::filesystem::path> find_included_files(
+        std::filesystem::path const& root_path,
+        std::span<std::pmr::string const> const regular_expressions,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
@@ -719,8 +800,7 @@ namespace h::compiler
         return output;
     }
 
-
-    std::pmr::vector<std::filesystem::path> find_included_files(
+    std::pmr::vector<std::filesystem::path> get_artifact_hlang_source_files(
         Artifact const& artifact,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -740,17 +820,24 @@ namespace h::compiler
         return std::pmr::vector<std::filesystem::path>{all_included_files.begin(), all_included_files.end(), output_allocator};
     }
 
-    std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+    std::pmr::vector<std::filesystem::path> get_artifact_cpp_source_files(
         Artifact const& artifact,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        return find_included_files(
-            artifact,
-            output_allocator,
-            temporaries_allocator
-        );
+        std::pmr::vector<std::filesystem::path> all_included_files{temporaries_allocator};
+
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<Cpp_source_group>(*group.data))
+            {
+                std::pmr::vector<std::filesystem::path> included_files = find_included_files(artifact.file_path.parent_path(), group.include, temporaries_allocator);
+                all_included_files.insert(all_included_files.end(), included_files.begin(), included_files.end());
+            }
+        }
+
+        return std::pmr::vector<std::filesystem::path>{all_included_files.begin(), all_included_files.end(), output_allocator};
     }
 
 
@@ -840,7 +927,7 @@ namespace h::compiler
         {
             Artifact const& artifact = artifacts[index];
 
-            std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator, temporaries_allocator);
+            std::pmr::vector<std::filesystem::path> const source_files = get_artifact_hlang_source_files(artifact, temporaries_allocator, temporaries_allocator);
             for (std::filesystem::path const& current_source_file : source_files)
             {
                 if (current_source_file == source_file_path)
@@ -849,6 +936,53 @@ namespace h::compiler
         }
 
         return std::nullopt;
+    }
+
+    static void add_artifact_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        bool const recursive,
+        std::pmr::vector<Artifact const*>& dependencies
+    )
+    {
+        for (Dependency const& dependency : artifact.dependencies)
+        {
+            auto const dependency_artifact_location = std::find_if(
+                all_artifacts.begin(),
+                all_artifacts.end(),
+                [&dependency](Artifact const& artifact) -> bool
+                {
+                    return artifact.name == dependency.artifact_name;
+                }
+            );
+
+            if (dependency_artifact_location == all_artifacts.end())
+                continue;
+
+            Artifact const& dependency_artifact = *dependency_artifact_location;
+
+            if (recursive)
+                add_artifact_dependencies(dependency_artifact, all_artifacts, true, dependencies);
+
+            dependencies.push_back(&dependency_artifact);
+        }
+    }
+
+    std::pmr::vector<Artifact const*> get_artifact_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        bool const recursive,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<Artifact const*> dependencies{temporaries_allocator};
+        add_artifact_dependencies(artifact, all_artifacts, recursive, dependencies);
+
+        std::sort(dependencies.begin(), dependencies.end());
+        dependencies.erase(std::unique(dependencies.begin(), dependencies.end()), dependencies.end());
+
+        return std::pmr::vector<Artifact const*>{dependencies, output_allocator};
     }
 
     std::pmr::vector<h::Module const*> get_artifact_modules_and_dependencies(
@@ -902,7 +1036,7 @@ namespace h::compiler
             }
         };
 
-        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_source_files(artifact, temporaries_allocator, temporaries_allocator);
+        std::pmr::vector<std::filesystem::path> const source_files = get_artifact_hlang_source_files(artifact, temporaries_allocator, temporaries_allocator);
         std::span<C_header const> const c_headers = get_c_headers(artifact, temporaries_allocator);
 
         add_modules(source_files);
@@ -924,7 +1058,7 @@ namespace h::compiler
 
             Artifact const& dependency_artifact = *dependency_artifact_location;
 
-            std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_source_files(dependency_artifact, temporaries_allocator, temporaries_allocator);
+            std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_hlang_source_files(dependency_artifact, temporaries_allocator, temporaries_allocator);
             std::span<C_header const> const dependency_c_headers = get_c_headers(dependency_artifact, temporaries_allocator);
             
             add_modules(dependency_source_files);

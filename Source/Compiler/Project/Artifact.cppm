@@ -89,12 +89,15 @@ namespace h::compiler
         Artifact_type type;
         std::pmr::vector<Dependency> dependencies;
         std::pmr::vector<Source_group> sources;
+        std::pmr::vector<std::filesystem::path> public_include_directories;
         std::optional<std::variant<Executable_info, Library_info>> info;
     };
 
     export Artifact get_artifact(std::filesystem::path const& artifact_file_path);
 
     export void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path);
+
+    export std::pmr::vector<std::filesystem::path> get_public_include_directories(Artifact const& artifact, std::span<Artifact const> const artifacts, std::pmr::polymorphic_allocator<> const& output_allocator, std::pmr::polymorphic_allocator<> const& temporaries_allocator);
     
     export bool contains_any_compilable_source(Artifact const& artifact);
     
@@ -120,14 +123,27 @@ namespace h::compiler
         std::function<bool(std::filesystem::path)> const& predicate
     );
 
-    export std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+    export std::pmr::vector<std::filesystem::path> get_artifact_hlang_source_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<std::filesystem::path> get_artifact_cpp_source_files(
         Artifact const& artifact,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     export std::pmr::vector<std::filesystem::path> find_included_files(
-        Artifact const& artifact,
+        std::filesystem::path const& root_path,
+        std::string_view const regular_expression,
+        std::pmr::polymorphic_allocator<> const& output_allocator
+    );
+
+    export std::pmr::vector<std::filesystem::path> find_included_files(
+        std::filesystem::path const& root_path,
+        std::span<std::pmr::string const> const regular_expressions,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
@@ -141,6 +157,14 @@ namespace h::compiler
     export std::optional<std::size_t> find_artifact_index_that_includes_source_file(
         std::span<Artifact const> const artifacts,
         std::filesystem::path const& source_file_path,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<Artifact const*> get_artifact_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        bool const recursive,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 

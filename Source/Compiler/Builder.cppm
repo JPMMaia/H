@@ -71,6 +71,14 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    export bool compile_cpp_and_write_to_bitcode_files(
+        Builder& builder,
+        std::span<Artifact const> const artifacts,
+        LLVM_data& llvm_data,
+        Compilation_options const& compilation_options,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export void add_builtin_module(
         std::pmr::vector<h::Module>& header_modules,
         std::pmr::polymorphic_allocator<> const& output_allocator,
