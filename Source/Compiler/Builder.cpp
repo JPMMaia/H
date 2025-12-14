@@ -401,6 +401,71 @@ namespace h::compiler
         return header_modules;
     }
 
+    static bool is_compiled_cpp_up_to_date(std::filesystem::path const& output_dependency_file)
+    {
+        if (!std::filesystem::exists(output_dependency_file))
+            return false;
+
+        std::optional<std::pmr::string> const file_contents = h::common::get_file_contents(output_dependency_file);
+        if (!file_contents.has_value())
+            return false;
+
+        std::size_t start_index = 0;
+        std::size_t current_index = 0;
+
+        std::pmr::vector<std::string_view> files;
+
+        std::pmr::string const& input = file_contents.value();
+        while (current_index < input.size())
+        {
+            char const current_character = input[current_index];
+            if (current_character == '\n')
+            {
+                std::string_view const view{ &input[start_index], current_index - start_index };
+                
+                std::size_t end_index = current_index - 1;
+                while (end_index > 0)
+                {
+                    char const end_character = input[end_index];
+                    if (std::isalpha(end_character))
+                    {
+                        files.push_back(std::string_view{&input[start_index], end_index + 1 - start_index});
+                        break;
+                    }
+
+                    end_index -= 1;
+                }
+
+                start_index = current_index;
+                while (start_index < input.size())
+                {
+                    char const start_character = input[start_index];
+                    if (std::isalpha(start_character))
+                        break;
+
+                    start_index += 1;
+                }
+            }
+
+            current_index += 1;
+        }
+
+        std::filesystem::file_time_type const output_time = std::filesystem::last_write_time(output_dependency_file);
+
+        for (std::string_view const& file_path_string : files)
+        {
+            std::filesystem::path const file_path = file_path_string;
+            if (!std::filesystem::exists(file_path))
+                return false;
+
+            std::filesystem::file_time_type const input_time = std::filesystem::last_write_time(file_path);
+            if (input_time > output_time)
+                return false;
+        }
+
+        return true;
+    }
+
     bool compile_cpp_and_write_to_bitcode_files(
         Builder& builder,
         std::span<Artifact const> const artifacts,
@@ -442,8 +507,8 @@ namespace h::compiler
                     std::filesystem::path const output_llvm_ir_file = build_directory_path / std::format("{}.{}.ll", artifact.name, source_file_path.stem().generic_string());
                     std::filesystem::path const output_dependency_file = build_directory_path / std::format("{}.{}.d", artifact.name, source_file_path.stem().generic_string());
 
-                    // TODO use -MMD -MF to generate a dependency file.
-                    // TODO here, we read the dependency file and check if any input is newer than then output
+                    if (is_compiled_cpp_up_to_date(output_dependency_file))
+                        continue;
 
                     if (builder.output_llvm_ir)
                     {
