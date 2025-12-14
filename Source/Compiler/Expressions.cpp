@@ -3517,7 +3517,7 @@ namespace h::compiler
 
             // Try local variable:
             {
-                std::optional<Value_and_type> location = search_in_function_scope(variable_name, {}, local_variables);
+                std::optional<Value_and_type> location = search_in_function_scope(variable_name, parameters.function_arguments, local_variables);
                 if (location.has_value())
                 {
                     Value_and_type const& variable_declaration = location.value();
