@@ -132,4 +132,11 @@ namespace h::compiler
         std::string_view const struct_name,
         std::optional<std::string_view> const target_triple
     );
+
+    export void write_compile_commands_json_to_file(
+        Builder const& builder,
+        std::filesystem::path const& artifact_file_path,
+        h::compiler::Compilation_options const& compilation_options,
+        std::filesystem::path const output_file_path
+    );
 }

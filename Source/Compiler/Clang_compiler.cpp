@@ -23,7 +23,7 @@ import h.common.filesystem;
 
 namespace h::compiler
 {
-    static std::filesystem::path find_clang(bool const use_clang_cl)
+    std::filesystem::path find_clang(bool const use_clang_cl)
     {
         std::filesystem::path const local_path{use_clang_cl ? "clang-cl.exe" : "clang++"};
         std::filesystem::path const absolute_path = h::common::get_executable_directory() / local_path;
@@ -85,30 +85,22 @@ namespace h::compiler
         return output;
     }
 
-    bool compile_cpp(
-        clang::CompilerInstance& clang_compiler_instance,
-        std::string_view const target_triple,
+    std::pmr::vector<std::pmr::string> create_compile_cpp_arguments(
+        std::filesystem::path const& clang_path,
         std::filesystem::path const& source_file_path,
         std::filesystem::path const& output_file_path,
         std::optional<std::filesystem::path> const output_dependency_file_path,
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagnostic_ids{new clang::DiagnosticIDs{}};
-        llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> diagnostic_options{new clang::DiagnosticOptions{}};
-        clang::TextDiagnosticPrinter diagnostic_printer{llvm::outs(), diagnostic_options.get()};
-        clang::DiagnosticsEngine diagnostics_engine{diagnostic_ids, diagnostic_options, &diagnostic_printer, false};
-
         std::string const source_file_path_string = source_file_path.generic_string();
         std::string const output_file_path_string = output_file_path.generic_string();
 
-        std::filesystem::path const clang_path = find_clang(use_clang_cl);
-        
-        std::pmr::vector<std::pmr::string> arguments{temporaries_allocator};
-        arguments.reserve(5 + additional_flags.size());
+        std::pmr::vector<std::pmr::string> arguments{output_allocator};
+        arguments.reserve(10 + include_directories.size() + additional_flags.size());
 
         arguments.push_back(std::pmr::string{clang_path.generic_string()});
 
@@ -145,6 +137,39 @@ namespace h::compiler
         }
 
         arguments.push_back(source_file_path_string.c_str());
+
+        return arguments;
+    }
+
+    bool compile_cpp(
+        clang::CompilerInstance& clang_compiler_instance,
+        std::string_view const target_triple,
+        std::filesystem::path const& source_file_path,
+        std::filesystem::path const& output_file_path,
+        std::optional<std::filesystem::path> const output_dependency_file_path,
+        std::span<std::pmr::string const> const include_directories,
+        std::span<std::pmr::string const> const additional_flags,
+        bool const use_clang_cl,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        llvm::IntrusiveRefCntPtr<clang::DiagnosticIDs> diagnostic_ids{new clang::DiagnosticIDs{}};
+        llvm::IntrusiveRefCntPtr<clang::DiagnosticOptions> diagnostic_options{new clang::DiagnosticOptions{}};
+        clang::TextDiagnosticPrinter diagnostic_printer{llvm::outs(), diagnostic_options.get()};
+        clang::DiagnosticsEngine diagnostics_engine{diagnostic_ids, diagnostic_options, &diagnostic_printer, false};
+
+        std::filesystem::path const clang_path = find_clang(use_clang_cl);
+        
+        std::pmr::vector<std::pmr::string> const arguments = create_compile_cpp_arguments(
+            clang_path,
+            source_file_path,
+            output_file_path,
+            output_dependency_file_path,
+            include_directories,
+            additional_flags,
+            use_clang_cl,
+            temporaries_allocator
+        );
 
         std::pmr::vector<char const*> c_string_arguments = to_c_string_vector(arguments);
 

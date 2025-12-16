@@ -227,6 +227,19 @@ int main(int const argc, char const* const* argv)
     add_target_triple_argument(print_struct_layout_command);
     program.add_subparser(print_struct_layout_command);
 
+    // hlang generate-compile-commands [--artifact-file=<artifact_file>] [--output-file=<output_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
+    argparse::ArgumentParser generate_compile_commands_command("generate-compile-commands");
+    generate_compile_commands_command.add_description("Generate compile_commands.json for C++ files.");
+    add_artifact_file_argument(generate_compile_commands_command);
+    generate_compile_commands_command.add_argument("--output-file")
+        .help("Path to the compile_commands.json file")
+        .default_value("build/compile_commands.json");
+    add_build_directory_argument(generate_compile_commands_command);
+    add_header_search_path_argument(generate_compile_commands_command);
+    add_repository_argument(generate_compile_commands_command);
+    add_target_triple_argument(generate_compile_commands_command);
+    program.add_subparser(generate_compile_commands_command);
+
     try
     {
         program.parse_args(argc, argv);
@@ -344,6 +357,41 @@ int main(int const argc, char const* const* argv)
             input_file_path,
             struct_name,
             target_triple
+        );
+    }
+    else if (program.is_subcommand_used("generate-compile-commands"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("generate-compile-commands");
+
+        std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
+        std::filesystem::path const output_file_path = subprogram.get<std::string>("--output-file");
+        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
+        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
+        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
+
+        h::compiler::Target const target = h::compiler::get_default_target();
+        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, false, h::compiler::Contract_options::Log_error_and_abort);
+
+        h::compiler::Builder_options const builder_options =
+        {
+            .output_llvm_ir = false,
+        };
+
+        h::compiler::Builder builder = h::compiler::create_builder(
+            target,
+            build_directory_path,
+            header_search_paths,
+            repository_paths,
+            compilation_options,
+            builder_options,
+            {}
+        );
+
+        h::compiler::write_compile_commands_json_to_file(
+            builder,
+            artifact_file_path,
+            compilation_options,
+            output_file_path
         );
     }
 

@@ -147,4 +147,17 @@ namespace h::common
         std::string const path_string = path.generic_string();
         write_to_file(path_string.c_str(), content);
     }
+
+    std::pmr::vector<std::pmr::string> convert_path_to_string(std::span<std::filesystem::path const> const values, std::pmr::polymorphic_allocator<> output_allocator)
+    {
+        std::pmr::vector<std::pmr::string> output{output_allocator};
+        output.reserve(values.size());
+
+        for (std::filesystem::path const& value : values)
+        {
+            output.push_back(std::pmr::string{value.generic_string()});
+        }
+
+        return output;
+    }
 }

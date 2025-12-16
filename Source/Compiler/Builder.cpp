@@ -21,6 +21,7 @@ import h.compiler;
 import h.compiler.artifact;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_compiler;
+import h.compiler.compile_commands_generator;
 import h.compiler.linker;
 import h.compiler.profiler;
 import h.compiler.repository;
@@ -53,19 +54,6 @@ namespace h::compiler
         {
             std::filesystem::create_directories(path);
         }
-    }
-
-    static std::pmr::vector<std::pmr::string> convert_path_to_string(std::span<std::filesystem::path const> const values, std::pmr::polymorphic_allocator<> output_allocator)
-    {
-        std::pmr::vector<std::pmr::string> output{output_allocator};
-        output.reserve(values.size());
-
-        for (std::filesystem::path const& value : values)
-        {
-            output.push_back(std::pmr::string{value.generic_string()});
-        }
-
-        return output;
     }
 
     Profiler* get_profiler(Builder& builder)
@@ -482,12 +470,10 @@ namespace h::compiler
 
         bool const use_clang_cl = builder.target.operating_system == "windows";
 
-        std::pmr::vector<std::filesystem::path> const cpp_source_files;
-
         for (Artifact const& artifact : artifacts)
         {
             std::pmr::vector<std::filesystem::path> const public_include_directories = get_public_include_directories(artifact, artifacts, temporaries_allocator, temporaries_allocator);
-            std::pmr::vector<std::pmr::string> const public_include_directories_strings = convert_path_to_string(public_include_directories, temporaries_allocator);
+            std::pmr::vector<std::pmr::string> const public_include_directories_strings = h::common::convert_path_to_string(public_include_directories, temporaries_allocator);
 
             for (Source_group const& group : artifact.sources)
             {
@@ -1072,5 +1058,37 @@ namespace h::compiler
         string_stream << struct_layout;
         std::string const output = string_stream.str();
         std::puts(output.c_str());
+    }
+
+    void write_compile_commands_json_to_file(
+        Builder const& builder,
+        std::filesystem::path const& artifact_file_path,
+        h::compiler::Compilation_options const& compilation_options,
+        std::filesystem::path const output_file_path
+    )
+    {
+        std::pmr::polymorphic_allocator<> temporaries_allocator;
+
+        std::filesystem::path const build_directory_path = get_hl_build_directory(builder.build_directory_path);
+        bool const use_clang_cl = builder.target.operating_system == "windows";
+        bool const use_objects = builder.compilation_options.output_debug_code_view;
+
+        std::pmr::vector<Artifact> const artifacts = get_sorted_artifacts(
+            { &artifact_file_path, 1 },
+            builder.repositories,
+            temporaries_allocator,
+            temporaries_allocator
+        );
+
+        std::pmr::vector<Compile_command> const commands = create_compile_commands(
+            artifacts,
+            build_directory_path,
+            use_clang_cl,
+            use_objects,
+            temporaries_allocator,
+            temporaries_allocator
+        );
+
+        write_compile_commands_to_file(commands, output_file_path);
     }
 }

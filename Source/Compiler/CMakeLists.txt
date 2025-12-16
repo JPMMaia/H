@@ -140,6 +140,7 @@ target_sources(H_compiler
          "Clang_compiler.cppm"
          "Clang_data.cppm"
          "Common.cppm"
+         "Compile_commands_generator.cppm"
          "Compiler.cppm"
          "Debug_info.cppm"
          "Diagnostic.cppm"

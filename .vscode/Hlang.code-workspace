@@ -199,6 +199,23 @@
 				"cwd": "${workspaceFolder}/build",
 			},
 			{
+				"name": "hlang generate-compile-commands rts-game",
+				"type": "cppvsdbg",
+				"request": "launch",
+				"program": "${workspaceFolder}/build/Source/Builder/Debug/hlang.exe",
+				"args": [
+					"generate-compile-commands",
+					"--artifact-file=${workspaceFolder}/../rts-game/source/game/hlang_artifact.json",
+					"--output-file=${workspaceFolder}/../rts-game/build/compile_commands.json",
+					"--build-directory=${workspaceFolder}/../rts-game/build",
+					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
+					"--repository=${workspaceFolder}/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/../HLang_Local_Repository/hlang_repository.json",
+					"--repository=${workspaceFolder}/../rts-game/source/hlang_repository.json"
+				],
+				"cwd": "${workspaceFolder}/../rts-game",
+			},
+			{
 				"name": "Run Language Server",
 				"type": "cppvsdbg",
 				"request": "launch",

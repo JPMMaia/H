@@ -28,4 +28,6 @@ namespace h::common
 
     export void write_to_file(char const* const path, std::string_view const content);
     export void write_to_file(std::filesystem::path const& path, std::string_view const content);
+
+    export std::pmr::vector<std::pmr::string> convert_path_to_string(std::span<std::filesystem::path const> const values, std::pmr::polymorphic_allocator<> output_allocator);
 }
