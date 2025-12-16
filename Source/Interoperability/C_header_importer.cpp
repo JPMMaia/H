@@ -389,6 +389,8 @@ namespace h::c
             CXCursor const pointee_declaration = clang_getTypeDeclaration(pointee_type);
 
             std::optional<Type_reference> element_type = create_type_reference(declarations, cursor, pointee_type);
+            if (element_type.has_value() && std::holds_alternative<Function_pointer_type>(element_type->data))
+                return element_type;
 
             bool const is_const = clang_isConstQualifiedType(pointee_type);
 

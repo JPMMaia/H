@@ -1370,7 +1370,7 @@ struct MyNestedVector
         std::filesystem::create_directories(root_directory_path);
 
         std::string const header_content = R"(
-typedef int(function_pointer_type*)(int a, int b);
+typedef int(*function_pointer_type)(int a, int b);
 )";
 
         std::filesystem::path const header_file_path = root_directory_path / "function_pointer_type.h";
