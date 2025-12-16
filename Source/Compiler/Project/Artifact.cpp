@@ -583,10 +583,15 @@ namespace h::compiler
         std::span<std::filesystem::path const> const search_paths
     )
     {
+        std::filesystem::path const file_path = filename;
+        if (file_path.is_absolute())
+            return file_path;
+
+        for (std::filesystem::path const& search_path : search_paths)
         {
-            std::filesystem::path const file_path = filename;
-            if (file_path.is_absolute())
-                return file_path;
+            std::filesystem::path const absolute_file_path = search_path / file_path;
+            if (std::filesystem::exists(absolute_file_path))
+                return absolute_file_path.lexically_normal();
         }
 
         for (std::filesystem::path const& search_path : search_paths)
