@@ -2376,6 +2376,31 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that function pointers with same type but different parameter names can be assigned", "[Validation][Function_pointer_type]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_function = function<(a0: Int32) -> (r0: Int32)>;
+
+function my_function(a1: Int32) -> (r0: Int32)
+{
+    return a1;
+}
+
+function run() -> ()
+{
+    var value: My_function = my_function;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that if condition expression type is boolean", "[Validation][If_expression]")
     {
         std::string_view const input = R"(module Test;

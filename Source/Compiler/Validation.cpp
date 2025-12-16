@@ -171,6 +171,13 @@ namespace h::compiler
         if (is_null_pointer_type(first_underlying_type.value()) && is_function_pointer(second_underlying_type.value()))
             return true;
 
+        if (is_function_pointer(first_underlying_type.value()) && is_function_pointer(second_underlying_type.value()))
+        {
+            h::Function_pointer_type const& first_pointer_type = std::get<h::Function_pointer_type>(first_underlying_type->data);
+            h::Function_pointer_type const& second_pointer_type = std::get<h::Function_pointer_type>(second_underlying_type->data);
+            return first_pointer_type.type == second_pointer_type.type;
+        }
+
         return first == second;
     }
 
@@ -264,7 +271,7 @@ namespace h::compiler
             }
         }
 
-        return destination == source;
+        return are_compatible_types(declaration_database, destination, source);
     }
 
     std::array<std::string_view, 14> get_reserved_keywords()
