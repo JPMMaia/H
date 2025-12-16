@@ -14,7 +14,7 @@
                 {
                     "name": "C_interface",
                     "header": "c_interface.h"
-                }        
+                }
             ]
         },
         {
@@ -23,7 +23,7 @@
                 "./**/*.cpp"
             ],
             "additional_flags": [
-                "-std=c++23"        
+                "-std=c++23"
             ]
         },
         {
