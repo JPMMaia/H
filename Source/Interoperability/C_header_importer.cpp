@@ -2073,6 +2073,21 @@ namespace h::c
 
         if (error != CXError_Success)
         {
+            unsigned const number_of_diagnostics = clang_getNumDiagnostics(unit);
+
+            unsigned const options =
+                CXDiagnostic_DisplaySourceLocation |
+                CXDiagnostic_DisplaySourceRanges |
+                CXDiagnostic_DisplayCategoryId |
+                CXDiagnostic_DisplayCategoryName;
+
+            for (unsigned index = 0; index < number_of_diagnostics; ++index)
+            {
+                CXDiagnostic const diagnostic = clang_getDiagnostic(unit, index);
+                String const diagnostic_message = String{clang_formatDiagnostic(diagnostic, options)};
+                std::cerr << diagnostic_message.string_view() << std::endl;
+            }
+
             constexpr char const* message = "Unable to parse translation unit. Quitting.";
             std::cerr << message << std::endl;
             throw std::runtime_error{ message };
