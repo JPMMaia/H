@@ -24,6 +24,7 @@ namespace h::compiler
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
+        bool const debug,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
@@ -35,6 +36,7 @@ namespace h::compiler
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
+        bool const debug,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 }

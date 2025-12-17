@@ -508,6 +508,7 @@ namespace h::compiler
                             public_include_directories_strings,
                             group.additional_flags,
                             use_clang_cl,
+                            compilation_options.debug,
                             temporaries_allocator
                         );
                         if (!success)
@@ -526,6 +527,7 @@ namespace h::compiler
                         public_include_directories_strings,
                         group.additional_flags,
                         use_clang_cl,
+                        compilation_options.debug,
                         temporaries_allocator
                     );
                     if (!success)

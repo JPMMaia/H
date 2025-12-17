@@ -71,6 +71,7 @@ namespace h::compiler
                         public_include_directories_strings,
                         group.additional_flags,
                         use_clang_cl,
+                        false,
                         temporaries_allocator
                     );
 

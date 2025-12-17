@@ -93,6 +93,7 @@ namespace h::compiler
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
+        bool const debug,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
@@ -113,6 +114,9 @@ namespace h::compiler
             add_argument(arguments, additional_flag, use_clang_cl);
 
         add_output_argument(arguments, output_file_path_string, use_clang_cl);
+
+        if (debug)
+            add_argument(arguments, "-g", use_clang_cl);
 
         if (output_dependency_file_path.has_value())
         {
@@ -150,6 +154,7 @@ namespace h::compiler
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
+        bool const debug,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -168,6 +173,7 @@ namespace h::compiler
             include_directories,
             additional_flags,
             use_clang_cl,
+            debug,
             temporaries_allocator
         );
 
