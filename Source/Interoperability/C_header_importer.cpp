@@ -2026,7 +2026,7 @@ namespace h::c
         return c_strings;
     }
 
-    static CXTranslationUnit create_translation_unit(
+    static std::optional<CXTranslationUnit> create_translation_unit(
         CXIndex const index,
         std::filesystem::path const& header_path,
         Options const& options
@@ -2090,7 +2090,7 @@ namespace h::c
 
             constexpr char const* message = "Unable to parse translation unit. Quitting.";
             std::cerr << message << std::endl;
-            throw std::runtime_error{ message };
+            return std::nullopt;
         }
 
         CXTargetInfo targetInfo = clang_getTranslationUnitTargetInfo(unit);
@@ -2456,7 +2456,7 @@ namespace h::c
         return false;
     }
 
-    void convert_macro_constants_to_global_constant_variables(
+    static bool convert_macro_constants_to_global_constant_variables(
         std::string_view const header_name,
         CXIndex const index,
         std::filesystem::path const& header_path,
@@ -2498,7 +2498,9 @@ namespace h::c
             std::fclose(file);
         }
 
-        CXTranslationUnit unit = create_translation_unit(index, generated_header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, generated_header_path, options);
+        if (!unit.has_value())
+            return false;
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
@@ -2532,7 +2534,7 @@ namespace h::c
             return CXChildVisit_Continue;
         };
 
-        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        CXCursor cursor = clang_getTranslationUnitCursor(*unit);
 
         clang_visitChildren(
             cursor,
@@ -2540,7 +2542,9 @@ namespace h::c
             &declarations
         );
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
+
+        return true;
     }
 
     h::Module import_header(
@@ -2685,24 +2689,26 @@ namespace h::c
         return header_module;
     }
 
-    h::Module import_header(
+    std::optional<h::Module> import_header(
         std::string_view const header_name,
         std::filesystem::path const& header_path,
         Options const& options
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        if (!unit.has_value())
+            return std::nullopt;
 
-        h::Module header_module = import_header(header_name, header_path, options, index, unit);
+        h::Module header_module = import_header(header_name, header_path, options, index, *unit);
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
         clang_disposeIndex(index);
 
         return header_module;
     }
 
-    h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
+    std::optional<h::Module> import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
         /*std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
 
@@ -2720,11 +2726,14 @@ namespace h::c
             }
         }*/
 
-        h::Module header_module = import_header(header_name, header_path, options);
-        //header_module.content_hash = current_header_hash;
-        h::binary_serializer::write_module_to_file(output_path, header_module, {});
+        std::optional<h::Module> header_module = import_header(header_name, header_path, options);
+        if (!header_module.has_value())
+            return std::nullopt;
 
-        return header_module;
+        //header_module.content_hash = current_header_hash;
+        h::binary_serializer::write_module_to_file(output_path, *header_module, {});
+
+        return *header_module;
     }
 
     h::Struct_layout calculate_struct_layout(
@@ -2788,14 +2797,16 @@ namespace h::c
         return client_data.struct_layout;
     }
 
-    h::Struct_layout calculate_struct_layout(
+    std::optional<h::Struct_layout> calculate_struct_layout(
         std::filesystem::path const& header_path,
         std::string_view const struct_name,
         Options const& options
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        if (!unit.has_value())
+            return std::nullopt;
 
         struct Client_data
         {
@@ -2824,7 +2835,7 @@ namespace h::c
             return CXChildVisit_Continue;
         };
 
-        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        CXCursor cursor = clang_getTranslationUnitCursor(*unit);
 
         Client_data client_data
         {
@@ -2838,7 +2849,7 @@ namespace h::c
             &client_data
         );
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
         clang_disposeIndex(index);
 
         return client_data.struct_layout;

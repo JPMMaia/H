@@ -151,7 +151,9 @@ namespace h::c
 
         std::filesystem::path const stdio_header_path = find_c_header_path("stdio.h", header_search_directories);
 
-        h::Module const header_module = h::c::import_header("c.stdio", stdio_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.stdio", stdio_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == stdio_header_path);
 
@@ -189,7 +191,9 @@ namespace h::c
 
         std::filesystem::path const time_header_path = find_c_header_path("time.h", header_search_directories);
 
-        h::Module const header_module = h::c::import_header("c.time", time_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.time", time_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == time_header_path);
 
@@ -208,7 +212,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -241,7 +247,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -289,7 +297,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -348,7 +358,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -432,7 +444,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -603,7 +617,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -683,7 +699,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         h::Global_variable_declaration const& actual = h::c::find_global_variable_declaration(header_module, "VK_API_VERSION_1_0");
 
@@ -712,7 +730,9 @@ namespace h::c
         std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
         std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
 
-        h::Module const header_module = h::c::import_header("vulkan", vulkan_header_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == vulkan_header_path);
 
@@ -823,7 +843,9 @@ struct My_data
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -944,7 +966,9 @@ union My_data
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1023,7 +1047,7 @@ union My_data
         }
     }
 
-        TEST_CASE("Handles nested anonymous declarations")
+    TEST_CASE("Handles nested anonymous declarations")
     {
         std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "nested_anonymous_declarations";
         std::filesystem::create_directories(root_directory_path);
@@ -1046,7 +1070,9 @@ struct My_data
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         REQUIRE(header_module.internal_declarations.struct_declarations.size() == 1);
         REQUIRE(header_module.internal_declarations.union_declarations.size() == 1);
@@ -1082,7 +1108,9 @@ Sint32 my_global_2 = 0;
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1146,7 +1174,9 @@ Sint32 my_global_2 = 0;
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1239,7 +1269,9 @@ int add(int first, int second)
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.comments", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.comments", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1297,7 +1329,9 @@ struct MyVector2i
         {
             .public_prefixes = public_prefixes,
         };
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, options);
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.vector2i", header_file_path, options);
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         REQUIRE(header_module.export_declarations.struct_declarations.size() == 1);
         {
@@ -1342,7 +1376,9 @@ struct MyNestedVector
         {
             .remove_prefixes = remove_prefixes,
         };
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, options);
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.vector2i", header_file_path, options);
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         REQUIRE(header_module.export_declarations.struct_declarations.size() == 2);
         
@@ -1376,7 +1412,9 @@ typedef int(*function_pointer_type)(int a, int b);
         std::filesystem::path const header_file_path = root_directory_path / "function_pointer_type.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.function_pointer_type", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.function_pointer_type", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         {
             h::Alias_type_declaration const& declaration = header_module.export_declarations.alias_type_declarations[0];
@@ -1422,7 +1460,9 @@ struct My_data
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1477,7 +1517,9 @@ DEFINE_HANDLE(My_macro_type)
         std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.My_data", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1554,7 +1596,9 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
         std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.vector2i", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1599,7 +1643,9 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
         std::filesystem::path const header_file_path = root_directory_path / "vector2i.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.vector2i", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.vector2i", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1635,7 +1681,9 @@ union Value
         std::filesystem::path const header_file_path = root_directory_path / "value.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.value", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.value", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1671,7 +1719,9 @@ enum My_enum
         std::filesystem::path const header_file_path = root_directory_path / "my_enum.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.my_enum", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.my_enum", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 
@@ -1696,7 +1746,9 @@ typedef My_int My_alias;
         std::filesystem::path const header_file_path = root_directory_path / "alias.h";
         h::common::write_to_file(header_file_path, header_content);
 
-        h::Module const header_module = h::c::import_header("c.alias", header_file_path, {});
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.alias", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
 
         CHECK(header_module.source_file_path == header_file_path);
 

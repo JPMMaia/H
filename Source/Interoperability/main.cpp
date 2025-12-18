@@ -2,11 +2,13 @@
 
 #include <filesystem>
 #include <iostream>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
 
 import h.c_header_converter;
+import h.core;
 
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
 {
@@ -60,7 +62,9 @@ int main(int const argc, char const* const argv[])
         .include_directories = include_directories
     };
 
-    h::c::import_header_and_write_to_file(header_name, header_path, output_path, options);
+    std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(header_name, header_path, output_path, options);
+    if (!header_module.has_value())
+        return -1;
 
     return 0;
 }

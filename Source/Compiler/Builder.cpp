@@ -370,16 +370,18 @@ namespace h::compiler
                         .remove_prefixes = c_header_source_group.remove_prefixes,
                     };
 
-                    h::Module header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+                    std::optional<h::Module> header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+                    if (!header_module.has_value())
+                        continue;
 
                     if (builder.output_module_json)
                     {
                         std::filesystem::path const output_module_json_filename = std::format("{}.hlb.json", header_module_name);
                         std::filesystem::path const output_module_json_path = get_hl_build_directory(builder.build_directory_path) / output_module_json_filename;
-                        h::json::write<h::Module>(output_module_json_path, header_module);
+                        h::json::write<h::Module>(output_module_json_path, *header_module);
                     }
 
-                    header_modules.push_back(std::move(header_module));
+                    header_modules.push_back(std::move(*header_module));
                 }
             }
         }
@@ -1054,10 +1056,15 @@ namespace h::compiler
         h::compiler::Type_database type_database = h::compiler::create_type_database(*llvm_data.context);
         h::compiler::add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *core_module);
 
-        h::Struct_layout const struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, core_module->name, struct_name);
+        std::optional<h::Struct_layout> const struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, core_module->name, struct_name);
+        if (!struct_layout.has_value())
+        {
+            std::puts("<error>");
+            return;
+        }
 
         std::stringstream string_stream;
-        string_stream << struct_layout;
+        string_stream << struct_layout.value();
         std::string const output = string_stream.str();
         std::puts(output.c_str());
     }

@@ -16,6 +16,7 @@ import h.compiler.jit_runner;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
+import h.core;
 import h.parser.parser;
 
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
@@ -343,7 +344,9 @@ int main(int const argc, char const* const* argv)
             .remove_prefixes = remove_prefixes,
         };
 
-        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);
+        std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);
+        if (!header_module.has_value())
+            return -1;
     }
     else if (program.is_subcommand_used("print-struct-layout"))
     {

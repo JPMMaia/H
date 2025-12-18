@@ -70,12 +70,13 @@ namespace h
       std::filesystem::create_directories(output_file_path.parent_path());
 
     h::c::Options const options = {};
-    h::c::import_header_and_write_to_file(
+    std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(
       header_name,
       input_file_path,
       output_file_path,
       options
     );
+    REQUIRE(header_module.has_value());
 
     return output_file_path;
   }
@@ -92,7 +93,8 @@ namespace h
     h::common::write_to_file(header_file_path, header_content);
 
     std::filesystem::path const header_module_file_path = output_directory / header_module_filename;
-    h::c::import_header_and_write_to_file(header_module_name, header_file_path, header_module_file_path, {});
+    std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(header_module_name, header_file_path, header_module_file_path, {});
+    REQUIRE(header_module.has_value());
 
     return header_module_file_path;
   }
@@ -5257,7 +5259,8 @@ struct My_struct
 std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "my_struct.h", "my_struct.hltxt", "my_module", root_directory_path);
 
     std::filesystem::path const header_file_path = root_directory_path / "my_struct.h";
-    h::Struct_layout const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
+    std::optional<h::Struct_layout> const expected_struct_layout = h::c::calculate_struct_layout(header_file_path, "My_struct", {});
+    REQUIRE(expected_struct_layout.has_value());
 
     std::optional<h::Module> core_module = h::compiler::read_core_module(header_module_file_path);
     REQUIRE(core_module.has_value());
@@ -5282,7 +5285,7 @@ std::filesystem::path const header_module_file_path = create_and_import_c_header
 
     h::Struct_layout const actual_struct_layout = h::compiler::calculate_struct_layout(llvm_data.data_layout, type_database, "my_module", "My_struct");
 
-    CHECK(actual_struct_layout == expected_struct_layout);
+    CHECK(actual_struct_layout == expected_struct_layout.value());
   }
 
   void test_c_interoperability_call_function_with_struct_argument(

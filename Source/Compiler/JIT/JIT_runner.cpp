@@ -289,7 +289,9 @@ namespace h::compiler
             );
 
             h::c::Options const options = create_c_header_options_from_artifact(module_name, artifact);
-            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, options);
+            std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, options);
+            if (!header_module.has_value())
+                return std::nullopt;
 
             return Parsed_module_info
             {
