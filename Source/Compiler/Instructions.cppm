@@ -47,6 +47,13 @@ namespace h::compiler
         llvm::Value* const pointer
     );
 
+    export llvm::Value* create_load_instruction_if_needed(
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* llvm_value,
+        bool const is_address_of
+    );
+
     export llvm::StoreInst* create_store_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,

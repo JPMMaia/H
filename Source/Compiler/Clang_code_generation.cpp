@@ -1023,6 +1023,31 @@ namespace h::compiler
             }
         }
 
+        if (function_info.isVariadic())
+        {
+            std::size_t const start_index = argument_infos.size();
+
+            for (std::size_t argument_index = start_index; argument_index < original_arguments.size(); ++argument_index)
+            {
+                llvm::Value* const original_argument = original_arguments[argument_index];
+                bool const is_taking_adress_of_value = is_expression_address_of[argument_index];
+
+                llvm::Value* const loaded_value = create_load_instruction_if_needed(
+                    llvm_builder,
+                    llvm_data_layout,
+                    original_argument,
+                    is_taking_adress_of_value
+                );
+
+                std::pmr::vector<llvm::Attribute> attributes;
+                attributes.reserve(1);
+                attributes.push_back(llvm::Attribute::get(llvm_context, llvm::Attribute::NoUndef));
+                
+                transformed_arguments.values.push_back(loaded_value);
+                transformed_arguments.attributes.push_back(std::pmr::vector<llvm::Attribute>{attributes.begin(), attributes.end()});
+            }
+        }
+
         return transformed_arguments;
 
         /*clang::CodeGen::CGFunctionInfo const& FI = create_clang_function_info(clang_module_data, core_module, function_name);

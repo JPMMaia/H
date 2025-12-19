@@ -1420,7 +1420,8 @@ define private void @Break_expressions_print_integer(i32 noundef %"arguments[0].
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
-  %0 = call i32 (ptr, ...) @printf(ptr noundef @global_0)
+  %0 = load i32, ptr %value, align 4
+  %1 = call i32 (ptr, ...) @printf(ptr noundef @global_0, i32 noundef %0)
   ret void
 }
 
@@ -3093,7 +3094,8 @@ define private void @For_loop_expressions_print_integer(i32 noundef %"arguments[
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
-  %0 = call i32 (ptr, ...) @printf(ptr noundef @global_0)
+  %0 = load i32, ptr %value, align 4
+  %1 = call i32 (ptr, ...) @printf(ptr noundef @global_0, i32 noundef %0)
   ret void
 }
 
@@ -3194,7 +3196,7 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
-@global_0 = internal constant [5 x i8] c"%s\\n\00"
+@global_0 = internal constant [4 x i8] c"%s\0A\00"
 @global_1 = internal constant [5 x i8] c"zero\00"
 @global_2 = internal constant [9 x i8] c"negative\00"
 @global_3 = internal constant [13 x i8] c"non-negative\00"
@@ -3302,7 +3304,8 @@ define private void @If_expressions_print_message(ptr noundef %"arguments[0].mes
 entry:
   %message = alloca ptr, align 8
   store ptr %"arguments[0].message", ptr %message, align 8
-  %0 = call i32 (ptr, ...) @printf(ptr noundef @global_0)
+  %0 = load ptr, ptr %message, align 8
+  %1 = call i32 (ptr, ...) @printf(ptr noundef @global_0, ptr noundef %0)
   ret void
 }
 
@@ -4254,6 +4257,37 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Use Printf", "[LLVM_IR]")
+  {
+    char const* const input_file = "use_printf.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+      { "c.stdio", import_c_header_and_get_file_path("c.stdio", "stdio.h") }
+    };
+
+    char const* const expected_llvm_ir = R"(
+@global_0 = internal constant [24 x i8] c"Value: %d, pointer: %p\0A\00"
+
+; Function Attrs: convergent
+define void @Use_printf_run() #0 {
+entry:
+  %a = alloca i32, align 4
+  store i32 1, ptr %a, align 4
+  %0 = load i32, ptr %a, align 4
+  %1 = call i32 (ptr, ...) @printf(ptr noundef @global_0, i32 noundef %0, ptr noundef %a)
+  ret void
+}
+
+; Function Attrs: convergent
+declare i32 @printf(ptr noundef, ...) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Unique Name", "[LLVM_IR]")
   {
     char const* const input_file = "unique_name.hltxt";
@@ -5091,7 +5125,8 @@ define private void @While_loop_expressions_print_integer(i32 noundef %"argument
 entry:
   %value = alloca i32, align 4
   store i32 %"arguments[0].value", ptr %value, align 4
-  %0 = call i32 (ptr, ...) @printf(ptr noundef @global_0)
+  %0 = load i32, ptr %value, align 4
+  %1 = call i32 (ptr, ...) @printf(ptr noundef @global_0, i32 noundef %0)
   ret void
 }
 

@@ -97,6 +97,36 @@ namespace h::compiler
         return instruction;
     }
 
+    llvm::Value* create_load_instruction_if_needed(
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* llvm_value,
+        bool const is_address_of
+    )
+    {
+        if (is_address_of)
+            return llvm_value;
+
+        if (llvm::AllocaInst::classof(llvm_value))
+        {
+            llvm::AllocaInst* alloca_instruction = static_cast<llvm::AllocaInst*>(llvm_value);
+            llvm::Type* const allocated_type = alloca_instruction->getAllocatedType();
+            llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, allocated_type, llvm_value);
+            return loaded_value;
+        }
+        else if (llvm::GetElementPtrInst::classof(llvm_value))
+        {
+            llvm::GetElementPtrInst* get_element_ptr_instruction = static_cast<llvm::GetElementPtrInst*>(llvm_value);
+            llvm::Type* const result_type = get_element_ptr_instruction->getResultElementType();
+            llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, result_type, llvm_value);
+            return loaded_value;
+        }
+        else
+        {
+            return llvm_value;
+        }
+    }
+
     llvm::StoreInst* create_store_instruction(
         llvm::IRBuilder<>& llvm_builder,
         llvm::DataLayout const& llvm_data_layout,

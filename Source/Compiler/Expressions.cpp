@@ -2049,6 +2049,25 @@ namespace h::compiler
         }
     }
 
+    static std::pmr::string replace_string_literal_special_values(std::string_view const value)
+    {
+        std::pmr::string output = std::pmr::string{value};
+
+        size_t index = 0;
+        while (true)
+        {
+            index = output.find("\\n", index);
+            if (index == std::pmr::string::npos)
+                break;
+
+            output.replace(index, 2, "\n");
+
+            index += 2;
+        }
+
+        return output;
+    }
+
     Value_and_type create_constant_expression_value(
         Constant_expression const& expression,
         llvm::LLVMContext& llvm_context,
@@ -2187,9 +2206,10 @@ namespace h::compiler
         else if (is_c_string(type))
         {
             std::pmr::string const& string_data = expression.data;
+            std::pmr::string const final_string = replace_string_literal_special_values(string_data);
 
             std::uint64_t const null_terminator_size = 1;
-            std::uint64_t const array_size = string_data.size() + null_terminator_size;
+            std::uint64_t const array_size = final_string.size() + null_terminator_size;
             llvm::ArrayType* const array_type = llvm::ArrayType::get(llvm::IntegerType::get(llvm_context, 8), array_size);
 
             bool const is_constant = true;
@@ -2199,7 +2219,7 @@ namespace h::compiler
                 array_type,
                 is_constant,
                 llvm::GlobalValue::InternalLinkage,
-                llvm::ConstantDataArray::getString(llvm_context, string_data.c_str()),
+                llvm::ConstantDataArray::getString(llvm_context, final_string.c_str()),
                 global_variable_name
             );
 
