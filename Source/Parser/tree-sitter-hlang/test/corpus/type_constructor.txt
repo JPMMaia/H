@@ -15,7 +15,7 @@ export type_constructor Dynamic_array(element_type: Type)
 
 function run() -> ()
 {
-    var instance: Dynamic_array<Int32> = {};
+    var instance: Dynamic_array::<Int32> = {};
 }
 
 ---

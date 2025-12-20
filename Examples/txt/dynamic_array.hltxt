@@ -19,7 +19,7 @@ export type_constructor Dynamic_array(element_type: Type)
 
 export function_constructor create(element_type: Type)
 {
-    return function (allocator: Allocator) -> (instance: Dynamic_array<element_type>)
+    return function (allocator: Allocator) -> (instance: Dynamic_array::<element_type>)
         precondition "allocator.allocate != null" { allocator.allocate != null }
         precondition "allocator.deallocate != null" { allocator.deallocate != null }
     {
@@ -34,7 +34,7 @@ export function_constructor create(element_type: Type)
 
 export function_constructor push_back(element_type: Type)
 {
-    return function (instance: *mutable Dynamic_array<element_type>, element: element_type) -> ()
+    return function (instance: *mutable Dynamic_array::<element_type>, element: element_type) -> ()
         precondition "instance != null" { instance != null }
     {
         if instance->length == instance->capacity
@@ -57,7 +57,7 @@ export function_constructor push_back(element_type: Type)
 
 export function_constructor get(element_type: Type)
 {
-    return function (instance: *mutable Dynamic_array<element_type>, index: Uint64) -> (result: element_type)
+    return function (instance: *mutable Dynamic_array::<element_type>, index: Uint64) -> (result: element_type)
         precondition "instance != null" { instance != null }
         precondition "index < instance->length" { index < instance->length }
     {

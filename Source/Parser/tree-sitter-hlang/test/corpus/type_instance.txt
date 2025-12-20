@@ -8,8 +8,8 @@ import Type_constructor as Type_constructor;
 
 function run() -> ()
 {
-    var a: Type_constructor.Dynamic_array<Int32> = {};
-    var b: *mutable Type_constructor.Dynamic_array<Int32> = null;
+    var a: Type_constructor.Dynamic_array::<Int32> = {};
+    var b: *mutable Type_constructor.Dynamic_array::<Int32> = null;
 }
 
 ---

@@ -1109,7 +1109,7 @@ namespace h
     {
         add_format_expression(buffer, statement, get_expression(statement, expression.left_hand_side), outside_indentation, options);
 
-        add_text(buffer, "<");
+        add_text(buffer, "::<");
 
         for (std::size_t index = 0; index < expression.arguments.size(); ++index)
         {
@@ -1560,7 +1560,7 @@ namespace h
         if (std::holds_alternative<Array_slice_type>(type.data))
         {
             Array_slice_type const& value = std::get<Array_slice_type>(type.data);
-            add_text(buffer, "Array_slice<");
+            add_text(buffer, "Array_slice::<");
 
             if (value.is_mutable)
                 add_text(buffer, "mutable ");
@@ -1576,7 +1576,7 @@ namespace h
         else if (std::holds_alternative<Constant_array_type>(type.data))
         {
             Constant_array_type const& value = std::get<Constant_array_type>(type.data);
-            add_text(buffer, "Constant_array<");
+            add_text(buffer, "Constant_array::<");
             add_format_type_name(buffer, value.value_type, options);
             add_text(buffer, ", ");
             add_integer_text(buffer, value.size);
@@ -1660,7 +1660,7 @@ namespace h
                 buffer, value.type_constructor, options
             );
 
-            add_text(buffer, "<");
+            add_text(buffer, "::<");
 
             for (std::size_t index = 0; index < value.arguments.size(); ++index)
             {

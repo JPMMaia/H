@@ -5,7 +5,7 @@ import dynamic_array as dynamic_array;
 function run() -> ()
 {
     var allocator: dynamic_array.Allocator = {};
-    var instance = dynamic_array.create<Int32>(allocator);
+    var instance = dynamic_array.create::<Int32>(allocator);
 
     instance.push_back(1);
     var element = instance.get(0u64);

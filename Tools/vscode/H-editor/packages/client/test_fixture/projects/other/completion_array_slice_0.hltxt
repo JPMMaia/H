@@ -1,6 +1,6 @@
 module completion_array_slice_0;
 
-export function run(value: Array_slice<Int32>) -> ()
+export function run(value: Array_slice::<Int32>) -> ()
 {
     value.
 }

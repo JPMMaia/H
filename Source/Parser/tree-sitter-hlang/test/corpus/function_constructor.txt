@@ -14,9 +14,9 @@ export function_constructor add(value_type: Type)
 
 function run() -> ()
 {
-    var a = add<Int32>;
-    var b = add<Int32>(1, 2);
-    var c = add<Float32>(3.0f32, 4.0f32);
+    var a = add::<Int32>;
+    var b = add::<Int32>(1, 2);
+    var c = add::<Float32>(3.0f32, 4.0f32);
 }
 
 ---

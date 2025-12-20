@@ -8,9 +8,9 @@ import Function_constructor as Function_constructor;
 
 function run() -> ()
 {
-    var a = Function_constructor.add<Int32>;
-    var b = Function_constructor.add<Int32>(1, 2);
-    var c = Function_constructor.add<Float32>(3.0f32, 4.0f32);
+    var a = Function_constructor.add::<Int32>;
+    var b = Function_constructor.add::<Int32>(1, 2);
+    var c = Function_constructor.add::<Float32>(3.0f32, 4.0f32);
 }
 
 ---

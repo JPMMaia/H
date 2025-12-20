@@ -1259,8 +1259,8 @@ module Constant_array_expressions;
 
 export function foo() -> ()
 {
-    var a: Constant_array<Int32, 0> = [];
-    var b: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    var a: Constant_array::<Int32, 0> = [];
+    var b: Constant_array::<Int32, 4> = [0, 1, 2, 3];
 
     a[0] = 0;
     a[1] = 1;

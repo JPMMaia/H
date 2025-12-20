@@ -11,9 +11,9 @@ module.exports = grammar({
   name: "hlang",
 
   conflicts: $ => [
-    [$.Expression_binary, $.Expression_instance_call],
-    [$.Expression_binary, $.Expression_instance_call, $.Expression_unary],
-    [$.Generic_expression, $.Expression_instance_call_parameter]
+    //[$.Expression_binary, $.Expression_instance_call],
+    //[$.Expression_binary, $.Expression_instance_call, $.Expression_unary],
+    //[$.Generic_expression, $.Expression_instance_call_parameter]
   ],
 
   rules: {
@@ -49,14 +49,14 @@ module.exports = grammar({
     Module_type_module_name: $ => prec(2, $.Identifier),
     Module_type_type_name: $ => $.Identifier,
     Pointer_type: $ => prec(13, seq("*", optional("mutable"), $.Type)),
-    Array_slice_type: $ => seq("Array_slice", "<", optional("mutable"), $.Type, ">"),
-    Constant_array_type: $ => seq("Constant_array", "<", $.Type, ",", $.Constant_array_length, ">"),
+    Array_slice_type: $ => seq("Array_slice", "::<", optional("mutable"), $.Type, ">"),
+    Constant_array_type: $ => seq("Constant_array", "::<", $.Type, ",", $.Constant_array_length, ">"),
     Constant_array_length: $ => $.Number,
     Function_pointer_type: $ => seq("function", "<", $.Function_pointer_type_input_parameters, "->", $.Function_pointer_type_output_parameters, ">"),
     Function_pointer_type_input_parameters: $ => seq("(", optional(seq($.Function_parameter, repeat(seq(",", $.Function_parameter)))), ")"),
     Function_pointer_type_output_parameters: $ => seq("(", optional(seq($.Function_parameter, repeat(seq(",", $.Function_parameter)))), ")"),
     Type_instance_type: $ => prec(2, seq(choice($.Type_name, $.Module_type), $.Type_instance_type_parameters)),
-    Type_instance_type_parameters: $ => seq("<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"),
+    Type_instance_type_parameters: $ => seq("::<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"),
     Alias: $ => seq("using", $.Alias_name, "=", $.Alias_type, ";"),
     Alias_name: $ => $.Identifier,
     Alias_type: $ => $.Type,
@@ -200,7 +200,7 @@ module.exports = grammar({
     ),
     Expression_for_loop_statements: $ => seq("{", repeat($.Statement), "}"),
     Expression_function: $ => seq("function", $.Function_input_parameters, "->", $.Function_output_parameters, repeat($.Function_precondition), repeat($.Function_postcondition), $.Block),
-    Expression_instance_call: $ => prec.left(13, seq($.Generic_expression, seq("<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"))),
+    Expression_instance_call: $ => prec.left(13, seq($.Generic_expression, seq("::<", optional(seq($.Expression_instance_call_parameter, repeat(seq(",", $.Expression_instance_call_parameter)))), ">"))),
     Expression_instance_call_parameter: $ => choice(
       $.Expression_constant,
       $.Expression_type
