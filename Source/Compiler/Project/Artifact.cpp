@@ -1064,7 +1064,7 @@ namespace h::compiler
             Artifact const& dependency_artifact = *dependency_artifact_location;
 
             std::pmr::vector<std::filesystem::path> const dependency_source_files = get_artifact_hlang_source_files(dependency_artifact, temporaries_allocator, temporaries_allocator);
-            std::span<C_header const> const dependency_c_headers = get_c_headers(dependency_artifact, temporaries_allocator);
+            std::pmr::vector<C_header> const dependency_c_headers = get_c_headers(dependency_artifact, temporaries_allocator);
             
             add_modules(dependency_source_files);
             add_headers(dependency_c_headers);

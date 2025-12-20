@@ -1,17 +1,22 @@
 {
-  "name": "Project_0",
-  "version": "0.1.0",
-  "type": "executable",
-  "dependencies": [
-    {
-      "name": "Complex"
+    "name": "Project_0",
+    "version": "0.1.0",
+    "type": "executable",
+    "dependencies": [
+        {
+            "name": "Complex"
+        }
+    ],
+    "sources": [
+        {
+            "type": "hlang",
+            "include": [
+                "./**/*.hltxt"
+            ]
+        }
+    ],
+    "executable": {
+        "source": "main.hltxt",
+        "entry_point": "project_0_main_main"
     }
-  ],
-  "executable": {
-    "source": "main.hltxt",
-    "entry_point": "project_0_main_main"
-  },
-  "include": [
-    "./**/*.hltxt"
-  ]
 }
