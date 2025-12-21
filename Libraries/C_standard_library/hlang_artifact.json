@@ -13,6 +13,10 @@
                 {
                     "name": "c.stdlib",
                     "header": "stdlib.h"
+                },
+                {
+                    "name": "c.string",
+                    "header": "string.h"
                 }
             ]
         }
