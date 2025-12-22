@@ -253,6 +253,17 @@ namespace h
         return false;
     }
 
+    bool is_any_type(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Any_type);
+        }
+
+        return false;
+    }
+
     Type_reference create_c_string_type_reference(bool const is_mutable)
     {
         return Type_reference

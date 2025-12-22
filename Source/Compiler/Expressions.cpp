@@ -1775,6 +1775,18 @@ namespace h::compiler
                         parameters
                     );
                 }
+                else if (variable_expression.name == "reinterpret_as")
+                {
+                    Value_and_type const loaded_value = create_loaded_expression_value(expression.arguments[0].expression_index, statement, parameters);
+                    Value_and_type const destination_type_value = create_statement_value(instance_call_expression.arguments[0], parameters);
+
+                    return Value_and_type
+                    {
+                        .name = "",
+                        .value = loaded_value.value,
+                        .type = destination_type_value.type
+                    };
+                }
             }
         }
         else if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))

@@ -1,0 +1,6 @@
+module Reinterpret_as;
+
+function run(data: *Void) -> ()
+{
+    var converted = reinterpret_as::<*Uint32>(data);
+}

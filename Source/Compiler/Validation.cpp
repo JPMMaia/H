@@ -271,6 +271,9 @@ namespace h::compiler
             }
         }
 
+        if (is_any_type(destination_type))
+            return true;
+
         return are_compatible_types(declaration_database, destination, source);
     }
 
@@ -1947,6 +1950,10 @@ namespace h::compiler
                 {
                     return std::pair<std::string_view, h::Instance_call_expression>{"create_stack_array_uninitialized", instance_call_expression};
                 }
+                else if (variable_expression.name == "reinterpret_as")
+                {
+                    return std::pair<std::string_view, h::Instance_call_expression>{"reinterpret_as", instance_call_expression};
+                }
             }
         }
 
@@ -2132,6 +2139,26 @@ namespace h::compiler
             if (builtin_instance_call.has_value())
             {
                 if (builtin_instance_call->first == "create_stack_array_uninitialized")
+                {
+                    h::Instance_call_expression const& instance_call_expression = builtin_instance_call->second;
+
+                    if (instance_call_expression.arguments.size() != 1)
+                    {
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                source_range,
+                                std::format(
+                                    "Function expects {} type arguments, but {} were provided.",
+                                    1,
+                                    instance_call_expression.arguments.size()
+                                )
+                            )
+                        };
+                    }
+                }
+                else if (builtin_instance_call->first == "reinterpret_as")
                 {
                     h::Instance_call_expression const& instance_call_expression = builtin_instance_call->second;
 

@@ -3095,6 +3095,56 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that reinterpret_as has one instance argument", "[Validation][Reinterpret_as]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *mutable Int32) -> ()
+{   
+    var p0 = reinterpret_as(external_pointer);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 14, 5, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression does not evaluate to a callable expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that reinterpret_as has one argument", "[Validation][Reinterpret_as]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *mutable Int32) -> ()
+{   
+    var p0 = reinterpret_as::<*mutable Int64>();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 14, 5, 48),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 0 were provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that cannot assign constant c string to mutable c string", "[Validation][String]")
     {

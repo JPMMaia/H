@@ -582,7 +582,8 @@ namespace h
     )
     {
         return name == "create_array_slice_from_pointer" ||
-               name == "create_stack_array_uninitialized";
+               name == "create_stack_array_uninitialized" ||
+               name == "reinterpret_as";
     }
 
     bool is_expression_address_of(

@@ -43,6 +43,7 @@ namespace h
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
     export bool is_byte(Type_reference const& type);
     export bool is_floating_point(Type_reference const& type);
+    export bool is_any_type(Type_reference const& type);
     
     export Type_reference create_c_string_type_reference(bool const is_mutable);
     export bool is_c_string(Type_reference const& type_reference);

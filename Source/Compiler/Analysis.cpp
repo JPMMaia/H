@@ -1110,6 +1110,15 @@ namespace h::compiler
                         .is_mutable = false,
                     };
                 }
+                else if (builtin_type_reference.value == "reinterpret_as")
+                {
+                    // This will generate a validation error as there is no element type.
+                    return Type_info
+                    {
+                        .type = {},
+                        .is_mutable = false,
+                    };
+                }
             }
             else if (!type_reference.has_value() || !std::holds_alternative<h::Function_pointer_type>(type_reference.value().data))
             {
@@ -1287,6 +1296,32 @@ namespace h::compiler
                         return Type_info
                         {
                             .type = create_function_type_type_reference(std::move(function_type), {"length"}, {"stack_array"}),
+                            .is_mutable = false,
+                        };
+                    }
+                    else if (variable_expression.name == "reinterpret_as")
+                    {
+                        std::pmr::vector<h::Type_reference> element_type;
+                        if (data.arguments.size() > 0)
+                        {
+                            h::Statement const argument = data.arguments[0];
+                            if (!argument.expressions.empty() && std::holds_alternative<h::Type_expression>(argument.expressions[0].data))
+                            {
+                                h::Type_expression const& type_expression = std::get<h::Type_expression>(argument.expressions[0].data);
+                                element_type.push_back(type_expression.type);
+                            }
+                        }
+
+                        h::Function_type function_type
+                        {
+                            .input_parameter_types = { create_fundamental_type_type_reference(Fundamental_type::Any_type) },
+                            .output_parameter_types = { element_type },
+                            .is_variadic = false,
+                        };
+
+                        return Type_info
+                        {
+                            .type = create_function_type_type_reference(std::move(function_type), {"value"}, {"result"}),
                             .is_mutable = false,
                         };
                     }

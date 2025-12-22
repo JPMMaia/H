@@ -3842,6 +3842,32 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Reinterpret_as", "[LLVM_IR]")
+  {
+    char const* const input_file = "reinterpret_as.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Reinterpret_as_run(ptr noundef %"arguments[0].data") #0 {
+entry:
+  %data = alloca ptr, align 8
+  %converted = alloca ptr, align 8
+  store ptr %"arguments[0].data", ptr %data, align 8
+  %0 = load ptr, ptr %data, align 8
+  store ptr %0, ptr %converted, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Stack Array Entry", "[LLVM_IR]")
   {
     char const* const input_file = "stack_array_entry.hltxt";
