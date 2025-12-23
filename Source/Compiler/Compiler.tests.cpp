@@ -3823,16 +3823,23 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
 
     char const* const expected_llvm_ir = R"(
 ; Function Attrs: convergent
-define void @Pointers_pointers() #0 {
+define void @Pointers_pointers(ptr noundef %"arguments[0].external_pointer") #0 {
 entry:
+  %external_pointer = alloca ptr, align 8
   %a = alloca i32, align 4
   %pointer_a = alloca ptr, align 8
   %dereferenced_a = alloca i32, align 4
+  %p0 = alloca ptr, align 8
+  store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
   store i32 1, ptr %a, align 4
   store ptr %a, ptr %pointer_a, align 8
   %0 = load ptr, ptr %pointer_a, align 8
   %1 = load i32, ptr %0, align 4
   store i32 %1, ptr %dereferenced_a, align 4
+  %2 = load ptr, ptr %external_pointer, align 8
+  %3 = getelementptr i8, ptr %2, i64 16
+  %4 = load ptr, ptr %3, align 8
+  store ptr %4, ptr %p0, align 8
   ret void
 }
 

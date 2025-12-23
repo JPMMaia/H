@@ -1,8 +1,10 @@
 module Pointers;
 
-export function pointers() -> ()
+export function pointers(external_pointer: *Int32) -> ()
 {
     var a = 1;
     var pointer_a = &a;
     var dereferenced_a = *pointer_a;
+
+    var p0 = offset_pointer(external_pointer, 2i64);
 }

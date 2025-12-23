@@ -3095,6 +3095,34 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+
+    TEST_CASE("Validates that offset_pointer exists and it takes a Int64", "[Validation][Pointer]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *Int32) -> ()
+{   
+    var p0 = offset_pointer(external_pointer, 2i64);
+    var p1 = offset_pointer(external_pointer, 2u64);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 47, 6, 51),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 1 type is 'Int64' but 'Uint64' was provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that reinterpret_as has one instance argument", "[Validation][Reinterpret_as]")
     {
         std::string_view const input = R"(module Test;

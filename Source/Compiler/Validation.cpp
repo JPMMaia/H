@@ -2072,6 +2072,36 @@ namespace h::compiler
                     .output_parameter_names = {"array"}
                 };
             }
+            else if (builtin_type_reference.value == "offset_pointer")
+            {
+                h::Type_reference pointer_type;
+
+                if (expression.arguments.size() > 0)
+                {
+                    std::optional<Type_info> first_argument_type_info = get_expression_type_info(parameters.core_module, nullptr, parameters.scope, parameters.statement, parameters.statement.expressions[expression.arguments[0].expression_index], std::nullopt, parameters.declaration_database);
+                    if (first_argument_type_info.has_value() && std::holds_alternative<h::Pointer_type>(first_argument_type_info->type.data))
+                        pointer_type = std::move(first_argument_type_info->type);
+                }
+
+                h::Function_type function_type
+                {
+                    .input_parameter_types = {
+                        pointer_type,
+                        create_integer_type_type_reference(64, true)
+                    },
+                    .output_parameter_types = {
+                        pointer_type
+                    },
+                    .is_variadic = false,
+                };
+
+                return h::Function_pointer_type
+                {
+                    .type = std::move(function_type),
+                    .input_parameter_names = {"pointer", "offset"},
+                    .output_parameter_names = {"result"}
+                };
+            }
         }
 
         return std::nullopt;

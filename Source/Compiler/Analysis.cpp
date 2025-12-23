@@ -1110,6 +1110,14 @@ namespace h::compiler
                         .is_mutable = false,
                     };
                 }
+                else if (builtin_type_reference.value == "offset_pointer")
+                {
+                    if (data.arguments.size() == 0)
+                        return std::nullopt;
+                    
+                    std::optional<Type_info> const first_argument_type_info = get_expression_type_info(core_module, nullptr, scope, statement, statement.expressions[data.arguments[0].expression_index], std::nullopt, declaration_database);
+                    return first_argument_type_info;
+                }
                 else if (builtin_type_reference.value == "reinterpret_as")
                 {
                     // This will generate a validation error as there is no element type.

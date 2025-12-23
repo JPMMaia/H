@@ -583,6 +583,7 @@ namespace h
     {
         return name == "create_array_slice_from_pointer" ||
                name == "create_stack_array_uninitialized" ||
+               name == "offset_pointer" ||
                name == "reinterpret_as";
     }
 

@@ -1814,6 +1814,29 @@ namespace h::compiler
                     parameters
                 );
             }
+            else if (variable_expression.name == "offset_pointer")
+            {
+                if (expression.arguments.size() != 2)
+                    throw std::runtime_error{"offset_pointer() expects two arguments!"};
+
+                Value_and_type const pointer_value = create_loaded_expression_value(expression.arguments[0].expression_index, statement, parameters);
+                if (!pointer_value.type.has_value())
+                    throw std::runtime_error{"Cannot find deduce argument 0 type of offset_pointer()"};
+
+                std::uint64_t const alloc_size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(pointer_value.value->getType());
+                llvm::Value* const alloc_size_in_bytes_value = llvm::ConstantInt::get(llvm::Type::getInt64Ty(parameters.llvm_context), alloc_size_in_bytes);
+                Value_and_type const offset_value = create_loaded_expression_value(expression.arguments[1].expression_index, statement, parameters);
+
+                llvm::Value* const total_offset_value = parameters.llvm_builder.CreateMul(alloc_size_in_bytes_value, offset_value.value);
+                llvm::Value* const offseted_pointer_value = parameters.llvm_builder.CreatePtrAdd(pointer_value.value, total_offset_value);
+
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = offseted_pointer_value,
+                    .type = pointer_value.type
+                };
+            }
         }
 
         return std::nullopt;
