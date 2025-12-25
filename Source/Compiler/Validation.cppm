@@ -299,6 +299,12 @@ namespace h::compiler
         h::Expression_index const expression_index
     );
 
+    std::optional<h::Type_reference> get_expression_type_from_type_info_from_call_arguments(
+        std::span<std::optional<Type_info> const> const type_infos,
+        std::uint64_t const expression_index,
+        bool const is_implicit_first_argument
+    );
+
     bool is_computable_at_compile_time(
         h::Expression const& expression,
         std::optional<h::Type_reference> const& expression_type,
@@ -369,18 +375,22 @@ namespace h::compiler
         std::uint32_t const count
     );
 
-    std::optional<Expression_index> get_implicit_first_call_argument(
+    struct Implicit_argument
+    {
+        Expression_index expression;
+        bool take_address_of;
+    };
+
+    std::optional<Implicit_argument> get_implicit_first_call_argument(
         h::Statement const& statement,
         h::Call_expression const& expression,
         Scope const& scope,
         Declaration_database const& declaration_database
     );
 
-    std::pmr::vector<Expression_index> get_implicit_call_aguments(
-        h::Statement const& statement,
+    std::pmr::vector<Expression_index> get_call_aguments(
         h::Call_expression const& expression,
-        Scope const& scope,
-        Declaration_database const& declaration_database,
+        std::optional<Implicit_argument> const& implicit_first_argument,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 }

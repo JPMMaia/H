@@ -269,34 +269,281 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-
         std::size_t count = statement.expressions.size();
         for (std::size_t index = 0; index < count; ++index)
         {
             std::size_t reverse_index = count - index - 1;
             h::Expression& expression = statement.expressions[reverse_index];
 
-            process_expression(
+            std::optional<h::Statement> new_statement = process_expression(
                 result,
                 core_module,
                 function_declaration,
                 scope,
                 statement,
                 expression,
+                reverse_index,
                 declaration_database,
                 options,
                 temporaries_allocator
             );
+            if (new_statement.has_value())
+            {
+                process_statement(
+                    result,
+                    core_module,
+                    function_declaration,
+                    scope,
+                    new_statement.value(),
+                    expected_statement_type,
+                    declaration_database,
+                    options,
+                    temporaries_allocator
+                );
+
+                statement = new_statement.value();
+                return;
+            }
         }
     }
 
-    void process_expression(
+    template<typename Expression_type>
+    struct Expression_reference
+    {
+        Expression_type* value;
+        std::size_t index;
+    };
+
+    template<typename Expression_type>
+    Expression_reference<Expression_type> create_expression_reference(
+        std::pmr::vector<h::Expression>& expressions,
+        std::size_t index
+    )
+    {
+        h::Expression& expression = expressions[index];
+        return {
+            .value = &std::get<Expression_type>(expression.data),
+            .index = index
+        };
+    }
+
+    template<typename Expression_type>
+    Expression_reference<Expression_type> create_expression_inside_statement(
+        std::pmr::vector<h::Expression>& expressions
+    )
+    {
+        std::size_t const index = expressions.size();
+        expressions.push_back(h::Expression{ .data = Expression_type{} });
+        return create_expression_reference<Expression_type>(expressions, index);
+    }
+
+    struct Implicit_function_data
+    {
+        std::optional<std::string_view> const import_alias;
+        std::string_view const function_name;
+        std::size_t const call_expression_index;
+        std::size_t const left_access_expression_index;
+        bool dereference;
+    };
+
+    static std::optional<Implicit_function_data> find_implicit_function_auxiliary(
+        h::Statement const& statement,
+        std::size_t const call_expression_index,
+        std::size_t const left_access_expression_index,
+        std::string_view const access_expression_member_name,
+        bool const dereference,
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        h::Expression const& left_access_expression = statement.expressions[left_access_expression_index];
+
+        if (std::holds_alternative<h::Variable_expression>(left_access_expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_access_expression.data);
+            Variable const* variable = find_variable_from_scope(scope, variable_expression.name);
+            if (variable == nullptr)
+                return std::nullopt;
+
+            std::optional<h::Type_reference> const declaration_type =
+                dereference ?
+                std::optional<h::Type_reference>{remove_pointer(variable->type)} :
+                std::optional<h::Type_reference>{variable->type};
+            if (!declaration_type.has_value())
+                return std::nullopt;
+
+            std::optional<Declaration> const declaration = find_underlying_declaration(declaration_database, declaration_type.value());
+            if (declaration.has_value())
+            {
+                if (std::holds_alternative<h::Struct_declaration const*>(declaration->data))
+                {
+                    h::Struct_declaration const& struct_declaration = *std::get<h::Struct_declaration const*>(declaration->data);
+
+                    auto const member_location = std::find(
+                        struct_declaration.member_names.begin(),
+                        struct_declaration.member_names.end(),
+                        access_expression_member_name
+                    );
+
+                    if (member_location != struct_declaration.member_names.end())
+                        return std::nullopt;
+
+                    h::Import_module_with_alias const* const import_module_with_alias = h::find_import_module_with_module_name(
+                        core_module,
+                        declaration->module_name
+                    );
+                    std::optional<std::string_view> const import_alias = 
+                        import_module_with_alias != nullptr ?
+                        std::optional<std::string_view>{import_module_with_alias->alias} :
+                        std::optional<std::string_view>{};
+
+                    return Implicit_function_data
+                    {
+                        .import_alias = import_alias,
+                        .function_name = access_expression_member_name,
+                        .call_expression_index = call_expression_index,
+                        .left_access_expression_index = left_access_expression_index,
+                        .dereference = dereference,
+                    };
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    static std::optional<Implicit_function_data> find_implicit_function(
+        h::Statement const& statement,
+        h::Expression const& expression,
+        std::size_t const expression_index,
+        h::Module const& core_module,
+        Scope const& scope,
+        h::Declaration_database const& declaration_database
+    )
+    {
+        if (std::holds_alternative<h::Call_expression>(expression.data))
+        {
+            h::Call_expression const& data = std::get<h::Call_expression>(expression.data);
+            h::Expression const& left_call_expression = statement.expressions[data.expression.expression_index];
+
+            if (std::holds_alternative<h::Access_expression>(left_call_expression.data))
+            {
+                h::Access_expression const& access_expression = std::get<h::Access_expression>(left_call_expression.data);
+
+                return find_implicit_function_auxiliary(
+                    statement,
+                    expression_index,
+                    access_expression.expression.expression_index,
+                    access_expression.member_name,
+                    false,
+                    core_module,
+                    scope,
+                    declaration_database
+                );
+            }
+            else if (std::holds_alternative<h::Dereference_and_access_expression>(left_call_expression.data))
+            {
+                h::Dereference_and_access_expression const& access_expression = std::get<h::Dereference_and_access_expression>(left_call_expression.data);
+                
+                return find_implicit_function_auxiliary(
+                    statement,
+                    expression_index,
+                    access_expression.expression.expression_index,
+                    access_expression.member_name,
+                    true,
+                    core_module,
+                    scope,
+                    declaration_database
+                );
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    static h::Statement transform_statement_with_implicit_function(
+        h::Statement const& statement,
+        std::optional<std::string_view> const import_alias,
+        std::string_view const function_name,
+        std::size_t const call_expression_index,
+        std::size_t const left_access_expression_index,
+        bool const dereference
+    )
+    {
+        // import external_module as em;
+        // var instance: em.My_struct = ...;
+        // instance.get_v0() -> em.get_v0(&instance)
+        // var pointer = &instance;
+        // pointer->get_v0() -> em.get_v0(pointer);
+
+        h::Call_expression const& call_expression = std::get<h::Call_expression>(statement.expressions[call_expression_index].data);
+
+        std::pmr::vector<h::Expression> new_expressions = statement.expressions;
+        new_expressions.reserve(statement.expressions.size() + 3);
+
+        std::size_t new_left_access_expression_index = 0;
+
+        if (import_alias.has_value())
+        {
+            Expression_reference<h::Access_expression> access_alias_expression = create_expression_inside_statement<h::Access_expression>(new_expressions);
+            access_alias_expression.value->member_name = std::pmr::string{function_name};
+            
+            Expression_reference<h::Variable_expression> alias_name_expression = create_expression_inside_statement<h::Variable_expression>(new_expressions);
+            alias_name_expression.value->name = std::pmr::string{import_alias.value()};
+            access_alias_expression.value->expression = {.expression_index = alias_name_expression.index};
+
+            new_left_access_expression_index = access_alias_expression.index;
+        }
+        else
+        {
+            Expression_reference<h::Variable_expression> function_name_expression = create_expression_inside_statement<h::Variable_expression>(new_expressions);
+            function_name_expression.value->name = std::pmr::string{function_name};
+
+            new_left_access_expression_index = function_name_expression.index;
+        }
+
+        Expression_reference<h::Call_expression> new_call_expression = create_expression_reference<h::Call_expression>(new_expressions, call_expression_index);
+        
+        std::size_t new_call_left_side_index = left_access_expression_index;
+        if (!dereference)
+        {
+            Expression_reference<h::Unary_expression> new_take_address_expression = create_expression_inside_statement<h::Unary_expression>(new_expressions);
+            *new_take_address_expression.value = {
+                .expression = {.expression_index = left_access_expression_index },
+                .operation = h::Unary_operation::Address_of
+            };
+            new_call_left_side_index = new_take_address_expression.index;
+        }
+
+        *new_call_expression.value = {
+            .expression = { .expression_index = new_left_access_expression_index },
+            .arguments = {}
+        };
+        new_call_expression.value->arguments.reserve(1 + call_expression.arguments.size());
+        new_call_expression.value->arguments.push_back(
+            h::Expression_index{.expression_index = new_call_left_side_index }
+        );
+        new_call_expression.value->arguments.insert(
+            new_call_expression.value->arguments.end(),
+            call_expression.arguments.begin(),
+            call_expression.arguments.end()
+        );
+
+        return h::Statement
+        {
+            .expressions = std::move(new_expressions)
+        };
+    }
+
+    std::optional<h::Statement> process_expression(
         Analysis_result& result,
         h::Module& core_module,
         h::Function_declaration const* const function_declaration,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,
+        std::size_t const expression_index,
         h::Declaration_database& declaration_database,
         Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -319,6 +566,31 @@ namespace h::compiler
         else if (std::holds_alternative<h::Call_expression>(expression.data))
         {
             h::Call_expression& data = std::get<h::Call_expression>(expression.data);
+
+            {
+                std::optional<Implicit_function_data> const implicit_function = find_implicit_function(
+                    statement,
+                    expression,
+                    expression_index,
+                    core_module,
+                    scope,
+                    declaration_database
+                );
+                if (implicit_function.has_value())
+                {
+                    if (implicit_function->import_alias.has_value())
+                        add_import_usage(core_module, implicit_function->import_alias.value(), implicit_function->function_name);
+
+                    return transform_statement_with_implicit_function(
+                        statement,
+                        implicit_function->import_alias,
+                        implicit_function->function_name,
+                        implicit_function->call_expression_index,
+                        implicit_function->left_access_expression_index,
+                        implicit_function->dereference
+                    );
+                }
+            }
 
             std::optional<Deduced_instance_call> const deduced_instance_call = deduce_instance_call_arguments(
                 declaration_database,
@@ -559,6 +831,8 @@ namespace h::compiler
                 temporaries_allocator
             );
         }
+
+        return std::nullopt;
     }
 
     std::optional<h::Type_reference> get_expression_type(
@@ -752,6 +1026,33 @@ namespace h::compiler
         };
     }
 
+    std::optional<Type_info> get_implicit_function_type(
+        h::Declaration_database const& declaration_database,
+        std::string_view const declaration_module_name,
+        std::string_view const member_name
+    )
+    {
+        std::optional<Declaration> const implicit_declaration = find_underlying_declaration(
+            declaration_database,
+            declaration_module_name,
+            member_name
+        );
+        if (!implicit_declaration.has_value())
+            return std::nullopt;
+
+        if (std::holds_alternative<h::Function_declaration const*>(implicit_declaration->data))
+        {
+            h::Function_declaration const& implicit_function_declaration = *std::get<h::Function_declaration const*>(implicit_declaration->data);
+            return Type_info
+            {
+                .type = create_function_type_type_reference(implicit_function_declaration.type, implicit_function_declaration.input_parameter_names, implicit_function_declaration.output_parameter_names),
+                .is_mutable = false,
+            };
+        }
+
+        return std::nullopt;
+    }
+
     std::optional<Type_info> get_expression_type_info(
         h::Module const& core_module,
         h::Function_declaration const* const function_declaration,
@@ -910,23 +1211,13 @@ namespace h::compiler
                     };
                 }
 
-                std::optional<Declaration> const implicit_declaration = find_underlying_declaration(
+                std::optional<Type_info> const implicit_function_type = get_implicit_function_type(
                     declaration_database,
                     declaration->module_name,
                     data.member_name
                 );
-                if (!implicit_declaration.has_value())
-                    return std::nullopt;
-
-                if (std::holds_alternative<h::Function_declaration const*>(implicit_declaration->data))
-                {
-                    h::Function_declaration const& implicit_function_declaration = *std::get<h::Function_declaration const*>(implicit_declaration->data);
-                    return Type_info
-                    {
-                        .type = create_function_type_type_reference(implicit_function_declaration.type, implicit_function_declaration.input_parameter_names, implicit_function_declaration.output_parameter_names),
-                        .is_mutable = false,
-                    };
-                }
+                if (implicit_function_type.has_value())
+                    return implicit_function_type;
 
                 return std::nullopt;
             }
@@ -1262,7 +1553,14 @@ namespace h::compiler
                 data.member_name
             );
             if (!member_type.has_value())
-                return std::nullopt;
+            {
+                std::optional<Type_info> const implicit_function_type = get_implicit_function_type(
+                    declaration_database,
+                    declaration->module_name,
+                    data.member_name
+                );
+                return implicit_function_type;
+            }
 
             return Type_info
             {
@@ -2077,6 +2375,25 @@ namespace h::compiler
         }
 
         return members;
+    }
+
+    void add_import_usage(
+        h::Module& core_module,
+        std::string_view const alias,
+        std::string_view const usage
+    )
+    {
+        h::Import_module_with_alias* import_module = h::find_import_module_with_alias(core_module, alias);
+        if (import_module != nullptr)
+        {
+            auto const location = std::find_if(
+                import_module->usages.begin(),
+                import_module->usages.end(),
+                [&](std::pmr::string const& current_usage) -> bool { return current_usage == usage; }
+            );
+            if (location == import_module->usages.end())
+                import_module->usages.push_back(std::pmr::string{usage});
+        }
     }
 
     std::optional<Scope> calculate_scope(

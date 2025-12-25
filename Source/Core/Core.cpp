@@ -393,6 +393,38 @@ namespace h
         return &(*location);
     }
 
+    Import_module_with_alias* find_import_module_with_alias(
+        h::Module& core_module,
+        std::string_view const alias_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
+
+    Import_module_with_alias const* find_import_module_with_module_name(
+        h::Module const& core_module,
+        std::string_view const module_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.module_name == module_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
+
     h::Expression_index copy_expressions_to_new_statement(
         h::Statement& destination_statement,
         h::Statement const& source_statement,

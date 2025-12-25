@@ -3349,6 +3349,95 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Implicit Arguments", "[LLVM_IR]")
+  {
+    char const* const input_file = "implicit_arguments.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Implicit_arguments_My_struct = type { i32, i32 }
+
+; Function Attrs: convergent
+define i32 @Implicit_arguments_get_v0(ptr noundef %"arguments[0].instance") #0 {
+entry:
+  %instance = alloca ptr, align 8
+  store ptr %"arguments[0].instance", ptr %instance, align 8
+  %0 = load ptr, ptr %instance, align 8
+  %1 = getelementptr inbounds %struct.Implicit_arguments_My_struct, ptr %0, i32 0, i32 0
+  %2 = load i32, ptr %1, align 4
+  ret i32 %2
+}
+
+; Function Attrs: convergent
+define private void @Implicit_arguments_run() #0 {
+entry:
+  %instance = alloca %struct.Implicit_arguments_My_struct, align 4
+  %a = alloca i32, align 4
+  %instance_pointer = alloca ptr, align 8
+  %b = alloca i32, align 4
+  %0 = getelementptr inbounds %struct.Implicit_arguments_My_struct, ptr %instance, i32 0, i32 0
+  store i32 1, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.Implicit_arguments_My_struct, ptr %instance, i32 0, i32 1
+  store i32 2, ptr %1, align 4
+  %2 = call i32 @Implicit_arguments_get_v0(ptr noundef %instance)
+  store i32 %2, ptr %a, align 4
+  store ptr %instance, ptr %instance_pointer, align 8
+  %3 = load ptr, ptr %instance_pointer, align 8
+  %4 = call i32 @Implicit_arguments_get_v0(ptr noundef %3)
+  store i32 %4, ptr %b, align 4
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+  TEST_CASE("Compile Implicit Arguments External", "[LLVM_IR]")
+  {
+    char const* const input_file = "implicit_arguments_external.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+      { "Implicit_arguments", parse_and_get_file_path(g_test_source_files_path / "implicit_arguments.hltxt") },
+    };
+
+    char const* const expected_llvm_ir = R"(
+%struct.Implicit_arguments_My_struct = type { i32, i32 }
+
+; Function Attrs: convergent
+define private void @Implicit_arguments_external_run() #0 {
+entry:
+  %instance = alloca %struct.Implicit_arguments_My_struct, align 4
+  %a = alloca i32, align 4
+  %instance_pointer = alloca ptr, align 8
+  %b = alloca i32, align 4
+  %0 = getelementptr inbounds %struct.Implicit_arguments_My_struct, ptr %instance, i32 0, i32 0
+  store i32 1, ptr %0, align 4
+  %1 = getelementptr inbounds %struct.Implicit_arguments_My_struct, ptr %instance, i32 0, i32 1
+  store i32 2, ptr %1, align 4
+  %2 = call i32 @Implicit_arguments_get_v0(ptr noundef %instance)
+  store i32 %2, ptr %a, align 4
+  store ptr %instance, ptr %instance_pointer, align 8
+  %3 = load ptr, ptr %instance_pointer, align 8
+  %4 = call i32 @Implicit_arguments_get_v0(ptr noundef %3)
+  store i32 %4, ptr %b, align 4
+  ret void
+}
+
+; Function Attrs: convergent
+declare i32 @Implicit_arguments_get_v0(ptr noundef) #0
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Instantiate Struct with Enum from Module", "[LLVM_IR]")
   {
     char const* const input_file = "instantiate_struct_with_enum_from_module.hltxt";

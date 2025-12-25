@@ -2268,11 +2268,16 @@ namespace h::compiler
 
         h::Function_pointer_type const& function_pointer_type = function_pointer_type_optional.value();
 
-        std::pmr::vector<Expression_index> const call_arguments = get_implicit_call_aguments(
+        std::optional<Implicit_argument> const implicit_first_argument = get_implicit_first_call_argument(
             parameters.statement,
             expression,
             parameters.scope,
-            parameters.declaration_database,
+            parameters.declaration_database
+        );
+
+        std::pmr::vector<Expression_index> const call_arguments = get_call_aguments(
+            expression,
+            implicit_first_argument,
             parameters.temporaries_allocator
         );
 
@@ -2315,7 +2320,8 @@ namespace h::compiler
         for (std::size_t argument_index = 0; argument_index < function_pointer_type.type.input_parameter_types.size(); ++argument_index)
         {
             std::uint64_t const expression_index = call_arguments[argument_index].expression_index;
-            std::optional<h::Type_reference> const& argument_type_optional = get_expression_type_from_type_info(parameters.expression_types, expression_index);
+            bool const take_address_of = argument_index == 0 && implicit_first_argument.has_value() && implicit_first_argument->take_address_of;
+            std::optional<h::Type_reference> const& argument_type_optional = get_expression_type_from_type_info_from_call_arguments(parameters.expression_types, expression_index, take_address_of);
             
             h::Type_reference const& parameter_type = function_pointer_type.type.input_parameter_types[argument_index];
 
@@ -3605,6 +3611,25 @@ namespace h::compiler
         return get_expression_type_from_type_info(type_infos, expression_index.expression_index);
     }
 
+    std::optional<h::Type_reference> get_expression_type_from_type_info_from_call_arguments(
+        std::span<std::optional<Type_info> const> const type_infos,
+        std::uint64_t const expression_index,
+        bool const take_address_of
+    )
+    {
+        if (expression_index >= type_infos.size())
+            return std::nullopt;
+
+        std::optional<Type_info> const& type_info = type_infos[expression_index];
+        if (!type_info.has_value())
+            return std::nullopt;
+        
+        if (take_address_of)
+            return create_pointer_type_type_reference({type_info->type}, type_info->is_mutable);
+        
+        return type_info->type;
+    }
+
 
     bool is_computable_at_compile_time(
         h::Expression const& expression,
@@ -3949,7 +3974,62 @@ namespace h::compiler
         };
     }
 
-    std::optional<Expression_index> get_implicit_first_call_argument(
+    std::optional<Expression_index> get_implicit_first_call_argument_auxiliary(
+        h::Expression_index const& left_side_access_expression_index,
+        h::Expression const& left_side_access_expression,
+        std::string_view const access_expression_member_name,
+        bool const dereference,
+        Scope const& scope,
+        Declaration_database const& declaration_database
+    )
+    {
+        if (std::holds_alternative<h::Variable_expression>(left_side_access_expression.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_side_access_expression.data);
+
+            Variable const* const variable = find_variable_from_scope(
+                scope,
+                variable_expression.name
+            );
+            if (variable != nullptr)
+            {
+                std::optional<Type_reference> declaration_type_optional =
+                    dereference ?
+                    remove_pointer(variable->type) :
+                    std::optional<Type_reference>{variable->type};
+
+                if (declaration_type_optional.has_value())
+                {
+                    std::optional<Declaration> const declaration = find_underlying_declaration(
+                        declaration_database,
+                        declaration_type_optional.value()
+                    );
+                    if (declaration.has_value())
+                    {
+                        if (std::holds_alternative<Struct_declaration const*>(declaration->data))
+                        {
+                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration->data);
+
+                            auto const member_location = std::find(
+                                struct_declaration.member_names.begin(),
+                                struct_declaration.member_names.end(),
+                                access_expression_member_name
+                            );
+
+                            if (member_location != struct_declaration.member_names.end())
+                                return std::nullopt;
+
+                            return left_side_access_expression_index;
+                        }    
+                    }
+                }
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    std::optional<Implicit_argument> get_implicit_first_call_argument(
         h::Statement const& statement,
         h::Call_expression const& expression,
         Scope const& scope,
@@ -3961,69 +4041,64 @@ namespace h::compiler
         if (std::holds_alternative<h::Access_expression>(left_side_expression.data))
         {
             h::Access_expression const& access_expression = std::get<h::Access_expression>(left_side_expression.data);
-
             h::Expression const& left_side_access_expression = statement.expressions[access_expression.expression.expression_index];
 
-            if (std::holds_alternative<h::Variable_expression>(left_side_access_expression.data))
+            std::optional<Expression_index> expression_index = get_implicit_first_call_argument_auxiliary(
+                access_expression.expression,
+                left_side_access_expression,
+                access_expression.member_name,
+                false,
+                scope,
+                declaration_database
+            );
+            if (expression_index.has_value())
             {
-                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_side_access_expression.data);
-
-                Variable const* const variable = find_variable_from_scope(
-                    scope,
-                    variable_expression.name
-                );
-                if (variable != nullptr)
+                return Implicit_argument
                 {
-                    std::optional<Declaration> const declaration = find_underlying_declaration(
-                        declaration_database,
-                        variable->type
-                    );
-                    if (declaration.has_value())
-                    {
-                        if (std::holds_alternative<Struct_declaration const*>(declaration->data))
-                        {
-                            Struct_declaration const& struct_declaration = *std::get<Struct_declaration const*>(declaration->data);
+                    .expression = expression_index.value(),
+                    .take_address_of = true
+                };
+            }
+        }
+        else if (std::holds_alternative<h::Dereference_and_access_expression>(left_side_expression.data))
+        {
+            h::Dereference_and_access_expression const& access_expression = std::get<h::Dereference_and_access_expression>(left_side_expression.data);
+            h::Expression const& left_side_access_expression = statement.expressions[access_expression.expression.expression_index];
 
-                            auto const member_location = std::find(
-                                struct_declaration.member_names.begin(),
-                                struct_declaration.member_names.end(),
-                                access_expression.member_name
-                            );
-
-                            if (member_location != struct_declaration.member_names.end())
-                                return std::nullopt;
-                        }
-                    }
-
-                    return access_expression.expression;
-                }
+            std::optional<Expression_index> expression_index = get_implicit_first_call_argument_auxiliary(
+                access_expression.expression,
+                left_side_access_expression,
+                access_expression.member_name,
+                true,
+                scope,
+                declaration_database
+            );
+            if (expression_index.has_value())
+            {
+                return Implicit_argument
+                {
+                    .expression = expression_index.value(),
+                    .take_address_of = false
+                };
             }
         }
 
         return std::nullopt;
     }
 
-    std::pmr::vector<Expression_index> get_implicit_call_aguments(
-        h::Statement const& statement,
+    std::pmr::vector<Expression_index> get_call_aguments(
         h::Call_expression const& expression,
-        Scope const& scope,
-        Declaration_database const& declaration_database,
+        std::optional<Implicit_argument> const& implicit_first_argument,
         std::pmr::polymorphic_allocator<> const& output_allocator
     )
     {
-        std::optional<Expression_index> const implicit_first_argument = get_implicit_first_call_argument(
-            statement,
-            expression,
-            scope,
-            declaration_database
-        );
         if (!implicit_first_argument.has_value())
             return std::pmr::vector<Expression_index>{expression.arguments, output_allocator};
 
         std::pmr::vector<Expression_index> output{output_allocator};
         output.reserve(1 + expression.arguments.size());
 
-        output.push_back(implicit_first_argument.value());
+        output.push_back(implicit_first_argument->expression);
         output.insert(output.end(), expression.arguments.begin(), expression.arguments.end());
 
         return output;

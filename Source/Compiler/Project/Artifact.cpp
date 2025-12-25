@@ -24,17 +24,43 @@ namespace h::compiler
 {
     Version parse_version(std::string_view const string)
     {
-        std::string_view::size_type const first_dot = string.find_first_of(".");
-        std::string_view::size_type const last_dot = string.find_last_of(".");
+        std::string_view::size_type const first_dot = string.find(".");
+        if (first_dot == string.npos)
+        {
+            std::uint32_t major = 0;
+            std::from_chars(string.data(), string.data() + string.size(), major);
+
+            return Version
+            {
+                .major = major,
+                .minor = 0,
+                .patch = 0
+            };
+        }
 
         std::uint32_t major = 0;
         std::from_chars(string.data(), string.data() + first_dot, major);
 
+        std::string_view::size_type const second_dot = string.find(".", first_dot + 1);
+
+        if (second_dot == string.npos)
+        {
+            std::uint32_t minor = 0;
+            std::from_chars(string.data() + first_dot + 1, string.data() + string.size(), minor);
+
+            return Version
+            {
+                .major = major,
+                .minor = minor,
+                .patch = 0
+            };
+        }
+        
         std::uint32_t minor = 0;
-        std::from_chars(string.data() + first_dot + 1, string.data() + last_dot, minor);
+        std::from_chars(string.data() + first_dot + 1, string.data() + second_dot, minor);
 
         std::uint32_t patch = 0;
-        std::from_chars(string.data() + last_dot + 1, string.data() + string.size(), patch);
+        std::from_chars(string.data() + second_dot + 1, string.data() + string.size(), patch);
 
         return Version
         {

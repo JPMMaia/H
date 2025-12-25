@@ -1302,6 +1302,16 @@ namespace h
         std::string_view const alias_name
     );
 
+    export Import_module_with_alias* find_import_module_with_alias(
+        h::Module& core_module,
+        std::string_view const alias_name
+    );
+
+    export Import_module_with_alias const* find_import_module_with_module_name(
+        h::Module const& core_module,
+        std::string_view const module_name
+    );
+
     export h::Expression_index copy_expressions_to_new_statement(
         h::Statement& destination_statement,
         h::Statement const& source_statement,

@@ -1038,59 +1038,6 @@ export union My_union
         test_validate_module(input, dependencies, expected_diagnostics);
     }
 
-    TEST_CASE("Validates that a function that is on the same module as the instance exists", "[Validation][Access_expression]")
-    {
-        std::string_view const input = R"(module Test;
-
-import module_a as module_a;
-
-struct Struct_with_function_pointer
-{
-    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
-}
-
-function run() -> ()
-{
-    var a: module_a.My_int = explicit {
-        value: 0
-    };
-    
-    var b: module_a.My_int = explicit {
-        value: 0
-    };
-
-    var c = a.add(b);
-
-    var d: Struct_with_function_pointer = {};
-    d.a(1, 2);
-}
-)";
-
-        std::string_view const module_a_input = R"(module module_a;
-                
-struct My_int
-{
-    value: Int32 = 0;
-}
-
-export function add(a: My_int, b: My_int) -> (result: My_int)
-{
-    var result: My_int = explicit {
-        value: a.value + b.value
-    };
-    return result;
-}
-)";
-        
-        std::pmr::vector<std::string_view> const dependencies = { module_a_input };
-
-        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
-        {
-        };
-
-        test_validate_module(input, dependencies, expected_diagnostics);
-    }
-
 
     TEST_CASE("Validates that assert must evaluate to a boolean", "[Validation][Assert_expression]")
     {
@@ -2754,6 +2701,132 @@ function run() -> ()
         };
 
         test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates function calls with implicit arguments", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    v0: Int32 = 1;
+    v1: Int32 = 2;
+}
+
+function get_v0(instance: *My_struct) -> (result: Int32)
+{
+    return instance->v0;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = {};
+    var a = instance.get_v0();
+
+    var instance_pointer = &instance;
+    var b = instance_pointer->get_v0();
+
+    var c = instance.get_v1();
+    var d = instance_pointer->get_v1();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(22, 13, 22, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'get_v1' does not exist in the type 'My_struct'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(23, 13, 23, 39),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression does not evaluate to a callable expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that implicit arguments are not added to function pointers that are members", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    function_pointer: function<() -> ()> = null;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = {};
+    instance.function_pointer();
+
+    var instance_pointer = &instance;
+    instance_pointer->function_pointer();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function that is on the same module as the instance exists", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+import module_a as module_a;
+
+struct Struct_with_function_pointer
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+}
+
+function run() -> ()
+{
+    var a: module_a.My_struct = explicit {
+        value: 0
+    };
+    
+    var b: module_a.My_struct = explicit {
+        value: 0
+    };
+
+    a.foo(b);
+
+    var d: Struct_with_function_pointer = {};
+    d.a(1, 2);
+}
+)";
+
+        std::string_view const module_a_input = R"(module module_a;
+                
+struct My_struct
+{
+    value: Int32 = 0;
+}
+
+export function foo(a: *My_struct, b: My_struct) -> ()
+{
+}
+)";
+        
+        std::pmr::vector<std::string_view> const dependencies = { module_a_input };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
     }
 
 

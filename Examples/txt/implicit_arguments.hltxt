@@ -1,0 +1,21 @@
+module Implicit_arguments;
+
+export struct My_struct
+{
+    v0: Int32 = 1;
+    v1: Int32 = 2;
+}
+
+export function get_v0(instance: *My_struct) -> (result: Int32)
+{
+    return instance->v0;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = {};
+    var a = instance.get_v0();
+
+    var instance_pointer = &instance;
+    var b = instance_pointer->get_v0();
+}
