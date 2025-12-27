@@ -631,4 +631,24 @@ namespace h
 
         return false;
     }
+
+    bool is_offset_pointer(
+        h::Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Call_expression>(expression.data))
+        {
+            h::Call_expression const& call_expression = std::get<h::Call_expression>(expression.data);
+
+            h::Expression const& left_call_expression = statement.expressions[call_expression.expression.expression_index];
+            if (std::holds_alternative<h::Variable_expression>(left_call_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_call_expression.data);
+                return variable_expression.name == "offset_pointer";
+            }
+        }
+
+        return false;
+    }
 }

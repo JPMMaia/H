@@ -1390,7 +1390,8 @@ namespace h::compiler
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database,
         Type_database const& type_database,
-        Value_and_type const& value_to_return
+        Value_and_type const& value_to_return,
+        bool const is_taking_address_of_llvm_value
     )
     {
         clang::CodeGen::CGFunctionInfo const& function_info = create_clang_function_info(clang_module_data, function_type, declaration_database);
@@ -1421,7 +1422,7 @@ namespace h::compiler
                     llvm_function,
                     value_to_return.value,
                     original_return_llvm_type,
-                    false,
+                    is_taking_address_of_llvm_value,
                     new_return_llvm_type,
                     std::nullopt,
                     return_info,

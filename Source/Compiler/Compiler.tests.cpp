@@ -3843,6 +3843,48 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Offset Pointer", "[LLVM_IR]")
+  {
+    char const* const input_file = "offset_pointer.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define ptr @Offset_pointer_pointers(ptr noundef %"arguments[0].external_pointer") #0 {
+entry:
+  %external_pointer = alloca ptr, align 8
+  %p0 = alloca ptr, align 8
+  store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
+  %0 = load ptr, ptr %external_pointer, align 8
+  %1 = getelementptr i8, ptr %0, i64 16
+  store ptr %1, ptr %p0, align 8
+  %2 = load ptr, ptr %p0, align 8
+  store i32 0, ptr %2, align 4
+  %3 = load ptr, ptr %external_pointer, align 8
+  %4 = getelementptr i8, ptr %3, i64 32
+  call void @Offset_pointer_take(ptr noundef %4)
+  %5 = load ptr, ptr %external_pointer, align 8
+  %6 = getelementptr i8, ptr %5, i64 48
+  ret ptr %6
+}
+
+; Function Attrs: convergent
+define private void @Offset_pointer_take(ptr noundef %"arguments[0].external_pointer") #0 {
+entry:
+  %external_pointer = alloca ptr, align 8
+  store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Passing Pointers to Functions", "[LLVM_IR]")
   {
     char const* const input_file = "passing_pointers_to_functions.hltxt";
@@ -3930,10 +3972,9 @@ entry:
   store i32 %1, ptr %dereferenced_a, align 4
   %2 = load ptr, ptr %external_pointer, align 8
   %3 = getelementptr i8, ptr %2, i64 16
-  %4 = load ptr, ptr %3, align 8
-  store ptr %4, ptr %p0, align 8
-  %5 = load ptr, ptr %p0, align 8
-  store i32 0, ptr %5, align 4
+  store ptr %3, ptr %p0, align 8
+  %4 = load ptr, ptr %p0, align 8
+  store i32 0, ptr %4, align 4
   ret void
 }
 

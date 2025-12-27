@@ -1742,6 +1742,14 @@ namespace h::compiler
         return std::nullopt;
     }
 
+    bool is_taking_address_of_expression(
+        Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        return h::is_expression_address_of(expression) || h::is_offset_pointer(statement, expression);
+    }
+
     std::pmr::vector<bool> create_is_taking_address_of_expressions_array(
         Call_expression const& expression,
         Statement const& statement
@@ -1753,7 +1761,7 @@ namespace h::compiler
         for (unsigned i = 0; i < expression.arguments.size(); ++i)
         {
             h::Expression const& argument_expression = statement.expressions[expression.arguments[i].expression_index];
-            bool const is_taking_address_of = h::is_expression_address_of(argument_expression);
+            bool const is_taking_address_of = is_taking_address_of_expression(statement, argument_expression);
             output.push_back(is_taking_address_of);
         }
 
@@ -3152,6 +3160,9 @@ namespace h::compiler
         if (parameters.debug_info != nullptr)
             set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
+        h::Expression const& expression_to_return = statement.expressions[expression.expression->expression_index];
+        bool const is_taking_address_of = is_taking_address_of_expression(statement, expression_to_return);
+
         llvm::Value* const instruction = generate_function_return_instruction(
             parameters.llvm_context,
             parameters.llvm_builder,
@@ -3163,7 +3174,8 @@ namespace h::compiler
             *parameters.llvm_parent_function,
             parameters.declaration_database,
             parameters.type_database,
-            temporary
+            temporary,
+            is_taking_address_of
         );
 
         return
@@ -4206,7 +4218,7 @@ namespace h::compiler
 
             if (llvm::AllocaInst::classof(value.value) || llvm::GetElementPtrInst::classof(value.value))
             {
-                if (h::is_expression_address_of(expression))
+                if (h::is_expression_address_of(expression) || h::is_offset_pointer(statement, expression))
                 {
                     return value;
                 }

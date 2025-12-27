@@ -1325,4 +1325,9 @@ namespace h
     export bool is_expression_address_of(
         h::Expression const& expression
     );
+
+    export bool is_offset_pointer(
+        h::Statement const& statement,
+        h::Expression const& expression
+    );
 }

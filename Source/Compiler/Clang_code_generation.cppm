@@ -138,7 +138,8 @@ namespace h::compiler
         llvm::Function& llvm_function,
         Declaration_database const& declaration_database,
         Type_database const& type_database,
-        Value_and_type const& value_to_return
+        Value_and_type const& value_to_return,
+        bool const is_taking_address_of_llvm_value
     );
 
     export void set_function_definition_attributes(
