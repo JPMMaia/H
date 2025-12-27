@@ -1723,7 +1723,13 @@ namespace h::compiler
                 if (!pointer_value.type.has_value())
                     throw std::runtime_error{"Cannot find deduce argument 0 type of offset_pointer()"};
 
-                std::uint64_t const alloc_size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(pointer_value.value->getType());
+                std::optional<h::Type_reference> const value_type = remove_pointer(pointer_value.type.value());
+                if (!value_type.has_value())
+                    throw std::runtime_error{"Argument 0 type of offset_pointer() must be a non-void pointer!"};
+
+                llvm::Type* const value_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value_type.value(), parameters.type_database);
+
+                std::uint64_t const alloc_size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(value_llvm_type);
                 llvm::Value* const alloc_size_in_bytes_value = llvm::ConstantInt::get(llvm::Type::getInt64Ty(parameters.llvm_context), alloc_size_in_bytes);
                 Value_and_type const offset_value = create_loaded_expression_value(expression.arguments[1].expression_index, statement, parameters);
 

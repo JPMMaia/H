@@ -3859,15 +3859,15 @@ entry:
   %p0 = alloca ptr, align 8
   store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
   %0 = load ptr, ptr %external_pointer, align 8
-  %1 = getelementptr i8, ptr %0, i64 16
+  %1 = getelementptr i8, ptr %0, i64 8
   store ptr %1, ptr %p0, align 8
   %2 = load ptr, ptr %p0, align 8
   store i32 0, ptr %2, align 4
   %3 = load ptr, ptr %external_pointer, align 8
-  %4 = getelementptr i8, ptr %3, i64 32
+  %4 = getelementptr i8, ptr %3, i64 16
   call void @Offset_pointer_take(ptr noundef %4)
   %5 = load ptr, ptr %external_pointer, align 8
-  %6 = getelementptr i8, ptr %5, i64 48
+  %6 = getelementptr i8, ptr %5, i64 24
   ret ptr %6
 }
 
@@ -3971,7 +3971,7 @@ entry:
   %1 = load i32, ptr %0, align 4
   store i32 %1, ptr %dereferenced_a, align 4
   %2 = load ptr, ptr %external_pointer, align 8
-  %3 = getelementptr i8, ptr %2, i64 16
+  %3 = getelementptr i8, ptr %2, i64 8
   store ptr %3, ptr %p0, align 8
   %4 = load ptr, ptr %p0, align 8
   store i32 0, ptr %4, align 4
