@@ -1777,7 +1777,7 @@ namespace h::compiler
 
         std::pmr::polymorphic_allocator<> const& temporaries_allocator = parameters.temporaries_allocator;
 
-        Value_and_type const left_hand_side = create_expression_value(expression.expression.expression_index, statement, parameters);
+        Value_and_type const left_hand_side = create_loaded_expression_value(expression.expression.expression_index, statement, parameters);
         if (!left_hand_side.type.has_value() || !std::holds_alternative<Function_pointer_type>(left_hand_side.type.value().data))
             throw std::runtime_error{ std::format("Left hand side of call expression is not a function!") };
 

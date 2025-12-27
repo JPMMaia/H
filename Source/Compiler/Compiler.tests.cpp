@@ -2868,47 +2868,48 @@ if_s0_then:                                       ; preds = %condition_success
   %17 = load ptr, ptr %instance, align 8
   %18 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %17, i32 0, i32 3
   %19 = getelementptr inbounds %struct.dynamic_array_Allocator, ptr %18, i32 0, i32 0
-  %20 = load i64, ptr %allocation_size_in_bytes, align 8
-  %21 = call ptr %19(i64 noundef %20, i64 noundef 4)
-  store ptr %21, ptr %allocation, align 8
-  %22 = load ptr, ptr %allocation, align 8
-  %23 = icmp ne ptr %22, null
-  br i1 %23, label %condition_success1, label %condition_fail2
+  %20 = load ptr, ptr %19, align 8
+  %21 = load i64, ptr %allocation_size_in_bytes, align 8
+  %22 = call ptr %20(i64 noundef %21, i64 noundef 4)
+  store ptr %22, ptr %allocation, align 8
+  %23 = load ptr, ptr %allocation, align 8
+  %24 = icmp ne ptr %23, null
+  br i1 %24, label %condition_success1, label %condition_fail2
 
 if_s1_after:                                      ; preds = %condition_success1, %condition_success
-  %24 = load ptr, ptr %instance, align 8
-  %25 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %24, i32 0, i32 1
-  %26 = load i64, ptr %25, align 8
-  store i64 %26, ptr %index, align 8
-  %27 = load i64, ptr %index, align 8
-  %28 = load ptr, ptr %instance, align 8
-  %29 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %28, i32 0, i32 0
-  %30 = load ptr, ptr %29, align 8
-  %array_element_pointer = getelementptr i32, ptr %30, i64 %27
-  %31 = load i32, ptr %element, align 4
-  store i32 %31, ptr %array_element_pointer, align 4
-  %32 = load ptr, ptr %instance, align 8
-  %33 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %32, i32 0, i32 1
-  %34 = load ptr, ptr %instance, align 8
-  %35 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %34, i32 0, i32 1
-  %36 = load i64, ptr %35, align 8
-  %37 = add i64 %36, 1
-  store i64 %37, ptr %33, align 8
+  %25 = load ptr, ptr %instance, align 8
+  %26 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %25, i32 0, i32 1
+  %27 = load i64, ptr %26, align 8
+  store i64 %27, ptr %index, align 8
+  %28 = load i64, ptr %index, align 8
+  %29 = load ptr, ptr %instance, align 8
+  %30 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %29, i32 0, i32 0
+  %31 = load ptr, ptr %30, align 8
+  %array_element_pointer = getelementptr i32, ptr %31, i64 %28
+  %32 = load i32, ptr %element, align 4
+  store i32 %32, ptr %array_element_pointer, align 4
+  %33 = load ptr, ptr %instance, align 8
+  %34 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %33, i32 0, i32 1
+  %35 = load ptr, ptr %instance, align 8
+  %36 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %35, i32 0, i32 1
+  %37 = load i64, ptr %36, align 8
+  %38 = add i64 %37, 1
+  store i64 %38, ptr %34, align 8
   ret void
 
 condition_success1:                               ; preds = %if_s0_then
-  %38 = load ptr, ptr %instance, align 8
-  %39 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %38, i32 0, i32 0
-  %40 = load ptr, ptr %allocation, align 8
-  store ptr %40, ptr %39, align 8
-  %41 = load ptr, ptr %instance, align 8
-  %42 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %41, i32 0, i32 2
-  %43 = load i64, ptr %new_capacity, align 8
-  store i64 %43, ptr %42, align 8
+  %39 = load ptr, ptr %instance, align 8
+  %40 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %39, i32 0, i32 0
+  %41 = load ptr, ptr %allocation, align 8
+  store ptr %41, ptr %40, align 8
+  %42 = load ptr, ptr %instance, align 8
+  %43 = getelementptr inbounds %"struct.dynamic_array_Dynamic_array@10870525800499546629", ptr %42, i32 0, i32 2
+  %44 = load i64, ptr %new_capacity, align 8
+  store i64 %44, ptr %43, align 8
   br label %if_s1_after
 
 condition_fail2:                                  ; preds = %if_s0_then
-  %44 = call i32 @puts(ptr @function_contract_error_string.3)
+  %45 = call i32 @puts(ptr @function_contract_error_string.3)
   call void @abort()
   unreachable
 }
@@ -3127,15 +3128,17 @@ entry:
   %b = alloca %struct.Function_pointers_My_struct, align 8
   %r1 = alloca i32, align 4
   store ptr @Function_pointers_add, ptr %a, align 8
-  %0 = call i32 %a(i32 noundef 1, i32 noundef 2)
-  store i32 %0, ptr %r0, align 4
-  %1 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
-  store ptr @Function_pointers_add, ptr %1, align 8
-  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 1
-  store ptr null, ptr %2, align 8
-  %3 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
-  %4 = call i32 %3(i32 noundef 3, i32 noundef 4)
-  store i32 %4, ptr %r1, align 4
+  %0 = load ptr, ptr %a, align 8
+  %1 = call i32 %0(i32 noundef 1, i32 noundef 2)
+  store i32 %1, ptr %r0, align 4
+  %2 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  store ptr @Function_pointers_add, ptr %2, align 8
+  %3 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 1
+  store ptr null, ptr %3, align 8
+  %4 = getelementptr inbounds %struct.Function_pointers_My_struct, ptr %b, i32 0, i32 0
+  %5 = load ptr, ptr %4, align 8
+  %6 = call i32 %5(i32 noundef 3, i32 noundef 4)
+  store i32 %6, ptr %r1, align 4
   ret void
 }
 
