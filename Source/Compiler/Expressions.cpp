@@ -3439,15 +3439,13 @@ namespace h::compiler
             if (is_non_void_pointer(type))
             {
                 Type_reference const core_pointee_type = remove_pointer(type).value();
-                llvm::Type* const llvm_pointee_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_pointee_type, type_database);
 
                 llvm::Value* const load_address = create_load_instruction(llvm_builder, llvm_data_layout, value_expression.value->getType(), value_expression.value);
-                llvm::Value* const load_value = create_load_instruction(llvm_builder, llvm_data_layout, llvm_pointee_type, load_address);
 
                 return Value_and_type
                 {
                     .name = "",
-                    .value = load_value,
+                    .value = load_address,
                     .type = core_pointee_type
                 };
             }

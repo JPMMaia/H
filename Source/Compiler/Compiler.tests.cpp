@@ -3932,6 +3932,8 @@ entry:
   %3 = getelementptr i8, ptr %2, i64 16
   %4 = load ptr, ptr %3, align 8
   store ptr %4, ptr %p0, align 8
+  %5 = load ptr, ptr %p0, align 8
+  store i32 0, ptr %5, align 4
   ret void
 }
 
