@@ -47,10 +47,18 @@ namespace h::compiler
 
         for (std::string_view const library : libraries)
         {
-            if (library.ends_with(".lib"))
-                arguments_storage.push_back(std::format("/defaultlib:{}", library));
+            std::filesystem::path library_path = library;
+            if (!library.ends_with(".lib"))
+                library_path += ".lib";
+
+            if (library_path.is_absolute())
+            {
+                arguments_storage.push_back(library_path.generic_string());
+            }
             else
-                arguments_storage.push_back(std::format("/defaultlib:{}.lib", library));
+            {
+                arguments_storage.push_back(std::format("/defaultlib:{}", library_path.generic_string()));
+            }
         }
 
         for (std::filesystem::path const& object_file_path : object_file_paths)
