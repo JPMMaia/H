@@ -185,6 +185,15 @@ namespace h::compiler
             temporaries_allocator
         );
 
+        std::printf("Compiling %s\n  Output is %s\n  Command line: ", source_file_path.generic_string().c_str(), output_file_path.generic_string().c_str());
+        for (std::size_t index = 0; index < arguments.size(); ++index)
+        {
+            std::fputs(arguments[index].c_str(), stdout);
+            std::fputs(" ", stdout);
+        }
+        std::fputs("\n", stdout);
+        std::fflush(stdout);
+
         std::pmr::vector<char const*> c_string_arguments = to_c_string_vector(arguments);
 
         clang::driver::Driver clang_driver{clang_path.generic_string(), target_triple, diagnostics_engine};
