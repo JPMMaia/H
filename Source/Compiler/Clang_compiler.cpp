@@ -118,6 +118,14 @@ namespace h::compiler
         if (debug)
             add_argument(arguments, "-g", use_clang_cl);
 
+        if (use_clang_cl)
+        {
+            if (debug)
+                arguments.push_back("/MDd");
+            else
+                arguments.push_back("/MD");
+        }
+
         if (output_dependency_file_path.has_value())
         {
             add_argument(arguments, "-MMD", use_clang_cl);

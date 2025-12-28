@@ -233,6 +233,7 @@ namespace h::compiler
                         std::pmr::string{"/clang:-I"} + std::pmr::string{(g_examples_directory / project_name / "external_library" / "include").generic_string()},
                         std::pmr::string{"/clang:-std=c++23"},
                         std::pmr::string{"/clang:-o"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.bc").generic_string()},
+                        std::pmr::string{"/MD"},
                         std::pmr::string{"/clang:-MMD"},
                         std::pmr::string{"/clang:-MF"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.d").generic_string()},
                         std::pmr::string{"/clang:-emit-llvm"},
