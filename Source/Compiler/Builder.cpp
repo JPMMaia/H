@@ -950,7 +950,7 @@ namespace h::compiler
         std::filesystem::path const dll_path = dll_name;
         if (!std::filesystem::exists(dll_path))
         {
-            std::fprintf(stderr, "Copy dll: could not find dll '%s'.", dll_name.data());
+            std::fprintf(stderr, "Copy dll: could not find dll '%s'.\n", dll_name.data());
             return;
         }
 
