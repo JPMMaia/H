@@ -3857,6 +3857,8 @@ define ptr @Offset_pointer_pointers(ptr noundef %"arguments[0].external_pointer"
 entry:
   %external_pointer = alloca ptr, align 8
   %p0 = alloca ptr, align 8
+  %p1 = alloca ptr, align 8
+  %p2 = alloca ptr, align 8
   store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
   %0 = load ptr, ptr %external_pointer, align 8
   %1 = getelementptr i8, ptr %0, i64 8
@@ -3866,9 +3868,13 @@ entry:
   %3 = load ptr, ptr %external_pointer, align 8
   %4 = getelementptr i8, ptr %3, i64 16
   call void @Offset_pointer_take(ptr noundef %4)
-  %5 = load ptr, ptr %external_pointer, align 8
-  %6 = getelementptr i8, ptr %5, i64 24
-  ret ptr %6
+  store ptr null, ptr %p1, align 8
+  %5 = load ptr, ptr %p1, align 8
+  %6 = getelementptr i8, ptr %5, i64 10
+  store ptr %6, ptr %p2, align 8
+  %7 = load ptr, ptr %external_pointer, align 8
+  %8 = getelementptr i8, ptr %7, i64 24
+  ret ptr %8
 }
 
 ; Function Attrs: convergent
