@@ -842,19 +842,19 @@ function run() -> ()
 
         std::string_view const test_2_input = R"(module Test_2;
 
-enum My_enum
+export enum My_enum
 {
     A = 0,
     B,
 }
 
-struct My_struct
+export struct My_struct
 {
     a: Int32 = 0;
     b: Int32 = 1;
 }
 
-union My_union
+export union My_union
 {
     a: Int32;
     b: Float32;
@@ -1033,6 +1033,46 @@ export union My_union
                 .message = "Member 'c' does not exist in the type 'My_module.My_union'.",
                 .related_information = {},
             },
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a declaration from an imported module must be public", "[Validation][Access_expression]")
+    {
+        std::string_view const module_a = R"(module Module_a;
+
+export function export_run() -> ()
+{
+}
+
+function internal_run() -> ()
+{
+}
+)";
+
+        std::string_view const input = R"(module Test;
+
+import Module_a as ma;
+
+function run() -> ()
+{
+    ma.export_run();
+    ma.internal_run();
+}
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { module_a };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            {
+                .range = create_source_range(8, 5, 8, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Module_a.internal_run' (alias 'ma') is not marked with export.",
+                .related_information = {},
+            }
         };
 
         test_validate_module(input, dependencies, expected_diagnostics);
@@ -1955,9 +1995,9 @@ function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
     {
         std::string_view const dependency = R"(module Dependency;
 
-var my_global = 0ci;
+export var my_global = 0ci;
 
-enum My_enum
+export enum My_enum
 {
     Value = 0,
 }
@@ -2628,7 +2668,7 @@ function run(value: Int32) -> ()
     {
         std::string_view const dependency = R"(module Module_a;
 
-enum My_enum
+export enum My_enum
 {
     A = 0,
 }

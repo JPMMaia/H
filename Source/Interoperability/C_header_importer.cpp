@@ -2652,6 +2652,7 @@ namespace h::c
         h::add_declarations(
             declaration_database,
             header_name,
+            true,
             declarations_with_fixed_width_integers.alias_type_declarations,
             declarations_with_fixed_width_integers.enum_declarations,
             declarations_with_fixed_width_integers.forward_declarations,

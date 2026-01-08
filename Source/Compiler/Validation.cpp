@@ -1572,6 +1572,23 @@ namespace h::compiler
                                 )
                             };
                         }
+
+                        if (!declaration_optional->is_export)
+                        {
+                            return
+                            {
+                                create_error_diagnostic(
+                                    parameters.core_module.source_file_path,
+                                    source_range,
+                                    std::format(
+                                        "'{}.{}' (alias '{}') is not marked with export.",
+                                        import_alias->module_name,
+                                        access_expression.member_name,
+                                        variable_expression.name
+                                    )
+                                )
+                            };
+                        }
                     }
                 }
             }

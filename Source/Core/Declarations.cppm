@@ -38,6 +38,7 @@ namespace h
 
         Data_type data;
         std::pmr::string module_name;
+        bool is_export;
     };
 
     export struct Declaration_instance_storage
@@ -78,6 +79,7 @@ namespace h
     export void add_declarations(
         Declaration_database& database,
         std::string_view const module_name,
+        bool const are_export,
         std::span<h::Alias_type_declaration const> alias_type_declarations,
         std::span<h::Enum_declaration const> enum_declarations,
         std::span<h::Forward_declaration const> forward_declarations,
