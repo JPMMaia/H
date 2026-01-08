@@ -102,6 +102,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    std::pmr::vector<h::Module const*> sort_core_modules(
+        std::pmr::unordered_map<std::pmr::string, h::Module> const& core_module_dependencies,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
     export Declaration_database create_declaration_database_and_add_modules(
         std::span<h::Module const> const header_modules,
         std::span<h::Module const* const> const sorted_core_modules

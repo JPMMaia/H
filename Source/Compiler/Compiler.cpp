@@ -1094,17 +1094,17 @@ namespace h::compiler
             llvm_data_layout
         );
 
-        for (std::pair<std::pmr::string const, Module> const& pair : core_module_dependencies)
-        {
-            Module const& module_dependency = pair.second;
+        std::pmr::vector<h::Module const*> const sorted_core_module_dependencies = sort_core_modules(core_module_dependencies, {}, {});
 
-            if (!module_dependency.source_file_path)
+        for (h::Module const* module_dependency : sorted_core_module_dependencies)
+        {
+            if (!module_dependency->source_file_path)
             {
-                //h::common::print_message_and_exit(std::format("Module '{}' did not contain source file path for debugging!", module_dependency.name));
+                //h::common::print_message_and_exit(std::format("Module '{}' did not contain source file path for debugging!", module_dependency->name));
                 continue;
             }
 
-            llvm::DIFile* const llvm_dependency_debug_file = llvm_debug_builder->createFile(module_dependency.source_file_path->filename().generic_string(), module_dependency.source_file_path->parent_path().generic_string());
+            llvm::DIFile* const llvm_dependency_debug_file = llvm_debug_builder->createFile(module_dependency->source_file_path->filename().generic_string(), module_dependency->source_file_path->parent_path().generic_string());
             llvm_debug_files.emplace(*core_module.source_file_path, llvm_dependency_debug_file);
 
             add_module_debug_types(
@@ -1115,7 +1115,7 @@ namespace h::compiler
                 llvm_debug_files,
                 llvm_data_layout,
                 clang_module_data,
-                module_dependency,
+                *module_dependency,
                 enum_value_constants.map,
                 type_database
             );
