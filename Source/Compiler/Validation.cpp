@@ -2661,6 +2661,29 @@ namespace h::compiler
         return diagnostics;
     }
 
+    std::optional<Declaration> find_declaration_to_instantiate(
+        Declaration_database const& declaration_database,
+        h::Type_reference const& type_to_instantiate,
+        std::pmr::vector<h::Struct_declaration>& temporary_storage
+    )
+    {
+        if (std::holds_alternative<h::Array_slice_type>(type_to_instantiate.data))
+        {
+            h::Array_slice_type const& array_slice = std::get<h::Array_slice_type>(type_to_instantiate.data);
+            temporary_storage.push_back(create_array_slice_type_struct_declaration(array_slice.element_type));
+            return Declaration{ .data = &temporary_storage[0], .module_name = "H.Builtin", .is_export = true };
+        }
+
+        std::optional<Declaration> const declaration_optional = find_underlying_declaration(
+            declaration_database,
+            type_to_instantiate
+        );
+        if (declaration_optional.has_value())
+            return declaration_optional.value();
+
+        return std::nullopt;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_instantiate_expression(
         Validate_expression_parameters const& parameters,
         h::Instantiate_expression const& expression,
@@ -2709,9 +2732,11 @@ namespace h::compiler
             };
         }
 
-        std::optional<Declaration> const declaration_optional = find_underlying_declaration(
+        std::pmr::vector<h::Struct_declaration> temporary_storage{parameters.temporaries_allocator};
+        std::optional<Declaration> const declaration_optional = find_declaration_to_instantiate(
             parameters.declaration_database,
-            type_to_instantiate.value()
+            type_to_instantiate.value(),
+            temporary_storage
         );
         if (!declaration_optional.has_value())
         {
@@ -3396,7 +3421,7 @@ namespace h::compiler
         h::Expression const& right_hand_side = parameters.statement.expressions[expression.right_hand_side.expression_index];
         h::Type_reference const& type = expression.type;
 
-        if (std::holds_alternative<h::Instantiate_expression>(right_hand_side.data))
+        if (std::holds_alternative<h::Instantiate_expression>(right_hand_side.data) && !std::holds_alternative<h::Array_slice_type>(type.data))
         {
             std::optional<Declaration> const declaration_optional = find_underlying_declaration(parameters.declaration_database, type);
             if (!declaration_optional.has_value() || (!std::holds_alternative<h::Struct_declaration const*>(declaration_optional->data) && !std::holds_alternative<h::Union_declaration const*>(declaration_optional->data)))

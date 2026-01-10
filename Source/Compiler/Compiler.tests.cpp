@@ -482,6 +482,86 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }
 
+  TEST_CASE("Compile Array Slices Instantiate", "[LLVM_IR]")
+  {
+    char const* const input_file = "array_slices_instantiate.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    std::string const expected_llvm_ir = std::format(R"(
+%struct.Array_slices_instantiate_My_struct = type {{ %struct.H_Builtin_Generic_array_slice }}
+%struct.H_Builtin_Generic_array_slice = type {{ ptr, i64 }}
+
+; Function Attrs: convergent
+define void @Array_slices_instantiate_run() #0 !dbg !3 {{
+entry:
+  %v0 = alloca %struct.Array_slices_instantiate_My_struct, align 8, !dbg !7
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !7
+  %value = alloca i32, align 4, !dbg !8
+  %s0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !8
+  %1 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !7
+  store ptr null, ptr %1, align 8, !dbg !7
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !7
+  store i64 0, ptr %2, align 8, !dbg !7
+  %3 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !9
+  %4 = getelementptr inbounds %struct.Array_slices_instantiate_My_struct, ptr %v0, i32 0, i32 0, !dbg !9
+  store %struct.H_Builtin_Generic_array_slice %3, ptr %4, align 8, !dbg !9
+  call void @llvm.dbg.declare(metadata ptr %v0, metadata !10, metadata !DIExpression()), !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !22, metadata !DIExpression()), !dbg !8
+  store i32 0, ptr %value, align 4, !dbg !8
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 0, !dbg !8
+  store ptr %value, ptr %5, align 8, !dbg !8
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 1, !dbg !8
+  store i64 1, ptr %6, align 8, !dbg !8
+  call void @llvm.dbg.declare(metadata ptr %s0, metadata !23, metadata !DIExpression()), !dbg !28
+  ret void, !dbg !8
+}}
+
+; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
+declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
+
+attributes #0 = {{ convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }}
+attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn memory(none) }}
+
+!llvm.module.flags = !{{!0}}
+!llvm.dbg.cu = !{{!1}}
+
+!0 = !{{i32 2, !"Debug Info Version", i32 3}}
+!1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+!2 = !DIFile(filename: "array_slices_instantiate.hltxt", directory: "{}")
+!3 = distinct !DISubprogram(name: "run", linkageName: "Array_slices_instantiate_run", scope: null, file: !2, line: 8, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !6)
+!4 = !DISubroutineType(types: !5)
+!5 = !{{null}}
+!6 = !{{}}
+!7 = !DILocation(line: 9, column: 1, scope: !3)
+!8 = !DILocation(line: 12, column: 5, scope: !3)
+!9 = !DILocation(line: 5, column: 35, scope: !3)
+!10 = !DILocalVariable(name: "v0", scope: !3, file: !2, line: 10, type: !11)
+!11 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slices_instantiate_My_struct", file: !2, line: 3, size: 128, align: 8, elements: !12)
+!12 = !{{!13}}
+!13 = !DIDerivedType(tag: DW_TAG_member, name: "slice", file: !2, line: 5, baseType: !14, size: 128, align: 64)
+!14 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", size: 128, align: 8, elements: !15)
+!15 = !{{!16, !19}}
+!16 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !17, size: 64, align: 8)
+!17 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !18, size: 64)
+!18 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
+!19 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !20, size: 64, align: 8, offset: 64)
+!20 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
+!21 = !DILocation(line: 10, column: 5, scope: !3)
+!22 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 12, type: !18)
+!23 = !DILocalVariable(name: "s0", scope: !3, file: !2, line: 13, type: !24)
+!24 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !25)
+!25 = !{{!26, !27}}
+!26 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !17, size: 64, align: 8)
+!27 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !20, size: 64, align: 8, offset: 64)
+!28 = !DILocation(line: 13, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string());
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
+  }
+
   TEST_CASE("Compile Asserts", "[LLVM_IR]")
   {
     char const* const input_file = "assert_expressions.hltxt";

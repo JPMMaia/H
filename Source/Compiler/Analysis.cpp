@@ -1682,6 +1682,15 @@ namespace h::compiler
             if (!type_to_instantiate.has_value())
                 return std::nullopt;
 
+            if (std::holds_alternative<h::Array_slice_type>(type_to_instantiate->data))
+            {
+                return Type_info
+                {
+                    .type = type_to_instantiate.value(),
+                    .is_mutable = false,
+                };
+            }
+
             std::optional<Declaration> const declaration = find_underlying_declaration(
                 declaration_database,
                 type_to_instantiate.value()

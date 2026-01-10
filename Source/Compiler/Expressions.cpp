@@ -3006,6 +3006,14 @@ namespace h::compiler
             throw std::runtime_error{ "Could not find type to instantiate!" };
         Type_reference const& type_reference = type_reference_optional.value();
 
+        if (std::holds_alternative<h::Array_slice_type>(type_reference.data))
+        {
+            h::Array_slice_type const& array_slice_type = std::get<h::Array_slice_type>(type_reference.data);
+            h::Struct_declaration const struct_declaration = create_array_slice_type_struct_declaration(array_slice_type.element_type);
+
+            return create_instantiate_struct_expression_value(statement, expression, parameters, "H.Builtin", struct_declaration, type_reference);
+        }
+
         std::optional<Declaration_to_instantiate> const found_instance = get_declaration_type_to_instantiate(
             declaration_database,
             type_reference

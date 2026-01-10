@@ -4506,6 +4506,23 @@ export function run(integers: Array_slice::<Int32>, mutable_integers: Array_slic
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that empty Array_slices can be created", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+struct My_struct
+{
+    slice: Array_slice::<Int32> = {};
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
     TEST_CASE("Validates that Array_slice contains data and size", "[Validation][Array_slices]")
     {
         std::string_view const input = R"(module Array_slices;
