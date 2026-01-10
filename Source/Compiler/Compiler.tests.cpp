@@ -4016,6 +4016,31 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
   }
 
+  TEST_CASE("Compile Size_of", "[LLVM_IR]")
+  {
+    char const* const input_file = "size_of.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Size_of_run() #0 {
+entry:
+  %size = alloca i64, align 8
+  %alignment = alloca i64, align 8
+  store i64 8, ptr %size, align 8
+  store i64 4, ptr %alignment, align 8
+  ret void
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
   TEST_CASE("Compile Stack Array Entry", "[LLVM_IR]")
   {
     char const* const input_file = "stack_array_entry.hltxt";

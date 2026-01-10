@@ -3065,14 +3065,10 @@ namespace h::compiler
     {
         if (expression.name == "alignment_of")
         {
-            if (expression.arguments.size() != 1)
-                throw std::runtime_error{ "alignment_of() requires exactly one argument!" };
+            if (expression.type_arguments.size() != 1)
+                throw std::runtime_error{ "alignment_of() requires exactly one type argument!" };
 
-            Value_and_type const argument = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
-            if (!argument.type.has_value())
-                throw std::runtime_error{ "Argument of alignment_of() does not have a type!" };
-
-            Type_reference const& type_reference = argument.type.value();
+            Type_reference const& type_reference = expression.type_arguments[0];
             llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, type_reference, parameters.type_database);
             llvm::Align const alignment = parameters.llvm_data_layout.getABITypeAlign(llvm_type);
             std::uint64_t const alignment_in_bytes = alignment.value();
@@ -3086,14 +3082,10 @@ namespace h::compiler
         }
         else if (expression.name == "size_of")
         {
-            if (expression.arguments.size() != 1)
-                throw std::runtime_error{ "size_of() requires exactly one argument!" };
+            if (expression.type_arguments.size() != 1)
+                throw std::runtime_error{ "size_of() requires exactly one type argument!" };
 
-            Value_and_type const argument = create_expression_value(expression.arguments[0].expression_index, statement, parameters);
-            if (!argument.type.has_value())
-                throw std::runtime_error{ "Argument of size_of() does not have a type!" };
-
-            Type_reference const& type_reference = argument.type.value();
+            Type_reference const& type_reference = expression.type_arguments[0];
             llvm::Type* const llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, type_reference, parameters.type_database);
             std::uint64_t const size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(llvm_type);
 

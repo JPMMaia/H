@@ -406,6 +406,16 @@ namespace h
                     return true;
                 return visit_type_references(data.definition, predicate);
             }
+            else if (std::holds_alternative<Reflection_expression>(expression.data))
+            {
+                Reflection_expression const& data = std::get<Reflection_expression>(expression.data);
+                for (Type_reference const& type : data.type_arguments)
+                {
+                    if (visit_type_references(type, predicate))
+                        return true;
+                }
+                return false;
+            }
             else if (std::holds_alternative<Type_expression>(expression.data))
             {
                 Type_expression const& data = std::get<Type_expression>(expression.data);

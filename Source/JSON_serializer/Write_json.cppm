@@ -1838,6 +1838,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        writer.Key("type_arguments");
+        write_object(writer, output.type_arguments);
         writer.Key("arguments");
         write_object(writer, output.arguments);
         writer.EndObject();

@@ -3263,6 +3263,31 @@ namespace h::json
             };
         }
 
+        if (key == "type_arguments")
+        {
+            auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                parent->resize(size);
+            };
+
+            auto const get_element = [](Stack_state const* const state, std::size_t const index) -> void*
+            {
+                std::pmr::vector<Type_reference>* parent = static_cast<std::pmr::vector<Type_reference>*>(state->pointer);
+                return &((*parent)[index]);
+            };
+
+            return Stack_state
+            {
+                .pointer = &parent->type_arguments,
+                .type = "std::pmr::vector<Type_reference>",
+                .get_next_state = get_next_state_vector,
+                .set_vector_size = set_vector_size,
+                .get_element = get_element,
+                .get_next_state_element = get_next_state_type_reference
+            };
+        }
+
         if (key == "arguments")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void

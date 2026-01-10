@@ -911,6 +911,7 @@ namespace h::binary_serializer
     void serialize(Serializer& serializer, Reflection_expression const& value)
     {
         serialize(serializer, value.name);
+        serialize(serializer, value.type_arguments);
         serialize(serializer, value.arguments);
     }
 
@@ -918,6 +919,7 @@ namespace h::binary_serializer
     void deserialize(Deserializer& deserializer, Reflection_expression& value)
     {
         deserialize(deserializer, value.name);
+        deserialize(deserializer, value.type_arguments);
         deserialize(deserializer, value.arguments);
     }
 

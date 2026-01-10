@@ -953,7 +953,26 @@
           "named": true
         },
         {
+          "type": "Expression_reflection_call_type_arguments",
+          "named": true
+        },
+        {
           "type": "Reflection_identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Expression_reflection_call_type_arguments",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Type",
           "named": true
         }
       ]

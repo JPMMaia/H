@@ -1279,6 +1279,19 @@ namespace h
     {
         add_text(buffer, "@");
         add_text(buffer, expression.name);
+
+        if (expression.type_arguments.size() > 0)
+        {
+            add_text(buffer, "::<");
+            for (std::size_t i = 0; i < expression.type_arguments.size(); ++i)
+            {
+                if (i > 0)
+                    add_text(buffer, ", ");
+                add_format_type_name(buffer, {&expression.type_arguments[i], 1}, options);
+            }
+            add_text(buffer, ">");
+        }
+
         add_text(buffer, "(");
         for (std::size_t i = 0; i < expression.arguments.size(); ++i)
         {

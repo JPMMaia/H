@@ -221,6 +221,12 @@ namespace h::compiler
         std::optional<h::Source_range> const& source_range
     );
 
+    std::pmr::vector<h::compiler::Diagnostic> validate_reflection_expression(
+        Validate_expression_parameters const& parameters,
+        h::Reflection_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    );
+
     std::pmr::vector<h::compiler::Diagnostic> validate_return_expression(
         Validate_expression_parameters const& parameters,
         h::Return_expression const& expression,

@@ -1377,6 +1377,11 @@ namespace h::compiler
             h::Instantiate_expression const& value = std::get<h::Instantiate_expression>(expression.data);
             return validate_instantiate_expression(parameters, value, expression.source_range);
         }
+        else if (std::holds_alternative<h::Reflection_expression>(expression.data))
+        {
+            h::Reflection_expression const& value = std::get<h::Reflection_expression>(expression.data);
+            return validate_reflection_expression(parameters, value, expression.source_range);
+        }
         else if (std::holds_alternative<h::Return_expression>(expression.data))
         {
             h::Return_expression const& value = std::get<h::Return_expression>(expression.data);
@@ -2845,6 +2850,42 @@ namespace h::compiler
                 }
 
                 return diagnostics;
+            }
+        }
+
+        return {};
+    }
+
+    std::pmr::vector<h::compiler::Diagnostic> validate_reflection_expression(
+        Validate_expression_parameters const& parameters,
+        h::Reflection_expression const& expression,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        if (expression.name == "size_of" || expression.name == "alignment_of")
+        {
+            if (expression.type_arguments.size() != 1)
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format("@{} requires only 1 type argument.", expression.name)
+                    )
+                };
+            }
+
+            if (expression.arguments.size() != 0)
+            {
+                return
+                {
+                    create_error_diagnostic(
+                        parameters.core_module.source_file_path,
+                        source_range,
+                        std::format("@{} does not have any parameters.", expression.name)
+                    )
+                };
             }
         }
 

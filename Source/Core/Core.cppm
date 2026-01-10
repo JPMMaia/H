@@ -920,6 +920,7 @@ namespace h
     export struct Reflection_expression
     {
         std::pmr::string name;
+        std::pmr::vector<Type_reference> type_arguments;
         std::pmr::vector<Expression_index> arguments;
 
 #if HACK_SPACESHIP_OPERATOR

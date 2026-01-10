@@ -41,8 +41,8 @@ export function_constructor push_back(element_type: Type)
         {
             var new_capacity = 2u64 * (instance->capacity + 1u64);
 
-            var allocation_size_in_bytes = new_capacity * @size_of(element_type);
-            var allocation = instance->allocator.allocate(allocation_size_in_bytes, @alignment_of(element_type));
+            var allocation_size_in_bytes = new_capacity * @size_of::<element_type>();
+            var allocation = instance->allocator.allocate(allocation_size_in_bytes, @alignment_of::<element_type>());
             assert "Allocation did not fail" { allocation != null };
 
             instance->data = allocation as *mutable element_type;

@@ -448,6 +448,12 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts size_of.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "size_of.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts switch_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "switch_expressions.hltxt";

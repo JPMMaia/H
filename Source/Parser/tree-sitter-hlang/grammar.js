@@ -217,7 +217,8 @@ module.exports = grammar({
     Expression_if_statements: $ => seq("{", repeat($.Statement), "}"),
     Expression_null_pointer: $ => "null",
     Expression_parenthesis: $ => seq("(", $.Generic_expression, ")"),
-    Expression_reflection_call: $ => seq($.Reflection_identifier, $.Expression_call_arguments),
+    Expression_reflection_call: $ => seq($.Reflection_identifier, optional($.Expression_reflection_call_type_arguments), $.Expression_call_arguments),
+    Expression_reflection_call_type_arguments: $ => seq("::<", $.Type, repeat(seq(",", $.Type)), ">"),
     Expression_return: $ => choice(
       "return",
       seq("return", $.Generic_expression_or_instantiate)

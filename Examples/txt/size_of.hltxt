@@ -1,0 +1,13 @@
+module Size_of;
+
+struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var size = @size_of::<My_struct>();
+    var alignment = @alignment_of::<My_struct>();
+}

@@ -3389,6 +3389,73 @@ function run(value: Int32) -> ()
     }
 
 
+    TEST_CASE("Validates that @size_of parameter is a valid type", "[Validation][Size_of]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var int32_size = @size_of::<Int32>();
+    var my_struct_size = @size_of::<My_struct>();
+    var invalid = @size_of::<Foo>();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(12, 30, 12, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Type 'Foo' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that @size_of has only one type argument", "[Validation][Size_of]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var v0 = @size_of::<Int32>();
+    var v1 = @size_of();
+    var v2 = @size_of::<Int32>(v1);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 14, 6, 24),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "@size_of requires only 1 type argument.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 14, 7, 35),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "@size_of does not have any parameters.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that the expression type of the switch input is an integer or an enum value", "[Validation][Switch_expression]")
     {
         std::string_view const input = R"(module Test;

@@ -2821,6 +2821,23 @@ namespace h::parser
             output.name = create_string(name, output_allocator);
         }
 
+        std::optional<Parse_node> const argument_types_node = get_child_node(tree, node, "Expression_reflection_call_type_arguments");
+        if (argument_types_node.has_value())
+        {
+            std::pmr::vector<Parse_node> const argument_type_nodes = get_child_nodes(tree, argument_types_node.value(), "Type", temporaries_allocator);
+            
+            output.type_arguments.resize(argument_type_nodes.size());
+
+            for (std::size_t index = 0; index < argument_type_nodes.size(); ++index)
+            {
+                std::optional<h::Type_reference> type = node_to_type_reference(module_info, tree, argument_type_nodes[index], output_allocator, temporaries_allocator);
+                if (type.has_value())
+                {
+                    output.type_arguments[index] = std::move(type.value());
+                }
+            }
+        }
+
         std::pmr::vector<Parse_node> const argument_nodes = get_child_nodes_of_parent(tree, node, "Expression_call_arguments", "Generic_expression_or_instantiate", temporaries_allocator);
 
         output.arguments.resize(argument_nodes.size());

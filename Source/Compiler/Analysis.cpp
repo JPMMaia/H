@@ -1721,6 +1721,21 @@ namespace h::compiler
                 .is_mutable = false,
             };
         }
+        else if (std::holds_alternative<h::Reflection_expression>(expression.data))
+        {
+            Reflection_expression const& data = std::get<h::Reflection_expression>(expression.data);
+
+            if (data.name == "size_of" || data.name == "alignment_of")
+            {
+                return Type_info
+                {
+                    .type = h::create_integer_type_type_reference(64, false),
+                    .is_mutable = false,
+                };   
+            }
+
+            return std::nullopt;
+        }
         else if (std::holds_alternative<h::Ternary_condition_expression>(expression.data))
         {
             Ternary_condition_expression const& data = std::get<h::Ternary_condition_expression>(expression.data);
