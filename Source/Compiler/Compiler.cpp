@@ -20,6 +20,7 @@ module;
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/TargetParser/Host.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/IPO/MergeFunctions.h>
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Scalar/Reassociate.h>
@@ -1303,6 +1304,9 @@ namespace h::compiler
 
         llvm::OptimizationLevel const optimization_level = options.is_optimized ? llvm::OptimizationLevel::O2 : llvm::OptimizationLevel::O0;
         llvm::ModulePassManager module_pass_manager = pass_builder.buildPerModuleDefaultPipeline(optimization_level);
+
+        // This merges identical functions. We might have a lot of these when generating functions using function constructors that only use pointers.
+        module_pass_manager.addPass(llvm::MergeFunctionsPass());
 
         Clang_data clang_data = create_clang_data(
             *llvm_context,

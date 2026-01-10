@@ -3567,6 +3567,47 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
   }
 
 
+  TEST_CASE("Compile Merge Functions", "[LLVM_IR]")
+  {
+    char const* const input_file = "merge_functions.hltxt";
+
+    std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
+    {
+    };
+
+    char const* const expected_llvm_ir = R"(
+; Function Attrs: convergent
+define private void @Merge_functions_run(ptr noundef %"arguments[0].external_pointer") #0 {
+entry:
+  %external_pointer = alloca ptr, align 8
+  %p0 = alloca ptr, align 8
+  %p1 = alloca ptr, align 8
+  store ptr %"arguments[0].external_pointer", ptr %external_pointer, align 8
+  %0 = load ptr, ptr %external_pointer, align 8
+  %1 = call ptr @"Merge_functions_cast@10621281525101525598"(ptr noundef %0)
+  store ptr %1, ptr %p0, align 8
+  %2 = load ptr, ptr %external_pointer, align 8
+  %3 = call ptr @"Merge_functions_cast@10621281525101525598"(ptr noundef %2)
+  store ptr %3, ptr %p1, align 8
+  ret void
+}
+
+; Function Attrs: convergent
+define private ptr @"Merge_functions_cast@10621281525101525598"(ptr noundef %"arguments[0].value") #0 {
+entry:
+  %value = alloca ptr, align 8
+  store ptr %"arguments[0].value", ptr %value, align 8
+  %0 = load ptr, ptr %value, align 8
+  ret ptr %0
+}
+
+attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+)";
+
+    test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);
+  }
+
+
   TEST_CASE("Compile Module with Dots", "[LLVM_IR]")
   {
     char const* const input_file = "module_with_dots.hltxt";
@@ -3916,7 +3957,7 @@ entry:
   store i32 1, ptr %v1, align 4
   call void @Passing_pointers_to_functions_take(ptr noundef %v1)
   store ptr null, ptr %v2, align 8
-  call void @Passing_pointers_to_functions_take_2(ptr noundef %v2)
+  call void @Passing_pointers_to_functions_take(ptr noundef %v2)
   %1 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 0
   store i32 0, ptr %1, align 4
   %2 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
@@ -3927,7 +3968,7 @@ entry:
   %5 = load ptr, ptr %4, align 8
   call void @Passing_pointers_to_functions_take(ptr noundef %5)
   %6 = getelementptr inbounds %struct.Passing_pointers_to_functions_My_struct, ptr %instance, i32 0, i32 1
-  call void @Passing_pointers_to_functions_take_2(ptr noundef %6)
+  call void @Passing_pointers_to_functions_take(ptr noundef %6)
   ret void
 }
 
@@ -3936,14 +3977,6 @@ define private void @Passing_pointers_to_functions_take(ptr noundef %"arguments[
 entry:
   %v0 = alloca ptr, align 8
   store ptr %"arguments[0].v0", ptr %v0, align 8
-  ret void
-}
-
-; Function Attrs: convergent
-define private void @Passing_pointers_to_functions_take_2(ptr noundef %"arguments[0].p0") #0 {
-entry:
-  %p0 = alloca ptr, align 8
-  store ptr %"arguments[0].p0", ptr %p0, align 8
   ret void
 }
 
@@ -4764,7 +4797,7 @@ entry:
   store i32 %0, ptr %a, align 4
   %1 = call float @"Function_constructor_add@4195550094456234142"(float noundef 3.000000e+00, float noundef 4.000000e+00)
   store float %1, ptr %b, align 4
-  %2 = call i32 @"Function_constructor_add@3937835667124936396"(i32 noundef 1, i32 noundef 2)
+  %2 = call i32 @"Function_constructor_add@10481941949038830817"(i32 noundef 1, i32 noundef 2)
   store i32 %2, ptr %c, align 4
   ret void
 }
@@ -4793,19 +4826,6 @@ entry:
   %1 = load float, ptr %second, align 4
   %2 = fadd float %0, %1
   ret float %2
-}
-
-; Function Attrs: convergent
-define private i32 @"Function_constructor_add@3937835667124936396"(i32 noundef %"arguments[0].first", i32 noundef %"arguments[1].second") #0 {
-entry:
-  %first = alloca i32, align 4
-  %second = alloca i32, align 4
-  store i32 %"arguments[0].first", ptr %first, align 4
-  store i32 %"arguments[1].second", ptr %second, align 4
-  %0 = load i32, ptr %first, align 4
-  %1 = load i32, ptr %second, align 4
-  %2 = add i32 %0, %1
-  ret i32 %2
 }
 
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
