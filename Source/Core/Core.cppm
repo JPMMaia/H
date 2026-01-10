@@ -1331,4 +1331,8 @@ namespace h
         h::Statement const& statement,
         h::Expression const& expression
     );
+
+    export bool is_add_scope_expression(
+        h::Expression const& expression
+    );
 }

@@ -264,7 +264,12 @@ namespace h::compiler
             {
                 h::Expression const& expression = statement.expressions[0];
 
-                if (std::holds_alternative<h::If_expression>(expression.data))
+                if (std::holds_alternative<h::Block_expression>(expression.data))
+                {
+                    h::Block_expression const& block_expression = std::get<h::Block_expression>(expression.data);
+                    visit_statements_using_scope(core_module, function_declaration, scope, block_expression.statements, declaration_database, callback);
+                }
+                else if (std::holds_alternative<h::If_expression>(expression.data))
                 {
                     h::If_expression const& if_expression = std::get<h::If_expression>(expression.data);
 

@@ -651,4 +651,13 @@ namespace h
 
         return false;
     }
+
+    bool is_add_scope_expression(h::Expression const& expression)
+    {
+        return std::holds_alternative<h::Block_expression>(expression.data)
+            || std::holds_alternative<h::For_loop_expression>(expression.data)
+            || std::holds_alternative<h::If_expression>(expression.data)
+            || std::holds_alternative<h::Switch_expression>(expression.data)
+            || std::holds_alternative<h::While_loop_expression>(expression.data);
+    }
 }

@@ -2436,7 +2436,7 @@ namespace h::compiler
             h::Expression const& first_expression = statement.expressions[0];
             if (first_expression.source_range.has_value())
             {
-                if (range_contains_position(first_expression.source_range.value(), source_position))
+                if (range_contains_position(first_expression.source_range.value(), source_position) && !is_add_scope_expression(first_expression))
                 {
                     output = scope;
                 }
