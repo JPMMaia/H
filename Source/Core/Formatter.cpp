@@ -2367,7 +2367,7 @@ namespace h
         Expression_index const expression_index
     )
     {
-        if (expression_index.expression_index == static_cast<std::uint64_t>(-1))
+        if (expression_index.expression_index == static_cast<std::uint64_t>(-1) || expression_index.expression_index >= statement.expressions.size())
         {
             static h::Expression invalid_expression = {
                 .data = h::Invalid_expression{ .value = "" }
