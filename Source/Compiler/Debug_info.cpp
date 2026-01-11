@@ -81,4 +81,27 @@ namespace h::compiler
     {
         llvm_builder.SetCurrentDebugLocation(llvm::DebugLoc{});
     }
+
+    void set_debug_location_at_statement(
+        llvm::IRBuilder<>& llvm_builder,
+        Debug_info& debug_info,
+        h::Statement const& statement
+    )
+    {
+        if (!statement.expressions.empty())
+        {
+            std::optional<h::Source_range> const& source_range = statement.expressions[0].source_range;
+            set_debug_location_at_range(llvm_builder, debug_info, source_range);
+        }
+    }
+    
+    void set_debug_location_at_range(
+        llvm::IRBuilder<>& llvm_builder,
+        Debug_info& debug_info,
+        std::optional<h::Source_range> const& source_range
+    )
+    {
+        if (source_range.has_value())
+            set_debug_location(llvm_builder, debug_info, source_range->start.line, source_range->start.column);
+    }
 }

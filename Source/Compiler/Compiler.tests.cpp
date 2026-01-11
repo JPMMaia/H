@@ -238,153 +238,153 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %integers, metadata !14, metadata !DIExpression()), !dbg !19
   %data = alloca ptr, align 8, !dbg !20
   %length = alloca i64, align 8, !dbg !21
-  %v0 = alloca i32, align 4, !dbg !22
-  %v1 = alloca i32, align 4, !dbg !23
-  %v2 = alloca i32, align 4, !dbg !24
-  %index = alloca i32, align 4, !dbg !25
-  %v3 = alloca i32, align 4, !dbg !26
+  %v0 = alloca i32, align 4, !dbg !21
+  %v1 = alloca i32, align 4, !dbg !22
+  %v2 = alloca i32, align 4, !dbg !23
+  %index = alloca i32, align 4, !dbg !24
+  %v3 = alloca i32, align 4, !dbg !24
   %0 = getelementptr inbounds {{ ptr, i64 }}, ptr %integers, i32 0, i32 0
   store ptr %"arguments[0].integers_0", ptr %0, align 8
   %1 = getelementptr inbounds {{ ptr, i64 }}, ptr %integers, i32 0, i32 1
   store i64 %"arguments[0].integers_1", ptr %1, align 8
-  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !27
-  %3 = load ptr, ptr %2, align 8, !dbg !28
-  call void @llvm.dbg.declare(metadata ptr %data, metadata !29, metadata !DIExpression()), !dbg !20
-  store ptr %3, ptr %data, align 8, !dbg !20
-  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1, !dbg !20
-  %5 = load i64, ptr %4, align 8, !dbg !30
-  call void @llvm.dbg.declare(metadata ptr %length, metadata !31, metadata !DIExpression()), !dbg !21
+  %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !20
+  %3 = load ptr, ptr %2, align 8, !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %data, metadata !25, metadata !DIExpression()), !dbg !26
+  store ptr %3, ptr %data, align 8, !dbg !26
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 1, !dbg !26
+  %5 = load i64, ptr %4, align 8, !dbg !26
+  call void @llvm.dbg.declare(metadata ptr %length, metadata !27, metadata !DIExpression()), !dbg !21
   store i64 %5, ptr %length, align 8, !dbg !21
-  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !32
-  %7 = load ptr, ptr %6, align 8, !dbg !32
-  %array_slice_element_pointer = getelementptr i32, ptr %7, i32 0, !dbg !32
-  %8 = load i32, ptr %array_slice_element_pointer, align 4, !dbg !32
-  call void @llvm.dbg.declare(metadata ptr %v0, metadata !33, metadata !DIExpression()), !dbg !22
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !21
+  %7 = load ptr, ptr %6, align 8, !dbg !21
+  %array_slice_element_pointer = getelementptr i32, ptr %7, i32 0, !dbg !21
+  %8 = load i32, ptr %array_slice_element_pointer, align 4, !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %v0, metadata !28, metadata !DIExpression()), !dbg !22
   store i32 %8, ptr %v0, align 4, !dbg !22
-  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !34
-  %10 = load ptr, ptr %9, align 8, !dbg !34
-  %array_slice_element_pointer1 = getelementptr i32, ptr %10, i32 1, !dbg !34
-  %11 = load i32, ptr %array_slice_element_pointer1, align 4, !dbg !34
-  call void @llvm.dbg.declare(metadata ptr %v1, metadata !35, metadata !DIExpression()), !dbg !23
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !22
+  %10 = load ptr, ptr %9, align 8, !dbg !22
+  %array_slice_element_pointer1 = getelementptr i32, ptr %10, i32 1, !dbg !22
+  %11 = load i32, ptr %array_slice_element_pointer1, align 4, !dbg !22
+  call void @llvm.dbg.declare(metadata ptr %v1, metadata !29, metadata !DIExpression()), !dbg !23
   store i32 %11, ptr %v1, align 4, !dbg !23
-  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !36
-  %13 = load ptr, ptr %12, align 8, !dbg !36
-  %array_slice_element_pointer2 = getelementptr i32, ptr %13, i32 2, !dbg !36
-  %14 = load i32, ptr %array_slice_element_pointer2, align 4, !dbg !36
-  call void @llvm.dbg.declare(metadata ptr %v2, metadata !37, metadata !DIExpression()), !dbg !24
-  store i32 %14, ptr %v2, align 4, !dbg !24
-  call void @llvm.dbg.declare(metadata ptr %index, metadata !38, metadata !DIExpression()), !dbg !25
-  store i32 3, ptr %index, align 4, !dbg !25
-  %15 = load i32, ptr %index, align 4, !dbg !39
-  %16 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !40
-  %17 = load ptr, ptr %16, align 8, !dbg !40
-  %array_slice_element_pointer3 = getelementptr i32, ptr %17, i32 %15, !dbg !40
-  %18 = load i32, ptr %array_slice_element_pointer3, align 4, !dbg !40
-  call void @llvm.dbg.declare(metadata ptr %v3, metadata !41, metadata !DIExpression()), !dbg !26
-  store i32 %18, ptr %v3, align 4, !dbg !26
-  ret void, !dbg !26
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !23
+  %13 = load ptr, ptr %12, align 8, !dbg !23
+  %array_slice_element_pointer2 = getelementptr i32, ptr %13, i32 2, !dbg !23
+  %14 = load i32, ptr %array_slice_element_pointer2, align 4, !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %v2, metadata !30, metadata !DIExpression()), !dbg !31
+  store i32 %14, ptr %v2, align 4, !dbg !31
+  call void @llvm.dbg.declare(metadata ptr %index, metadata !32, metadata !DIExpression()), !dbg !24
+  store i32 3, ptr %index, align 4, !dbg !24
+  %15 = load i32, ptr %index, align 4, !dbg !24
+  %16 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %integers, i32 0, i32 0, !dbg !24
+  %17 = load ptr, ptr %16, align 8, !dbg !24
+  %array_slice_element_pointer3 = getelementptr i32, ptr %17, i32 %15, !dbg !24
+  %18 = load i32, ptr %array_slice_element_pointer3, align 4, !dbg !24
+  call void @llvm.dbg.declare(metadata ptr %v3, metadata !33, metadata !DIExpression()), !dbg !34
+  store i32 %18, ptr %v3, align 4, !dbg !34
+  ret void, !dbg !34
 }}
 
 ; Function Attrs: convergent
-define void @Array_slices_run() #0 !dbg !42 {{
+define void @Array_slices_run() #0 !dbg !35 {{
 entry:
-  %array = alloca [4 x i32], i64 4, align 4, !dbg !46
-  %a = alloca [4 x i32], align 4, !dbg !47
-  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !47
-  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !48
-  %array4 = alloca [1 x i32], i64 1, align 4, !dbg !49
-  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !49
-  %b = alloca i32, align 4, !dbg !50
-  %c = alloca ptr, align 8, !dbg !51
-  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !52
-  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !53
-  %f = alloca i32, align 4, !dbg !54
-  %g = alloca ptr, align 8, !dbg !55
-  %4 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !56
-  %h = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !57
-  %i = alloca ptr, align 8, !dbg !58
-  %j = alloca ptr, align 8, !dbg !59
-  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0, !dbg !46
-  store i32 0, ptr %array_element_pointer, align 4, !dbg !46
-  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1, !dbg !46
-  store i32 1, ptr %array_element_pointer1, align 4, !dbg !46
-  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2, !dbg !46
-  store i32 2, ptr %array_element_pointer2, align 4, !dbg !46
-  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3, !dbg !46
-  store i32 3, ptr %array_element_pointer3, align 4, !dbg !46
-  %5 = load [4 x i32], ptr %array, align 4, !dbg !60
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !61, metadata !DIExpression()), !dbg !47
-  store [4 x i32] %5, ptr %a, align 4, !dbg !47
-  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0, !dbg !47
-  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !47
-  store ptr %data_pointer, ptr %6, align 8, !dbg !47
-  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !47
-  store i64 4, ptr %7, align 8, !dbg !47
-  %8 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 0, !dbg !48
-  %9 = load ptr, ptr %8, align 8, !dbg !48
-  %10 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 1, !dbg !48
-  %11 = load i64, ptr %10, align 8, !dbg !48
-  call void @Array_slices_take(ptr %9, i64 %11), !dbg !48
-  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0, !dbg !48
-  store ptr null, ptr %12, align 8, !dbg !48
-  %13 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1, !dbg !48
-  store i64 0, ptr %13, align 8, !dbg !48
-  %14 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 0, !dbg !49
-  %15 = load ptr, ptr %14, align 8, !dbg !49
-  %16 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 1, !dbg !49
-  %17 = load i64, ptr %16, align 8, !dbg !49
-  call void @Array_slices_take(ptr %15, i64 %17), !dbg !49
-  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !49
-  store i32 4, ptr %array_element_pointer5, align 4, !dbg !49
-  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !49
-  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0, !dbg !49
-  store ptr %data_pointer6, ptr %18, align 8, !dbg !49
-  %19 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1, !dbg !49
-  store i64 1, ptr %19, align 8, !dbg !49
-  %20 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 0, !dbg !63
-  %21 = load ptr, ptr %20, align 8, !dbg !63
-  %22 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 1, !dbg !63
-  %23 = load i64, ptr %22, align 8, !dbg !63
-  call void @Array_slices_take(ptr %21, i64 %23), !dbg !63
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !64, metadata !DIExpression()), !dbg !50
-  store i32 0, ptr %b, align 4, !dbg !50
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !65, metadata !DIExpression()), !dbg !51
-  store ptr %b, ptr %c, align 8, !dbg !51
-  %24 = load ptr, ptr %c, align 8, !dbg !52
-  %25 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0, !dbg !52
-  store ptr %24, ptr %25, align 8, !dbg !52
-  %26 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1, !dbg !52
-  store i64 1, ptr %26, align 8, !dbg !52
-  %27 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8, !dbg !66
-  call void @llvm.dbg.declare(metadata ptr %d, metadata !67, metadata !DIExpression()), !dbg !53
-  store %struct.H_Builtin_Generic_array_slice %27, ptr %d, align 8, !dbg !53
-  %28 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 0, !dbg !72
-  %29 = load ptr, ptr %28, align 8, !dbg !72
-  %30 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 1, !dbg !72
-  %31 = load i64, ptr %30, align 8, !dbg !72
-  call void @Array_slices_take(ptr %29, i64 %31), !dbg !72
-  call void @llvm.dbg.declare(metadata ptr %f, metadata !73, metadata !DIExpression()), !dbg !54
-  store i32 0, ptr %f, align 4, !dbg !54
-  call void @llvm.dbg.declare(metadata ptr %g, metadata !74, metadata !DIExpression()), !dbg !55
-  store ptr %f, ptr %g, align 8, !dbg !55
-  %32 = load ptr, ptr %g, align 8, !dbg !56
-  %33 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %4, i32 0, i32 0, !dbg !56
-  store ptr %32, ptr %33, align 8, !dbg !56
-  %34 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %4, i32 0, i32 1, !dbg !56
-  store i64 1, ptr %34, align 8, !dbg !56
-  %35 = load %struct.H_Builtin_Generic_array_slice, ptr %4, align 8, !dbg !75
-  call void @llvm.dbg.declare(metadata ptr %h, metadata !76, metadata !DIExpression()), !dbg !57
-  store %struct.H_Builtin_Generic_array_slice %35, ptr %h, align 8, !dbg !57
-  %36 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %h, i32 0, i32 0, !dbg !57
-  %37 = load ptr, ptr %36, align 8, !dbg !77
-  call void @llvm.dbg.declare(metadata ptr %i, metadata !78, metadata !DIExpression()), !dbg !58
-  store ptr %37, ptr %i, align 8, !dbg !58
-  %38 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %h, i32 0, i32 0, !dbg !58
-  %39 = load ptr, ptr %38, align 8, !dbg !79
-  %array_element_pointer7 = getelementptr i32, ptr %39, i32 0, !dbg !79
-  call void @llvm.dbg.declare(metadata ptr %j, metadata !80, metadata !DIExpression()), !dbg !59
-  store ptr %array_element_pointer7, ptr %j, align 8, !dbg !59
-  ret void, !dbg !59
+  %array = alloca [4 x i32], i64 4, align 4, !dbg !39
+  %a = alloca [4 x i32], align 4, !dbg !39
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !40
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !41
+  %array4 = alloca [1 x i32], i64 1, align 4, !dbg !42
+  %2 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !42
+  %b = alloca i32, align 4, !dbg !43
+  %c = alloca ptr, align 8, !dbg !43
+  %3 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !44
+  %d = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !45
+  %f = alloca i32, align 4, !dbg !46
+  %g = alloca ptr, align 8, !dbg !46
+  %4 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !47
+  %h = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !47
+  %i = alloca ptr, align 8, !dbg !48
+  %j = alloca ptr, align 8, !dbg !49
+  %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0, !dbg !39
+  store i32 0, ptr %array_element_pointer, align 4, !dbg !39
+  %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1, !dbg !39
+  store i32 1, ptr %array_element_pointer1, align 4, !dbg !39
+  %array_element_pointer2 = getelementptr [4 x i32], ptr %array, i32 0, i32 2, !dbg !39
+  store i32 2, ptr %array_element_pointer2, align 4, !dbg !39
+  %array_element_pointer3 = getelementptr [4 x i32], ptr %array, i32 0, i32 3, !dbg !39
+  store i32 3, ptr %array_element_pointer3, align 4, !dbg !39
+  %5 = load [4 x i32], ptr %array, align 4, !dbg !39
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !50, metadata !DIExpression()), !dbg !40
+  store [4 x i32] %5, ptr %a, align 4, !dbg !40
+  %data_pointer = getelementptr [4 x i32], ptr %a, i32 0, i32 0, !dbg !40
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !40
+  store ptr %data_pointer, ptr %6, align 8, !dbg !40
+  %7 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !40
+  store i64 4, ptr %7, align 8, !dbg !40
+  %8 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 0, !dbg !41
+  %9 = load ptr, ptr %8, align 8, !dbg !41
+  %10 = getelementptr inbounds {{ ptr, i64 }}, ptr %0, i32 0, i32 1, !dbg !41
+  %11 = load i64, ptr %10, align 8, !dbg !41
+  call void @Array_slices_take(ptr %9, i64 %11), !dbg !41
+  %12 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0, !dbg !41
+  store ptr null, ptr %12, align 8, !dbg !41
+  %13 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1, !dbg !41
+  store i64 0, ptr %13, align 8, !dbg !41
+  %14 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 0, !dbg !42
+  %15 = load ptr, ptr %14, align 8, !dbg !42
+  %16 = getelementptr inbounds {{ ptr, i64 }}, ptr %1, i32 0, i32 1, !dbg !42
+  %17 = load i64, ptr %16, align 8, !dbg !42
+  call void @Array_slices_take(ptr %15, i64 %17), !dbg !42
+  %array_element_pointer5 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !42
+  store i32 4, ptr %array_element_pointer5, align 4, !dbg !42
+  %data_pointer6 = getelementptr [1 x i32], ptr %array4, i32 0, i32 0, !dbg !42
+  %18 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 0, !dbg !42
+  store ptr %data_pointer6, ptr %18, align 8, !dbg !42
+  %19 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %2, i32 0, i32 1, !dbg !42
+  store i64 1, ptr %19, align 8, !dbg !42
+  %20 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 0, !dbg !52
+  %21 = load ptr, ptr %20, align 8, !dbg !52
+  %22 = getelementptr inbounds {{ ptr, i64 }}, ptr %2, i32 0, i32 1, !dbg !52
+  %23 = load i64, ptr %22, align 8, !dbg !52
+  call void @Array_slices_take(ptr %21, i64 %23), !dbg !52
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !53, metadata !DIExpression()), !dbg !43
+  store i32 0, ptr %b, align 4, !dbg !43
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !54, metadata !DIExpression()), !dbg !44
+  store ptr %b, ptr %c, align 8, !dbg !44
+  %24 = load ptr, ptr %c, align 8, !dbg !44
+  %25 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 0, !dbg !44
+  store ptr %24, ptr %25, align 8, !dbg !44
+  %26 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %3, i32 0, i32 1, !dbg !44
+  store i64 1, ptr %26, align 8, !dbg !44
+  %27 = load %struct.H_Builtin_Generic_array_slice, ptr %3, align 8, !dbg !44
+  call void @llvm.dbg.declare(metadata ptr %d, metadata !55, metadata !DIExpression()), !dbg !45
+  store %struct.H_Builtin_Generic_array_slice %27, ptr %d, align 8, !dbg !45
+  %28 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 0, !dbg !60
+  %29 = load ptr, ptr %28, align 8, !dbg !60
+  %30 = getelementptr inbounds {{ ptr, i64 }}, ptr %d, i32 0, i32 1, !dbg !60
+  %31 = load i64, ptr %30, align 8, !dbg !60
+  call void @Array_slices_take(ptr %29, i64 %31), !dbg !60
+  call void @llvm.dbg.declare(metadata ptr %f, metadata !61, metadata !DIExpression()), !dbg !46
+  store i32 0, ptr %f, align 4, !dbg !46
+  call void @llvm.dbg.declare(metadata ptr %g, metadata !62, metadata !DIExpression()), !dbg !47
+  store ptr %f, ptr %g, align 8, !dbg !47
+  %32 = load ptr, ptr %g, align 8, !dbg !47
+  %33 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %4, i32 0, i32 0, !dbg !47
+  store ptr %32, ptr %33, align 8, !dbg !47
+  %34 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %4, i32 0, i32 1, !dbg !47
+  store i64 1, ptr %34, align 8, !dbg !47
+  %35 = load %struct.H_Builtin_Generic_array_slice, ptr %4, align 8, !dbg !47
+  call void @llvm.dbg.declare(metadata ptr %h, metadata !63, metadata !DIExpression()), !dbg !48
+  store %struct.H_Builtin_Generic_array_slice %35, ptr %h, align 8, !dbg !48
+  %36 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %h, i32 0, i32 0, !dbg !48
+  %37 = load ptr, ptr %36, align 8, !dbg !48
+  call void @llvm.dbg.declare(metadata ptr %i, metadata !64, metadata !DIExpression()), !dbg !49
+  store ptr %37, ptr %i, align 8, !dbg !49
+  %38 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %h, i32 0, i32 0, !dbg !49
+  %39 = load ptr, ptr %38, align 8, !dbg !49
+  %array_element_pointer7 = getelementptr i32, ptr %39, i32 0, !dbg !49
+  call void @llvm.dbg.declare(metadata ptr %j, metadata !65, metadata !DIExpression()), !dbg !66
+  store ptr %array_element_pointer7, ptr %j, align 8, !dbg !66
+  ret void, !dbg !66
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -416,67 +416,53 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !17 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !9, size: 64, align: 8)
 !18 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !12, size: 64, align: 8, offset: 64)
 !19 = !DILocation(line: 3, column: 22, scope: !3)
-!20 = !DILocation(line: 5, column: 5, scope: !3)
+!20 = !DILocation(line: 4, column: 1, scope: !3)
 !21 = !DILocation(line: 6, column: 5, scope: !3)
 !22 = !DILocation(line: 8, column: 5, scope: !3)
 !23 = !DILocation(line: 9, column: 5, scope: !3)
-!24 = !DILocation(line: 10, column: 5, scope: !3)
-!25 = !DILocation(line: 12, column: 5, scope: !3)
-!26 = !DILocation(line: 13, column: 5, scope: !3)
-!27 = !DILocation(line: 4, column: 1, scope: !3)
-!28 = !DILocation(line: 5, column: 24, scope: !3)
-!29 = !DILocalVariable(name: "data", scope: !3, file: !2, line: 5, type: !9)
-!30 = !DILocation(line: 6, column: 18, scope: !3)
-!31 = !DILocalVariable(name: "length", scope: !3, file: !2, line: 6, type: !12)
-!32 = !DILocation(line: 8, column: 21, scope: !3)
-!33 = !DILocalVariable(name: "v0", scope: !3, file: !2, line: 8, type: !10)
-!34 = !DILocation(line: 9, column: 21, scope: !3)
-!35 = !DILocalVariable(name: "v1", scope: !3, file: !2, line: 9, type: !10)
-!36 = !DILocation(line: 10, column: 21, scope: !3)
-!37 = !DILocalVariable(name: "v2", scope: !3, file: !2, line: 10, type: !10)
-!38 = !DILocalVariable(name: "index", scope: !3, file: !2, line: 12, type: !10)
-!39 = !DILocation(line: 13, column: 30, scope: !3)
-!40 = !DILocation(line: 13, column: 21, scope: !3)
-!41 = !DILocalVariable(name: "v3", scope: !3, file: !2, line: 13, type: !10)
-!42 = distinct !DISubprogram(name: "run", linkageName: "Array_slices_run", scope: null, file: !2, line: 16, type: !43, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !45)
-!43 = !DISubroutineType(types: !44)
-!44 = !{{null}}
-!45 = !{{}}
-!46 = !DILocation(line: 17, column: 1, scope: !42)
-!47 = !DILocation(line: 18, column: 5, scope: !42)
-!48 = !DILocation(line: 19, column: 5, scope: !42)
-!49 = !DILocation(line: 20, column: 5, scope: !42)
-!50 = !DILocation(line: 23, column: 5, scope: !42)
-!51 = !DILocation(line: 24, column: 5, scope: !42)
-!52 = !DILocation(line: 25, column: 45, scope: !42)
-!53 = !DILocation(line: 25, column: 5, scope: !42)
-!54 = !DILocation(line: 28, column: 5, scope: !42)
-!55 = !DILocation(line: 29, column: 5, scope: !42)
-!56 = !DILocation(line: 30, column: 75, scope: !42)
-!57 = !DILocation(line: 30, column: 5, scope: !42)
-!58 = !DILocation(line: 31, column: 5, scope: !42)
-!59 = !DILocation(line: 32, column: 5, scope: !42)
-!60 = !DILocation(line: 18, column: 41, scope: !42)
-!61 = !DILocalVariable(name: "a", scope: !42, file: !2, line: 18, type: !62)
-!62 = !DICompositeType(tag: DW_TAG_array_type, baseType: !10, size: 4)
-!63 = !DILocation(line: 21, column: 5, scope: !42)
-!64 = !DILocalVariable(name: "b", scope: !42, file: !2, line: 23, type: !10)
-!65 = !DILocalVariable(name: "c", scope: !42, file: !2, line: 24, type: !9)
-!66 = !DILocation(line: 25, column: 13, scope: !42)
-!67 = !DILocalVariable(name: "d", scope: !42, file: !2, line: 25, type: !68)
-!68 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !42, size: 128, align: 8, elements: !69)
-!69 = !{{!70, !71}}
-!70 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !42, baseType: !9, size: 64, align: 8)
-!71 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !42, baseType: !12, size: 64, align: 8, offset: 64)
-!72 = !DILocation(line: 26, column: 5, scope: !42)
-!73 = !DILocalVariable(name: "f", scope: !42, file: !2, line: 28, type: !10)
-!74 = !DILocalVariable(name: "g", scope: !42, file: !2, line: 29, type: !9)
-!75 = !DILocation(line: 30, column: 43, scope: !42)
-!76 = !DILocalVariable(name: "h", scope: !42, file: !2, line: 30, type: !68)
-!77 = !DILocation(line: 31, column: 29, scope: !42)
-!78 = !DILocalVariable(name: "i", scope: !42, file: !2, line: 31, type: !9)
-!79 = !DILocation(line: 32, column: 30, scope: !42)
-!80 = !DILocalVariable(name: "j", scope: !42, file: !2, line: 32, type: !9)
+!24 = !DILocation(line: 12, column: 5, scope: !3)
+!25 = !DILocalVariable(name: "data", scope: !3, file: !2, line: 5, type: !9)
+!26 = !DILocation(line: 5, column: 5, scope: !3)
+!27 = !DILocalVariable(name: "length", scope: !3, file: !2, line: 6, type: !12)
+!28 = !DILocalVariable(name: "v0", scope: !3, file: !2, line: 8, type: !10)
+!29 = !DILocalVariable(name: "v1", scope: !3, file: !2, line: 9, type: !10)
+!30 = !DILocalVariable(name: "v2", scope: !3, file: !2, line: 10, type: !10)
+!31 = !DILocation(line: 10, column: 5, scope: !3)
+!32 = !DILocalVariable(name: "index", scope: !3, file: !2, line: 12, type: !10)
+!33 = !DILocalVariable(name: "v3", scope: !3, file: !2, line: 13, type: !10)
+!34 = !DILocation(line: 13, column: 5, scope: !3)
+!35 = distinct !DISubprogram(name: "run", linkageName: "Array_slices_run", scope: null, file: !2, line: 16, type: !36, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !38)
+!36 = !DISubroutineType(types: !37)
+!37 = !{{null}}
+!38 = !{{}}
+!39 = !DILocation(line: 17, column: 1, scope: !35)
+!40 = !DILocation(line: 18, column: 5, scope: !35)
+!41 = !DILocation(line: 19, column: 5, scope: !35)
+!42 = !DILocation(line: 20, column: 5, scope: !35)
+!43 = !DILocation(line: 23, column: 5, scope: !35)
+!44 = !DILocation(line: 24, column: 5, scope: !35)
+!45 = !DILocation(line: 25, column: 5, scope: !35)
+!46 = !DILocation(line: 28, column: 5, scope: !35)
+!47 = !DILocation(line: 29, column: 5, scope: !35)
+!48 = !DILocation(line: 30, column: 5, scope: !35)
+!49 = !DILocation(line: 31, column: 5, scope: !35)
+!50 = !DILocalVariable(name: "a", scope: !35, file: !2, line: 18, type: !51)
+!51 = !DICompositeType(tag: DW_TAG_array_type, baseType: !10, size: 4)
+!52 = !DILocation(line: 21, column: 5, scope: !35)
+!53 = !DILocalVariable(name: "b", scope: !35, file: !2, line: 23, type: !10)
+!54 = !DILocalVariable(name: "c", scope: !35, file: !2, line: 24, type: !9)
+!55 = !DILocalVariable(name: "d", scope: !35, file: !2, line: 25, type: !56)
+!56 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !35, size: 128, align: 8, elements: !57)
+!57 = !{{!58, !59}}
+!58 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !35, baseType: !9, size: 64, align: 8)
+!59 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !35, baseType: !12, size: 64, align: 8, offset: 64)
+!60 = !DILocation(line: 26, column: 5, scope: !35)
+!61 = !DILocalVariable(name: "f", scope: !35, file: !2, line: 28, type: !10)
+!62 = !DILocalVariable(name: "g", scope: !35, file: !2, line: 29, type: !9)
+!63 = !DILocalVariable(name: "h", scope: !35, file: !2, line: 30, type: !56)
+!64 = !DILocalVariable(name: "i", scope: !35, file: !2, line: 31, type: !9)
+!65 = !DILocalVariable(name: "j", scope: !35, file: !2, line: 32, type: !9)
+!66 = !DILocation(line: 32, column: 5, scope: !35)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -500,23 +486,23 @@ entry:
   %v0 = alloca %struct.Array_slices_instantiate_My_struct, align 8, !dbg !7
   %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !7
   %value = alloca i32, align 4, !dbg !8
-  %s0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !8
+  %s0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !9
   %1 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !7
   store ptr null, ptr %1, align 8, !dbg !7
   %2 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !7
   store i64 0, ptr %2, align 8, !dbg !7
-  %3 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !9
-  %4 = getelementptr inbounds %struct.Array_slices_instantiate_My_struct, ptr %v0, i32 0, i32 0, !dbg !9
-  store %struct.H_Builtin_Generic_array_slice %3, ptr %4, align 8, !dbg !9
-  call void @llvm.dbg.declare(metadata ptr %v0, metadata !10, metadata !DIExpression()), !dbg !21
-  call void @llvm.dbg.declare(metadata ptr %value, metadata !22, metadata !DIExpression()), !dbg !8
+  %3 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !7
+  %4 = getelementptr inbounds %struct.Array_slices_instantiate_My_struct, ptr %v0, i32 0, i32 0, !dbg !7
+  store %struct.H_Builtin_Generic_array_slice %3, ptr %4, align 8, !dbg !7
+  call void @llvm.dbg.declare(metadata ptr %v0, metadata !10, metadata !DIExpression()), !dbg !7
+  call void @llvm.dbg.declare(metadata ptr %value, metadata !21, metadata !DIExpression()), !dbg !8
   store i32 0, ptr %value, align 4, !dbg !8
-  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 0, !dbg !8
-  store ptr %value, ptr %5, align 8, !dbg !8
-  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 1, !dbg !8
-  store i64 1, ptr %6, align 8, !dbg !8
-  call void @llvm.dbg.declare(metadata ptr %s0, metadata !23, metadata !DIExpression()), !dbg !28
-  ret void, !dbg !8
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 0, !dbg !9
+  store ptr %value, ptr %5, align 8, !dbg !9
+  %6 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %s0, i32 0, i32 1, !dbg !9
+  store i64 1, ptr %6, align 8, !dbg !9
+  call void @llvm.dbg.declare(metadata ptr %s0, metadata !22, metadata !DIExpression()), !dbg !9
+  ret void, !dbg !9
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -535,9 +521,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !4 = !DISubroutineType(types: !5)
 !5 = !{{null}}
 !6 = !{{}}
-!7 = !DILocation(line: 9, column: 1, scope: !3)
+!7 = !DILocation(line: 10, column: 5, scope: !3)
 !8 = !DILocation(line: 12, column: 5, scope: !3)
-!9 = !DILocation(line: 5, column: 35, scope: !3)
+!9 = !DILocation(line: 13, column: 5, scope: !3)
 !10 = !DILocalVariable(name: "v0", scope: !3, file: !2, line: 10, type: !11)
 !11 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slices_instantiate_My_struct", file: !2, line: 3, size: 128, align: 8, elements: !12)
 !12 = !{{!13}}
@@ -549,14 +535,12 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !18 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
 !19 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !20, size: 64, align: 8, offset: 64)
 !20 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
-!21 = !DILocation(line: 10, column: 5, scope: !3)
-!22 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 12, type: !18)
-!23 = !DILocalVariable(name: "s0", scope: !3, file: !2, line: 13, type: !24)
-!24 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !25)
-!25 = !{{!26, !27}}
-!26 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !17, size: 64, align: 8)
-!27 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !20, size: 64, align: 8, offset: 64)
-!28 = !DILocation(line: 13, column: 5, scope: !3)
+!21 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 12, type: !18)
+!22 = !DILocalVariable(name: "s0", scope: !3, file: !2, line: 13, type: !23)
+!23 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !24)
+!24 = !{{!25, !26}}
+!25 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !17, size: 64, align: 8)
+!26 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !20, size: 64, align: 8, offset: 64)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1741,35 +1725,35 @@ Vector2i add(Vector2i lhs, Vector2i rhs);
 define i32 @Debug_information_run() #0 !dbg !3 {{
 entry:
   %a = alloca %struct.Vector2i, align 4, !dbg !8
-  %b = alloca %struct.Vector2i, align 4, !dbg !8
-  %0 = alloca %struct.Vector2i, align 4, !dbg !9
-  %c = alloca %struct.Vector2i, align 4, !dbg !10
+  %b = alloca %struct.Vector2i, align 4, !dbg !9
+  %0 = alloca %struct.Vector2i, align 4, !dbg !10
+  %c = alloca %struct.Vector2i, align 4, !dbg !11
   %1 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !8
   store i32 1, ptr %1, align 4, !dbg !8
   %2 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 1, !dbg !8
   store i32 -1, ptr %2, align 4, !dbg !8
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !11, metadata !DIExpression()), !dbg !17
-  %3 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !8
-  store i32 2, ptr %3, align 4, !dbg !8
-  %4 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 1, !dbg !8
-  store i32 -2, ptr %4, align 4, !dbg !8
-  call void @llvm.dbg.declare(metadata ptr %b, metadata !18, metadata !DIExpression()), !dbg !19
-  %5 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !9
-  %6 = load i64, ptr %5, align 4, !dbg !9
-  %7 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !9
-  %8 = load i64, ptr %7, align 4, !dbg !9
-  %9 = call i64 @add(i64 noundef %6, i64 noundef %8), !dbg !9
-  %10 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !9
-  store i64 %9, ptr %10, align 4, !dbg !9
-  %11 = load %struct.Vector2i, ptr %0, align 4, !dbg !9
-  call void @llvm.dbg.declare(metadata ptr %c, metadata !20, metadata !DIExpression()), !dbg !10
-  store %struct.Vector2i %11, ptr %c, align 4, !dbg !10
-  %12 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !10
-  %13 = load i32, ptr %12, align 4, !dbg !21
-  %14 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !21
-  %15 = load i32, ptr %14, align 4, !dbg !22
-  %16 = add i32 %13, %15, !dbg !21
-  ret i32 %16, !dbg !23
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !12, metadata !DIExpression()), !dbg !8
+  %3 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !9
+  store i32 2, ptr %3, align 4, !dbg !9
+  %4 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 1, !dbg !9
+  store i32 -2, ptr %4, align 4, !dbg !9
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !18, metadata !DIExpression()), !dbg !9
+  %5 = getelementptr inbounds %struct.Vector2i, ptr %a, i32 0, i32 0, !dbg !10
+  %6 = load i64, ptr %5, align 4, !dbg !10
+  %7 = getelementptr inbounds %struct.Vector2i, ptr %b, i32 0, i32 0, !dbg !10
+  %8 = load i64, ptr %7, align 4, !dbg !10
+  %9 = call i64 @add(i64 noundef %6, i64 noundef %8), !dbg !10
+  %10 = getelementptr inbounds %struct.Vector2i, ptr %0, i32 0, i32 0, !dbg !10
+  store i64 %9, ptr %10, align 4, !dbg !10
+  %11 = load %struct.Vector2i, ptr %0, align 4, !dbg !10
+  call void @llvm.dbg.declare(metadata ptr %c, metadata !19, metadata !DIExpression()), !dbg !11
+  store %struct.Vector2i %11, ptr %c, align 4, !dbg !11
+  %12 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 0, !dbg !11
+  %13 = load i32, ptr %12, align 4, !dbg !11
+  %14 = getelementptr inbounds %struct.Vector2i, ptr %c, i32 0, i32 1, !dbg !11
+  %15 = load i32, ptr %14, align 4, !dbg !11
+  %16 = add i32 %13, %15, !dbg !11
+  ret i32 %16, !dbg !20
 }}
 
 ; Function Attrs: convergent
@@ -1792,22 +1776,19 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !5 = !{{!6}}
 !6 = !DIBasicType(name: "c_int", size: 32, encoding: DW_ATE_signed)
 !7 = !{{}}
-!8 = !DILocation(line: 6, column: 1, scope: !3)
-!9 = !DILocation(line: 9, column: 13, scope: !3)
-!10 = !DILocation(line: 9, column: 5, scope: !3)
-!11 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !12)
-!12 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !13, line: 2, size: 64, align: 8, elements: !14)
-!13 = !DIFile(filename: "vector2i.h", directory: "{}")
-!14 = !{{!15, !16}}
-!15 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !13, line: 4, baseType: !6, size: 32, align: 32)
-!16 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !13, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
-!17 = !DILocation(line: 7, column: 5, scope: !3)
-!18 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !12)
-!19 = !DILocation(line: 8, column: 5, scope: !3)
-!20 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !12)
-!21 = !DILocation(line: 10, column: 12, scope: !3)
-!22 = !DILocation(line: 10, column: 18, scope: !3)
-!23 = !DILocation(line: 10, column: 5, scope: !3)
+!8 = !DILocation(line: 7, column: 5, scope: !3)
+!9 = !DILocation(line: 8, column: 5, scope: !3)
+!10 = !DILocation(line: 9, column: 13, scope: !3)
+!11 = !DILocation(line: 9, column: 5, scope: !3)
+!12 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !13)
+!13 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !14, line: 2, size: 64, align: 8, elements: !15)
+!14 = !DIFile(filename: "vector2i.h", directory: "{}")
+!15 = !{{!16, !17}}
+!16 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !14, line: 4, baseType: !6, size: 32, align: 32)
+!17 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !14, line: 5, baseType: !6, size: 32, align: 32, offset: 32)
+!18 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !13)
+!19 = !DILocalVariable(name: "c", scope: !3, file: !2, line: 9, type: !13)
+!20 = !DILocation(line: 10, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1830,21 +1811,21 @@ entry:
   %data = alloca ptr, align 8
   %length = alloca i64, align 8
   %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !12
-  %a = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !13
+  %a = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !12
   store ptr %"arguments[0].data", ptr %data, align 8
-  call void @llvm.dbg.declare(metadata ptr %data, metadata !10, metadata !DIExpression()), !dbg !14
+  call void @llvm.dbg.declare(metadata ptr %data, metadata !10, metadata !DIExpression()), !dbg !13
   store i64 %"arguments[1].length", ptr %length, align 8
-  call void @llvm.dbg.declare(metadata ptr %length, metadata !11, metadata !DIExpression()), !dbg !15
-  %1 = load ptr, ptr %data, align 8, !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %length, metadata !11, metadata !DIExpression()), !dbg !14
+  %1 = load ptr, ptr %data, align 8, !dbg !12
   %2 = load i64, ptr %length, align 8, !dbg !12
   %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !12
   store ptr %1, ptr %3, align 8, !dbg !12
   %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !12
   store i64 %2, ptr %4, align 8, !dbg !12
-  %5 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !17
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !18, metadata !DIExpression()), !dbg !13
-  store %struct.H_Builtin_Generic_array_slice %5, ptr %a, align 8, !dbg !13
-  ret void, !dbg !13
+  %5 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !12
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !15, metadata !DIExpression()), !dbg !20
+  store %struct.H_Builtin_Generic_array_slice %5, ptr %a, align 8, !dbg !20
+  ret void, !dbg !20
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1868,17 +1849,15 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !9 = !{{!10, !11}}
 !10 = !DILocalVariable(name: "data", arg: 1, scope: !3, file: !2, line: 3, type: !6)
 !11 = !DILocalVariable(name: "length", arg: 2, scope: !3, file: !2, line: 3, type: !8)
-!12 = !DILocation(line: 5, column: 73, scope: !3)
-!13 = !DILocation(line: 5, column: 5, scope: !3)
-!14 = !DILocation(line: 3, column: 21, scope: !3)
-!15 = !DILocation(line: 3, column: 35, scope: !3)
-!16 = !DILocation(line: 5, column: 67, scope: !3)
-!17 = !DILocation(line: 5, column: 35, scope: !3)
-!18 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 5, type: !19)
-!19 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !20)
-!20 = !{{!21, !22}}
-!21 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !6, size: 64, align: 8)
-!22 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !8, size: 64, align: 8, offset: 64)
+!12 = !DILocation(line: 4, column: 1, scope: !3)
+!13 = !DILocation(line: 3, column: 21, scope: !3)
+!14 = !DILocation(line: 3, column: 35, scope: !3)
+!15 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 5, type: !16)
+!16 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !17)
+!17 = !{{!18, !19}}
+!18 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !6, size: 64, align: 8)
+!19 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !8, size: 64, align: 8, offset: 64)
+!20 = !DILocation(line: 5, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1911,10 +1890,10 @@ entry:
   %7 = and i32 %6, 16777215, !dbg !13
   %8 = or i32 %7, 33554432, !dbg !13
   store i32 %8, ptr %5, align 4, !dbg !13
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !15
-  %9 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !16
-  %10 = load i64, ptr %9, align 4, !dbg !16
-  ret i64 %10, !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !13
+  %9 = getelementptr inbounds %struct.Debug_information_My_struct, ptr %instance, i32 0, i32 0, !dbg !15
+  %10 = load i64, ptr %9, align 4, !dbg !15
+  ret i64 %10, !dbg !15
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1939,10 +1918,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !10 = !DIDerivedType(tag: DW_TAG_member, name: "b", file: !2, line: 6, baseType: !9, size: 24, align: 32, offset: 32, flags: DIFlagBitField)
 !11 = !DIDerivedType(tag: DW_TAG_member, name: "c", file: !2, line: 7, baseType: !9, size: 8, align: 32, offset: 56, flags: DIFlagBitField)
 !12 = !{{}}
-!13 = !DILocation(line: 11, column: 1, scope: !3)
+!13 = !DILocation(line: 12, column: 5, scope: !3)
 !14 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 12, type: !6)
-!15 = !DILocation(line: 12, column: 5, scope: !3)
-!16 = !DILocation(line: 13, column: 5, scope: !3)
+!15 = !DILocation(line: 13, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1974,9 +1952,9 @@ for_loop_condition:                               ; preds = %for_loop_update_ind
   br i1 %1, label %for_loop_then, label %for_loop_after, !dbg !10
 
 for_loop_then:                                    ; preds = %for_loop_condition
-  %2 = load i32, ptr %value, align 4, !dbg !13
-  %3 = load i32, ptr %index, align 4, !dbg !14
-  %4 = add i32 %2, %3, !dbg !13
+  %2 = load i32, ptr %value, align 4, !dbg !10
+  %3 = load i32, ptr %index, align 4, !dbg !10
+  %4 = add i32 %2, %3, !dbg !10
   store i32 %4, ptr %value, align 4, !dbg !13
   br label %for_loop_update_index, !dbg !13
 
@@ -1987,8 +1965,8 @@ for_loop_update_index:                            ; preds = %for_loop_then
   br label %for_loop_condition, !dbg !10
 
 for_loop_after:                                   ; preds = %for_loop_condition
-  %7 = load i32, ptr %value, align 4, !dbg !15
-  ret i32 %7, !dbg !15
+  %7 = load i32, ptr %value, align 4, !dbg !14
+  ret i32 %7, !dbg !14
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2014,8 +1992,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !11 = distinct !DILexicalBlock(scope: !3, file: !2, line: 7, column: 5)
 !12 = !DILocalVariable(name: "index", scope: !11, file: !2, line: 7, type: !6)
 !13 = !DILocation(line: 9, column: 9, scope: !11)
-!14 = !DILocation(line: 9, column: 18, scope: !11)
-!15 = !DILocation(line: 12, column: 5, scope: !3)
+!14 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -2051,9 +2028,9 @@ entry:
   store i32 %"arguments[1].rhs", ptr %rhs, align 4
   call void @llvm.dbg.declare(metadata ptr %rhs, metadata !17, metadata !DIExpression()), !dbg !19
   %0 = load i32, ptr %lhs, align 4, !dbg !20
-  %1 = load i32, ptr %rhs, align 4, !dbg !21
+  %1 = load i32, ptr %rhs, align 4, !dbg !20
   %2 = add i32 %0, %1, !dbg !20
-  ret i32 %2, !dbg !22
+  ret i32 %2, !dbg !21
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2085,9 +2062,8 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !17 = !DILocalVariable(name: "rhs", arg: 2, scope: !12, file: !2, line: 3, type: !6)
 !18 = !DILocation(line: 3, column: 14, scope: !12)
 !19 = !DILocation(line: 3, column: 26, scope: !12)
-!20 = !DILocation(line: 5, column: 12, scope: !12)
-!21 = !DILocation(line: 5, column: 18, scope: !12)
-!22 = !DILocation(line: 5, column: 5, scope: !12)
+!20 = !DILocation(line: 4, column: 1, scope: !12)
+!21 = !DILocation(line: 5, column: 5, scope: !12)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -2178,10 +2154,10 @@ entry:
   store i32 1, ptr %0, align 4, !dbg !12
   %1 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 1, !dbg !12
   store i32 2, ptr %1, align 4, !dbg !12
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !14
-  %2 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !15
-  %3 = load i64, ptr %2, align 4, !dbg !15
-  ret i64 %3, !dbg !15
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !13, metadata !DIExpression()), !dbg !12
+  %2 = getelementptr inbounds %struct.Debug_information_Vector2i, ptr %instance, i32 0, i32 0, !dbg !14
+  %3 = load i64, ptr %2, align 4, !dbg !14
+  ret i64 %3, !dbg !14
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2205,10 +2181,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !9 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
 !10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !9, size: 32, align: 32, offset: 32)
 !11 = !{{}}
-!12 = !DILocation(line: 10, column: 1, scope: !3)
+!12 = !DILocation(line: 11, column: 5, scope: !3)
 !13 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
-!14 = !DILocation(line: 11, column: 5, scope: !3)
-!15 = !DILocation(line: 12, column: 5, scope: !3)
+!14 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -2268,7 +2243,7 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !7 = !{{!8}}
 !8 = !DILocalVariable(name: "value", arg: 1, scope: !3, file: !2, line: 3, type: !6)
 !9 = !DILocation(line: 3, column: 14, scope: !3)
-!10 = !DILocation(line: 5, column: 12, scope: !3)
+!10 = !DILocation(line: 5, column: 5, scope: !3)
 !11 = !DILocation(line: 15, column: 5, scope: !3)
 !12 = !DILocation(line: 8, column: 9, scope: !3)
 !13 = !DILocation(line: 10, column: 9, scope: !3)
@@ -2294,10 +2269,10 @@ define private i32 @Debug_information_instantiate() #0 !dbg !3 {{
 entry:
   %instance = alloca %union.Debug_information_My_int, align 4, !dbg !13
   store i32 0, ptr %instance, align 4, !dbg !13
-  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !15
-  %0 = getelementptr inbounds %union.Debug_information_My_int, ptr %instance, i32 0, i32 0, !dbg !16
-  %1 = load i32, ptr %0, align 4, !dbg !16
-  ret i32 %1, !dbg !16
+  call void @llvm.dbg.declare(metadata ptr %instance, metadata !14, metadata !DIExpression()), !dbg !13
+  %0 = getelementptr inbounds %union.Debug_information_My_int, ptr %instance, i32 0, i32 0, !dbg !15
+  %1 = load i32, ptr %0, align 4, !dbg !15
+  ret i32 %1, !dbg !15
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2322,10 +2297,9 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !10 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !2, line: 6, baseType: !11, size: 32, align: 8)
 !11 = !DIBasicType(name: "Float32", size: 32, encoding: DW_ATE_float)
 !12 = !{{}}
-!13 = !DILocation(line: 11, column: 28, scope: !3)
+!13 = !DILocation(line: 11, column: 5, scope: !3)
 !14 = !DILocalVariable(name: "instance", scope: !3, file: !2, line: 11, type: !6)
-!15 = !DILocation(line: 11, column: 5, scope: !3)
-!16 = !DILocation(line: 12, column: 5, scope: !3)
+!15 = !DILocation(line: 12, column: 5, scope: !3)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -2398,40 +2372,40 @@ entry:
   br label %while_loop_condition, !dbg !10
 
 while_loop_condition:                             ; preds = %while_loop_then, %entry
-  %0 = load i32, ptr %index, align 4, !dbg !12
-  %1 = icmp slt i32 %0, 10, !dbg !12
-  br i1 %1, label %while_loop_then, label %while_loop_after, !dbg !12
+  %0 = load i32, ptr %index, align 4, !dbg !10
+  %1 = icmp slt i32 %0, 10, !dbg !10
+  br i1 %1, label %while_loop_then, label %while_loop_after, !dbg !10
 
 while_loop_then:                                  ; preds = %while_loop_condition
-  %2 = load i32, ptr %value, align 4, !dbg !13
-  %3 = load i32, ptr %index, align 4, !dbg !15
-  %4 = add i32 %2, %3, !dbg !13
-  store i32 %4, ptr %value, align 4, !dbg !13
-  %5 = load i32, ptr %index, align 4, !dbg !16
-  %6 = add i32 %5, 1, !dbg !16
-  store i32 %6, ptr %index, align 4, !dbg !16
-  br label %while_loop_condition, !dbg !17
+  %2 = load i32, ptr %value, align 4, !dbg !10
+  %3 = load i32, ptr %index, align 4, !dbg !10
+  %4 = add i32 %2, %3, !dbg !10
+  store i32 %4, ptr %value, align 4, !dbg !12
+  %5 = load i32, ptr %index, align 4, !dbg !12
+  %6 = add i32 %5, 1, !dbg !12
+  store i32 %6, ptr %index, align 4, !dbg !14
+  br label %while_loop_condition, !dbg !15
 
 while_loop_after:                                 ; preds = %while_loop_condition
-  br label %while_loop_then1, !dbg !18
+  br label %while_loop_then1, !dbg !16
 
 while_loop_then1:                                 ; preds = %if_s1_after, %while_loop_after
-  %7 = load i32, ptr %index, align 4, !dbg !19
-  %8 = add i32 %7, 1, !dbg !19
-  store i32 %8, ptr %index, align 4, !dbg !19
-  %9 = load i32, ptr %index, align 4, !dbg !21
-  %10 = icmp sge i32 %9, 20, !dbg !21
-  br i1 %10, label %if_s0_then, label %if_s1_after, !dbg !21
+  %7 = load i32, ptr %index, align 4, !dbg !16
+  %8 = add i32 %7, 1, !dbg !16
+  store i32 %8, ptr %index, align 4, !dbg !17
+  %9 = load i32, ptr %index, align 4, !dbg !19
+  %10 = icmp sge i32 %9, 20, !dbg !19
+  br i1 %10, label %if_s0_then, label %if_s1_after, !dbg !19
 
 while_loop_after2:                                ; preds = %if_s0_then
-  %11 = load i32, ptr %value, align 4, !dbg !22
-  ret i32 %11, !dbg !22
+  %11 = load i32, ptr %value, align 4, !dbg !20
+  ret i32 %11, !dbg !20
 
 if_s0_then:                                       ; preds = %while_loop_then1
-  br label %while_loop_after2, !dbg !23
+  br label %while_loop_after2, !dbg !21
 
 if_s1_after:                                      ; preds = %while_loop_then1
-  br label %while_loop_then1, !dbg !25
+  br label %while_loop_then1, !dbg !23
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -2455,20 +2429,18 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !9 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 5, type: !6)
 !10 = !DILocation(line: 7, column: 5, scope: !3)
 !11 = !DILocalVariable(name: "index", scope: !3, file: !2, line: 7, type: !6)
-!12 = !DILocation(line: 8, column: 11, scope: !3)
-!13 = !DILocation(line: 10, column: 9, scope: !14)
-!14 = distinct !DILexicalBlock(scope: !3, file: !2, line: 8, column: 5)
-!15 = !DILocation(line: 10, column: 18, scope: !14)
-!16 = !DILocation(line: 11, column: 9, scope: !14)
-!17 = !DILocation(line: 8, column: 11, scope: !14)
-!18 = !DILocation(line: 14, column: 11, scope: !3)
-!19 = !DILocation(line: 16, column: 9, scope: !20)
-!20 = distinct !DILexicalBlock(scope: !3, file: !2, line: 14, column: 5)
-!21 = !DILocation(line: 17, column: 12, scope: !20)
-!22 = !DILocation(line: 23, column: 5, scope: !3)
-!23 = !DILocation(line: 19, column: 13, scope: !24)
-!24 = distinct !DILexicalBlock(scope: !20, file: !2, line: 18, column: 9)
-!25 = !DILocation(line: 14, column: 11, scope: !20)
+!12 = !DILocation(line: 10, column: 9, scope: !13)
+!13 = distinct !DILexicalBlock(scope: !3, file: !2, line: 8, column: 5)
+!14 = !DILocation(line: 11, column: 9, scope: !13)
+!15 = !DILocation(line: 8, column: 11, scope: !13)
+!16 = !DILocation(line: 14, column: 11, scope: !3)
+!17 = !DILocation(line: 16, column: 9, scope: !18)
+!18 = distinct !DILexicalBlock(scope: !3, file: !2, line: 14, column: 5)
+!19 = !DILocation(line: 17, column: 12, scope: !18)
+!20 = !DILocation(line: 23, column: 5, scope: !3)
+!21 = !DILocation(line: 19, column: 13, scope: !22)
+!22 = distinct !DILexicalBlock(scope: !18, file: !2, line: 18, column: 9)
+!23 = !DILocation(line: 14, column: 11, scope: !18)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });

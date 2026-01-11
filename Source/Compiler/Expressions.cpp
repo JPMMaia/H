@@ -761,9 +761,6 @@ namespace h::compiler
         if (!element_type.has_value())
             throw std::runtime_error{"Cannot find element type of array access."};
 
-        if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
-
         if (h::is_array_slice_type_reference(*left_hand_side_expression_value.type))
         {
             llvm::Type* const array_slice_llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, left_hand_side_expression_value.type.value(), type_database);
@@ -848,9 +845,6 @@ namespace h::compiler
             Expression_parameters right_hand_side_parameters = parameters;
             right_hand_side_parameters.expression_type = left_hand_side_value.type;
             Value_and_type const right_hand_side_value = create_loaded_expression_value(right_hand_side.expression_index, statement, right_hand_side_parameters);
-
-            if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
             Value_and_type const result = create_binary_operation_instruction(llvm_builder, left_hand_side_value, right_hand_side_value, operation, parameters.declaration_database);
 
@@ -1439,9 +1433,6 @@ namespace h::compiler
         Value_and_type const& left_hand_side = create_loaded_expression_value(expression.left_hand_side.expression_index, statement, parameters);
         Value_and_type const& right_hand_side = create_loaded_expression_value(expression.right_hand_side.expression_index, statement, parameters);
         Binary_operation const operation = expression.operation;
-
-        if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         Value_and_type value = create_binary_operation_instruction(llvm_builder, left_hand_side, right_hand_side, operation, parameters.declaration_database);
         return value;
@@ -2608,6 +2599,9 @@ namespace h::compiler
 
             if (serie.condition.has_value())
             {
+                if (parameters.debug_info != nullptr)
+                    set_debug_location_at_statement(parameters.llvm_builder, *parameters.debug_info, serie.condition.value());
+
                 Value_and_type const& condition_value = create_loaded_statement_value(
                     serie.condition.value(),
                     parameters
@@ -2618,6 +2612,7 @@ namespace h::compiler
                 llvm::BasicBlock* const else_block = blocks[block_index + 1];
 
                 llvm::Value* const condition_converted_value = convert_to_boolean(llvm_context, llvm_builder, condition_value.value, condition_value.type);
+
                 llvm_builder.CreateCondBr(condition_converted_value, then_block, else_block);
 
                 llvm_builder.SetInsertPoint(then_block);
@@ -2850,9 +2845,6 @@ namespace h::compiler
 
         if (expression.members.empty())
         {
-            if (parameters.debug_info != nullptr)
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
-
             llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_union_type);
 
             std::uint64_t const alloc_size_in_bytes = llvm_data_layout.getTypeAllocSize(llvm_union_type);
@@ -2879,9 +2871,6 @@ namespace h::compiler
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = member_type;
         Value_and_type const member_value = create_loaded_expression_value(member_value_pair.value.expression_index, statement, new_parameters);
-
-        if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         llvm::AllocaInst* const union_instance = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_union_type);
         llvm::Value* const bitcast_instruction = llvm_builder.CreateBitCast(union_instance, member_value.value->getType()->getPointerTo());
@@ -3238,6 +3227,9 @@ namespace h::compiler
             default_case_block = after_block;
 
         std::uint64_t const number_of_cases = static_cast<std::uint64_t>(expression.cases.size());
+
+        if (parameters.debug_info != nullptr)
+            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
 
         Value_and_type const& switch_value = create_loaded_expression_value(expression.value.expression_index, statement, parameters);
 
@@ -3612,17 +3604,24 @@ namespace h::compiler
 
         llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, core_type, type_database);
 
+        h::Expression const& right_hand_side_expression = statement.expressions[expression.right_hand_side.expression_index];
+        bool const is_right_side_instantiate_expression = std::holds_alternative<h::Instantiate_expression>(right_hand_side_expression.data);
+        if (is_right_side_instantiate_expression)
+        {
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
+        }
+
         Expression_parameters new_parameters = parameters;
         new_parameters.expression_type = core_type;
-        
+
         Value_and_type const right_hand_side = create_expression_value(
             expression.right_hand_side.expression_index,
             statement,
             new_parameters
         );
 
-        h::Expression const& right_hand_side_expression = statement.expressions[expression.right_hand_side.expression_index];
-        if (std::holds_alternative<h::Instantiate_expression>(right_hand_side_expression.data) && llvm::AllocaInst::classof(right_hand_side.value))
+        if (is_right_side_instantiate_expression && llvm::AllocaInst::classof(right_hand_side.value))
         {
             llvm::AllocaInst* const alloca_instruction = static_cast<llvm::AllocaInst*>(right_hand_side.value);
             alloca_instruction->setName(expression.name.c_str());
@@ -3641,16 +3640,18 @@ namespace h::compiler
         bool const store_value = can_store(core_type);
         llvm::Value* const loaded_value = store_value ? load_if_needed(right_hand_side, expression.right_hand_side.expression_index, statement, new_parameters).value : right_hand_side.value;
 
-        if (parameters.debug_info != nullptr)
-            set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
-
         llvm::AllocaInst* const alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, llvm_type, expression.name.c_str());
 
         if (parameters.debug_info != nullptr)
             create_local_variable_debug_description(*parameters.debug_info, parameters, expression.name, alloca, core_type);
 
         if (store_value)
+        {
+            if (parameters.debug_info != nullptr)
+                set_debug_location(parameters.llvm_builder, *parameters.debug_info, parameters.source_position->line, parameters.source_position->column);
+            
             create_store_instruction(llvm_builder, llvm_data_layout, loaded_value, alloca);
+        }
 
         return Value_and_type
         {
@@ -4241,9 +4242,6 @@ namespace h::compiler
                 }
                 else
                 {
-                    if (parameters.debug_info != nullptr && expression.source_range.has_value())
-                        set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);
-
                     llvm::Type* const destination_llvm_type = type_reference_to_llvm_type(parameters.llvm_context, parameters.llvm_data_layout, value.type.value(), parameters.type_database);
                     llvm::Value* const loaded_value = create_load_instruction(parameters.llvm_builder, parameters.llvm_data_layout, destination_llvm_type, value.value);
                     return Value_and_type
@@ -4260,9 +4258,6 @@ namespace h::compiler
             {
                 return value;
             }
-
-            if (parameters.debug_info != nullptr && expression.source_range.has_value())
-                set_debug_location(parameters.llvm_builder, *parameters.debug_info, expression.source_range->start.line, expression.source_range->start.column);
 
             llvm::Value* const loaded_value = parameters.llvm_builder.CreateLoad(llvm_type, value.value);
             return Value_and_type
