@@ -4525,12 +4525,15 @@ attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-s
     };
 
     char const* const expected_llvm_ir = R"(
+%struct.Unary_expressions_My_struct = type { i32 }
+
 ; Function Attrs: convergent
-define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean", i1 noundef zeroext %"arguments[2].my_c_boolean") #0 {
+define void @Unary_expressions_unary_operations(i32 noundef %"arguments[0].my_integer", i8 noundef zeroext %"arguments[1].my_boolean", i1 noundef zeroext %"arguments[2].my_c_boolean", ptr noundef %"arguments[3].my_struct") #0 {
 entry:
   %my_integer = alloca i32, align 4
   %my_boolean = alloca i1, align 1
   %my_c_boolean = alloca i8, align 1
+  %my_struct = alloca ptr, align 8
   %not_variable = alloca i1, align 1
   %bitwise_not_variable = alloca i32, align 4
   %minus_variable = alloca i32, align 4
@@ -4538,11 +4541,13 @@ entry:
   %address_of_variable = alloca ptr, align 8
   %indirection_variable = alloca i32, align 4
   %not_c_variable = alloca i8, align 1
+  %address_of_member = alloca ptr, align 8
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
   %0 = trunc i8 %"arguments[1].my_boolean" to i1
   store i1 %0, ptr %my_boolean, align 1
   %1 = zext i1 %"arguments[2].my_c_boolean" to i8
   store i8 %1, ptr %my_c_boolean, align 1
+  store ptr %"arguments[3].my_struct", ptr %my_struct, align 8
   %2 = load i1, ptr %my_boolean, align 1
   %3 = xor i1 %2, true
   store i1 %3, ptr %not_variable, align 1
@@ -4560,6 +4565,9 @@ entry:
   %10 = load i8, ptr %my_c_boolean, align 1
   %11 = xor i8 %10, -1
   store i8 %11, ptr %not_c_variable, align 1
+  %12 = load ptr, ptr %my_struct, align 8
+  %13 = getelementptr inbounds %struct.Unary_expressions_My_struct, ptr %12, i32 0, i32 0
+  store ptr %13, ptr %address_of_member, align 8
   ret void
 }
 

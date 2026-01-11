@@ -3532,7 +3532,7 @@ namespace h::compiler
             {
                 h::Expression const& expression_to_get_address_of = statement.expressions[expression.expression.expression_index];
 
-                if (std::holds_alternative<h::Access_expression>(expression_to_get_address_of.data) || std::holds_alternative<h::Access_array_expression>(expression_to_get_address_of.data))
+                if (std::holds_alternative<h::Access_expression>(expression_to_get_address_of.data) || std::holds_alternative<h::Access_array_expression>(expression_to_get_address_of.data) || std::holds_alternative<h::Dereference_and_access_expression>(expression_to_get_address_of.data))
                 {
                     std::pmr::vector<Type_reference> element_type;
                     if (value_expression.type.has_value())
