@@ -2452,6 +2452,8 @@ function run(value: Int32) -> (result: Int32)
     else if 1cb {
         return 4;
     }
+
+    return 5;
 }
 )";
 
@@ -3337,6 +3339,8 @@ function run_int32(value: Int32) -> (result: Int32)
     else if value == 1 {
         return;
     }
+
+    return 2;
 }
 )";
 
@@ -3383,6 +3387,177 @@ function run(value: Int32) -> ()
                 .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
             },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression (empty case)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+}
+
+function run_2() -> (result: Int32)
+{
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 10, 7, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run_2': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression (non-empty case)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> (result: Int32)
+{
+    var a = 1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 34),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression on all if cases", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value < 0
+    {
+        return 0;
+    }
+    else
+    {
+        if value % 2 == 0
+        {
+            return 1;
+        }
+        else
+        {
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression on all if cases (including else)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value < 0
+    {
+        return 0;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+    
+    TEST_CASE("Validates that a function with output has a return expression on all switch cases", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    switch value
+    {
+    case 0: {
+        return 0;
+    }
+    case 1: {
+        break;
+    }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression when using a block", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    {
+        return 0;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
         };
 
         test_validate_module(input, {}, expected_diagnostics);
@@ -3734,7 +3909,7 @@ function run(int_value: Int32) -> ()
     {
         std::string_view const input = R"(module Test;
 
-function run(value: Int32) -> (result: Int32)
+function run(value: Int32) -> ()
 {
     var result_0 = value == 0 ? 0 : 1;
     var result_1 = value ? 0 : 1;
@@ -3760,7 +3935,7 @@ function run(value: Int32) -> (result: Int32)
     {
         std::string_view const input = R"(module Test;
 
-function run(condition: Bool) -> (result: Int32)
+function run(condition: Bool) -> ()
 {
     var result_0 = condition ? 0 : 1;
     var result_1 = condition ? 0 : 1.0f32;
@@ -3786,7 +3961,7 @@ function run(condition: Bool) -> (result: Int32)
     {
         std::string_view const input = R"(module Test;
 
-function run(condition: Bool) -> (result: Int32)
+function run(condition: Bool) -> ()
 {
     var result_0 = condition ? value_1 : value_2;
 }
@@ -4056,6 +4231,7 @@ function run(c: Int32) -> ()
 
 function get_value() -> (result: Float32)
 {
+    return 0.0f32;
 }
 
 function run() -> ()
@@ -4070,7 +4246,7 @@ function run() -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(10, 20, 10, 26),
+                .range = create_source_range(11, 20, 11, 26),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
@@ -4078,7 +4254,7 @@ function run() -> ()
                 .related_information = {},
             },
             {
-                .range = create_source_range(11, 20, 11, 31),
+                .range = create_source_range(12, 20, 12, 31),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,

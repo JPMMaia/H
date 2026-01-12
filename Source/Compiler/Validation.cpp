@@ -1030,6 +1030,95 @@ namespace h::compiler
         return diagnostics;
     }
 
+    static std::pmr::vector<h::compiler::Diagnostic> create_function_missing_return_diagnostic(
+        h::Module const& core_module,
+        std::string_view const function_name,
+        std::optional<Source_range> const& source_range
+    )
+    {
+        return
+        {
+            create_error_diagnostic(
+                core_module.source_file_path,
+                source_range,
+                std::format("'{}.{}': not all control paths return a value.", core_module.name, function_name)
+            )
+        };
+    }
+
+    static std::pmr::vector<h::compiler::Diagnostic> validate_function_return_expressions_with_statements(
+        h::Module const& core_module,
+        std::string_view const function_name,
+        std::span<h::Statement const> const statements,
+        std::optional<Source_range> const source_range
+    )
+    {
+        if (statements.empty())
+            return create_function_missing_return_diagnostic(core_module, function_name, source_range);
+
+        h::Statement const& last_statement = statements[statements.size() - 1];
+        if (last_statement.expressions.empty())
+            return create_function_missing_return_diagnostic(core_module, function_name, source_range);
+
+        h::Expression const& last_statement_expression = last_statement.expressions[0];
+        if (std::holds_alternative<h::Return_expression>(last_statement_expression.data))
+        {
+            return {};
+        }
+        else if (std::holds_alternative<h::Block_expression>(last_statement_expression.data))
+        {
+            h::Block_expression const& block_expression = std::get<h::Block_expression>(last_statement_expression.data);
+            return validate_function_return_expressions_with_statements(core_module, function_name, block_expression.statements, source_range);
+        }
+        else if (std::holds_alternative<h::If_expression>(last_statement_expression.data))
+        {
+            h::If_expression const& if_expression = std::get<h::If_expression>(last_statement_expression.data);
+
+            for (h::Condition_statement_pair const& serie : if_expression.series)
+            {
+                std::pmr::vector<h::compiler::Diagnostic> const serie_diagnostics = validate_function_return_expressions_with_statements(core_module, function_name, serie.then_statements, source_range);
+                if (!serie_diagnostics.empty())
+                    return serie_diagnostics;
+            }
+
+            bool const has_else_clause = !if_expression.series.empty() && !if_expression.series.back().condition.has_value();
+            if (!has_else_clause)
+                return create_function_missing_return_diagnostic(core_module, function_name, source_range);
+
+            return {};
+        }
+        else if (std::holds_alternative<h::Switch_expression>(last_statement_expression.data))
+        {
+            h::Switch_expression const& switch_expression = std::get<h::Switch_expression>(last_statement_expression.data);
+
+            for (h::Switch_case_expression_pair const& switch_case : switch_expression.cases)
+            {
+                std::pmr::vector<h::compiler::Diagnostic> const switch_case_diagnostics = validate_function_return_expressions_with_statements(core_module, function_name, switch_case.statements, source_range);
+                if (!switch_case_diagnostics.empty())
+                    return switch_case_diagnostics;
+            }
+
+            return {};
+        }
+        else
+        {
+            return create_function_missing_return_diagnostic(core_module, function_name, source_range);
+        }
+    }
+
+    static std::pmr::vector<h::compiler::Diagnostic> validate_function_return_expressions(
+        h::Module const& core_module,
+        h::Function_declaration const& declaration,
+        h::Function_definition const& definition
+    )
+    {
+        if (declaration.type.output_parameter_types.empty())
+            return {};
+
+        std::optional<h::Source_range> const source_range = declaration.source_location.has_value() ? declaration.source_location->range : std::optional<h::Source_range>{std::nullopt};
+        return validate_function_return_expressions_with_statements(core_module, declaration.name, definition.statements, source_range);
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_function(
         h::Module const& core_module,
         h::Function_declaration const& declaration,
@@ -1109,6 +1198,14 @@ namespace h::compiler
             );
             if (!definition_diagnostics.empty())
                 diagnostics.insert(diagnostics.end(), definition_diagnostics.begin(), definition_diagnostics.end());
+
+            std::pmr::vector<h::compiler::Diagnostic> function_missing_return_diagnostics = validate_function_return_expressions(
+                core_module,
+                declaration,
+                *definition
+            );
+            if (!function_missing_return_diagnostics.empty())
+                diagnostics.insert(diagnostics.end(), function_missing_return_diagnostics.begin(), function_missing_return_diagnostics.end());
         }
 
         return diagnostics;
