@@ -264,9 +264,11 @@ namespace h::compiler
 
         llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, alias_type_declaration.source_location);
 
+        std::string const mangled_name = mangle_name(core_module.name, alias_type_declaration.name, alias_type_declaration.unique_name);
+
         llvm::DIType* const llvm_alias_debug_type = llvm_debug_builder.createTypedef(
             llvm_original_debug_type,
-            alias_type_declaration.name.c_str(),
+            mangled_name,
             declaration_llvm_debug_file,
             alias_type_declaration.source_location.has_value() ? alias_type_declaration.source_location->range.start.line : 0,
             &llvm_debug_scope
@@ -349,9 +351,11 @@ namespace h::compiler
 
             llvm::DIFile* const declaration_llvm_debug_file = get_or_create_llvm_debug_file(llvm_debug_builder, llvm_debug_file, llvm_debug_files, enum_declaration.source_location);
 
+            std::string const mangled_name = mangle_name(module_name, enum_declaration.name, enum_declaration.unique_name);
+
             llvm::DIType* const enum_type = llvm_debug_builder.createEnumerationType(
                 &llvm_debug_scope,
-                enum_declaration.name.c_str(),
+                mangled_name,
                 declaration_llvm_debug_file,
                 enum_declaration.source_location.has_value() ? enum_declaration.source_location->range.start.line : 0,
                 number_of_bits,
