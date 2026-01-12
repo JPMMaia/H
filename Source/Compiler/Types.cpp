@@ -1160,7 +1160,7 @@ namespace h::compiler
 
             auto const location = llvm_debug_type_map.find(data.name);
             if (location == llvm_debug_type_map.end())
-                return llvm_debug_builder.createUnspecifiedType("__hl_opaque_type");
+                return llvm_debug_builder.createBasicType("__hl_opaque_handle", 64, llvm::dwarf::DW_ATE_unsigned);
 
             llvm::DIType* const llvm_debug_type = location->second;
             return llvm_debug_type;
