@@ -3312,6 +3312,17 @@ namespace h::compiler
         return false;
     }
 
+    static bool is_constant_1(h::Expression const& expression)
+    {
+        if (std::holds_alternative<h::Constant_expression>(expression.data))
+        {
+            h::Constant_expression const& constant_expression = std::get<h::Constant_expression>(expression.data);
+            return constant_expression.data == "1";
+        }
+
+        return false;
+    }
+
     std::pmr::vector<h::compiler::Diagnostic> validate_unary_expression(
         Validate_expression_parameters const& parameters,
         h::Unary_expression const& expression,
@@ -3382,6 +3393,24 @@ namespace h::compiler
                             )
                         )
                     };
+                }
+                else if (is_unsigned_integer(type))
+                {
+                    h::Expression const& operand_expression = parameters.statement.expressions[expression.expression.expression_index];
+                    if (!is_constant_1(operand_expression))
+                    {
+                        return
+                        {
+                            create_error_diagnostic(
+                                parameters.core_module.source_file_path,
+                                create_sub_source_range(source_range, 0, 1),
+                                std::format(
+                                    "Cannot apply unary operation '-' to unsigned integer.",
+                                    h::unary_operation_symbol_to_string(expression.operation)
+                                )
+                            )
+                        };
+                    }
                 }
                 break;
             }

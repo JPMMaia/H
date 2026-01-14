@@ -4118,6 +4118,33 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that negating a unsigned integer is an error (except -1)", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var a = -1u64;
+    var b = -a;
+    var c = -(a as Float32)
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '-' to unsigned integer.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that a variable declaration name is not a duplicate", "[Validation][Variable_declaration_expression]")
     {

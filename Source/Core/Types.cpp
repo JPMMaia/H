@@ -381,7 +381,29 @@ namespace h
 
     bool is_unsigned_integer(Type_reference const& type)
     {
-        return !is_signed_integer(type);
+        if (std::holds_alternative<Integer_type>(type.data))
+        {
+            Integer_type const& data = std::get<Integer_type>(type.data);
+            return !data.is_signed;
+        }
+        else if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const& data = std::get<Fundamental_type>(type.data);
+
+            switch (data)
+            {
+            case Fundamental_type::C_uchar:
+            case Fundamental_type::C_ushort:
+            case Fundamental_type::C_uint:
+            case Fundamental_type::C_ulong:
+            case Fundamental_type::C_ulonglong:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        return false;
     }
 
     bool is_number_or_c_number(Type_reference const& type)

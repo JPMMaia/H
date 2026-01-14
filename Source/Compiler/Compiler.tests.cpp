@@ -4514,6 +4514,7 @@ entry:
   %indirection_variable = alloca i32, align 4
   %not_c_variable = alloca i8, align 1
   %address_of_member = alloca ptr, align 8
+  %minus_variable_2 = alloca float, align 4
   store i32 %"arguments[0].my_integer", ptr %my_integer, align 4
   %0 = trunc i8 %"arguments[1].my_boolean" to i1
   store i1 %0, ptr %my_boolean, align 1
@@ -4540,6 +4541,10 @@ entry:
   %12 = load ptr, ptr %my_struct, align 8
   %13 = getelementptr inbounds %struct.Unary_expressions_My_struct, ptr %12, i32 0, i32 0
   store ptr %13, ptr %address_of_member, align 8
+  %14 = load i32, ptr %my_integer, align 4
+  %15 = sitofp i32 %14 to float
+  %16 = fneg float %15
+  store float %16, ptr %minus_variable_2, align 4
   ret void
 }
 
