@@ -3424,6 +3424,16 @@ namespace h::compiler
                     .type = type
                 };
             }
+            else if (is_floating_point(type))
+            {
+                llvm::Value* const loaded_value = load_if_needed(value_expression, expression.expression.expression_index, statement, parameters).value;
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = llvm_builder.CreateFNeg(loaded_value),
+                    .type = type
+                };
+            }
             break;
         }
         case Unary_operation::Pre_decrement:

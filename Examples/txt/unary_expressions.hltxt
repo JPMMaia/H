@@ -23,4 +23,5 @@ export function unary_operations(
     var not_c_variable = !my_c_boolean;
 
     var address_of_member = &my_struct->a;
+    var minus_variable_2 = -(my_integer as Float32);
 }
