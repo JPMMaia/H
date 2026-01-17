@@ -18,4 +18,6 @@ export function foo() -> ()
 
     var instance: My_struct = {};
     var e = instance.a[0];
+
+    var f: Constant_array::<Int32, 8 = [];
 }

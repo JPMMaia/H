@@ -1653,6 +1653,8 @@ entry:
   %instance = alloca %struct.Constant_array_expressions_My_struct, align 4
   %array7 = alloca [4 x i32], i64 4, align 4
   %e = alloca i32, align 4
+  %array13 = alloca [8 x i32], i64 8, align 4
+  %f = alloca [8 x i32], align 4
   %array_element_pointer = getelementptr [4 x i32], ptr %array, i32 0, i32 0
   store i32 0, ptr %array_element_pointer, align 4
   %array_element_pointer1 = getelementptr [4 x i32], ptr %array, i32 0, i32 1
@@ -1685,10 +1687,17 @@ entry:
   %array_element_pointer12 = getelementptr [4 x i32], ptr %4, i32 0, i32 0
   %5 = load i32, ptr %array_element_pointer12, align 4
   store i32 %5, ptr %e, align 4
+  call void @llvm.memset.p0.i64(ptr align 4 %array13, i8 0, i64 32, i1 false)
+  %6 = load [8 x i32], ptr %array13, align 4
+  store [8 x i32] %6, ptr %f, align 4
   ret void
 }
 
+; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
+declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #1
+
 attributes #0 = { convergent "no-trapping-math"="true" "stack-protector-buffer-size"="0" "target-features"="+cx8,+mmx,+sse,+sse2,+x87" }
+attributes #1 = { nocallback nofree nounwind willreturn memory(argmem: write) }
 )";
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir);

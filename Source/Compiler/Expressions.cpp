@@ -2211,6 +2211,30 @@ namespace h::compiler
                 throw std::runtime_error{"Cannot assign initializer list to type."};
 
             Constant_array_type const& requested_array_type = std::get<Constant_array_type>(parameters.expression_type->data);
+            if (requested_array_type.size > 0 && expression.array_data.size() == 0 && !requested_array_type.value_type.empty())
+            {
+                Type_reference const& element_type = requested_array_type.value_type[0];
+                llvm::Type* const llvm_element_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, element_type, type_database);
+                std::uint64_t const array_length = requested_array_type.size;
+
+                std::uint64_t const element_alloc_size_in_bytes = parameters.llvm_data_layout.getTypeAllocSize(llvm_element_type);
+                llvm::Align const alignment = parameters.llvm_data_layout.getABITypeAlign(llvm_element_type);
+                std::uint64_t const array_alloc_size_in_bytes = array_length*element_alloc_size_in_bytes;
+
+                llvm::ArrayType* const array_type = llvm::ArrayType::get(llvm_element_type, array_length);
+                llvm::ConstantInt* const array_length_constant = llvm::ConstantInt::get(llvm::Type::getInt64Ty(llvm_context), array_length);
+
+                llvm::AllocaInst* const array_alloca = create_alloca_instruction(llvm_builder, llvm_data_layout, *parameters.llvm_parent_function, array_type, "array", array_length_constant);
+                create_memset_to_0_call(parameters.llvm_builder, array_alloca, array_alloc_size_in_bytes, alignment);
+
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = array_alloca,
+                    .type = create_constant_array_type_reference({element_type}, array_length),
+                };
+            }
+
             if (requested_array_type.size != expression.array_data.size())
                 throw std::runtime_error{std::format("Expected initializer list with size {} but got {} elements.", requested_array_type.size, expression.array_data.size())};
         }
