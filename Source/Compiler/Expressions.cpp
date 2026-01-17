@@ -191,6 +191,7 @@ namespace h::compiler
             *debug_info.llvm_builder,
             *get_debug_scope(debug_info),
             parameters.llvm_data_layout,
+            parameters.core_module,
             type_reference,
             debug_info.type_database
         );

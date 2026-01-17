@@ -92,8 +92,8 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, input_parameter_types, debug_type_database, temporaries_allocator);
-        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, output_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_input_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, core_module, input_parameter_types, debug_type_database, temporaries_allocator);
+        std::pmr::vector<llvm::DIType*> const llvm_output_parameter_debug_types = type_references_to_llvm_debug_types(llvm_debug_builder, llvm_debug_scope, llvm_data_layout, core_module, output_parameter_types, debug_type_database, temporaries_allocator);
 
         llvm::DIType* llvm_return_debug_type = [&]() -> llvm::DIType*
         {

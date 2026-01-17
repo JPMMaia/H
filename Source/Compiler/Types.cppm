@@ -111,6 +111,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
         Type_reference const& type_reference,
         Debug_type_database const& debug_type_database
     );
@@ -119,6 +120,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
         std::span<Type_reference const> const type_reference,
         Debug_type_database const& debug_type_database
     );
@@ -127,6 +129,7 @@ namespace h::compiler
         llvm::DIBuilder& llvm_debug_builder,
         llvm::DIScope& llvm_debug_scope,
         llvm::DataLayout const& llvm_data_layout,
+        h::Module const& core_module,
         std::span<Type_reference const> const type_references,
         Debug_type_database const& debug_type_database,
         std::pmr::polymorphic_allocator<> const& output_allocator

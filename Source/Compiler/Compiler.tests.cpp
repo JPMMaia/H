@@ -402,19 +402,19 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !3 = distinct !DISubprogram(name: "take", linkageName: "Array_slices_take", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !13)
 !4 = !DISubroutineType(types: !5)
 !5 = !{{null, !6}}
-!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", size: 128, align: 8, elements: !7)
+!6 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<Int32>", size: 128, align: 64, elements: !7)
 !7 = !{{!8, !11}}
-!8 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !9, size: 64, align: 8)
+!8 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !9, size: 64, align: 64)
 !9 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !10, size: 64)
 !10 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!11 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !12, size: 64, align: 8, offset: 64)
+!11 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !12, size: 64, align: 64, offset: 64)
 !12 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
 !13 = !{{!14}}
 !14 = !DILocalVariable(name: "integers", arg: 1, scope: !3, file: !2, line: 3, type: !15)
-!15 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !16)
+!15 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<Int32>", scope: !3, size: 128, align: 64, elements: !16)
 !16 = !{{!17, !18}}
-!17 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !9, size: 64, align: 8)
-!18 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !12, size: 64, align: 8, offset: 64)
+!17 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !9, size: 64, align: 64)
+!18 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !12, size: 64, align: 64, offset: 64)
 !19 = !DILocation(line: 3, column: 22, scope: !3)
 !20 = !DILocation(line: 4, column: 1, scope: !3)
 !21 = !DILocation(line: 6, column: 5, scope: !3)
@@ -452,10 +452,10 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !53 = !DILocalVariable(name: "b", scope: !35, file: !2, line: 23, type: !10)
 !54 = !DILocalVariable(name: "c", scope: !35, file: !2, line: 24, type: !9)
 !55 = !DILocalVariable(name: "d", scope: !35, file: !2, line: 25, type: !56)
-!56 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !35, size: 128, align: 8, elements: !57)
+!56 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<mutable Int32>", scope: !35, size: 128, align: 64, elements: !57)
 !57 = !{{!58, !59}}
-!58 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !35, baseType: !9, size: 64, align: 8)
-!59 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !35, baseType: !12, size: 64, align: 8, offset: 64)
+!58 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !35, baseType: !9, size: 64, align: 64)
+!59 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !35, baseType: !12, size: 64, align: 64, offset: 64)
 !60 = !DILocation(line: 26, column: 5, scope: !35)
 !61 = !DILocalVariable(name: "f", scope: !35, file: !2, line: 28, type: !10)
 !62 = !DILocalVariable(name: "g", scope: !35, file: !2, line: 29, type: !9)
@@ -528,19 +528,19 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !11 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slices_instantiate_My_struct", file: !2, line: 3, size: 128, align: 8, elements: !12)
 !12 = !{{!13}}
 !13 = !DIDerivedType(tag: DW_TAG_member, name: "slice", file: !2, line: 5, baseType: !14, size: 128, align: 64)
-!14 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", size: 128, align: 8, elements: !15)
+!14 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<Int32>", size: 128, align: 64, elements: !15)
 !15 = !{{!16, !19}}
-!16 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !17, size: 64, align: 8)
+!16 = !DIDerivedType(tag: DW_TAG_member, name: "data", baseType: !17, size: 64, align: 64)
 !17 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !18, size: 64)
 !18 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!19 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !20, size: 64, align: 8, offset: 64)
+!19 = !DIDerivedType(tag: DW_TAG_member, name: "length", baseType: !20, size: 64, align: 64, offset: 64)
 !20 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
 !21 = !DILocalVariable(name: "value", scope: !3, file: !2, line: 12, type: !18)
 !22 = !DILocalVariable(name: "s0", scope: !3, file: !2, line: 13, type: !23)
-!23 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !24)
+!23 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<Int32>", scope: !3, size: 128, align: 64, elements: !24)
 !24 = !{{!25, !26}}
-!25 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !17, size: 64, align: 8)
-!26 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !20, size: 64, align: 8, offset: 64)
+!25 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !17, size: 64, align: 64)
+!26 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !20, size: 64, align: 64, offset: 64)
 )", g_test_source_files_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
@@ -1798,34 +1798,64 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
   {
     char const* const input_file = "debug_information_array_slices.hltxt";
 
+    std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "debug_information_c_headers";
+    std::filesystem::create_directories(root_directory_path);
+
+    std::string const header_content = R"(
+struct Vector2i
+{
+    int x;
+    int y;
+};
+
+Vector2i add(Vector2i lhs, Vector2i rhs);
+)";
+
+    std::filesystem::path const header_module_file_path = create_and_import_c_header(header_content, "vector2i.h", "vector2i.hltxt", "c.vector2i", root_directory_path);
+
     std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map
     {
+      { "c.vector2i", header_module_file_path }
     };
 
     std::string const expected_llvm_ir = std::format(R"(
 %struct.H_Builtin_Generic_array_slice = type {{ ptr, i64 }}
 
 ; Function Attrs: convergent
-define void @Debug_information_run(ptr noundef %"arguments[0].data", i64 noundef %"arguments[1].length") #0 !dbg !3 {{
+define void @Debug_information_run(ptr noundef %"arguments[0].integers", ptr noundef %"arguments[1].vectors", i64 noundef %"arguments[2].length") #0 !dbg !3 {{
 entry:
-  %data = alloca ptr, align 8
+  %integers = alloca ptr, align 8
+  %vectors = alloca ptr, align 8
   %length = alloca i64, align 8
-  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !12
-  %a = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !12
-  store ptr %"arguments[0].data", ptr %data, align 8
-  call void @llvm.dbg.declare(metadata ptr %data, metadata !10, metadata !DIExpression()), !dbg !13
-  store i64 %"arguments[1].length", ptr %length, align 8
-  call void @llvm.dbg.declare(metadata ptr %length, metadata !11, metadata !DIExpression()), !dbg !14
-  %1 = load ptr, ptr %data, align 8, !dbg !12
-  %2 = load i64, ptr %length, align 8, !dbg !12
-  %3 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !12
-  store ptr %1, ptr %3, align 8, !dbg !12
-  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !12
-  store i64 %2, ptr %4, align 8, !dbg !12
-  %5 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !12
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !15, metadata !DIExpression()), !dbg !20
-  store %struct.H_Builtin_Generic_array_slice %5, ptr %a, align 8, !dbg !20
-  ret void, !dbg !20
+  %0 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !20
+  %a = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !20
+  %1 = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !21
+  %b = alloca %struct.H_Builtin_Generic_array_slice, align 8, !dbg !21
+  store ptr %"arguments[0].integers", ptr %integers, align 8
+  call void @llvm.dbg.declare(metadata ptr %integers, metadata !17, metadata !DIExpression()), !dbg !22
+  store ptr %"arguments[1].vectors", ptr %vectors, align 8
+  call void @llvm.dbg.declare(metadata ptr %vectors, metadata !18, metadata !DIExpression()), !dbg !23
+  store i64 %"arguments[2].length", ptr %length, align 8
+  call void @llvm.dbg.declare(metadata ptr %length, metadata !19, metadata !DIExpression()), !dbg !24
+  %2 = load ptr, ptr %integers, align 8, !dbg !20
+  %3 = load i64, ptr %length, align 8, !dbg !20
+  %4 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 0, !dbg !20
+  store ptr %2, ptr %4, align 8, !dbg !20
+  %5 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %0, i32 0, i32 1, !dbg !20
+  store i64 %3, ptr %5, align 8, !dbg !20
+  %6 = load %struct.H_Builtin_Generic_array_slice, ptr %0, align 8, !dbg !20
+  call void @llvm.dbg.declare(metadata ptr %a, metadata !25, metadata !DIExpression()), !dbg !21
+  store %struct.H_Builtin_Generic_array_slice %6, ptr %a, align 8, !dbg !21
+  %7 = load ptr, ptr %vectors, align 8, !dbg !21
+  %8 = load i64, ptr %length, align 8, !dbg !21
+  %9 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 0, !dbg !21
+  store ptr %7, ptr %9, align 8, !dbg !21
+  %10 = getelementptr inbounds %struct.H_Builtin_Generic_array_slice, ptr %1, i32 0, i32 1, !dbg !21
+  store i64 %8, ptr %10, align 8, !dbg !21
+  %11 = load %struct.H_Builtin_Generic_array_slice, ptr %1, align 8, !dbg !21
+  call void @llvm.dbg.declare(metadata ptr %b, metadata !30, metadata !DIExpression()), !dbg !34
+  store %struct.H_Builtin_Generic_array_slice %11, ptr %b, align 8, !dbg !34
+  ret void, !dbg !34
 }}
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -1840,25 +1870,39 @@ attributes #1 = {{ nocallback nofree nosync nounwind speculatable willreturn mem
 !0 = !{{i32 2, !"Debug Info Version", i32 3}}
 !1 = distinct !DICompileUnit(language: DW_LANG_C, file: !2, producer: "Hlang Compiler", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
 !2 = !DIFile(filename: "debug_information_array_slices.hltxt", directory: "{}")
-!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 3, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !9)
+!3 = distinct !DISubprogram(name: "run", linkageName: "Debug_information_run", scope: null, file: !2, line: 5, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !1, retainedNodes: !16)
 !4 = !DISubroutineType(types: !5)
-!5 = !{{null, !6, !8}}
+!5 = !{{null, !6, !8, !15}}
 !6 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !7, size: 64)
 !7 = !DIBasicType(name: "Int32", size: 32, encoding: DW_ATE_signed)
-!8 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
-!9 = !{{!10, !11}}
-!10 = !DILocalVariable(name: "data", arg: 1, scope: !3, file: !2, line: 3, type: !6)
-!11 = !DILocalVariable(name: "length", arg: 2, scope: !3, file: !2, line: 3, type: !8)
-!12 = !DILocation(line: 4, column: 1, scope: !3)
-!13 = !DILocation(line: 3, column: 21, scope: !3)
-!14 = !DILocation(line: 3, column: 35, scope: !3)
-!15 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 5, type: !16)
-!16 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice", scope: !3, size: 128, align: 8, elements: !17)
-!17 = !{{!18, !19}}
-!18 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !6, size: 64, align: 8)
-!19 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !8, size: 64, align: 8, offset: 64)
-!20 = !DILocation(line: 5, column: 5, scope: !3)
-)", g_test_source_files_path.generic_string());
+!8 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !9, size: 64)
+!9 = !DICompositeType(tag: DW_TAG_structure_type, name: "Vector2i", file: !10, line: 2, size: 64, align: 8, elements: !11)
+!10 = !DIFile(filename: "vector2i.h", directory: "{}")
+!11 = !{{!12, !14}}
+!12 = !DIDerivedType(tag: DW_TAG_member, name: "x", file: !10, line: 4, baseType: !13, size: 32, align: 32)
+!13 = !DIBasicType(name: "c_int", size: 32, encoding: DW_ATE_signed)
+!14 = !DIDerivedType(tag: DW_TAG_member, name: "y", file: !10, line: 5, baseType: !13, size: 32, align: 32, offset: 32)
+!15 = !DIBasicType(name: "Uint64", size: 64, encoding: DW_ATE_unsigned)
+!16 = !{{!17, !18, !19}}
+!17 = !DILocalVariable(name: "integers", arg: 1, scope: !3, file: !2, line: 5, type: !6)
+!18 = !DILocalVariable(name: "vectors", arg: 2, scope: !3, file: !2, line: 5, type: !8)
+!19 = !DILocalVariable(name: "length", arg: 3, scope: !3, file: !2, line: 5, type: !15)
+!20 = !DILocation(line: 6, column: 1, scope: !3)
+!21 = !DILocation(line: 7, column: 5, scope: !3)
+!22 = !DILocation(line: 5, column: 21, scope: !3)
+!23 = !DILocation(line: 5, column: 39, scope: !3)
+!24 = !DILocation(line: 5, column: 68, scope: !3)
+!25 = !DILocalVariable(name: "a", scope: !3, file: !2, line: 7, type: !26)
+!26 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<Int32>", scope: !3, size: 128, align: 64, elements: !27)
+!27 = !{{!28, !29}}
+!28 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !6, size: 64, align: 64)
+!29 = !DIDerivedType(tag: DW_TAG_member, name: "length", scope: !3, baseType: !15, size: 64, align: 64, offset: 64)
+!30 = !DILocalVariable(name: "b", scope: !3, file: !2, line: 8, type: !31)
+!31 = !DICompositeType(tag: DW_TAG_structure_type, name: "Array_slice::<vector2i.Vector2i>", scope: !3, size: 128, align: 64, elements: !32)
+!32 = !{{!33, !29}}
+!33 = !DIDerivedType(tag: DW_TAG_member, name: "data", scope: !3, baseType: !8, size: 64, align: 64)
+!34 = !DILocation(line: 8, column: 5, scope: !3)
+)", g_test_source_files_path.generic_string(), root_directory_path.generic_string());
 
     test_create_llvm_module(input_file, module_name_to_file_path_map, expected_llvm_ir, { .debug = true });
   }

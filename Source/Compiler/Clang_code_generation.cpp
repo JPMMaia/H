@@ -1199,6 +1199,7 @@ namespace h::compiler
             *debug_info->llvm_builder,
             *get_debug_scope(*debug_info),
             llvm_data_layout,
+            core_module,
             core_type,
             debug_info->type_database
         );
