@@ -219,6 +219,7 @@ namespace h::compiler
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,
+        bool const alloca_type,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     );
@@ -226,6 +227,7 @@ namespace h::compiler
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         h::Type_reference const& type_reference,
+        bool const alloca_type,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     );

@@ -2031,7 +2031,7 @@ namespace h::compiler
                 llvm::Type* const llvm_type = type_reference_to_llvm_type(llvm_context, llvm_data_layout, type, type_database);
 
                 std::uint8_t const data = expression.data == "true" ? 1 : 0;
-                llvm::APInt const value{ 1, data, false };
+                llvm::APInt const value{ 8, data, false };
 
                 llvm::Value* const instruction = llvm::ConstantInt::get(llvm_type, value);
 
@@ -2248,7 +2248,7 @@ namespace h::compiler
             llvm::Value* const element_pointer = llvm_builder.CreateGEP(array_type, array_alloca, {llvm_builder.getInt32(0), index_value}, "array_element_pointer");
 
             llvm::Value* const value = array_data_values[index].value;
-            llvm_builder.CreateStore(value, element_pointer);
+            create_store_instruction(llvm_builder, llvm_data_layout, value, element_pointer);
         }
 
         Value_and_type const constant_array_value

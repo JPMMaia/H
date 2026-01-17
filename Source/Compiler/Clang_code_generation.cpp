@@ -121,6 +121,7 @@ namespace h::compiler
         std::optional<clang::QualType> const underlying_type_optional = create_type(
             clang_ast_context,
             alias_type_declaration.type,
+            true,
             declaration_database,
             clang_declaration_database
         );
@@ -229,6 +230,7 @@ namespace h::compiler
             std::optional<clang::QualType> const member_clang_type_optional = create_type(
                 clang_ast_context,
                 member_type,
+                true,
                 declaration_database,
                 clang_declaration_database
             );
@@ -314,6 +316,7 @@ namespace h::compiler
             clang::QualType const member_clang_type = *create_type(
                 clang_ast_context,
                 member_type,
+                true,
                 declaration_database,
                 clang_declaration_database
             );
@@ -348,6 +351,7 @@ namespace h::compiler
         clang::QualType const return_type = *create_type(
             clang_ast_context,
             function_type.output_parameter_types,
+            false,
             declaration_database,
             clang_declaration_database
         );
@@ -361,6 +365,7 @@ namespace h::compiler
             clang::QualType const input_parameter_type = *create_type(
                 clang_ast_context,
                 input_parameter_type_reference,
+                false,
                 declaration_database,
                 clang_declaration_database
             );
@@ -424,7 +429,7 @@ namespace h::compiler
                 h::Type_reference const& input_parameter_type_reference = function_declaration.type.input_parameter_types[index];
 
                 clang::IdentifierInfo* parameter_name = &clang_ast_context.Idents.get(input_parameter_name.data());
-                clang::QualType parameter_type = *create_type(clang_ast_context, input_parameter_type_reference, declaration_database, clang_declaration_database);
+                clang::QualType parameter_type = *create_type(clang_ast_context, input_parameter_type_reference, false, declaration_database, clang_declaration_database);
                 clang::Expr* parameter_default_argument = nullptr;
 
                 clang::SourceLocation parameter_start_location;
@@ -1579,7 +1584,7 @@ namespace h::compiler
             if (abi_argument_info.isExtend())
             {
                 llvm::Value* const loaded_value =
-                    llvm::AllocaInst::classof(source_llvm_value) ?
+                    (llvm::AllocaInst::classof(source_llvm_value) || llvm::GetElementPtrInst::classof(source_llvm_value)) ?
                     llvm_builder.CreateAlignedLoad(source_llvm_type, source_llvm_value, llvm_data_layout.getABITypeAlign(source_llvm_type)) :
                     source_llvm_value;
 
@@ -2186,6 +2191,7 @@ namespace h::compiler
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         h::Type_reference const& type_reference,
+        bool const alloca_type,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     )
@@ -2220,6 +2226,7 @@ namespace h::compiler
             std::optional<clang::QualType> const element_type = create_type(
                 clang_ast_context,
                 constant_array_type.value_type[0],
+                true,
                 declaration_database,
                 clang_declaration_database
             );
@@ -2235,8 +2242,9 @@ namespace h::compiler
             h::Fundamental_type const fundamental_type = std::get<h::Fundamental_type>(type_reference.data);
             switch (fundamental_type)
             {
-                case h::Fundamental_type::Bool: {
-                    return clang_ast_context.getIntTypeForBitwidth(8, 0);
+                case h::Fundamental_type::Bool:
+                case h::Fundamental_type::C_bool: {
+                    return alloca_type ? clang_ast_context.getIntTypeForBitwidth(8, 0) : clang_ast_context.BoolTy;
                 }
                 case h::Fundamental_type::Byte: {
                     return clang_ast_context.getIntTypeForBitwidth(8, 0);
@@ -2258,9 +2266,6 @@ namespace h::compiler
                 }
                 case h::Fundamental_type::Any_type: {
                     return clang_ast_context.VoidPtrTy;
-                }
-                case h::Fundamental_type::C_bool: {
-                    return clang_ast_context.BoolTy;
                 }
                 case h::Fundamental_type::C_char: {
                     return clang_ast_context.CharTy;
@@ -2384,6 +2389,7 @@ namespace h::compiler
             std::optional<clang::QualType> const element_type = create_type(
                 clang_ast_context,
                 pointer_type.element_type[0],
+                true,
                 declaration_database,
                 clang_declaration_database
             );
@@ -2414,6 +2420,7 @@ namespace h::compiler
     std::optional<clang::QualType> create_type(
         clang::ASTContext& clang_ast_context,
         std::span<h::Type_reference const> const type_reference,
+        bool const alloca_type,
         Declaration_database const& declaration_database,
         Clang_declaration_database const& clang_declaration_database
     )
@@ -2422,7 +2429,7 @@ namespace h::compiler
             return clang_ast_context.VoidTy;
         }
 
-        return create_type(clang_ast_context, type_reference[0], declaration_database, clang_declaration_database);
+        return create_type(clang_ast_context, type_reference[0], alloca_type, declaration_database, clang_declaration_database);
     }
 
     Clang_data create_clang_data(

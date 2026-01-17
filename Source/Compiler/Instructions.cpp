@@ -194,7 +194,7 @@ namespace h::compiler
         std::optional<h::Type_reference> const& type
     )
     {
-        return (type.has_value() && is_c_bool(*type)) ?
+        return (type.has_value() && (is_bool(*type) || is_c_bool(*type))) ?
             llvm_builder.CreateTrunc(llvm_value, llvm::Type::getInt1Ty(llvm_context)) :
             llvm_value;
     }
