@@ -1,0 +1,18 @@
+module Offset_pointer;
+
+function take(external_pointer: *mutable Int32) -> ()
+{
+}
+
+export function pointers(external_pointer: *mutable Int32) -> (result: *mutable Int32)
+{
+    mutable p0 = offset_pointer(external_pointer, 2i64);
+    *p0 = 0;
+
+    take(offset_pointer(external_pointer, 4i64));
+
+    var p1: *Void = null;
+    var p2 = offset_pointer(p1, 10i64);
+
+    return offset_pointer(external_pointer, 6i64);
+}

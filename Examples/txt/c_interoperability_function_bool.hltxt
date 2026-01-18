@@ -1,0 +1,22 @@
+module c_interoperability;
+
+function return_bool() -> (result: Bool)
+{
+    return true;
+}
+
+function take_bool(value: Bool) -> ()
+{
+}
+
+function take_bool_pointer(value: *Bool) -> (result: Bool)
+{
+    return value[1];
+}
+
+function run() -> ()
+{
+    var value = return_bool();
+    take_bool(value);
+    take_bool_pointer(&value);
+}

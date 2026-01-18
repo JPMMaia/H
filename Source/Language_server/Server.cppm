@@ -1,6 +1,8 @@
 module;
 
+#include <functional>
 #include <span>
+#include <vector>
 
 #include <lsp/types.h>
 
@@ -30,15 +32,24 @@ namespace h::language_server
         std::pmr::vector<h::Module> core_modules;
         h::Declaration_database declaration_database;
     };
+
+    export struct Server_logger
+    {
+        std::function<void(lsp::LogMessageParams&&)> window_log_message;
+        std::function<void(lsp::ShowMessageParams&&)> window_show_message;
+    };
     
     export struct Server
     {
         std::pmr::vector<lsp::WorkspaceFolder> workspace_folders;
         std::pmr::vector<Workspace_data> workspaces_data;
         h::parser::Parser parser;
+        Server_logger logger;
     };
 
-    export Server create_server();
+    export Server create_server(
+        Server_logger logger
+    );
 
     export void destroy_server(
         Server& server

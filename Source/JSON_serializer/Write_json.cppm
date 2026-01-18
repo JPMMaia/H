@@ -220,6 +220,14 @@ namespace h::json
         {
             return "Explicit";
         }
+        else if (value == Instantiate_expression_type::Uninitialized)
+        {
+            return "Uninitialized";
+        }
+        else if (value == Instantiate_expression_type::Zero_initialized)
+        {
+            return "Zero_initialized";
+        }
 
         throw std::runtime_error{ "Failed to write enum 'Instantiate_expression_type'!\n" };
     }
@@ -402,6 +410,12 @@ namespace h::json
         void write_object(
             Writer_type& writer,
             Enum_declaration const& input
+        );
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Forward_declaration const& input
         );
 
     export template<typename Writer_type>
@@ -944,6 +958,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("element_type");
         write_object(writer, output.element_type);
+        writer.Key("is_mutable");
+        writer.Bool(output.is_mutable);
         writer.EndObject();
     }
 
@@ -1279,6 +1295,20 @@ namespace h::json
         writer.Key("values");
         write_object(writer, output.values);
         write_optional(writer, "comment", output.comment);
+        write_optional_object(writer, "source_location", output.source_location);
+        writer.EndObject();
+    }
+
+    export template<typename Writer_type>
+        void write_object(
+            Writer_type& writer,
+            Forward_declaration const& output
+        )
+    {
+        writer.StartObject();
+        writer.Key("name");
+        writer.String(output.name.data(), output.name.size());
+        write_optional(writer, "unique_name", output.unique_name);
         write_optional_object(writer, "source_location", output.source_location);
         writer.EndObject();
     }
@@ -1717,7 +1747,7 @@ namespace h::json
         write_optional_object(writer, "condition", output.condition);
         writer.Key("then_statements");
         write_object(writer, output.then_statements);
-        write_optional_object(writer, "block_source_position", output.block_source_position);
+        write_optional_object(writer, "block_source_range", output.block_source_range);
         writer.EndObject();
     }
 
@@ -1808,6 +1838,8 @@ namespace h::json
         writer.StartObject();
         writer.Key("name");
         writer.String(output.name.data(), output.name.size());
+        writer.Key("type_arguments");
+        write_object(writer, output.type_arguments);
         writer.Key("arguments");
         write_object(writer, output.arguments);
         writer.EndObject();
@@ -2392,6 +2424,8 @@ namespace h::json
         write_object(writer, output.alias_type_declarations);
         writer.Key("enum_declarations");
         write_object(writer, output.enum_declarations);
+        writer.Key("forward_declarations");
+        write_object(writer, output.forward_declarations);
         writer.Key("global_variable_declarations");
         write_object(writer, output.global_variable_declarations);
         writer.Key("struct_declarations");

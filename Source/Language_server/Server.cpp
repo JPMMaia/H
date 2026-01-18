@@ -4,6 +4,7 @@ module;
 #include <filesystem>
 #include <memory_resource>
 #include <span>
+#include <sstream>
 #include <vector>
 
 #include <lsp/types.h>
@@ -34,7 +35,9 @@ namespace h::language_server
 {
     static constexpr bool g_debug = true;
 
-    Server create_server()
+    Server create_server(
+        Server_logger logger
+    )
     {
         h::parser::Parser parser = h::parser::create_parser();
 
@@ -42,7 +45,8 @@ namespace h::language_server
         {
             .workspace_folders = {},
             .workspaces_data = {},
-            .parser = std::move(parser)
+            .parser = std::move(parser),
+            .logger = std::move(logger),
         };
     }
 
@@ -98,7 +102,8 @@ namespace h::language_server
         {
             .triggerCharacters = lsp::Array<lsp::String>{
                 ".",
-                " "
+                " ",
+                ">"
             },
         };
 
@@ -210,6 +215,61 @@ namespace h::language_server
         server.workspace_folders.assign(workspace_folders.begin(), workspace_folders.end());
     }
 
+    std::optional<std::pmr::string> resolve_vscode_variable_value(
+        std::filesystem::path const& workspace_folder_path,
+        std::string_view const variable_name
+    )
+    {
+        if (variable_name == "workspaceFolder")
+            return std::pmr::string{workspace_folder_path.generic_string()};
+
+        return std::nullopt;
+    }
+
+    std::pmr::string resolve_vscode_variables(
+        std::filesystem::path const& workspace_folder_path,
+        std::string_view const value
+    )
+    {
+        using String_stream = std::basic_stringstream<char, std::char_traits<char>, std::pmr::polymorphic_allocator<char>>;
+        String_stream stream;
+
+        std::size_t index = 0;
+        while (index < value.size())
+        {
+            using namespace std::literals;
+            std::size_t const begin = value.find("${"sv, index);
+            if (begin == value.npos)
+                break;
+
+            std::size_t const end = value.find("}"sv, begin);
+            if (end == value.npos)
+                break;
+
+            std::size_t const count = end - begin;
+            std::string_view const variable_name = value.substr(begin + 2, count - 2);
+
+            std::optional<std::pmr::string> const variable_value = resolve_vscode_variable_value(workspace_folder_path, variable_name);
+            if (variable_value.has_value())
+            {
+                stream << variable_value.value();
+            }
+            else
+            {
+                stream << value.substr(index, end + 1 - index);
+            }
+
+            index = end + 1;
+        }
+
+        if (index >= value.size())
+            return stream.str();
+
+        std::string_view const rest = value.substr(index, value.size() - index);
+        stream << rest;
+        return stream.str();
+    }
+
     static std::pmr::vector<std::filesystem::path> get_header_search_paths_from_configuration(
         lsp::json::Any const& configuration
     )
@@ -245,7 +305,12 @@ namespace h::language_server
             if (!repository_json.isString())
                 continue;
 
-            std::filesystem::path repository_path = repository_json.string();
+            std::pmr::string const resolved_repository_path_string = resolve_vscode_variables(
+                workspace_folder_path,
+                repository_json.string()
+            );
+
+            std::filesystem::path repository_path = resolved_repository_path_string;
 
             if (repository_path.is_absolute())
             {
@@ -259,6 +324,29 @@ namespace h::language_server
         }
 
         return repository_paths;
+    }
+
+    static bool validate_paths(
+        Server& server,
+        std::span<std::filesystem::path const> const paths
+    )
+    {
+        for (std::filesystem::path const& path : paths)
+        {
+            if (!std::filesystem::exists(path))
+            {
+                lsp::ShowMessageParams parameters
+                {
+                    .type = lsp::MessageType::Error,
+                    .message = std::format("Could not find path: '{}'.", path.generic_string()),
+                };
+
+                server.logger.window_show_message(std::move(parameters));
+                return false;
+            }
+        }
+
+        return true;
     }
 
     static std::pmr::vector<h::parser::Parse_tree> parse_source_files(
@@ -367,6 +455,12 @@ namespace h::language_server
             std::pmr::vector<std::filesystem::path> const header_search_paths = get_header_search_paths_from_configuration(workspace_configuration);
             std::pmr::vector<std::filesystem::path> const repository_paths = get_repository_paths_from_configuration(workspace_folder_path, workspace_configuration);
 
+            if (!validate_paths(server, header_search_paths))
+                return;
+
+            if (!validate_paths(server, repository_paths))
+                return;
+
             h::compiler::Compilation_options const compilation_options
             {
                 .target_triple = std::nullopt,
@@ -375,12 +469,17 @@ namespace h::language_server
                 .contract_options = h::compiler::Contract_options::Log_error_and_abort,
             };
 
+            h::compiler::Builder_options const builder_options
+            {
+            };
+
             h::compiler::Builder builder = h::compiler::create_builder(
                 target,
                 build_directory_path,
                 header_search_paths,
                 repository_paths,
                 compilation_options,
+                builder_options,
                 output_allocator
             );
 
@@ -398,15 +497,9 @@ namespace h::language_server
                 temporaries_allocator
             );
 
-            std::pmr::vector<h::compiler::C_header_and_options> const c_headers_and_options = h::compiler::get_artifacts_c_headers(
-                artifacts,
-                output_allocator,
-                temporaries_allocator
-            );
-
             std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
                 builder,
-                c_headers_and_options,
+                artifacts,
                 output_allocator,
                 temporaries_allocator
             );

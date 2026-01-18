@@ -51,4 +51,16 @@ namespace h::compiler
     export void unset_debug_location(
         llvm::IRBuilder<>& llvm_builder
     );
+
+    export void set_debug_location_at_statement(
+        llvm::IRBuilder<>& llvm_builder,
+        Debug_info& debug_info,
+        h::Statement const& statement
+    );
+
+    export void set_debug_location_at_range(
+        llvm::IRBuilder<>& llvm_builder,
+        Debug_info& debug_info,
+        std::optional<h::Source_range> const& source_range
+    );
 }

@@ -124,13 +124,18 @@ namespace h
         h::Type_reference const& type_reference
     )
     {
+        if (std::holds_alternative<h::Array_slice_type>(type_reference.data))
         {
-            std::size_t const index = type_reference.data.index();
-            update_hash(state, &index, sizeof(index));
-        }
+            h::Array_slice_type const& data = std::get<h::Array_slice_type>(type_reference.data);
 
-        // TODO array_slice_type
-        if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
+            for (h::Type_reference const& element_type : data.element_type)
+            {
+                update_hash(state, element_type);
+            }
+
+            update_hash(state, &data.is_mutable, sizeof(data.is_mutable));
+        }
+        else if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
         {
             h::Builtin_type_reference const& data = std::get<h::Builtin_type_reference>(type_reference.data);
             update_hash(state, data.value);

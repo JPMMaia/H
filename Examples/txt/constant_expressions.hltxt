@@ -1,0 +1,8 @@
+module Constant_expressions;
+
+import my_module as my_module;
+
+export function run() -> ()
+{
+    var v0 = my_module.g_global;
+}

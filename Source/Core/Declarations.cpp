@@ -56,8 +56,10 @@ namespace h
     void add_declarations(
         Declaration_database& database,
         std::string_view const module_name,
+        bool const are_export,
         std::span<h::Alias_type_declaration const> const alias_type_declarations,
         std::span<h::Enum_declaration const> const enum_declarations,
+        std::span<h::Forward_declaration const> forward_declarations,
         std::span<h::Global_variable_declaration const> global_variable_declarations,
         std::span<h::Struct_declaration const> const struct_declarations,
         std::span<h::Union_declaration const> const union_declarations,
@@ -68,39 +70,44 @@ namespace h
     {
         Declaration_map& map = database.map[module_name.data()];
 
+        for (Forward_declaration const& declaration : forward_declarations)
+        {
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
+        }
+
         for (Alias_type_declaration const& declaration : alias_type_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Enum_declaration const& declaration : enum_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Function_constructor const& declaration : function_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Function_declaration const& declaration : function_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Global_variable_declaration const& declaration : global_variable_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Struct_declaration const& declaration : struct_declarations)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Type_constructor const& declaration : type_constructors)
         {
-            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }}));
+            map.insert(std::make_pair(declaration.name, Declaration{ .data = &declaration, .module_name = std::pmr::string{ module_name }, .is_export = are_export}));
         }
 
         for (Union_declaration const& declaration : union_declarations)
@@ -117,8 +124,10 @@ namespace h
         add_declarations(
             database,
             core_module.name,
+            true,
             core_module.export_declarations.alias_type_declarations,
             core_module.export_declarations.enum_declarations,
+            core_module.export_declarations.forward_declarations,
             core_module.export_declarations.global_variable_declarations,
             core_module.export_declarations.struct_declarations,
             core_module.export_declarations.union_declarations,
@@ -130,8 +139,10 @@ namespace h
         add_declarations(
             database,
             core_module.name,
+            false,
             core_module.internal_declarations.alias_type_declarations,
             core_module.internal_declarations.enum_declarations,
+            core_module.internal_declarations.forward_declarations,
             core_module.internal_declarations.global_variable_declarations,
             core_module.internal_declarations.struct_declarations,
             core_module.internal_declarations.union_declarations,
@@ -192,32 +203,33 @@ namespace h
                 return std::nullopt;
 
             std::string_view const declaration_module_name = type_instance.type_constructor.module_reference.name;
-
+            bool const is_export = true;
+            
             Declaration_instance_storage const& instance_storage = declaration_location->second;
             if (std::holds_alternative<Alias_type_declaration>(instance_storage.data))
             {
                 Alias_type_declaration const& declaration = std::get<Alias_type_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name}, .is_export = is_export };
             }
             else if (std::holds_alternative<Enum_declaration>(instance_storage.data))
             {
                 Enum_declaration const& declaration = std::get<Enum_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name}, .is_export = is_export };
             }
             else if (std::holds_alternative<Function_declaration>(instance_storage.data))
             {
                 Function_declaration const& declaration = std::get<Function_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name}, .is_export = is_export };
             }
             else if (std::holds_alternative<Struct_declaration>(instance_storage.data))
             {
                 Struct_declaration const& declaration = std::get<Struct_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name}, .is_export = is_export };
             }
             else if (std::holds_alternative<Union_declaration>(instance_storage.data))
             {
                 Union_declaration const& declaration = std::get<Union_declaration>(instance_storage.data);
-                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name} };
+                return Declaration{ .data = &declaration, .module_name = std::pmr::string{ declaration_module_name}, .is_export = is_export };
             }
         }
 
@@ -704,6 +716,21 @@ namespace h
         return std::make_pair(key, function_expression);
     }
 
+    static bool is_builtin_instance_call(
+        h::Statement const& statement,
+        Instance_call_expression const& expression
+    )
+    {
+        h::Expression const& left_hand_side = statement.expressions[expression.left_hand_side.expression_index];
+        if (std::holds_alternative<h::Variable_expression>(left_hand_side.data))
+        {
+            h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
+            return is_builtin_function_name(variable_expression.name);
+        }
+
+        return false;
+    }
+
     void add_instance_call_expression_values(
         Declaration_database& declaration_database,
         h::Module const& core_module
@@ -714,6 +741,9 @@ namespace h
             if (std::holds_alternative<Instance_call_expression>(expression.data))
             {
                 Instance_call_expression const& instance_call_expression = std::get<Instance_call_expression>(expression.data);
+
+                if (is_builtin_instance_call(statement, instance_call_expression))
+                    return false;
 
                 // TODO can optimize by checking for the existence of the key first
                 std::pair<Instance_call_key, Function_expression> const pair = create_instance_call_expression_value(

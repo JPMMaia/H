@@ -123,13 +123,14 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    void process_expression(
+    std::optional<h::Statement> process_expression(
         Analysis_result& result,
         h::Module& core_module,
         h::Function_declaration const* function_declaration,
         Scope& scope,
         h::Statement& statement,
         h::Expression& expression,
+        std::size_t const expression_index,
         h::Declaration_database& declaration_database,
         Analysis_options const& options,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -217,6 +218,12 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
+    void add_import_usage(
+        h::Module& core_module,
+        std::string_view const alias,
+        std::string_view const usage
+    );
+
     export void add_parameters_to_scope(
         Scope& scope,
         std::span<std::pmr::string const> const parameter_names,
@@ -257,7 +264,12 @@ namespace h::compiler
             {
                 h::Expression const& expression = statement.expressions[0];
 
-                if (std::holds_alternative<h::If_expression>(expression.data))
+                if (std::holds_alternative<h::Block_expression>(expression.data))
+                {
+                    h::Block_expression const& block_expression = std::get<h::Block_expression>(expression.data);
+                    visit_statements_using_scope(core_module, function_declaration, scope, block_expression.statements, declaration_database, callback);
+                }
+                else if (std::holds_alternative<h::If_expression>(expression.data))
                 {
                     h::If_expression const& if_expression = std::get<h::If_expression>(expression.data);
 

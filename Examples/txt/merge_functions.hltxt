@@ -1,0 +1,15 @@
+module Merge_functions;
+
+function_constructor cast(destination_type: Type, source_type: Type)
+{
+    return function (value: *source_type) -> (result: *destination_type)
+    {
+        return reinterpret_as::<*destination_type>(value);
+    };
+}
+
+function run(external_pointer: *Int32) -> ()
+{
+    var p0 = cast::<Int16, Int32>(external_pointer);
+    var p1 = cast::<Int8, Int32>(external_pointer);
+}

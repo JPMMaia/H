@@ -331,7 +331,19 @@
         },
         {
           "type": "STRING",
-          "value": "<"
+          "value": "::<"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "STRING",
+              "value": "mutable"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "SYMBOL",
@@ -352,7 +364,7 @@
         },
         {
           "type": "STRING",
-          "value": "<"
+          "value": "::<"
         },
         {
           "type": "SYMBOL",
@@ -528,7 +540,7 @@
       "members": [
         {
           "type": "STRING",
-          "value": "<"
+          "value": "::<"
         },
         {
           "type": "CHOICE",
@@ -2585,7 +2597,7 @@
             "members": [
               {
                 "type": "STRING",
-                "value": "<"
+                "value": "::<"
               },
               {
                 "type": "CHOICE",
@@ -2649,8 +2661,21 @@
           "type": "CHOICE",
           "members": [
             {
-              "type": "STRING",
-              "value": "explicit"
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "explicit"
+                },
+                {
+                  "type": "STRING",
+                  "value": "uninitialized"
+                },
+                {
+                  "type": "STRING",
+                  "value": "zero_initialized"
+                }
+              ]
             },
             {
               "type": "BLANK"
@@ -2839,8 +2864,53 @@
           "name": "Reflection_identifier"
         },
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "Expression_reflection_call_type_arguments"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "SYMBOL",
           "name": "Expression_call_arguments"
+        }
+      ]
+    },
+    "Expression_reflection_call_type_arguments": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "::<"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "Type"
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SEQ",
+            "members": [
+              {
+                "type": "STRING",
+                "value": ","
+              },
+              {
+                "type": "SYMBOL",
+                "name": "Type"
+              }
+            ]
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ">"
         }
       ]
     },
@@ -3238,7 +3308,7 @@
     },
     "String": {
       "type": "PATTERN",
-      "value": "\".*\"[a-z0-9]*"
+      "value": "\"(?:(?:\\\\\")|[^\"])*\"[a-z0-9]*"
     },
     "Comment": {
       "type": "PREC_LEFT",
@@ -3270,21 +3340,7 @@
       "value": "\\s"
     }
   ],
-  "conflicts": [
-    [
-      "Expression_binary",
-      "Expression_instance_call"
-    ],
-    [
-      "Expression_binary",
-      "Expression_instance_call",
-      "Expression_unary"
-    ],
-    [
-      "Generic_expression",
-      "Expression_instance_call_parameter"
-    ]
-  ],
+  "conflicts": [],
   "precedences": [],
   "externals": [],
   "inline": [],

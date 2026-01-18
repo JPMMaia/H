@@ -1,0 +1,8 @@
+{
+    "name": "external_library",
+    "version": "0.1.0",
+    "type": "library",
+    "public_include_directories": [
+        "./include"
+    ]
+}

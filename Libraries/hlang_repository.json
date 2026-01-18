@@ -4,6 +4,10 @@
         {
             "name": "C_standard_library",
             "location": "C_standard_library/hlang_artifact.json"
+        },
+        {
+            "name": "Cpp_standard_library",
+            "location": "Cpp_standard_library/hlang_artifact.json"
         }
     ]
 }

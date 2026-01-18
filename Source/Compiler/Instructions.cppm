@@ -21,7 +21,23 @@ namespace h::compiler
         llvm::Function& llvm_function,
         llvm::Type* const llvm_type,
         std::string_view const name = "",
-        llvm::Value* const array_size = nullptr
+        llvm::Value* const constant_array_size = nullptr
+    );
+
+    export llvm::AllocaInst* create_alloca_dynamic_array_instruction(
+        llvm::Value*& stack_save_pointer,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::Type* const llvm_type,
+        std::string_view const name,
+        llvm::Value* const dynamic_array_size
+    );
+
+    export void create_free_dynamic_array_instruction(
+        llvm::Value* stack_save_pointer,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module
     );
 
     export llvm::LoadInst* create_load_instruction(
@@ -29,6 +45,13 @@ namespace h::compiler
         llvm::DataLayout const& llvm_data_layout,
         llvm::Type* const llvm_type,
         llvm::Value* const pointer
+    );
+
+    export llvm::Value* create_load_instruction_if_needed(
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* llvm_value,
+        bool const is_address_of
     );
 
     export llvm::StoreInst* create_store_instruction(

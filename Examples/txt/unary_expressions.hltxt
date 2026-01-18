@@ -1,8 +1,15 @@
 module Unary_expressions;
 
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
 export function unary_operations(
     my_integer: Int32,
-    my_boolean: Bool
+    my_boolean: Bool,
+    my_c_boolean: C_bool,
+    my_struct: *My_struct
 ) -> ()
 {
     var not_variable = !my_boolean;
@@ -12,4 +19,9 @@ export function unary_operations(
     mutable my_mutable_integer = 1;
     var address_of_variable = &my_mutable_integer;
     var indirection_variable = *address_of_variable;
+
+    var not_c_variable = !my_c_boolean;
+
+    var address_of_member = &my_struct->a;
+    var minus_variable_2 = -(my_integer as Float32);
 }

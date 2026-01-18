@@ -347,6 +347,11 @@ namespace h
         return get_value(name, module.export_declarations.enum_declarations, module.internal_declarations.enum_declarations);
     }
 
+    std::optional<Forward_declaration const*> find_forward_declaration(h::Module const& module, std::string_view const name)
+    {
+        return get_value(name, module.export_declarations.forward_declarations, module.internal_declarations.forward_declarations);
+    }
+
     std::optional<Global_variable_declaration const*> find_global_variable_declaration(h::Module const& module, std::string_view name)
     {
         return get_value(name, module.export_declarations.global_variable_declarations, module.internal_declarations.global_variable_declarations);
@@ -381,6 +386,38 @@ namespace h
             core_module.dependencies.alias_imports.begin(),
             core_module.dependencies.alias_imports.end(),
             [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
+
+    Import_module_with_alias* find_import_module_with_alias(
+        h::Module& core_module,
+        std::string_view const alias_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.alias == alias_name; }
+        );
+        if (location == core_module.dependencies.alias_imports.end())
+            return nullptr;
+
+        return &(*location);
+    }
+
+    Import_module_with_alias const* find_import_module_with_module_name(
+        h::Module const& core_module,
+        std::string_view const module_name
+    )
+    {
+        auto const location = std::find_if(
+            core_module.dependencies.alias_imports.begin(),
+            core_module.dependencies.alias_imports.end(),
+            [&](Import_module_with_alias const& import_alias) -> bool { return import_alias.module_name == module_name; }
         );
         if (location == core_module.dependencies.alias_imports.end())
             return nullptr;
@@ -570,5 +607,57 @@ namespace h
         destination_statement.expressions[destination_expression_index] = std::move(current_expression);
 
         return h::Expression_index{.expression_index = destination_expression_index};
+    }
+
+    bool is_builtin_function_name(
+        std::string_view const name
+    )
+    {
+        return name == "create_array_slice_from_pointer" ||
+               name == "create_stack_array_uninitialized" ||
+               name == "offset_pointer" ||
+               name == "reinterpret_as";
+    }
+
+    bool is_expression_address_of(
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Unary_expression>(expression.data))
+        {
+            h::Unary_expression const& unary_expression = std::get<h::Unary_expression>(expression.data);
+            return unary_expression.operation == Unary_operation::Address_of;
+        }
+
+        return false;
+    }
+
+    bool is_offset_pointer(
+        h::Statement const& statement,
+        h::Expression const& expression
+    )
+    {
+        if (std::holds_alternative<h::Call_expression>(expression.data))
+        {
+            h::Call_expression const& call_expression = std::get<h::Call_expression>(expression.data);
+
+            h::Expression const& left_call_expression = statement.expressions[call_expression.expression.expression_index];
+            if (std::holds_alternative<h::Variable_expression>(left_call_expression.data))
+            {
+                h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_call_expression.data);
+                return variable_expression.name == "offset_pointer";
+            }
+        }
+
+        return false;
+    }
+
+    bool is_add_scope_expression(h::Expression const& expression)
+    {
+        return std::holds_alternative<h::Block_expression>(expression.data)
+            || std::holds_alternative<h::For_loop_expression>(expression.data)
+            || std::holds_alternative<h::If_expression>(expression.data)
+            || std::holds_alternative<h::Switch_expression>(expression.data)
+            || std::holds_alternative<h::While_loop_expression>(expression.data);
     }
 }

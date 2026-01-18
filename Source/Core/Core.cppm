@@ -166,6 +166,7 @@ namespace h
     export struct Array_slice_type
     {
         std::pmr::vector<Type_reference> element_type;
+        bool is_mutable;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Array_slice_type const& lhs, Array_slice_type const& rhs) = default;
@@ -415,6 +416,19 @@ namespace h
         friend std::strong_ordering operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
 #else
         friend auto operator<=>(Enum_declaration const& lhs, Enum_declaration const& rhs) = default;
+#endif
+    };
+
+    export struct Forward_declaration
+    {
+        std::pmr::string name;
+        std::optional<std::pmr::string> unique_name;
+        std::optional<Source_range_location> source_location;
+
+#if HACK_SPACESHIP_OPERATOR
+        friend std::strong_ordering operator<=>(Forward_declaration const&, Forward_declaration const&) = default;
+#else
+        friend auto operator<=>(Forward_declaration const&, Forward_declaration const&) = default;
 #endif
     };
 
@@ -819,7 +833,7 @@ namespace h
     {
         std::optional<Statement> condition;
         std::pmr::vector<Statement> then_statements;
-        std::optional<Source_position> block_source_position;
+        std::optional<Source_range> block_source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;
@@ -842,7 +856,9 @@ namespace h
     export enum class Instantiate_expression_type
     {
         Default,
-        Explicit
+        Explicit,
+        Uninitialized,
+        Zero_initialized
     };
 
     export struct Instantiate_member_value_pair
@@ -904,6 +920,7 @@ namespace h
     export struct Reflection_expression
     {
         std::pmr::string name;
+        std::pmr::vector<Type_reference> type_arguments;
         std::pmr::vector<Expression_index> arguments;
 
 #if HACK_SPACESHIP_OPERATOR
@@ -1212,6 +1229,7 @@ namespace h
     {
         std::pmr::vector<Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<Enum_declaration> enum_declarations;
+        std::pmr::vector<Forward_declaration> forward_declarations;
         std::pmr::vector<Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<Struct_declaration> struct_declarations;
         std::pmr::vector<Union_declaration> union_declarations;
@@ -1273,6 +1291,7 @@ namespace h
 
     export std::optional<Alias_type_declaration const*> find_alias_type_declaration(Module const& module, std::string_view name);
     export std::optional<Enum_declaration const*> find_enum_declaration(Module const& module, std::string_view name);
+    export std::optional<Forward_declaration const*> find_forward_declaration(Module const& module, std::string_view name);
     export std::optional<Function_declaration const*> find_function_declaration(Module const& module, std::string_view name);
     export std::optional<Function_definition const*> find_function_definition(Module const& module, std::string_view name);
     export std::optional<Global_variable_declaration const*> find_global_variable_declaration(Module const& module, std::string_view name);
@@ -1284,9 +1303,36 @@ namespace h
         std::string_view const alias_name
     );
 
+    export Import_module_with_alias* find_import_module_with_alias(
+        h::Module& core_module,
+        std::string_view const alias_name
+    );
+
+    export Import_module_with_alias const* find_import_module_with_module_name(
+        h::Module const& core_module,
+        std::string_view const module_name
+    );
+
     export h::Expression_index copy_expressions_to_new_statement(
         h::Statement& destination_statement,
         h::Statement const& source_statement,
         h::Expression_index const source_expression_index
+    );
+
+    export bool is_builtin_function_name(
+        std::string_view const name
+    );
+    
+    export bool is_expression_address_of(
+        h::Expression const& expression
+    );
+
+    export bool is_offset_pointer(
+        h::Statement const& statement,
+        h::Expression const& expression
+    );
+
+    export bool is_add_scope_expression(
+        h::Expression const& expression
     );
 }

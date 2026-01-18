@@ -1,0 +1,12 @@
+module Implicit_arguments_external;
+
+import Implicit_arguments as em;
+
+function run() -> ()
+{
+    mutable instance: em.My_struct = {};
+    var a = instance.get_v0();
+
+    var instance_pointer = &instance;
+    var b = instance_pointer->get_v0();
+}

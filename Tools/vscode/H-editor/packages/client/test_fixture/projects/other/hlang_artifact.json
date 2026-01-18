@@ -1,8 +1,13 @@
 {
-  "name": "Other",
-  "version": "0.1.0",
-  "type": "library",
-  "include": [
-    "./**/*.hltxt"
-  ]
+    "name": "Other",
+    "version": "0.1.0",
+    "type": "library",
+    "sources": [
+        {
+            "type": "hlang",
+            "include": [
+                "./**/*.hltxt"
+            ]
+        }
+    ]
 }

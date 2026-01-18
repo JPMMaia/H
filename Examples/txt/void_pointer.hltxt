@@ -1,0 +1,6 @@
+module Void_pointer;
+
+function run() -> ()
+{
+    var p0: *Void = null;
+}

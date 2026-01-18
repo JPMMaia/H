@@ -35,18 +35,39 @@ namespace h::compiler
         std::pmr::string artifact_name;
     };
 
-    export struct C_header_options
+    export struct C_header
     {
+        std::pmr::string module_name;
+        std::pmr::string header;
+    };
+
+    export struct C_header_source_group
+    {
+        std::pmr::vector<C_header> c_headers;
         std::pmr::vector<std::filesystem::path> search_paths;
         std::pmr::vector<std::pmr::string> public_prefixes;
         std::pmr::vector<std::pmr::string> remove_prefixes;
     };
 
-    export struct C_header
+    export struct Cpp_source_group
     {
-        std::pmr::string module_name;
-        std::pmr::string header;
-        std::optional<std::pmr::string> options_key;
+    };
+
+    export struct Hlang_source_group
+    {
+    };
+
+    export struct Source_group
+    {
+        using Data_type = std::variant<
+            C_header_source_group,
+            Cpp_source_group,
+            Hlang_source_group
+        >;
+        
+        std::optional<Data_type> data;
+        std::pmr::vector<std::pmr::string> include;
+        std::pmr::vector<std::pmr::string> additional_flags;
     };
 
     export struct Executable_info
@@ -57,9 +78,7 @@ namespace h::compiler
 
     export struct Library_info
     {
-        std::pmr::vector<C_header> c_headers;
-        std::pmr::unordered_map<std::pmr::string, C_header_options> c_header_options;
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> external_libraries;
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> external_libraries;
     };
 
     export struct Artifact
@@ -69,7 +88,8 @@ namespace h::compiler
         Version version;
         Artifact_type type;
         std::pmr::vector<Dependency> dependencies;
-        std::pmr::vector<std::pmr::string> include;
+        std::pmr::vector<Source_group> sources;
+        std::pmr::vector<std::filesystem::path> public_include_directories;
         std::optional<std::variant<Executable_info, Library_info>> info;
     };
 
@@ -77,12 +97,15 @@ namespace h::compiler
 
     export void write_artifact_to_file(Artifact const& artifact, std::filesystem::path const& artifact_file_path);
 
-    export std::span<C_header const> get_c_headers(Artifact const& artifact);
+    export std::pmr::vector<std::filesystem::path> get_public_include_directories(Artifact const& artifact, std::span<Artifact const> const artifacts, std::pmr::polymorphic_allocator<> const& output_allocator, std::pmr::polymorphic_allocator<> const& temporaries_allocator);
+    
+    export bool contains_any_compilable_source(Artifact const& artifact);
+    
+    export std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator);
 
-    export C_header_options const* get_c_header_options(Library_info const& library_info, C_header const& c_header);
+    export std::pmr::vector<C_header> get_c_headers(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator);
 
     export C_header const* find_c_header(Artifact const& artifact, std::string_view const module_name);
-    export C_header_options const* find_c_header_options(Artifact const& artifact, std::string_view const module_name);
 
     export std::optional<std::filesystem::path> find_c_header_path(
         std::string_view c_header,
@@ -100,24 +123,48 @@ namespace h::compiler
         std::function<bool(std::filesystem::path)> const& predicate
     );
 
-    export std::pmr::vector<std::filesystem::path> get_artifact_source_files(
+    export std::pmr::vector<std::filesystem::path> get_artifact_hlang_source_files(
         Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<std::filesystem::path> get_artifact_cpp_source_files(
+        Artifact const& artifact,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<std::filesystem::path> find_included_files(
+        std::filesystem::path const& root_path,
+        std::string_view const regular_expression,
         std::pmr::polymorphic_allocator<> const& output_allocator
     );
 
     export std::pmr::vector<std::filesystem::path> find_included_files(
-        Artifact const& artifact,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::filesystem::path const& root_path,
+        std::span<std::pmr::string const> const regular_expressions,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     export std::pmr::vector<std::filesystem::path> find_root_include_directories(
         Artifact const& artifact,
-        std::pmr::polymorphic_allocator<> const& output_allocator
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
     export std::optional<std::size_t> find_artifact_index_that_includes_source_file(
         std::span<Artifact const> const artifacts,
         std::filesystem::path const& source_file_path,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export std::pmr::vector<Artifact const*> get_artifact_dependencies(
+        Artifact const& artifact,
+        std::span<Artifact const> const all_artifacts,
+        bool const recursive,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
@@ -133,20 +180,20 @@ namespace h::compiler
     export struct External_library_info
     {
         std::pmr::string key;
-        std::pmr::string name;
+        std::pmr::vector<std::pmr::string> names;
         bool is_debug;
         bool is_dynamic;
     };
 
     export std::optional<External_library_info> get_external_library(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         Target const& target,
         bool prefer_debug,
         bool prefer_dynamic
     );
 
-    export std::optional<std::string_view> get_external_library_dll(
-        std::pmr::unordered_map<std::pmr::string, std::pmr::string> const& external_libraries,
+    export std::pmr::vector<std::string_view> get_external_library_dlls(
+        std::pmr::unordered_multimap<std::pmr::string, std::pmr::string> const& external_libraries,
         std::string_view const key
     );
 }

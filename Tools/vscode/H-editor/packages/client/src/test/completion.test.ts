@@ -351,9 +351,29 @@ suite("Should do completion", () => {
 		});
 	});
 
+	test("Completes struct members in a block", async () => {
+		const document_uri = get_document_uri('projects/other/completion_struct_2.hltxt');
+		await test_completion(document_uri, new vscode.Position(12, 14), {
+			items: [
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
+				{ label: "real", kind: vscode.CompletionItemKind.Field },
+			]
+		});
+	});
+
 	test("Completes import module struct members", async () => {
 		const document_uri = get_document_uri('projects/project_1/completion_struct_0.hltxt');
 		await test_completion(document_uri, new vscode.Position(7, 10), {
+			items: [
+				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
+				{ label: "real", kind: vscode.CompletionItemKind.Field },
+			]
+		});
+	});
+	
+	test("Completes struct members through pointers", async () => {
+		const document_uri = get_document_uri('projects/other/completion_struct_1.hltxt');
+		await test_completion(document_uri, new vscode.Position(10, 11), {
 			items: [
 				{ label: "imaginary", kind: vscode.CompletionItemKind.Field },
 				{ label: "real", kind: vscode.CompletionItemKind.Field },

@@ -502,6 +502,8 @@ struct My_struct
     {
         std::string_view const input = R"(module Test;
 
+import Module_a as ma;
+
 function get_value() -> (result: Int32)
 {
     return 0;
@@ -511,22 +513,38 @@ struct My_struct
 {
     a: Int32 = 0;
     b: Int32 = get_value();
+    c: Int32 = ma.g_constant;
+    d: Int32 = ma.g_non_constant;
 }
 )";
+
+        std::string_view const module_a = R"(module Module_a;
+var g_constant = 0;
+mutable g_non_constant = 0;
+)";
+
+        std::pmr::vector<std::string_view> const dependencies = { module_a };
 
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(11, 16, 11, 27),
+                .range = create_source_range(13, 16, 13, 27),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .message = "The value of 'My_struct.b' must be computable at compile-time.",
                 .related_information = {},
+            },
+            {
+                .range = create_source_range(15, 16, 15, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "The value of 'My_struct.d' must be computable at compile-time.",
+                .related_information = {},
             }
         };
 
-        test_validate_module(input, {}, expected_diagnostics);
+        test_validate_module(input, dependencies, expected_diagnostics);
     }
 
     TEST_CASE("Validates that member default values are values, not types", "[Validation][Struct]")
@@ -590,7 +608,7 @@ struct My_struct_1
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Expression type 'void' does not match expected type 'Int32'.",
+                .message = "Expression type 'Void' does not match expected type 'Int32'.",
                 .related_information = {},
             }
         };
@@ -824,19 +842,19 @@ function run() -> ()
 
         std::string_view const test_2_input = R"(module Test_2;
 
-enum My_enum
+export enum My_enum
 {
     A = 0,
     B,
 }
 
-struct My_struct
+export struct My_struct
 {
     a: Int32 = 0;
     b: Int32 = 1;
 }
 
-union My_union
+export union My_union
 {
     a: Int32;
     b: Float32;
@@ -1020,54 +1038,41 @@ export union My_union
         test_validate_module(input, dependencies, expected_diagnostics);
     }
 
-    TEST_CASE("Validates that a function that is on the same module as the instance exists", "[Validation][Access_expression]")
+    TEST_CASE("Validates that a declaration from an imported module must be public", "[Validation][Access_expression]")
     {
+        std::string_view const module_a = R"(module Module_a;
+
+export function export_run() -> ()
+{
+}
+
+function internal_run() -> ()
+{
+}
+)";
+
         std::string_view const input = R"(module Test;
 
-import module_a as module_a;
-
-struct Struct_with_function_pointer
-{
-    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
-}
+import Module_a as ma;
 
 function run() -> ()
 {
-    var a: module_a.My_int = explicit {
-        value: 0
-    };
-    
-    var b: module_a.My_int = explicit {
-        value: 0
-    };
-
-    var c = a.add(b);
-
-    var d: Struct_with_function_pointer = {};
-    d.a(1, 2);
+    ma.export_run();
+    ma.internal_run();
 }
 )";
 
-        std::string_view const module_a_input = R"(module module_a;
-                
-struct My_int
-{
-    value: Int32 = 0;
-}
-
-export function add(a: My_int, b: My_int) -> (result: My_int)
-{
-    var result: My_int = explicit {
-        value: a.value + b.value
-    };
-    return result;
-}
-)";
-        
-        std::pmr::vector<std::string_view> const dependencies = { module_a_input };
+        std::pmr::vector<std::string_view> const dependencies = { module_a };
 
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
+            {
+                .range = create_source_range(8, 5, 8, 20),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Module_a.internal_run' (alias 'ma') is not marked with export.",
+                .related_information = {},
+            }
         };
 
         test_validate_module(input, dependencies, expected_diagnostics);
@@ -1990,9 +1995,9 @@ function run(int_input: Int32, enum_input: dependency.My_enum) -> ()
     {
         std::string_view const dependency = R"(module Dependency;
 
-var my_global = 0ci;
+export var my_global = 0ci;
 
-enum My_enum
+export enum My_enum
 {
     Value = 0,
 }
@@ -2358,6 +2363,31 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that function pointers with same type but different parameter names can be assigned", "[Validation][Function_pointer_type]")
+    {
+        std::string_view const input = R"(module Test;
+
+using My_function = function<(a0: Int32) -> (r0: Int32)>;
+
+function my_function(a1: Int32) -> (r0: Int32)
+{
+    return a1;
+}
+
+function run() -> ()
+{
+    var value: My_function = my_function;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that if condition expression type is boolean", "[Validation][If_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -2422,6 +2452,8 @@ function run(value: Int32) -> (result: Int32)
     else if 1cb {
         return 4;
     }
+
+    return 5;
 }
 )";
 
@@ -2638,7 +2670,7 @@ function run(value: Int32) -> ()
     {
         std::string_view const dependency = R"(module Module_a;
 
-enum My_enum
+export enum My_enum
 {
     A = 0,
 }
@@ -2662,6 +2694,175 @@ function run() -> ()
 )";
 
         std::pmr::vector<std::string_view> const dependencies = { dependency };
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates assignment of pointers to instantiate members", "[Validation][Instantiate_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: *Int32 = null;
+    b: *mutable Int32 = null;
+}
+
+function run() -> ()
+{
+    var p0: *Int32 = null;
+    var p1: *mutable Int32 = null;
+
+    var instance_0: My_struct = {
+        a: p0,
+        b: p0
+    };
+
+    var instance_1: My_struct = {
+        a: p1,
+        b: p1
+    };
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(16, 12, 16, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Cannot assign value of type '*Int32' to member 'My_struct.b' of type '*mutable Int32'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates function calls with implicit arguments", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    v0: Int32 = 1;
+    v1: Int32 = 2;
+}
+
+function get_v0(instance: *My_struct) -> (result: Int32)
+{
+    return instance->v0;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = {};
+    var a = instance.get_v0();
+
+    var instance_pointer = &instance;
+    var b = instance_pointer->get_v0();
+
+    var c = instance.get_v1();
+    var d = instance_pointer->get_v1();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(22, 13, 22, 28),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Member 'get_v1' does not exist in the type 'My_struct'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(23, 13, 23, 39),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression does not evaluate to a callable expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that implicit arguments are not added to function pointers that are members", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    function_pointer: function<() -> ()> = null;
+}
+
+function run() -> ()
+{
+    mutable instance: My_struct = {};
+    instance.function_pointer();
+
+    var instance_pointer = &instance;
+    instance_pointer->function_pointer();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function that is on the same module as the instance exists", "[Validation][Implicit_arguments]")
+    {
+        std::string_view const input = R"(module Test;
+
+import module_a as module_a;
+
+struct Struct_with_function_pointer
+{
+    a: function<(lhs: Int32, rhs: Int32) -> (result: Int32)> = null;
+}
+
+function run() -> ()
+{
+    var a: module_a.My_struct = explicit {
+        value: 0
+    };
+    
+    var b: module_a.My_struct = explicit {
+        value: 0
+    };
+
+    a.foo(b);
+
+    var d: Struct_with_function_pointer = {};
+    d.a(1, 2);
+}
+)";
+
+        std::string_view const module_a_input = R"(module module_a;
+                
+struct My_struct
+{
+    value: Int32 = 0;
+}
+
+export function foo(a: *My_struct, b: My_struct) -> ()
+{
+}
+)";
+        
+        std::pmr::vector<std::string_view> const dependencies = { module_a_input };
 
         std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
         {
@@ -3010,6 +3211,112 @@ function run() -> ()
     }
 
 
+    TEST_CASE("Validates that offset_pointer exists and it takes a Int64", "[Validation][Pointer]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *Int32) -> ()
+{   
+    var p0 = offset_pointer(external_pointer, 2i64);
+    var p1 = offset_pointer(external_pointer, 2u64);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 47, 6, 51),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 1 type is 'Int64' but 'Uint64' was provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that reinterpret_as has one instance argument", "[Validation][Reinterpret_as]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *mutable Int32) -> ()
+{   
+    var p0 = reinterpret_as(external_pointer);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 14, 5, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Expression does not evaluate to a callable expression.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that reinterpret_as has one argument", "[Validation][Reinterpret_as]")
+    {
+        std::string_view const input = R"(module Test;
+
+export function run(external_pointer: *mutable Int32) -> ()
+{   
+    var p0 = reinterpret_as::<*mutable Int64>();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 14, 5, 48),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 0 were provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that cannot assign constant c string to mutable c string", "[Validation][String]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var s0: *C_char = "abc"c;
+    var s1: *mutable C_char = "abc"c;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 31, 6, 37),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*C_char' does not match expected type '*mutable C_char'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that the expression type of a return expression matches the function output type", "[Validation][Return_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -3032,6 +3339,8 @@ function run_int32(value: Int32) -> (result: Int32)
     else if value == 1 {
         return;
     }
+
+    return 2;
 }
 )";
 
@@ -3043,7 +3352,7 @@ function run_int32(value: Int32) -> (result: Int32)
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Function 'run_void' expects a return value of type 'void', but 'Int32' was provided.",
+                .message = "Function 'run_void' expects a return value of type 'Void', but 'Int32' was provided.",
                 .related_information = {},
             },
             {
@@ -3078,6 +3387,244 @@ function run(value: Int32) -> ()
                 .message = "Variable 'Int32' does not exist.",
                 .related_information = {},
             },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression (empty case)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+}
+
+function run_2() -> (result: Int32)
+{
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 10, 7, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run_2': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression (non-empty case)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> (result: Int32)
+{
+    var a = 1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 34),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression on all if cases", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value < 0
+    {
+        return 0;
+    }
+    else
+    {
+        if value % 2 == 0
+        {
+            return 1;
+        }
+        else
+        {
+        }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression on all if cases (including else)", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    if value < 0
+    {
+        return 0;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+    
+    TEST_CASE("Validates that a function with output has a return expression on all switch cases", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    switch value
+    {
+    case 0: {
+        return 0;
+    }
+    case 1: {
+        break;
+    }
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(3, 10, 3, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "'Test.run': not all control paths return a value.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that a function with output has a return expression when using a block", "[Validation][Return_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run(value: Int32) -> (result: Int32)
+{
+    {
+        return 0;
+    }
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
+    TEST_CASE("Validates that @size_of parameter is a valid type", "[Validation][Size_of]")
+    {
+        std::string_view const input = R"(module Test;
+
+struct My_struct
+{
+    a: Int32 = 0;
+}
+
+function run() -> ()
+{
+    var int32_size = @size_of::<Int32>();
+    var my_struct_size = @size_of::<My_struct>();
+    var invalid = @size_of::<Foo>();
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(12, 30, 12, 33),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Type 'Foo' does not exist.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that @size_of has only one type argument", "[Validation][Size_of]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var v0 = @size_of::<Int32>();
+    var v1 = @size_of();
+    var v2 = @size_of::<Int32>(v1);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 14, 6, 24),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "@size_of requires only 1 type argument.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 14, 7, 35),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "@size_of does not have any parameters.",
+                .related_information = {},
+            }
         };
 
         test_validate_module(input, {}, expected_diagnostics);
@@ -3157,7 +3704,7 @@ function run(int_value: Int32, enum_value: My_enum) -> (result: Int32)
                 .range = create_source_range(43, 12, 43, 19),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Switch condition type is 'void' but expected an integer or an enum value.",
+                .message = "Switch condition type is 'Void' but expected an integer or an enum value.",
                 .related_information = {},
             },
         };
@@ -3362,7 +3909,7 @@ function run(int_value: Int32) -> ()
     {
         std::string_view const input = R"(module Test;
 
-function run(value: Int32) -> (result: Int32)
+function run(value: Int32) -> ()
 {
     var result_0 = value == 0 ? 0 : 1;
     var result_1 = value ? 0 : 1;
@@ -3388,7 +3935,7 @@ function run(value: Int32) -> (result: Int32)
     {
         std::string_view const input = R"(module Test;
 
-function run(condition: Bool) -> (result: Int32)
+function run(condition: Bool) -> ()
 {
     var result_0 = condition ? 0 : 1;
     var result_1 = condition ? 0 : 1.0f32;
@@ -3414,7 +3961,7 @@ function run(condition: Bool) -> (result: Int32)
     {
         std::string_view const input = R"(module Test;
 
-function run(condition: Bool) -> (result: Int32)
+function run(condition: Bool) -> ()
 {
     var result_0 = condition ? value_1 : value_2;
 }
@@ -3571,6 +4118,33 @@ function run() -> ()
         test_validate_module(input, {}, expected_diagnostics);
     }
 
+    TEST_CASE("Validates that negating a unsigned integer is an error (except -1)", "[Validation][Unary_expression]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var a = -1u64;
+    var b = -a;
+    var c = -(a as Float32)
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 13, 6, 14),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot apply unary operation '-' to unsigned integer.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
 
     TEST_CASE("Validates that a variable declaration name is not a duplicate", "[Validation][Variable_declaration_expression]")
     {
@@ -3684,6 +4258,7 @@ function run(c: Int32) -> ()
 
 function get_value() -> (result: Float32)
 {
+    return 0.0f32;
 }
 
 function run() -> ()
@@ -3698,7 +4273,7 @@ function run() -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(10, 20, 10, 26),
+                .range = create_source_range(11, 20, 11, 26),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
@@ -3706,7 +4281,7 @@ function run() -> ()
                 .related_information = {},
             },
             {
-                .range = create_source_range(11, 20, 11, 31),
+                .range = create_source_range(12, 20, 12, 31),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
@@ -3841,6 +4416,47 @@ function run(a: Int32) -> ()
     }
 
 
+    TEST_CASE("Validates that can assign any pointer to *Void", "[Validation][Void_pointer]")
+    {
+        std::string_view const input = R"(module Test;
+
+function run() -> ()
+{
+    var v0 = 0;
+    var p0: *Void = &v0;
+    var p1: *Void = v0;
+    var p2: *mutable Void = &v0;
+
+    mutable v1 = 0;
+    var p3: *mutable void = &v1;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(7, 21, 7, 23),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Int32' does not match expected type '*Void'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 29, 8, 32),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Void'.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+
     TEST_CASE("Validates that the expression type of a condition expression is a boolean", "[Validation][While_loop_expression]")
     {
         std::string_view const input = R"(module Test;
@@ -3940,27 +4556,21 @@ using My_uint = Uint65;
         test_validate_module(input, {}, expected_diagnostics);
     }
 
-    TEST_CASE("Validates that Constant_array can be implicitly converted to Array_slice", "[Validation][Array_slices]")
+    TEST_CASE("Validates access to Constant_array", "[Validation][Constant_array]")
     {
-        std::string_view const input = R"(module Array_slices;
-
-export function take_int32(integers: Array_slice<Int32>) -> ()
-{
-}
-
-export function take_int64(integers: Array_slice<Int64>) -> ()
-{
-}
+        std::string_view const input = R"(module Constant_arrays;
 
 export function run() -> ()
 {
-    var a: Constant_array<Int32, 4> = [0, 1, 2, 3];
-    
-    var b: Array_slice<Int32> = a;
-    take_int32(a);
+    var a: Constant_array::<Int32, 4> = [0, 1, 2, 3];
+    a[0] = 1;
+    var p0: *Int32 = &a[0];
+    var p1: *mutable Int32 = &a[0];
 
-    var c: Array_slice<Int64> = a;
-    take_int64(a);
+    mutable b: Constant_array::<Int32, 4> = [0, 1, 2, 3];
+    b[0] = 1;
+    var p2: *Int32 = &b[0];
+    var p3: *mutable Int32 = &b[0];
 }
 )";
 
@@ -3968,18 +4578,89 @@ export function run() -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(18, 33, 18, 34),
+                .range = create_source_range(6, 5, 6, 13),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot modify non-mutable value.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 30, 8, 35),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Expression type 'Constant_array<Int32, 4>' does not match expected type 'Array_slice<Int64>'.",
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Constant_array can be implicitly converted to Array_slice", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function take_int32(integers: Array_slice::<Int32>) -> ()
+{
+}
+
+export function take_int64(integers: Array_slice::<Int64>) -> ()
+{
+}
+
+export function run() -> ()
+{
+    var a: Constant_array::<Int32, 4> = [0, 1, 2, 3];
+    
+    var b: Array_slice::<Int32> = a;
+    take_int32(a);
+
+    var c: Array_slice::<Int64> = a;
+    take_int64(a);
+
+    mutable d: Constant_array::<Int32, 4> = [0, 1, 2, 3];
+
+    var e: Array_slice::<mutable Int32> = d;
+    var f: Array_slice::<Int32> = d;
+    take_int32(d);
+
+    mutable g: Constant_array::<*C_char, 2> = ["Hello"c, "world!"c];
+
+    var h: Array_slice::<*mutable C_char> = g;
+    var i: Array_slice::<*C_char> = g;
+
+    mutable c0: Constant_array::<*mutable C_char, 0> = [];
+
+    var a0: Array_slice::<*mutable C_char> = c0;
+    var a1: Array_slice::<*C_char> = c0;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(18, 35, 18, 36),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Constant_array::<Int32, 4>' does not match expected type 'Array_slice::<Int64>'.",
                 .related_information = {},
             },
             {
                 .range = create_source_range(19, 16, 19, 17),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Argument 0 type is 'Array_slice<Int64>' but 'Constant_array<Int32, 4>' was provided.",
+                .message = "Argument 0 type is 'Array_slice::<Int64>' but 'Constant_array::<Int32, 4>' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(29, 45, 29, 46),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Constant_array::<*C_char, 2>' does not match expected type 'Array_slice::<*mutable C_char>'.",
                 .related_information = {},
             }
         };
@@ -3991,10 +4672,16 @@ export function run() -> ()
     {
         std::string_view const input = R"(module Array_slices;
 
-export function run(integers: Array_slice<Int32>) -> ()
+export function run(integers: Array_slice::<Int32>, mutable_integers: Array_slice::<mutable Int32>) -> ()
 {
     var a: Int32 = integers[0];
     var b: Int64 = integers[0];
+
+    var p0: *Int32 = &integers[0];
+    var p1: *mutable Int32 = &integers[0];
+
+    var p2: *Int32 = &mutable_integers[0];
+    var p3: *mutable Int32 = &mutable_integers[0];
 }
 )";
 
@@ -4008,7 +4695,32 @@ export function run(integers: Array_slice<Int32>) -> ()
                 .code = Diagnostic_code::Type_mismatch,
                 .message = "Expression type 'Int32' does not match expected type 'Int64'.",
                 .related_information = {},
+            },
+            {
+                .range = create_source_range(9, 30, 9, 42),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
             }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that empty Array_slices can be created", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+struct My_struct
+{
+    slice: Array_slice::<Int32> = {};
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
         };
 
         test_validate_module(input, {}, expected_diagnostics);
@@ -4018,11 +4730,14 @@ export function run(integers: Array_slice<Int32>) -> ()
     {
         std::string_view const input = R"(module Array_slices;
 
-export function run(integers: Array_slice<Int32>) -> ()
+export function run(integers: Array_slice::<Int32>, mutable_integers: Array_slice::<mutable Int32>) -> ()
 {
     var data: *Int32 = integers.data;
     var length: Uint64 = integers.length;
     var random = integers.random;
+
+    var mutable_data_0: *mutable Int32 = integers.data;
+    var mutable_data_1: *mutable Int32 = mutable_integers.data;
 }
 )";
 
@@ -4033,7 +4748,46 @@ export function run(integers: Array_slice<Int32>) -> ()
                 .range = create_source_range(7, 18, 7, 33),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Member 'random' does not exist in the type 'Array_slice<Int32>'.",
+                .message = "Member 'random' does not exist in the type 'Array_slice::<Int32>'.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(9, 42, 9, 55),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type '*Int32' does not match expected type '*mutable Int32'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that Array_slice with immutable value type cannot be assigned to Array_slice with mutable value type", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run(integers: Array_slice::<Int32>, mutable_integers: Array_slice::<mutable Int32>) -> ()
+{
+    var a: Array_slice::<Int32> = mutable_integers;
+    var b: Array_slice::<mutable Int32> = integers;
+
+    var string_data: **mutable C_char = null;
+    var string_array_slice = create_array_slice_from_pointer(string_data, 0u64);
+    var string_array_slice_copy: Array_slice::<*C_char> = string_array_slice;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 43, 6, 51),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Array_slice::<Int32>' does not match expected type 'Array_slice::<mutable Int32>'.",
                 .related_information = {},
             }
         };
@@ -4047,11 +4801,11 @@ export function run(integers: Array_slice<Int32>) -> ()
 
 export function run(data: *Int32, length: Uint64) -> ()
 {
-    var a: Array_slice<Int32> = create_array_slice_from_pointer(data, length);
-    var b: Array_slice<Int64> = create_array_slice_from_pointer(data, length);
+    var a: Array_slice::<Int32> = create_array_slice_from_pointer(data, length);
+    var b: Array_slice::<Int64> = create_array_slice_from_pointer(data, length);
 
     var data_int64: *Int64 = null;
-    var c: Array_slice<Int64> = create_array_slice_from_pointer(data_int64, length);
+    var c: Array_slice::<Int64> = create_array_slice_from_pointer(data_int64, length);
 
     var incorrect_length = 0i32;
     var d = create_array_slice_from_pointer(data_int64, incorrect_length);
@@ -4065,11 +4819,11 @@ export function run(data: *Int32, length: Uint64) -> ()
         {
             h::compiler::Diagnostic
             {
-                .range = create_source_range(6, 33, 6, 78),
+                .range = create_source_range(6, 35, 6, 80),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
                 .code = Diagnostic_code::Type_mismatch,
-                .message = "Expression type 'Array_slice<Int32>' does not match expected type 'Array_slice<Int64>'.",
+                .message = "Expression type 'Array_slice::<Int32>' does not match expected type 'Array_slice::<Int64>'.",
                 .related_information = {},
             },
             {
@@ -4083,11 +4837,152 @@ export function run(data: *Int32, length: Uint64) -> ()
                 .range = create_source_range(15, 45, 15, 59),
                 .source = Diagnostic_source::Compiler,
                 .severity = Diagnostic_severity::Error,
-                .message = "Argument 0 type is '*void' but 'Int32' was provided.",
+                .message = "Argument 0 type is '*Void' but 'Int32' was provided.",
+                .related_information = {},
+            },
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that null cannot be passed to create_array_slice_from_pointer()", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Array_slices;
+
+export function run() -> ()
+{
+    var f = create_array_slice_from_pointer(null, 0u64);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(5, 45, 5, 49),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Cannot pass 'Null_pointer_type' as first argument to 'create_array_slice_from_pointer'.",
                 .related_information = {},
             }
         };
 
         test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates create_stack_array_uninitialized() function signature", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Stack_array;
+
+export function foo(length: Uint64) -> ()
+{
+    var array_0: Array_slice::<mutable Int32> = create_stack_array_uninitialized::<Int32>(length);
+    var array_1: Array_slice::<mutable Int32> = create_stack_array_uninitialized::<Int32>(5);
+    var array_2: Array_slice::<mutable Int32> = create_stack_array_uninitialized::<Int32>(5, 6);
+    var array_3: Array_slice::<mutable Uint32> = create_stack_array_uninitialized::<Int32>(length);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 91, 6, 92),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Argument 0 type is 'Uint64' but 'Int32' was provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 49, 7, 96),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 arguments, but 2 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(8, 50, 8, 99),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .code = Diagnostic_code::Type_mismatch,
+                .message = "Expression type 'Array_slice::<mutable Int32>' does not match expected type 'Array_slice::<mutable Uint32>'.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates create_stack_array_uninitialized() type parameters", "[Validation][Array_slices]")
+    {
+        std::string_view const input = R"(module Stack_array;
+
+export function foo(length: Uint64) -> ()
+{
+    var array_0: Array_slice::<mutable Int32> = create_stack_array_uninitialized::<Int32>(length);
+    var array_1 = create_stack_array_uninitialized(length);
+    var array_2 = create_stack_array_uninitialized::<Int32, Int64>(length);
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+            h::compiler::Diagnostic
+            {
+                .range = create_source_range(6, 19, 6, 59),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 type arguments, but 0 were provided.",
+                .related_information = {},
+            },
+            {
+                .range = create_source_range(7, 19, 7, 75),
+                .source = Diagnostic_source::Compiler,
+                .severity = Diagnostic_severity::Error,
+                .message = "Function expects 1 type arguments, but 2 were provided.",
+                .related_information = {},
+            }
+        };
+
+        test_validate_module(input, {}, expected_diagnostics);
+    }
+
+    TEST_CASE("Validates that types with the same unique name from different modules match", "[Validation][Unique_name]")
+    {
+        std::string_view const module_a = R"(module Module_a;
+
+@unique_name("My_unique_type")
+struct My_unique_type
+{
+}
+)";
+
+        std::string_view const module_b = R"(module Module_b;
+
+@unique_name("My_unique_type")
+struct My_unique_type
+{
+}
+)";
+
+        std::string_view const input = R"(module Module_c;
+
+import Module_a as module_a;
+import Module_b as module_b;
+
+function run(a: module_a.My_unique_type, b: module_b.My_unique_type) -> ()
+{
+    var v0: module_a.My_unique_type = b;
+    var v1: module_b.My_unique_type = a;
+}
+)";
+
+        std::pmr::vector<h::compiler::Diagnostic> expected_diagnostics =
+        {
+        };
+
+        std::pmr::vector<std::string_view> const dependencies = { module_a, module_b };
+
+        test_validate_module(input, dependencies, expected_diagnostics);
     }
 }

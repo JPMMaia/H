@@ -953,7 +953,26 @@
           "named": true
         },
         {
+          "type": "Expression_reflection_call_type_arguments",
+          "named": true
+        },
+        {
           "type": "Reflection_identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "Expression_reflection_call_type_arguments",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "Type",
           "named": true
         }
       ]
@@ -2464,6 +2483,10 @@
     "named": false
   },
   {
+    "type": "::<",
+    "named": false
+  },
+  {
     "type": ";",
     "named": false
   },
@@ -2684,6 +2707,10 @@
     "named": false
   },
   {
+    "type": "uninitialized",
+    "named": false
+  },
+  {
     "type": "union",
     "named": false
   },
@@ -2697,6 +2724,10 @@
   },
   {
     "type": "while",
+    "named": false
+  },
+  {
+    "type": "zero_initialized",
     "named": false
   },
   {

@@ -38,6 +38,7 @@ namespace h::compiler
         Block_type block_type = {};
         llvm::BasicBlock* repeat_block = nullptr;
         llvm::BasicBlock* after_block = nullptr;
+        llvm::Value* stack_save_pointer = nullptr;
     };
 
     using Enum_constants = std::pmr::vector<llvm::Constant*>;
@@ -66,7 +67,7 @@ namespace h::compiler
         Declaration_database& declaration_database;
         Type_database& type_database;
         Enum_value_constants const& enum_value_constants;
-        std::span<Block_info const> blocks;
+        std::span<Block_info> blocks;
         std::span<std::pmr::vector<Statement>> defer_expressions_per_block;
         std::optional<Function_declaration const*> function_declaration;
         std::span<Value_and_type const> function_arguments;
@@ -95,6 +96,13 @@ namespace h::compiler
         Expression_parameters const& parameters
     );
 
+    export Value_and_type load_if_needed(
+        Value_and_type const& value,
+        std::size_t const expression_index,
+        Statement const& statement,
+        Expression_parameters const& parameters
+    );
+
     export Value_and_type create_loaded_expression_value(
         std::size_t expression_index,
         Statement const& statement,
@@ -117,16 +125,16 @@ namespace h::compiler
         bool const execute_defer_expressions_at_end
     );
 
-    export void create_defer_instructions_at_end_of_block(
+    export void create_instructions_at_end_of_block(
         Expression_parameters const& parameters
     );
 
-    export void create_defer_instructions_pop_blocks(
+    export void create_instructions_pop_blocks(
         Expression_parameters const& parameters,
         std::size_t const blocks_to_pop_count
     );
 
-    export void create_defer_instructions_at_return(
+    export void create_instructions_at_return(
         Expression_parameters const& parameters
     );
 

@@ -1,0 +1,17 @@
+module Array_slices_instantiate;
+
+struct My_struct
+{
+    slice: Array_slice::<Int32> = {};
+}
+
+export function run() -> ()
+{
+    var v0: My_struct = {};
+    
+    var value = 0;
+    var s0: Array_slice::<Int32> = {
+        data: &value,
+        length: 1u64
+    };
+}

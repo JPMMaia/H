@@ -18,13 +18,14 @@ import h.core;
 
 namespace h
 {
-    Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type)
+    Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type, bool const is_mutable)
     {
         return
         {
             .data = h::Array_slice_type
             {
-                .element_type = std::move(element_type)
+                .element_type = std::move(element_type),
+                .is_mutable = is_mutable,
             }
         };
     }
@@ -252,6 +253,17 @@ namespace h
         return false;
     }
 
+    bool is_any_type(Type_reference const& type)
+    {
+        if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const data = std::get<Fundamental_type>(type.data);
+            return (data == Fundamental_type::Any_type);
+        }
+
+        return false;
+    }
+
     Type_reference create_c_string_type_reference(bool const is_mutable)
     {
         return Type_reference
@@ -369,7 +381,29 @@ namespace h
 
     bool is_unsigned_integer(Type_reference const& type)
     {
-        return !is_signed_integer(type);
+        if (std::holds_alternative<Integer_type>(type.data))
+        {
+            Integer_type const& data = std::get<Integer_type>(type.data);
+            return !data.is_signed;
+        }
+        else if (std::holds_alternative<Fundamental_type>(type.data))
+        {
+            Fundamental_type const& data = std::get<Fundamental_type>(type.data);
+
+            switch (data)
+            {
+            case Fundamental_type::C_uchar:
+            case Fundamental_type::C_ushort:
+            case Fundamental_type::C_uint:
+            case Fundamental_type::C_ulong:
+            case Fundamental_type::C_ulonglong:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        return false;
     }
 
     bool is_number_or_c_number(Type_reference const& type)

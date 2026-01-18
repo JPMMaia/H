@@ -15,7 +15,7 @@ namespace h::compiler
         llvm::Function& llvm_function,
         llvm::Type* const llvm_type,
         std::string_view const name,
-        llvm::Value* const array_size
+        llvm::Value* const constant_array_size
     )
     {
         // If the value is not sized, we cannot create alloca for it.
@@ -25,7 +25,7 @@ namespace h::compiler
         llvm::BasicBlock* llvm_original_insert_block = llvm_builder.GetInsertBlock();
         llvm_builder.SetInsertPointPastAllocas(&llvm_function);
 
-        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, array_size, name.data());
+        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, constant_array_size, name.data());
         
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
         instruction->setAlignment(type_alignment);
@@ -33,6 +33,52 @@ namespace h::compiler
         llvm_builder.SetInsertPoint(llvm_original_insert_block);
 
         return instruction;
+    }
+
+    llvm::AllocaInst* create_alloca_dynamic_array_instruction(
+        llvm::Value*& stack_save_pointer,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Module& llvm_module,
+        llvm::Type* const llvm_type,
+        std::string_view const name,
+        llvm::Value* const dynamic_array_size
+    )
+    {
+        // If the value is not sized, we cannot create alloca for it.
+        if (!llvm_type->isSized())
+            return nullptr;
+
+        if (stack_save_pointer == nullptr)
+        {
+            llvm::Function* stack_save_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::stacksave, {llvm_builder.getPtrTy()});
+            stack_save_pointer = llvm_builder.CreateCall(stack_save_function, {}, "stack_save_pointer");
+        }
+
+        llvm::AllocaInst* const instruction = llvm_builder.CreateAlloca(llvm_type, dynamic_array_size, name.data());
+        
+        llvm::Align const stack_alignment = llvm_data_layout.getStackAlignment();
+        llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
+
+        if (stack_alignment > type_alignment)
+            instruction->setAlignment(stack_alignment);
+        else
+            instruction->setAlignment(type_alignment);
+
+        return instruction;
+    }
+
+    void create_free_dynamic_array_instruction(
+        llvm::Value* stack_save_pointer,
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::Module& llvm_module
+    )
+    {
+        if (stack_save_pointer != nullptr)
+        {
+            llvm::Function* stack_restore_function = llvm::Intrinsic::getDeclaration(&llvm_module, llvm::Intrinsic::stackrestore, {llvm_builder.getPtrTy()});
+            llvm_builder.CreateCall(stack_restore_function, {stack_save_pointer});
+        }
     }
 
     llvm::LoadInst* create_load_instruction(
@@ -49,6 +95,36 @@ namespace h::compiler
         llvm::Align const type_alignment = llvm_data_layout.getABITypeAlign(llvm_type);
         llvm::LoadInst* const instruction = llvm_builder.CreateAlignedLoad(llvm_type, pointer, type_alignment);
         return instruction;
+    }
+
+    llvm::Value* create_load_instruction_if_needed(
+        llvm::IRBuilder<>& llvm_builder,
+        llvm::DataLayout const& llvm_data_layout,
+        llvm::Value* llvm_value,
+        bool const is_address_of
+    )
+    {
+        if (is_address_of)
+            return llvm_value;
+
+        if (llvm::AllocaInst::classof(llvm_value))
+        {
+            llvm::AllocaInst* alloca_instruction = static_cast<llvm::AllocaInst*>(llvm_value);
+            llvm::Type* const allocated_type = alloca_instruction->getAllocatedType();
+            llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, allocated_type, llvm_value);
+            return loaded_value;
+        }
+        else if (llvm::GetElementPtrInst::classof(llvm_value))
+        {
+            llvm::GetElementPtrInst* get_element_ptr_instruction = static_cast<llvm::GetElementPtrInst*>(llvm_value);
+            llvm::Type* const result_type = get_element_ptr_instruction->getResultElementType();
+            llvm::Value* const loaded_value = create_load_instruction(llvm_builder, llvm_data_layout, result_type, llvm_value);
+            return loaded_value;
+        }
+        else
+        {
+            return llvm_value;
+        }
     }
 
     llvm::StoreInst* create_store_instruction(
@@ -118,7 +194,7 @@ namespace h::compiler
         std::optional<h::Type_reference> const& type
     )
     {
-        return (type.has_value() && is_c_bool(*type)) ?
+        return (type.has_value() && (is_bool(*type) || is_c_bool(*type))) ?
             llvm_builder.CreateTrunc(llvm_value, llvm::Type::getInt1Ty(llvm_context)) :
             llvm_value;
     }

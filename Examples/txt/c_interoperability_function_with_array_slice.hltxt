@@ -1,0 +1,12 @@
+module c_interoperability;
+
+function take(a0: Array_slice::<*Int32>) -> ()
+{
+}
+
+function run() -> ()
+{
+    mutable v0 = 0;
+    var array: Constant_array::<*mutable Int32, 1> = [&v0];
+    take(array);
+}

@@ -376,6 +376,18 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts instantiate_uninitialized.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "instantiate_uninitialized.hltxt";
+        test_convertor(input_file);
+    }
+    
+    TEST_CASE("Converts instantiate_zero_initialized.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "instantiate_zero_initialized.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts if_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "if_expressions.hltxt";
@@ -433,6 +445,12 @@ namespace h::parser
     TEST_CASE("Converts pointers.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "pointers.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts size_of.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "size_of.hltxt";
         test_convertor(input_file);
     }
 
@@ -529,6 +547,12 @@ namespace h::parser
     TEST_CASE("Converts variadic_functions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "variadic_functions.hltxt";
+        test_convertor(input_file);
+    }
+
+    TEST_CASE("Converts void_pointer.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "void_pointer.hltxt";
         test_convertor(input_file);
     }
 

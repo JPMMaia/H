@@ -50,4 +50,9 @@ export function run_ifs(value: Int32) -> ()
     {
         print_message("true"c);
     }
+
+    if !c_boolean
+    {
+        print_message("false"c);
+    }
 }

@@ -95,6 +95,26 @@ if (WIN32)
    install(FILES ${LIBCLANG_DLL_LOCATION} TYPE BIN CONFIGURATIONS Debug Release)
 endif ()
 
+if (WIN32)
+   find_program(PROGRAM_CLANG_CL "clang-cl.exe" REQUIRED)
+   install(FILES ${PROGRAM_CLANG_CL} TYPE BIN CONFIGURATIONS Debug Release)
+
+   add_custom_command(
+      TARGET H_compiler
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROGRAM_CLANG_CL} ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/clang-cl.exe
+   )
+else()
+   find_program(PROGRAM_CLANG "clang++.exe" REQUIRED)
+   install(FILES ${PROGRAM_CLANG} TYPE BIN CONFIGURATIONS Debug Release)
+
+   add_custom_command(
+      TARGET H_compiler
+      POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PROGRAM_CLANG} ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/clang++
+   )
+endif ()
+
 ## End LLVM ##
 
 target_link_libraries(H_compiler PUBLIC "wtr.hdr_watcher")
@@ -117,8 +137,10 @@ target_sources(H_compiler
          "Analysis.cppm"
          "Builder.cppm"
          "Clang_code_generation.cppm"
+         "Clang_compiler.cppm"
          "Clang_data.cppm"
          "Common.cppm"
+         "Compile_commands_generator.cppm"
          "Compiler.cppm"
          "Debug_info.cppm"
          "Diagnostic.cppm"
@@ -141,6 +163,7 @@ target_sources(H_compiler
       "Analysis.cpp"
       "Builder.cpp"
       "Clang_code_generation.cpp"
+      "Clang_compiler.cpp"
       "Common.cpp"
       "Compiler.cpp"
       "Debug_info.cpp"

@@ -1109,7 +1109,7 @@ namespace h
     {
         add_format_expression(buffer, statement, get_expression(statement, expression.left_hand_side), outside_indentation, options);
 
-        add_text(buffer, "<");
+        add_text(buffer, "::<");
 
         for (std::size_t index = 0; index < expression.arguments.size(); ++index)
         {
@@ -1141,6 +1141,10 @@ namespace h
 
         if (expression.type == Instantiate_expression_type::Explicit)
             add_text(buffer, "explicit ");
+        else if (expression.type == Instantiate_expression_type::Uninitialized)
+            add_text(buffer, "uninitialized ");
+        else if (expression.type == Instantiate_expression_type::Zero_initialized)
+            add_text(buffer, "zero_initialized ");
             
         add_text(buffer, "{");
         if (!expression.members.empty())
@@ -1275,6 +1279,19 @@ namespace h
     {
         add_text(buffer, "@");
         add_text(buffer, expression.name);
+
+        if (expression.type_arguments.size() > 0)
+        {
+            add_text(buffer, "::<");
+            for (std::size_t i = 0; i < expression.type_arguments.size(); ++i)
+            {
+                if (i > 0)
+                    add_text(buffer, ", ");
+                add_format_type_name(buffer, {&expression.type_arguments[i], 1}, options);
+            }
+            add_text(buffer, ">");
+        }
+
         add_text(buffer, "(");
         for (std::size_t i = 0; i < expression.arguments.size(); ++i)
         {
@@ -1556,7 +1573,11 @@ namespace h
         if (std::holds_alternative<Array_slice_type>(type.data))
         {
             Array_slice_type const& value = std::get<Array_slice_type>(type.data);
-            add_text(buffer, "Array_slice<");
+            add_text(buffer, "Array_slice::<");
+
+            if (value.is_mutable)
+                add_text(buffer, "mutable ");
+
             add_format_type_name(buffer, value.element_type, options);
             add_text(buffer, ">");
         }
@@ -1568,7 +1589,7 @@ namespace h
         else if (std::holds_alternative<Constant_array_type>(type.data))
         {
             Constant_array_type const& value = std::get<Constant_array_type>(type.data);
-            add_text(buffer, "Constant_array<");
+            add_text(buffer, "Constant_array::<");
             add_format_type_name(buffer, value.value_type, options);
             add_text(buffer, ", ");
             add_integer_text(buffer, value.size);
@@ -1652,7 +1673,7 @@ namespace h
                 buffer, value.type_constructor, options
             );
 
-            add_text(buffer, "<");
+            add_text(buffer, "::<");
 
             for (std::size_t index = 0; index < value.arguments.size(); ++index)
             {
@@ -1677,7 +1698,7 @@ namespace h
     {
         if (types.empty())
         {
-            add_text(buffer, "void");
+            add_text(buffer, "Void");
             return;
         }
 
@@ -2335,7 +2356,7 @@ namespace h
         }
         else
         {
-            add_text(buffer, "void");
+            add_text(buffer, "Void");
         }
         
         return to_string(buffer);
@@ -2346,7 +2367,7 @@ namespace h
         Expression_index const expression_index
     )
     {
-        if (expression_index.expression_index == static_cast<std::uint64_t>(-1))
+        if (expression_index.expression_index == static_cast<std::uint64_t>(-1) || expression_index.expression_index >= statement.expressions.size())
         {
             static h::Expression invalid_expression = {
                 .data = h::Invalid_expression{ .value = "" }

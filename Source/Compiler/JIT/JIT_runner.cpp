@@ -145,7 +145,7 @@ namespace h::compiler
             if (found)
                 return module_source_file_path;
 
-            std::span<C_header const> const c_headers = get_c_headers(pair.second);
+            std::pmr::vector<C_header> const c_headers = get_c_headers(pair.second, {});
             for (C_header const& c_header : c_headers)
             {
                 if (c_header.module_name == module_name)
@@ -164,7 +164,7 @@ namespace h::compiler
                 if (found)
                     return module_source_file_path;
 
-                std::span<C_header const> const c_headers = get_c_headers(artifact);
+                std::pmr::vector<C_header> const c_headers = get_c_headers(artifact, {});
                 for (C_header const& c_header : c_headers)
                 {
                     if (c_header.module_name == module_name)
@@ -208,24 +208,37 @@ namespace h::compiler
         if (!artifact.has_value())
             return {};
 
-        C_header_options const* const c_header_options = find_c_header_options(*artifact, module_name);
-        if (c_header_options == nullptr)
+        for (Source_group const& group : artifact->sources)
         {
-            return
+            if (std::holds_alternative<C_header_source_group>(*group.data))
             {
-                .target_triple = std::nullopt,
-                .include_directories = {},
-                .public_prefixes = {},
-                .remove_prefixes = {},
-            };
+                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+
+                auto const is_c_header = [&](C_header const& c_header) -> bool
+                {
+                    return c_header.module_name == module_name;
+                };
+
+                auto const location = std::find_if(c_header_group.c_headers.begin(), c_header_group.c_headers.end(), is_c_header);
+                if (location != c_header_group.c_headers.end())
+                {
+                    return
+                    {
+                        .target_triple = std::nullopt,
+                        .include_directories = c_header_group.search_paths,
+                        .public_prefixes = c_header_group.public_prefixes,
+                        .remove_prefixes = c_header_group.remove_prefixes,
+                    };
+                }
+            }
         }
 
         return
         {
             .target_triple = std::nullopt,
-            .include_directories = c_header_options->search_paths,
-            .public_prefixes = c_header_options->public_prefixes,
-            .remove_prefixes = c_header_options->remove_prefixes,
+            .include_directories = {},
+            .public_prefixes = {},
+            .remove_prefixes = {},
         };
     }
 
@@ -276,7 +289,9 @@ namespace h::compiler
             );
 
             h::c::Options const options = create_c_header_options_from_artifact(module_name, artifact);
-            h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, options);
+            std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(module_name, *module_source_file_path, parsed_file_path, options);
+            if (!header_module.has_value())
+                return std::nullopt;
 
             return Parsed_module_info
             {
@@ -550,6 +565,15 @@ namespace h::compiler
         {
             add_artifact_for_compilation(dependency_file_path, unprotected_data, protected_data, file_watcher);
         }
+        
+        {
+            std::pmr::vector<C_header> const c_headers = get_c_headers(artifact, {});
+            std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
+            for (C_header const& c_header : c_headers)
+            {
+                protected_data.module_name_to_artifact_path.insert(std::make_pair(c_header.module_name, artifact_configuration_file_path));
+            }
+        }
 
         if (artifact.info.has_value())
         {
@@ -596,20 +620,13 @@ namespace h::compiler
                 std::optional<External_library_info> const external_library = get_external_library(library_info.external_libraries, unprotected_data.target, unprotected_data.compilation_options.debug, true);
                 if (external_library.has_value())
                 {
-                    link_static_library(*unprotected_data.jit_data, external_library->name.c_str());
+                    for (std::pmr::string const& name : external_library->names)
+                        link_static_library(*unprotected_data.jit_data, name.c_str());
 
-                    std::optional<std::string_view> const external_library_dll = get_external_library_dll(library_info.external_libraries, external_library->key);
-                    if (external_library_dll.has_value())
+                    std::pmr::vector<std::string_view> const external_library_dlls = get_external_library_dlls(library_info.external_libraries, external_library->key);
+                    for (std::string_view const& dll_name : external_library_dlls)
                     {
-                        load_platform_dynamic_library(*unprotected_data.jit_data, external_library_dll->data());
-                    }
-                }
-
-                {
-                    std::unique_lock<std::shared_mutex> lock{ protected_data.mutex };
-                    for (C_header const& c_header : library_info.c_headers)
-                    {
-                        protected_data.module_name_to_artifact_path.insert(std::make_pair(c_header.module_name, artifact_configuration_file_path));
+                        load_platform_dynamic_library(*unprotected_data.jit_data, dll_name.data());
                     }
                 }
             }

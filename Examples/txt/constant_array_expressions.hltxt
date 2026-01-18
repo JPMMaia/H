@@ -2,14 +2,14 @@ module Constant_array_expressions;
 
 struct My_struct
 {
-    a: Constant_array<Int32, 4> = [0, 2, 4, 6];
+    a: Constant_array::<Int32, 4> = [0, 2, 4, 6];
 }
 
 export function foo() -> ()
 {
     var a = [];
-    var b: Constant_array<Int32, 0> = [];
-    mutable c: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    var b: Constant_array::<Int32, 0> = [];
+    mutable c: Constant_array::<Int32, 4> = [0, 1, 2, 3];
 
     c[0] = 0;
     c[1] = 1;
@@ -18,4 +18,6 @@ export function foo() -> ()
 
     var instance: My_struct = {};
     var e = instance.a[0];
+
+    var f: Constant_array::<Int32, 8 = [];
 }

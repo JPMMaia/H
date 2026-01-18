@@ -1,0 +1,9 @@
+module Use_printf;
+
+import c.stdio as stdio;
+
+export function run() -> ()
+{
+    var a = 1;
+    stdio.printf("Value: %d, pointer: %p\n"c, a, &a);
+}

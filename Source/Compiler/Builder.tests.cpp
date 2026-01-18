@@ -1,10 +1,14 @@
+import h.common;
 import h.common.filesystem;
 import h.compiler;
 import h.compiler.builder;
+import h.compiler.compile_commands_generator;
 import h.compiler.target;
 
 #include <filesystem>
+#include <span>
 #include <string_view>
+#include <vector>
 
 #include <catch2/catch_all.hpp>
 
@@ -26,19 +30,48 @@ namespace h::compiler
         return std::pmr::string{name};
     }
 
+    static std::pmr::string get_static_library_name(
+        std::string_view const name,
+        h::compiler::Target const& target
+    )
+    {
+        if (target.operating_system == "windows")
+        {
+            return std::pmr::string{name} + ".lib";
+        }
+
+        return std::pmr::string{name} + ".a";
+    }
+
+    static std::pmr::string get_object_name(
+        std::string_view const name,
+        h::compiler::Target const& target
+    )
+    {
+        if (target.operating_system == "windows")
+        {
+            return std::pmr::string{name} + ".obj";
+        }
+
+        return std::pmr::string{name} + ".o";
+    }
+
     void test_builder(
-        std::string_view const project_name
+        std::string_view const project_name,
+        std::filesystem::path const& main_artifact_path,
+        h::compiler::Target const& target,
+        std::span<std::filesystem::path const> const additional_repository_paths,
+        std::span<std::filesystem::path const> const expected_output_paths
     )
     {
         std::filesystem::path const temporary_directory_path = std::filesystem::temp_directory_path();
         std::filesystem::path const build_directory_path = temporary_directory_path / project_name;
-        std::filesystem::path const artifact_file_path = g_examples_directory / project_name / "hlang_artifact.json";
+        std::filesystem::path const artifact_file_path = g_examples_directory / project_name / main_artifact_path;
 
         std::pmr::vector<std::filesystem::path> header_search_directories = h::common::get_default_header_search_directories();
         
         std::pmr::vector<std::filesystem::path> repository_paths{ g_standard_repository_file_path };
-    
-        h::compiler::Target const target = h::compiler::get_default_target();
+        repository_paths.insert(repository_paths.end(), additional_repository_paths.begin(), additional_repository_paths.end());
 
         h::compiler::Compilation_options const compilation_options
         {
@@ -47,22 +80,172 @@ namespace h::compiler
 
         std::filesystem::remove_all(build_directory_path);
 
+        Builder_options const builder_options
+        {
+        };
+
         Builder builder = create_builder(
             target,
             build_directory_path,
             header_search_directories,
             repository_paths,
             compilation_options,
+            builder_options,
             {}
         );
     
         build_artifact(builder, artifact_file_path);
 
-        CHECK(std::filesystem::exists(build_directory_path / "bin" / get_binary_name("Hello_world", target) ));
+        for (std::filesystem::path const& expected_output_path : expected_output_paths)
+        {
+            std::filesystem::path const output_path = build_directory_path / expected_output_path;
+            CHECK(std::filesystem::exists(output_path));
+        }
+    }
+
+    void test_compile_commands(
+        std::filesystem::path const& build_directory_path,
+        std::filesystem::path const& artifact_file_path,
+        std::filesystem::path const& output_file_path,
+        h::compiler::Target const& target,
+        std::span<std::filesystem::path const> const additional_repository_paths,
+        std::pmr::vector<Compile_command> const& expected_compile_commands
+    )
+    {
+        std::pmr::vector<std::filesystem::path> header_search_directories = h::common::get_default_header_search_directories();
+        
+        std::pmr::vector<std::filesystem::path> repository_paths{ g_standard_repository_file_path };
+        repository_paths.insert(repository_paths.end(), additional_repository_paths.begin(), additional_repository_paths.end());
+
+        h::compiler::Compilation_options const compilation_options
+        {
+        };
+
+        Builder_options const builder_options
+        {
+        };
+
+        Builder builder = create_builder(
+            target,
+            build_directory_path,
+            header_search_directories,
+            repository_paths,
+            compilation_options,
+            builder_options,
+            {}
+        );
+
+        if (std::filesystem::exists(output_file_path))
+            std::filesystem::remove(output_file_path);
+
+        write_compile_commands_json_to_file(
+            builder,
+            artifact_file_path,
+            compilation_options,
+            output_file_path
+        );
+
+        CHECK(std::filesystem::exists(output_file_path));
+
+        std::pmr::vector<Compile_command> const actual_compile_commands = read_compile_commands_from_file(output_file_path);
+        CHECK(expected_compile_commands == actual_compile_commands);
     }
 
     TEST_CASE("Build Hello_world", "[Builder]")
     {
-        test_builder("Hello_world");
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"bin"} / get_binary_name("Hello_world", target)
+        };
+
+        test_builder("Hello_world", "hlang_artifact.json", target, {}, expected_output_paths);
+    }
+
+    TEST_CASE("Build Link_with_library", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+            g_examples_directory / "Link_with_library" / "hlang_repository.json"
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"lib"} / get_static_library_name("my_library", target),
+            std::filesystem::path{"bin"} / get_binary_name("my_app", target),
+        };
+
+        test_builder("Link_with_library", "my_app/hlang_artifact.json", target, repository_paths, expected_output_paths);
+    }
+
+    TEST_CASE("Build Mix_with_cpp", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+            g_examples_directory / "Mix_with_cpp" / "hlang_repository.json"
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"artifacts"} / "my_app.cpp_implementation.bc",
+            std::filesystem::path{"artifacts"} / "my_app.bc",
+            std::filesystem::path{"artifacts/C_interface.hlb"},
+            std::filesystem::path{"bin"} / get_binary_name("my_app", target)
+        };
+
+        test_builder("Mix_with_cpp", "my_app/hlang_artifact.json", target, repository_paths, expected_output_paths);
+    }
+
+    TEST_CASE("Build Mix_with_cpp compile commands", "[Builder]")
+    {
+        std::string_view const project_name = "Mix_with_cpp";
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+            g_examples_directory / project_name / "hlang_repository.json"
+        };
+
+        std::filesystem::path const artifact_file_path = g_examples_directory / project_name / "my_app" / "hlang_artifact.json";
+        
+        std::filesystem::path const temporary_directory_path = std::filesystem::temp_directory_path();
+        std::filesystem::path const build_directory_path = temporary_directory_path / project_name / "build";
+        std::filesystem::path const output_file_path = build_directory_path / "compile_commands.json";
+
+        std::filesystem::path const executable_directory = h::common::get_executable_directory();
+
+        bool const use_clang_cl = true;
+
+        if (use_clang_cl)
+        {
+            std::pmr::vector<Compile_command> const expected_compile_commands
+            {
+                Compile_command
+                {
+                    .directory = build_directory_path / "artifacts",
+                    .arguments = {
+                        std::pmr::string{(executable_directory / "clang-cl.exe").generic_string()},
+                        std::pmr::string{"/clang:-I"} + std::pmr::string{(g_examples_directory / project_name / "external_library" / "include").generic_string()},
+                        std::pmr::string{"/clang:-std=c++23"},
+                        std::pmr::string{"/clang:-o"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.bc").generic_string()},
+                        std::pmr::string{"/MD"},
+                        std::pmr::string{"/clang:-MMD"},
+                        std::pmr::string{"/clang:-MF"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.d").generic_string()},
+                        std::pmr::string{"/clang:-emit-llvm"},
+                        std::pmr::string{"/clang:-c"},
+                        std::pmr::string{(g_examples_directory / project_name / "my_app" / "cpp_implementation.cpp").generic_string()},
+                    },
+                    .file = g_examples_directory / project_name / "my_app" / "cpp_implementation.cpp",
+                    .output = build_directory_path / "artifacts" / "my_app.cpp_implementation.bc",
+                }
+            };
+
+            test_compile_commands(build_directory_path, artifact_file_path, output_file_path, target, repository_paths, expected_compile_commands);
+        }
     }
 }

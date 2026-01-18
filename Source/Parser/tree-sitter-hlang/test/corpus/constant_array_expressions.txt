@@ -6,13 +6,15 @@ module Constant_array_expressions;
 
 export function foo() -> ()
 {
-    var a: Constant_array<Int32, 0> = [];
-    var b: Constant_array<Int32, 4> = [0, 1, 2, 3];
+    var a: Constant_array::<Int32, 0> = [];
+    var b: Constant_array::<Int32, 4> = [0, 1, 2, 3];
 
     a[0] = 0;
     a[1] = 1;
 
     var c = b[3];
+
+    var d = ["Hello"c, "World!"];
 }
 
 ---
@@ -125,4 +127,19 @@ export function foo() -> ()
                         (Identifier))))
                   (Generic_expression
                     (Expression_constant
-                      (Number))))))))))))
+                      (Number)))))))
+          (Statement
+            (Expression_variable_declaration
+              (Expression_variable_mutability)
+              (Variable_name
+                (Identifier))
+              (Generic_expression
+                (Expression_create_array
+                  (Generic_expression_or_instantiate
+                    (Generic_expression
+                      (Expression_constant
+                        (String))))
+                  (Generic_expression_or_instantiate
+                    (Generic_expression
+                      (Expression_constant
+                        (String)))))))))))))

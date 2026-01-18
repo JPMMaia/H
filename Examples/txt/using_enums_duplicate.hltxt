@@ -1,0 +1,15 @@
+module Enums_duplicate;
+
+import Enums as Enums;
+
+export enum My_enum
+{
+    Value_0 = 0,
+    Value_1 = 10,
+}
+
+export function use_enums() -> ()
+{
+    var v0 = My_enum.Value_1;
+    var v1 = Enums.My_enum.Value_1;
+}

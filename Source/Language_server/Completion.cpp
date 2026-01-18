@@ -424,20 +424,62 @@ namespace h::language_server
         };
     }
 
-    static h::Source_position get_dot_source_position(
+    static h::Source_position get_access_operator_source_position(
+        std::string_view const operator_value,
         h::Source_position const source_position_after_dot
     )
     {
         if (source_position_after_dot.column > 1)
         {
-            return h::Source_position
+            if (source_position_after_dot.column > 1)
             {
-                .line = source_position_after_dot.line,
-                .column = source_position_after_dot.column - 1
-            };
+                return h::Source_position
+                {
+                    .line = source_position_after_dot.line,
+                    .column = source_position_after_dot.column - static_cast<std::uint32_t>(operator_value.size())
+                };
+            }
         }
 
         return source_position_after_dot;
+    }
+
+    static std::optional<lsp::CompletionList> create_access_value_completion_list_for_expression_type(
+        Declaration_database const& declaration_database,
+        h::Type_reference const& expression_type
+    )
+    {
+        if (is_array_slice_type_reference(expression_type))
+        {
+            std::vector<lsp::CompletionItem> items = {};    
+            add_array_slice_member_items(items, std::get<Array_slice_type>(expression_type.data));
+
+            return lsp::CompletionList
+            {
+                .isIncomplete = false,
+                .items = std::move(items),
+                .itemDefaults = std::nullopt,
+            };
+        }
+
+        std::optional<Declaration> const underlying_declaration_optional = find_underlying_declaration(
+            declaration_database,
+            expression_type
+        );
+        if (underlying_declaration_optional.has_value())
+        {
+            std::vector<lsp::CompletionItem> items = {};
+            add_declaration_member_items(items, underlying_declaration_optional.value());
+
+            return lsp::CompletionList
+            {
+                .isIncomplete = false,
+                .items = std::move(items),
+                .itemDefaults = std::nullopt,
+            };
+        }
+
+        return std::nullopt;
     }
 
     static std::optional<lsp::CompletionList> create_access_value_completion_list(
@@ -450,10 +492,12 @@ namespace h::language_server
         h::Source_position const source_position
     )
     {
+        std::string_view const node_before_value = get_node_value(parse_tree, node_before);
+
         std::optional<h::parser::Parse_node> const node_to_access = h::parser::find_node_before_source_position(
             parse_tree,
             node_before,
-            get_dot_source_position(source_position)
+            get_access_operator_source_position(node_before_value, source_position)
         );
         if (!node_to_access.has_value())
             return std::nullopt;
@@ -513,7 +557,6 @@ namespace h::language_server
         if (function_declaration != nullptr && function_definition != nullptr)
         {
             h::Source_range const node_before_source_range = h::parser::get_node_source_range(node_before);
-            std::string_view const node_before_value = get_node_value(parse_tree, node_before);
             h::Source_position const scope_source_position = 
                 (node_before_value.ends_with(";") || node_before_value.ends_with(".")) ?
                 h::Source_position{ .line = node_before_source_range.end.line, .column = node_before_source_range.end.column - 1 } :
@@ -539,35 +582,17 @@ namespace h::language_server
                 );
                 if (expression_type.has_value())
                 {
-                    if (is_array_slice_type_reference(expression_type.value()))
+                    bool const is_dereference_and_access = node_before_value == "->";
+                    if (is_dereference_and_access)
                     {
-                        std::vector<lsp::CompletionItem> items = {};    
-                        add_array_slice_member_items(items, std::get<Array_slice_type>(expression_type->data));
-
-                        return lsp::CompletionList
+                        std::optional<h::Type_reference> const value_type = remove_pointer(expression_type.value());
+                        if (value_type.has_value())
                         {
-                            .isIncomplete = false,
-                            .items = std::move(items),
-                            .itemDefaults = std::nullopt,
-                        };
+                            return create_access_value_completion_list_for_expression_type(declaration_database, value_type.value());
+                        }
                     }
 
-                    std::optional<Declaration> const underlying_declaration_optional = find_underlying_declaration(
-                        declaration_database,
-                        expression_type.value()
-                    );
-                    if (underlying_declaration_optional.has_value())
-                    {
-                        std::vector<lsp::CompletionItem> items = {};
-                        add_declaration_member_items(items, underlying_declaration_optional.value());
-
-                        return lsp::CompletionList
-                        {
-                            .isIncomplete = false,
-                            .items = std::move(items),
-                            .itemDefaults = std::nullopt,
-                        };
-                    }
+                    return create_access_value_completion_list_for_expression_type(declaration_database, expression_type.value());
                 }
             }
         }
@@ -879,7 +904,7 @@ namespace h::language_server
             {
                 return create_type_completion_list(declaration_database, core_module);
             }
-            else if (node_before_value == ".")
+            else if (node_before_value == "." || node_before_value == "->")
             {
                 if (expects_access_type(parse_tree, node_before.value()))
                 {

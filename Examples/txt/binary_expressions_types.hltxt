@@ -1,0 +1,9 @@
+module Binary_expression_types;
+
+using My_pointer = *Int32;
+
+export function run() -> ()
+{
+    var p0: My_pointer = null;
+    var v0 = p0 == null;
+}

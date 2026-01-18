@@ -97,12 +97,14 @@ namespace h::binary_serializer
     void serialize(Serializer& serializer, Array_slice_type const& value)
     {
         serialize(serializer, value.element_type);
+        serialize(serializer, value.is_mutable);
     }
 
     export template <>
     void deserialize(Deserializer& deserializer, Array_slice_type& value)
     {
         deserialize(deserializer, value.element_type);
+        deserialize(deserializer, value.is_mutable);
     }
 
     export template <>
@@ -360,6 +362,22 @@ namespace h::binary_serializer
         deserialize(deserializer, value.unique_name);
         deserialize(deserializer, value.values);
         deserialize(deserializer, value.comment);
+        deserialize(deserializer, value.source_location);
+    }
+
+    export template <>
+    void serialize(Serializer& serializer, Forward_declaration const& value)
+    {
+        serialize(serializer, value.name);
+        serialize(serializer, value.unique_name);
+        serialize(serializer, value.source_location);
+    }
+
+    export template <>
+    void deserialize(Deserializer& deserializer, Forward_declaration& value)
+    {
+        deserialize(deserializer, value.name);
+        deserialize(deserializer, value.unique_name);
         deserialize(deserializer, value.source_location);
     }
 
@@ -800,7 +818,7 @@ namespace h::binary_serializer
     {
         serialize(serializer, value.condition);
         serialize(serializer, value.then_statements);
-        serialize(serializer, value.block_source_position);
+        serialize(serializer, value.block_source_range);
     }
 
     export template <>
@@ -808,7 +826,7 @@ namespace h::binary_serializer
     {
         deserialize(deserializer, value.condition);
         deserialize(deserializer, value.then_statements);
-        deserialize(deserializer, value.block_source_position);
+        deserialize(deserializer, value.block_source_range);
     }
 
     export template <>
@@ -893,6 +911,7 @@ namespace h::binary_serializer
     void serialize(Serializer& serializer, Reflection_expression const& value)
     {
         serialize(serializer, value.name);
+        serialize(serializer, value.type_arguments);
         serialize(serializer, value.arguments);
     }
 
@@ -900,6 +919,7 @@ namespace h::binary_serializer
     void deserialize(Deserializer& deserializer, Reflection_expression& value)
     {
         deserialize(deserializer, value.name);
+        deserialize(deserializer, value.type_arguments);
         deserialize(deserializer, value.arguments);
     }
 
@@ -1190,6 +1210,7 @@ namespace h::binary_serializer
     {
         serialize(serializer, value.alias_type_declarations);
         serialize(serializer, value.enum_declarations);
+        serialize(serializer, value.forward_declarations);
         serialize(serializer, value.global_variable_declarations);
         serialize(serializer, value.struct_declarations);
         serialize(serializer, value.union_declarations);
@@ -1203,6 +1224,7 @@ namespace h::binary_serializer
     {
         deserialize(deserializer, value.alias_type_declarations);
         deserialize(deserializer, value.enum_declarations);
+        deserialize(deserializer, value.forward_declarations);
         deserialize(deserializer, value.global_variable_declarations);
         deserialize(deserializer, value.struct_declarations);
         deserialize(deserializer, value.union_declarations);

@@ -215,7 +215,7 @@ namespace h::language_server
             parts.push_back(
                 lsp::InlayHintLabelPart
                 {
-                    .value = "Constant_array<",
+                    .value = "Constant_array::<",
                 }
             );
 

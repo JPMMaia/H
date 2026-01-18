@@ -15,7 +15,7 @@ import h.core;
 
 namespace h
 {
-    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type);
+    export Type_reference create_array_slice_type_reference(std::pmr::vector<Type_reference> element_type, bool is_mutable);
     export bool is_array_slice_type_reference(Type_reference const& type);
 
     export Type_reference create_bool_type_reference();
@@ -43,6 +43,7 @@ namespace h
     export Type_reference create_fundamental_type_type_reference(Fundamental_type const value);
     export bool is_byte(Type_reference const& type);
     export bool is_floating_point(Type_reference const& type);
+    export bool is_any_type(Type_reference const& type);
     
     export Type_reference create_c_string_type_reference(bool const is_mutable);
     export bool is_c_string(Type_reference const& type_reference);
@@ -233,6 +234,15 @@ namespace h
 
     export template <typename Function_t>
     bool visit_type_references(
+        h::Forward_declaration const& declaration,
+        Function_t predicate
+    )
+    {
+        return false;
+    }
+
+    export template <typename Function_t>
+    bool visit_type_references(
         h::Global_variable_declaration const& declaration,
         Function_t predicate
     )
@@ -395,6 +405,16 @@ namespace h
                 if (visit_type_references(data.declaration, predicate))
                     return true;
                 return visit_type_references(data.definition, predicate);
+            }
+            else if (std::holds_alternative<Reflection_expression>(expression.data))
+            {
+                Reflection_expression const& data = std::get<Reflection_expression>(expression.data);
+                for (Type_reference const& type : data.type_arguments)
+                {
+                    if (visit_type_references(type, predicate))
+                        return true;
+                }
+                return false;
             }
             else if (std::holds_alternative<Type_expression>(expression.data))
             {

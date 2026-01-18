@@ -2,20 +2,33 @@
     "name": "C_standard_library",
     "version": "0.1.0",
     "type": "library",
+    "sources": [
+        {
+            "type": "c_header",
+            "headers": [
+                {
+                    "name": "c.math",
+                    "header": "math.h"
+                },
+                {
+                    "name": "c.stdio",
+                    "header": "stdio.h"
+                },
+                {
+                    "name": "c.stdlib",
+                    "header": "stdlib.h"
+                },
+                {
+                    "name": "c.string",
+                    "header": "string.h"
+                }
+            ]
+        }
+    ],
     "library": {
-        "c_headers": [
-            {
-                "name": "c.stdio",
-                "header": "stdio.h"
-            },
-            {
-                "name": "c.stdlib",
-                "header": "stdlib.h"
-            }
-        ],
         "external_library": {
-            "windows-dynamic-debug": "ucrtd.lib",
-            "windows-dynamic-release": "ucrt.lib"
+            "windows-dynamic-debug": ["legacy_stdio_definitions.lib", "msvcrtd.lib", "ucrtd.lib", "kernel32.lib", "ntdll.lib"],
+            "windows-dynamic-release": ["legacy_stdio_definitions.lib", "msvcrt.lib", "ucrt.lib", "kernel32.lib", "ntdll.lib"]
         }
     }
 }

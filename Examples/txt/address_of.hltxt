@@ -1,0 +1,14 @@
+module Address_of;
+
+struct My_struct
+{
+    v0: Int32 = 0;
+    v1: Int32 = 0;
+}
+
+export function take(integers: *Int32, instance: My_struct) -> ()
+{
+    var p0 = &integers[1];
+    var p1 = &instance.v1;
+}
+

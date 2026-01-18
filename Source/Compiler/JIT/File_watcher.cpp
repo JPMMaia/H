@@ -21,7 +21,7 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<std::filesystem::path> directories_to_watch = find_root_include_directories(artifact, temporaries_allocator);
+        std::pmr::vector<std::filesystem::path> directories_to_watch = find_root_include_directories(artifact, temporaries_allocator, temporaries_allocator);
 
         // Remove all subdirectories and leave only "root directories"
         for (std::size_t index = directories_to_watch.size(); index > 1; --index)

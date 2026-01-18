@@ -385,9 +385,14 @@ namespace h::c
         case CXType_Pointer:
         {
             CXType const pointee_type = type.kind == CXType_Pointer ? clang_getPointeeType(type) : clang_getArrayElementType(type);
-            bool const is_const = clang_isConstQualifiedType(pointee_type);
+
+            CXCursor const pointee_declaration = clang_getTypeDeclaration(pointee_type);
 
             std::optional<Type_reference> element_type = create_type_reference(declarations, cursor, pointee_type);
+            if (element_type.has_value() && std::holds_alternative<Function_pointer_type>(element_type->data))
+                return element_type;
+
+            bool const is_const = clang_isConstQualifiedType(pointee_type);
 
             h::Pointer_type pointer_type
             {
@@ -657,6 +662,24 @@ namespace h::c
             .name = std::pmr::string{enum_type_name},
             .unique_name = std::pmr::string{enum_type_name},
             .values = std::move(values),
+            .source_location = cursor_location.source_location,
+        };
+    }
+
+    h::Forward_declaration create_forward_declaration(C_declarations const& declarations, CXCursor const cursor)
+    {
+        CXType const type = clang_getCursorType(cursor);
+        String const type_spelling = { clang_getTypeSpelling(type) };
+        std::string_view const type_name = remove_type(type_spelling.string_view());
+
+        Header_source_location const cursor_location = get_cursor_source_location(
+            cursor
+        );
+
+        return h::Forward_declaration
+        {
+            .name = std::pmr::string{type_name},
+            .unique_name = std::pmr::string{type_name},
             .source_location = cursor_location.source_location,
         };
     }
@@ -2003,7 +2026,7 @@ namespace h::c
         return c_strings;
     }
 
-    static CXTranslationUnit create_translation_unit(
+    static std::optional<CXTranslationUnit> create_translation_unit(
         CXIndex const index,
         std::filesystem::path const& header_path,
         Options const& options
@@ -2050,9 +2073,24 @@ namespace h::c
 
         if (error != CXError_Success)
         {
+            unsigned const number_of_diagnostics = clang_getNumDiagnostics(unit);
+
+            unsigned const options =
+                CXDiagnostic_DisplaySourceLocation |
+                CXDiagnostic_DisplaySourceRanges |
+                CXDiagnostic_DisplayCategoryId |
+                CXDiagnostic_DisplayCategoryName;
+
+            for (unsigned index = 0; index < number_of_diagnostics; ++index)
+            {
+                CXDiagnostic const diagnostic = clang_getDiagnostic(unit, index);
+                String const diagnostic_message = String{clang_formatDiagnostic(diagnostic, options)};
+                std::cerr << diagnostic_message.string_view() << std::endl;
+            }
+
             constexpr char const* message = "Unable to parse translation unit. Quitting.";
             std::cerr << message << std::endl;
-            throw std::runtime_error{ message };
+            return std::nullopt;
         }
 
         CXTargetInfo targetInfo = clang_getTranslationUnitTargetInfo(unit);
@@ -2102,6 +2140,14 @@ namespace h::c
                 export_declarations.enum_declarations.push_back(declaration);
             else
                 internal_declarations.enum_declarations.push_back(declaration);
+        }
+
+        for (h::Forward_declaration const& declaration : declarations.forward_declarations)
+        {
+            if (is_public_declaration(*declaration.unique_name, public_prefixes))
+                export_declarations.forward_declarations.push_back(declaration);
+            else
+                internal_declarations.forward_declarations.push_back(declaration);
         }
 
         for (h::Global_variable_declaration const& declaration : declarations.global_variable_declarations)
@@ -2373,6 +2419,9 @@ namespace h::c
         for (h::Alias_type_declaration& declaration : declarations.alias_type_declarations)
             transform_name(declaration, remove_prefixes);
 
+        for (h::Forward_declaration& declaration : declarations.forward_declarations)
+            transform_name(declaration, remove_prefixes);
+
         for (h::Global_variable_declaration& declaration : declarations.global_variable_declarations)
             transform_name(declaration, remove_prefixes);
 
@@ -2407,7 +2456,7 @@ namespace h::c
         return false;
     }
 
-    void convert_macro_constants_to_global_constant_variables(
+    static bool convert_macro_constants_to_global_constant_variables(
         std::string_view const header_name,
         CXIndex const index,
         std::filesystem::path const& header_path,
@@ -2449,7 +2498,9 @@ namespace h::c
             std::fclose(file);
         }
 
-        CXTranslationUnit unit = create_translation_unit(index, generated_header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, generated_header_path, options);
+        if (!unit.has_value())
+            return false;
 
         auto const visitor = [](CXCursor current_cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
         {
@@ -2483,7 +2534,7 @@ namespace h::c
             return CXChildVisit_Continue;
         };
 
-        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        CXCursor cursor = clang_getTranslationUnitCursor(*unit);
 
         clang_visitChildren(
             cursor,
@@ -2491,7 +2542,9 @@ namespace h::c
             &declarations
         );
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
+
+        return true;
     }
 
     h::Module import_header(
@@ -2543,11 +2596,25 @@ namespace h::c
             }
             else if (cursor_kind == CXCursor_StructDecl)
             {
-                declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
+                if (clang_isCursorDefinition(current_cursor))
+                {
+                    declarations->struct_declarations.push_back(create_struct_declaration(*declarations, current_cursor));
+                }
+                else
+                {
+                    declarations->forward_declarations.push_back(create_forward_declaration(*declarations, current_cursor));
+                }
             }
             else if (cursor_kind == CXCursor_UnionDecl)
             {
-                declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+                if (clang_isCursorDefinition(current_cursor))
+                {
+                    declarations->union_declarations.push_back(create_union_declaration(*declarations, current_cursor));
+                }
+                else
+                {
+                    declarations->forward_declarations.push_back(create_forward_declaration(*declarations, current_cursor));
+                }
             }
             else if (cursor_kind == CXCursor_VarDecl)
             {
@@ -2585,8 +2652,10 @@ namespace h::c
         h::add_declarations(
             declaration_database,
             header_name,
+            true,
             declarations_with_fixed_width_integers.alias_type_declarations,
             declarations_with_fixed_width_integers.enum_declarations,
+            declarations_with_fixed_width_integers.forward_declarations,
             declarations_with_fixed_width_integers.global_variable_declarations,
             declarations_with_fixed_width_integers.struct_declarations,
             declarations_with_fixed_width_integers.union_declarations,
@@ -2621,24 +2690,26 @@ namespace h::c
         return header_module;
     }
 
-    h::Module import_header(
+    std::optional<h::Module> import_header(
         std::string_view const header_name,
         std::filesystem::path const& header_path,
         Options const& options
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        if (!unit.has_value())
+            return std::nullopt;
 
-        h::Module header_module = import_header(header_name, header_path, options, index, unit);
+        h::Module header_module = import_header(header_name, header_path, options, index, *unit);
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
         clang_disposeIndex(index);
 
         return header_module;
     }
 
-    h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
+    std::optional<h::Module> import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options)
     {
         /*std::optional<std::uint64_t> current_header_hash = calculate_header_file_hash(header_path, options.target_triple, options.include_directories);
 
@@ -2656,11 +2727,14 @@ namespace h::c
             }
         }*/
 
-        h::Module header_module = import_header(header_name, header_path, options);
-        //header_module.content_hash = current_header_hash;
-        h::binary_serializer::write_module_to_file(output_path, header_module, {});
+        std::optional<h::Module> header_module = import_header(header_name, header_path, options);
+        if (!header_module.has_value())
+            return std::nullopt;
 
-        return header_module;
+        //header_module.content_hash = current_header_hash;
+        h::binary_serializer::write_module_to_file(output_path, *header_module, {});
+
+        return *header_module;
     }
 
     h::Struct_layout calculate_struct_layout(
@@ -2724,14 +2798,16 @@ namespace h::c
         return client_data.struct_layout;
     }
 
-    h::Struct_layout calculate_struct_layout(
+    std::optional<h::Struct_layout> calculate_struct_layout(
         std::filesystem::path const& header_path,
         std::string_view const struct_name,
         Options const& options
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        CXTranslationUnit unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        if (!unit.has_value())
+            return std::nullopt;
 
         struct Client_data
         {
@@ -2760,7 +2836,7 @@ namespace h::c
             return CXChildVisit_Continue;
         };
 
-        CXCursor cursor = clang_getTranslationUnitCursor(unit);
+        CXCursor cursor = clang_getTranslationUnitCursor(*unit);
 
         Client_data client_data
         {
@@ -2774,7 +2850,7 @@ namespace h::c
             &client_data
         );
 
-        clang_disposeTranslationUnit(unit);
+        clang_disposeTranslationUnit(*unit);
         clang_disposeIndex(index);
 
         return client_data.struct_layout;

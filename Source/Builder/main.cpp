@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 
-import h.builder;
-
 import h.c_header_converter;
 import h.compiler;
 import h.compiler.builder;
@@ -18,6 +16,7 @@ import h.compiler.jit_runner;
 import h.compiler.linker;
 import h.compiler.repository;
 import h.compiler.target;
+import h.core;
 import h.parser.parser;
 
 std::pmr::vector<std::filesystem::path> convert_to_path(std::span<std::string const> const values)
@@ -107,6 +106,13 @@ argparse::Argument& add_no_debug_argument(argparse::ArgumentParser& command)
         .flag();
 }
 
+argparse::Argument& add_output_llvm_ir_argument(argparse::ArgumentParser& command)
+{
+    return command.add_argument("--output-llvm-ir")
+        .help("Output LLVM-IR to a file with .ll extension")
+        .flag();
+}
+
 argparse::Argument& add_function_contract_options_argument(argparse::ArgumentParser& command)
 {
     return command.add_argument("--function-contracts")
@@ -174,24 +180,6 @@ int main(int const argc, char const* const* argv)
 {
     argparse::ArgumentParser program("hlang");
 
-    // hlang build-executable <files>... [--build-directory=<build_directory>] [--entry=<entry>] [--output=<output>] [--module-search-path=<module_search_path>]...
-    argparse::ArgumentParser build_executable_command("build-executable");
-    build_executable_command.add_description("Build an executable");
-    build_executable_command.add_argument("files")
-        .help("File to compile")
-        .remaining();
-    add_build_directory_argument(build_executable_command);
-    build_executable_command.add_argument("--entry")
-        .help("Entry point symbol name")
-        .default_value("main");
-    build_executable_command.add_argument("--output")
-        .help("Write output to this location")
-        .default_value("output");
-    add_module_search_path_argument(build_executable_command);
-    add_no_debug_argument(build_executable_command);
-    add_function_contract_options_argument(build_executable_command);
-    program.add_subparser(build_executable_command);
-
     // hlang build-artifact [--artifact-file=<artifact_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
     argparse::ArgumentParser build_artifact_command("build-artifact");
     build_artifact_command.add_description("Build an artifact");
@@ -200,6 +188,7 @@ int main(int const argc, char const* const* argv)
     add_header_search_path_argument(build_artifact_command);
     add_repository_argument(build_artifact_command);
     add_no_debug_argument(build_artifact_command);
+    add_output_llvm_ir_argument(build_artifact_command);
     add_function_contract_options_argument(build_artifact_command);
     program.add_subparser(build_artifact_command);
 
@@ -239,6 +228,19 @@ int main(int const argc, char const* const* argv)
     add_target_triple_argument(print_struct_layout_command);
     program.add_subparser(print_struct_layout_command);
 
+    // hlang generate-compile-commands [--artifact-file=<artifact_file>] [--output-file=<output_file>] [--build-directory=<build_directory>] [--header-search-path=<header_search_path>]... [--repository=<repository_path>]...
+    argparse::ArgumentParser generate_compile_commands_command("generate-compile-commands");
+    generate_compile_commands_command.add_description("Generate compile_commands.json for C++ files.");
+    add_artifact_file_argument(generate_compile_commands_command);
+    generate_compile_commands_command.add_argument("--output-file")
+        .help("Path to the compile_commands.json file")
+        .default_value("build/compile_commands.json");
+    add_build_directory_argument(generate_compile_commands_command);
+    add_header_search_path_argument(generate_compile_commands_command);
+    add_repository_argument(generate_compile_commands_command);
+    add_target_triple_argument(generate_compile_commands_command);
+    program.add_subparser(generate_compile_commands_command);
+
     try
     {
         program.parse_args(argc, argv);
@@ -250,36 +252,7 @@ int main(int const argc, char const* const* argv)
         std::exit(1);
     }
 
-    if (program.is_subcommand_used("build-executable"))
-    {
-        print_arguments(argc, argv);
-
-        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("build-executable");
-
-        std::pmr::vector<std::filesystem::path> const file_paths = convert_to_path(program.get<std::vector<std::string>>("files"));
-        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
-        std::filesystem::path const output_path = subprogram.get<std::string>("--output");
-        std::pmr::vector<std::filesystem::path> const module_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--module-search-path"));
-        std::string_view const entry = subprogram.get<std::string>("--entry");
-        bool const no_debug = subprogram.get<bool>("--no-debug");
-        h::compiler::Contract_options const contract_options = get_function_contract_options_argument(subprogram);
-
-        // TODO create from --module-search-path
-        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> module_name_to_file_path_map;
-
-        h::compiler::Target const target = h::compiler::get_default_target();
-        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
-
-        h::compiler::Linker_options const linker_options
-        {
-            .entry_point = entry,
-            .debug = !no_debug
-        };
-
-        h::parser::Parser const parser = h::parser::create_parser();
-        h::builder::build_executable(target, parser, file_paths, {}, build_directory_path, output_path, module_name_to_file_path_map, compilation_options, linker_options);
-    }
-    else if (program.is_subcommand_used("build-artifact"))
+    if (program.is_subcommand_used("build-artifact"))
     {
         print_arguments(argc, argv);
 
@@ -295,12 +268,18 @@ int main(int const argc, char const* const* argv)
         h::compiler::Target const target = h::compiler::get_default_target();
         h::compiler::Compilation_options const compilation_options = create_compilation_options(target, no_debug, contract_options);
 
+        h::compiler::Builder_options const builder_options =
+        {
+            .output_llvm_ir = subprogram.get<bool>("--output-llvm-ir"),
+        };
+
         h::compiler::Builder builder = h::compiler::create_builder(
             target,
             build_directory_path,
             header_search_paths,
             repository_paths,
             compilation_options,
+            builder_options,
             {}
         );
 
@@ -365,7 +344,9 @@ int main(int const argc, char const* const* argv)
             .remove_prefixes = remove_prefixes,
         };
 
-        h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);
+        std::optional<h::Module> const header_module = h::c::import_header_and_write_to_file(module_name, input_file_path, output_file_path, options);
+        if (!header_module.has_value())
+            return -1;
     }
     else if (program.is_subcommand_used("print-struct-layout"))
     {
@@ -375,10 +356,45 @@ int main(int const argc, char const* const* argv)
         std::string const struct_name = subprogram.get<std::string>("struct_name");
         std::optional<std::string_view> const target_triple = get_target_triple(subprogram);
 
-        h::builder::print_struct_layout(
+        h::compiler::print_struct_layout(
             input_file_path,
             struct_name,
             target_triple
+        );
+    }
+    else if (program.is_subcommand_used("generate-compile-commands"))
+    {
+        argparse::ArgumentParser const& subprogram = program.at<argparse::ArgumentParser>("generate-compile-commands");
+
+        std::filesystem::path const artifact_file_path = subprogram.get<std::string>("--artifact-file");
+        std::filesystem::path const output_file_path = subprogram.get<std::string>("--output-file");
+        std::filesystem::path const build_directory_path = subprogram.get<std::string>("--build-directory");
+        std::pmr::vector<std::filesystem::path> const header_search_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--header-search-path"));
+        std::pmr::vector<std::filesystem::path> const repository_paths = convert_to_path(subprogram.get<std::vector<std::string>>("--repository"));
+
+        h::compiler::Target const target = h::compiler::get_default_target();
+        h::compiler::Compilation_options const compilation_options = create_compilation_options(target, false, h::compiler::Contract_options::Log_error_and_abort);
+
+        h::compiler::Builder_options const builder_options =
+        {
+            .output_llvm_ir = false,
+        };
+
+        h::compiler::Builder builder = h::compiler::create_builder(
+            target,
+            build_directory_path,
+            header_search_paths,
+            repository_paths,
+            compilation_options,
+            builder_options,
+            {}
+        );
+
+        h::compiler::write_compile_commands_json_to_file(
+            builder,
+            artifact_file_path,
+            compilation_options,
+            output_file_path
         );
     }
 

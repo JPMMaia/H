@@ -6,7 +6,7 @@ module Reflection;
 
 export function run() -> ()
 {
-    var size = @size_of(Int32);
+    var size = @size_of::<Int32>();
 }
 
 ---
@@ -34,9 +34,8 @@ export function run() -> ()
               (Generic_expression
                 (Expression_reflection_call
                   (Reflection_identifier)
-                  (Expression_call_arguments
-                    (Generic_expression_or_instantiate
-                      (Generic_expression
-                        (Expression_variable
-                          (Variable_name
-                            (Identifier)))))))))))))))
+                  (Expression_reflection_call_type_arguments
+                    (Type
+                      (Type_name
+                        (Identifier))))
+                  (Expression_call_arguments))))))))))

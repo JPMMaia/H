@@ -26,6 +26,7 @@ namespace h::c
         std::pmr::string module_name;
         std::pmr::vector<h::Alias_type_declaration> alias_type_declarations;
         std::pmr::vector<h::Enum_declaration> enum_declarations;
+        std::pmr::vector<h::Forward_declaration> forward_declarations;
         std::pmr::vector<h::Global_variable_declaration> global_variable_declarations;
         std::pmr::vector<h::Struct_declaration> struct_declarations;
         std::pmr::vector<h::Union_declaration> union_declarations;
@@ -49,11 +50,11 @@ namespace h::c
         std::span<std::pmr::string const> remove_prefixes;
     };
 
-    export h::Module import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);
+    export std::optional<h::Module> import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);
 
-    export h::Module import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options);
+    export std::optional<h::Module> import_header_and_write_to_file(std::string_view const header_name, std::filesystem::path const& header_path, std::filesystem::path const& output_path, Options const& options);
 
     export std::optional<std::uint64_t> calculate_header_file_hash(std::filesystem::path const& header_path, Options const& options);
 
-    export h::Struct_layout calculate_struct_layout(std::filesystem::path const& header_path, std::string_view struct_name, Options const& options);
+    export std::optional<h::Struct_layout> calculate_struct_layout(std::filesystem::path const& header_path, std::string_view struct_name, Options const& options);
 }
