@@ -2672,7 +2672,7 @@ namespace h::parser
             if (statements_node.has_value())
             {
                 serie.then_statements = node_to_block(module_info, tree, statements_node.value(), output_allocator, temporaries_allocator);
-                serie.block_source_position = get_node_start_source_position(statements_node.value());
+                serie.block_source_range = get_node_source_range(statements_node.value());
             }
 
             series.push_back(std::move(serie));

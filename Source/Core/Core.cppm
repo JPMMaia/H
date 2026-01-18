@@ -833,7 +833,7 @@ namespace h
     {
         std::optional<Statement> condition;
         std::pmr::vector<Statement> then_statements;
-        std::optional<Source_position> block_source_position;
+        std::optional<Source_range> block_source_range;
 
 #if HACK_SPACESHIP_OPERATOR
         friend std::strong_ordering operator<=>(Condition_statement_pair const&, Condition_statement_pair const&) = default;

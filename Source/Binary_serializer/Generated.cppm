@@ -818,7 +818,7 @@ namespace h::binary_serializer
     {
         serialize(serializer, value.condition);
         serialize(serializer, value.then_statements);
-        serialize(serializer, value.block_source_position);
+        serialize(serializer, value.block_source_range);
     }
 
     export template <>
@@ -826,7 +826,7 @@ namespace h::binary_serializer
     {
         deserialize(deserializer, value.condition);
         deserialize(deserializer, value.then_statements);
-        deserialize(deserializer, value.block_source_position);
+        deserialize(deserializer, value.block_source_range);
     }
 
     export template <>

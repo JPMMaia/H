@@ -3076,14 +3076,14 @@ namespace h::json
             };
         }
 
-        if (key == "block_source_position")
+        if (key == "block_source_range")
         {
-            parent->block_source_position = Source_position{};
+            parent->block_source_range = Source_range{};
             return Stack_state
             {
-                .pointer = &parent->block_source_position.value(),
-                .type = "Source_position",
-                .get_next_state = get_next_state_source_position
+                .pointer = &parent->block_source_range.value(),
+                .type = "Source_range",
+                .get_next_state = get_next_state_source_range
             };
         }
 

@@ -1747,7 +1747,7 @@ namespace h::json
         write_optional_object(writer, "condition", output.condition);
         writer.Key("then_statements");
         write_object(writer, output.then_statements);
-        write_optional_object(writer, "block_source_position", output.block_source_position);
+        write_optional_object(writer, "block_source_range", output.block_source_range);
         writer.EndObject();
     }
 

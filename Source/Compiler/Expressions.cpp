@@ -2643,7 +2643,7 @@ namespace h::compiler
                 llvm_builder.SetInsertPoint(then_block);
 
                 if (parameters.debug_info != nullptr)
-                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_position);
+                    push_debug_lexical_block_scope(*parameters.debug_info, serie.block_source_range->start);
 
                 create_statement_values(
                     serie.then_statements,
@@ -2662,7 +2662,7 @@ namespace h::compiler
             else
             {
                 if (parameters.debug_info != nullptr)
-                    push_debug_lexical_block_scope(*parameters.debug_info, *serie.block_source_position);
+                    push_debug_lexical_block_scope(*parameters.debug_info, serie.block_source_range->start);
 
                 create_statement_values(
                     serie.then_statements,
