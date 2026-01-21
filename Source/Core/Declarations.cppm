@@ -235,6 +235,10 @@ namespace h
         h::Module const& core_module
     );
 
+    export std::optional<std::string_view> get_declaration_unique_name(
+        Declaration const& declaration
+    );
+
     export std::string_view get_declaration_name(
         Declaration const& declaration
     );

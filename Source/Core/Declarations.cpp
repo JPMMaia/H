@@ -769,6 +769,56 @@ namespace h
         );
     }
 
+    std::optional<std::string_view> get_declaration_unique_name(
+        Declaration const& declaration
+    )
+    {
+        if (std::holds_alternative<Alias_type_declaration const*>(declaration.data))
+        {
+            Alias_type_declaration const& data = *std::get<Alias_type_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Enum_declaration const*>(declaration.data))
+        {
+            Enum_declaration const& data = *std::get<Enum_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Forward_declaration const*>(declaration.data))
+        {
+            Forward_declaration const& data = *std::get<Forward_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Function_declaration const*>(declaration.data))
+        {
+            Function_declaration const& data = *std::get<Function_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Global_variable_declaration const*>(declaration.data))
+        {
+            Global_variable_declaration const& data = *std::get<Global_variable_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Struct_declaration const*>(declaration.data))
+        {
+            Struct_declaration const& data = *std::get<Struct_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+        else if (std::holds_alternative<Union_declaration const*>(declaration.data))
+        {
+            Union_declaration const& data = *std::get<Union_declaration const*>(declaration.data);
+            if (data.unique_name.has_value())
+                return data.unique_name.value();
+        }
+
+        return std::nullopt;
+    }
+
     std::string_view get_declaration_name(
         Declaration const& declaration
     )
