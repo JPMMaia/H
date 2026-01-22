@@ -119,3 +119,33 @@ macro(Import_c_header)
    )
 
 endmacro()
+
+add_library(H_C_header_exporter)
+add_library(H::C_header_exporter ALIAS H_C_header_exporter)
+
+target_compile_features(H_C_header_exporter PUBLIC cxx_std_23)
+
+target_link_libraries(H_C_header_exporter PUBLIC H::Common H::Core)
+
+target_sources(H_C_header_exporter
+   PUBLIC FILE_SET modules TYPE CXX_MODULES
+      FILES
+         "C_header_exporter.cppm"
+   PRIVATE
+      "C_header_exporter.cpp"
+)
+
+install(FILES "hlang_builtin.h" TYPE INCLUDE CONFIGURATIONS Debug Release)
+
+if(BUILD_TESTING)
+   add_executable(H_C_header_exporter_tests)
+   target_link_libraries(H_C_header_exporter_tests PRIVATE H::JSON_serializer H::Parser H_C_header_exporter)
+
+   find_package(Catch2 CONFIG REQUIRED)
+   target_link_libraries(H_C_header_exporter_tests PRIVATE Catch2::Catch2 Catch2::Catch2WithMain)
+
+   target_sources(H_C_header_exporter_tests PRIVATE "C_header_exporter.tests.cpp")
+
+   include(Catch)
+   catch_discover_tests(H_C_header_exporter_tests)
+endif()
