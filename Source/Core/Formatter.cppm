@@ -32,6 +32,14 @@ namespace h
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
+    export std::string_view format_fundamental_type(
+        Fundamental_type const value
+    );
+
+    export std::pmr::string format_integer_type(
+        h::Integer_type const value
+    );
+
     export std::pmr::string format_statement(
         h::Module const& core_module,
         Statement const& statement,

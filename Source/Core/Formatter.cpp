@@ -1486,7 +1486,7 @@ namespace h
         add_format_expression_block(buffer, expression.then_statements, outside_indentation, options);
     }
 
-    std::string_view get_fundamental_type_name(
+    std::string_view format_fundamental_type(
         Fundamental_type const value
     )
     {
@@ -1535,6 +1535,24 @@ namespace h
         default:
             return "<unknown>";
         }
+    }
+
+    void add_format_integer_type(
+        String_buffer& buffer,
+        Integer_type const value
+    )
+    {
+        add_text(buffer, value.is_signed ? "Int" : "Uint");
+        add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
+    }
+
+    std::pmr::string format_integer_type(
+        h::Integer_type const value
+    )
+    {
+        String_buffer buffer;
+        add_format_integer_type(buffer, value);
+        return to_string(buffer);
     }
 
     void add_format_custom_type_reference(
@@ -1606,7 +1624,7 @@ namespace h
         else if (std::holds_alternative<Fundamental_type>(type.data))
         {
             Fundamental_type const& value = std::get<Fundamental_type>(type.data);
-            std::string_view const name = get_fundamental_type_name(value);
+            std::string_view const name = format_fundamental_type(value);
             add_text(buffer, name);
         }
         else if (std::holds_alternative<Function_pointer_type>(type.data))
@@ -1643,8 +1661,7 @@ namespace h
         else if (std::holds_alternative<Integer_type>(type.data))
         {
             Integer_type const& value = std::get<Integer_type>(type.data);
-            add_text(buffer, value.is_signed ? "Int" : "Uint");
-            add_integer_text(buffer, static_cast<std::uint64_t>(value.number_of_bits));
+            add_format_integer_type(buffer, value);
         }
         else if (std::holds_alternative<Null_pointer_type>(type.data))
         {
