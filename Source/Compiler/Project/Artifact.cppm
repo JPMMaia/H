@@ -41,13 +41,14 @@ namespace h::compiler
         std::pmr::string header;
     };
 
-    export struct C_header_source_group
+    export struct Import_c_header_source_group
     {
         std::pmr::vector<C_header> c_headers;
         std::pmr::vector<std::filesystem::path> search_paths;
         std::pmr::vector<std::pmr::string> public_prefixes;
         std::pmr::vector<std::pmr::string> remove_prefixes;
     };
+
 
     export struct Cpp_source_group
     {
@@ -60,7 +61,7 @@ namespace h::compiler
     export struct Source_group
     {
         using Data_type = std::variant<
-            C_header_source_group,
+            Import_c_header_source_group,
             Cpp_source_group,
             Hlang_source_group
         >;

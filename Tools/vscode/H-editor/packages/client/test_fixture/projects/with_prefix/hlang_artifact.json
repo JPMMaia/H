@@ -4,7 +4,7 @@
     "type": "library",
     "sources": [
         {
-            "type": "c_header",
+            "type": "import_c_header",
             "headers": [
                 {
                     "name": "c.prefix",

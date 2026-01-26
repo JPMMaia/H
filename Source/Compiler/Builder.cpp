@@ -324,7 +324,7 @@ namespace h::compiler
 
             for (Source_group const* source_group : c_header_source_groups)
             {
-                C_header_source_group const& c_header_source_group = std::get<C_header_source_group>(*source_group->data);
+                Import_c_header_source_group const& c_header_source_group = std::get<Import_c_header_source_group>(*source_group->data);
                 std::span<C_header const> const c_headers = c_header_source_group.c_headers;
 
                 for (std::size_t header_index = 0; header_index < c_headers.size(); ++header_index)

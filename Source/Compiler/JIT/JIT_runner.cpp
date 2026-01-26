@@ -210,9 +210,9 @@ namespace h::compiler
 
         for (Source_group const& group : artifact->sources)
         {
-            if (std::holds_alternative<C_header_source_group>(*group.data))
+            if (std::holds_alternative<Import_c_header_source_group>(*group.data))
             {
-                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+                Import_c_header_source_group const& c_header_group = std::get<Import_c_header_source_group>(*group.data);
 
                 auto const is_c_header = [&](C_header const& c_header) -> bool
                 {
