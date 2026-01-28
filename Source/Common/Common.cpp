@@ -160,4 +160,28 @@ namespace h::common
 
         return output;
     }
+
+    std::pmr::vector<std::string_view> split_string(std::string_view const value, char const separator, std::pmr::polymorphic_allocator<> const& output_allocator)
+    {
+        std::pmr::vector<std::string_view> output;
+
+        std::size_t count = std::count(value.begin(), value.end(), separator);
+        output.reserve(count + 1);
+
+        std::string_view::size_type previous_position = 0;
+        std::string_view::size_type current_position = 0;
+
+        while((current_position = value.find(separator, current_position)) != std::string::npos)
+        {
+            std::string_view const substring = value.substr(previous_position, current_position-previous_position);
+            output.push_back(substring);
+
+            current_position += 1;
+            previous_position = current_position;
+        }
+
+        output.push_back(value.substr(previous_position));
+
+        return output;
+    }
 }
