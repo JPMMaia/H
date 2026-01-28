@@ -1643,22 +1643,12 @@ namespace h::compiler
         };
     }
 
-    Compilation_database process_modules_and_create_compilation_database(
-        LLVM_data& llvm_data,
-        std::span<h::Module const> const header_modules,
-        std::span<h::Module> const core_modules,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
+    
+    void print_diagnostics_and_exit_if_needed(
+        std::span<h::compiler::Diagnostic const> const diagnostics,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        Declaration_database_and_sorted_modules declaration_database_and_sorted_modules = create_declaration_database_and_sorted_modules(
-            header_modules,
-            core_modules,
-            output_allocator,
-            temporaries_allocator
-        );
-
-        std::span<Diagnostic const> const diagnostics = declaration_database_and_sorted_modules.diagnostics;
         if (!diagnostics.empty())
         {
             for (std::size_t diagnostic_index = 0; diagnostic_index < diagnostics.size(); ++diagnostic_index)
@@ -1688,10 +1678,17 @@ namespace h::compiler
             if (contains_errors)
                 h::common::print_message_and_exit("Validation failed.");
         }
-    
-        std::span<h::Module const* const> const sorted_core_modules = declaration_database_and_sorted_modules.sorted_core_modules;
-        Declaration_database declaration_database = std::move(declaration_database_and_sorted_modules.declaration_database);
+    }
 
+    Compilation_database process_modules_and_create_compilation_database(
+        LLVM_data& llvm_data,
+        std::span<h::Module const> const header_modules,
+        std::span<h::Module const* const> const sorted_core_modules,
+        Declaration_database declaration_database,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {    
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,

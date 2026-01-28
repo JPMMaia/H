@@ -10,6 +10,7 @@ module;
 export module h.compiler.builder;
 
 import h.core;
+import h.core.declarations;
 import h.compiler;
 import h.compiler.artifact;
 import h.compiler.profiler;
@@ -68,6 +69,14 @@ namespace h::compiler
         Builder& builder,
         std::span<Artifact const> const artifacts,
         std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
+
+    export void generate_c_header_files(
+        Builder& builder,
+        std::span<Artifact const> const artifacts,
+        std::span<h::Module const> const core_modules,
+        h::Declaration_database const& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 

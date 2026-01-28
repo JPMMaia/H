@@ -4,6 +4,7 @@
 #include <string_view>
 
 import h.core;
+import h.core.declarations;
 import h.c_header_exporter;
 import h.json_serializer.operators;
 import h.parser.convertor;
@@ -76,9 +77,14 @@ namespace h::c
             core_module_dependencies[dependency.first] = std::move(core_module_dependency.value());
         }
 
+        h::Declaration_database declaration_database = h::create_declaration_database();
+        for (std::pair<std::pmr::string const, h::Module> const& pair : core_module_dependencies)
+            h::add_declarations(declaration_database, pair.second);
+        h::add_declarations(declaration_database, core_module.value());
+
         std::pmr::string const full_expected_content = create_expected_c_header_content(core_module->name, dependencies_c_file_paths, expected_content);
 
-        Exported_c_header const exported_c_header = export_module_as_c_header(core_module.value(), core_module_dependencies, dependencies_c_file_paths, {}, {});
+        Exported_c_header const exported_c_header = export_module_as_c_header(core_module.value(), declaration_database, dependencies_c_file_paths, {}, {});
         CHECK(exported_c_header.content == full_expected_content);
     }
 

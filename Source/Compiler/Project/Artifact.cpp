@@ -257,6 +257,15 @@ namespace h::compiler
 
             return data;
         }
+        else if (type == "export_c_header")
+        {
+            Export_c_header_source_group data{};
+
+            if (json.contains("output_directory"))
+                data.output_directory = std::filesystem::path{json.at("output_directory").get<std::string>()};
+
+            return data;
+        }
         else if (type == "c++")
         {
             return Cpp_source_group{};
@@ -410,13 +419,23 @@ namespace h::compiler
 
                 if (group.data.has_value())
                 {
+                    if (std::holds_alternative<Export_c_header_source_group>(*group.data))
+                        group_json["type"] = "export_c_header";
+                    else if (std::holds_alternative<Import_c_header_source_group>(*group.data))
                         group_json["type"] = "import_c_header";
                     else if (std::holds_alternative<Cpp_source_group>(*group.data))
                         group_json["type"] = "c++";
                     else if (std::holds_alternative<Hlang_source_group>(*group.data))
                         group_json["type"] = "hlang";
 
-                    if (std::holds_alternative<Import_c_header_source_group>(*group.data))
+                    if (std::holds_alternative<Export_c_header_source_group>(*group.data))
+                    {
+                        Export_c_header_source_group const& c_headers_group = std::get<Export_c_header_source_group>(*group.data);
+
+                        if (c_headers_group.output_directory.has_value())
+                            group_json["output_directory"] = c_headers_group.output_directory->generic_string();
+                    }
+                    else if (std::holds_alternative<Import_c_header_source_group>(*group.data))
                     {
                         Import_c_header_source_group const& c_headers_group = std::get<Import_c_header_source_group>(*group.data);
                         
@@ -527,6 +546,22 @@ namespace h::compiler
         public_include_directories.insert(public_include_directories.end(), directories.begin(), directories.end());
 
         return std::pmr::vector<std::filesystem::path>{public_include_directories, output_allocator};
+    }
+
+    std::pmr::vector<Source_group const*> get_export_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
+    {
+        std::pmr::vector<Source_group const*> groups{output_allocator};
+        groups.reserve(artifact.sources.size());
+
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<Export_c_header_source_group>(*group.data))
+            {
+                groups.push_back(&group);
+            }
+        }
+
+        return groups;
     }
 
     std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)

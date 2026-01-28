@@ -41,6 +41,11 @@ namespace h::compiler
         std::pmr::string header;
     };
 
+    export struct Export_c_header_source_group
+    {
+        std::optional<std::filesystem::path> output_directory;
+    };
+
     export struct Import_c_header_source_group
     {
         std::pmr::vector<C_header> c_headers;
@@ -61,6 +66,7 @@ namespace h::compiler
     export struct Source_group
     {
         using Data_type = std::variant<
+            Export_c_header_source_group,
             Import_c_header_source_group,
             Cpp_source_group,
             Hlang_source_group
@@ -101,6 +107,8 @@ namespace h::compiler
     export std::pmr::vector<std::filesystem::path> get_public_include_directories(Artifact const& artifact, std::span<Artifact const> const artifacts, std::pmr::polymorphic_allocator<> const& output_allocator, std::pmr::polymorphic_allocator<> const& temporaries_allocator);
     
     export bool contains_any_compilable_source(Artifact const& artifact);
+
+    export std::pmr::vector<Source_group const*> get_export_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator);
     
     export std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator);
 

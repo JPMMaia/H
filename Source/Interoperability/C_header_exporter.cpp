@@ -688,7 +688,7 @@ namespace h::c
 
     Exported_c_header export_module_as_c_header(
         h::Module const& core_module,
-        std::pmr::unordered_map<std::pmr::string, Module> const& core_module_dependencies,
+        h::Declaration_database const& declaration_database,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& dependencies_c_file_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
@@ -697,11 +697,6 @@ namespace h::c
         std::pmr::vector<h::Declaration> const declarations = sort_declarations(core_module, output_allocator, temporaries_allocator);
 
         String_stream stream{std::ios_base::in | std::ios_base::out, temporaries_allocator};
-
-        h::Declaration_database declaration_database = h::create_declaration_database();
-        for (std::pair<std::pmr::string const, h::Module> const& pair : core_module_dependencies)
-            h::add_declarations(declaration_database, pair.second);
-        h::add_declarations(declaration_database, core_module);
 
         write_header_start(stream, core_module.name);
         write_includes(stream, dependencies_c_file_paths);

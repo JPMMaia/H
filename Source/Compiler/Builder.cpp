@@ -6,6 +6,7 @@ module;
 #include <span>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -27,6 +28,7 @@ import h.compiler.profiler;
 import h.compiler.repository;
 import h.compiler.target;
 import h.c_header_converter;
+import h.c_header_exporter;
 import h.json_serializer;
 import h.parser.convertor;
 import h.parser.parse_tree;
@@ -134,6 +136,25 @@ namespace h::compiler
             std::make_move_iterator(header_modules.end())
         );*/
 
+        start_timer(get_profiler(builder), "create_declaration_database_and_sorted_modules");
+        Declaration_database_and_sorted_modules declaration_database_and_sorted_modules = create_declaration_database_and_sorted_modules(
+            header_modules,
+            core_modules,
+            output_allocator,
+            temporaries_allocator
+        );
+        end_timer(get_profiler(builder), "create_declaration_database_and_sorted_modules");
+        
+        print_diagnostics_and_exit_if_needed(declaration_database_and_sorted_modules.diagnostics, temporaries_allocator);
+
+        generate_c_header_files(
+            builder,
+            artifacts,
+            core_modules,
+            declaration_database_and_sorted_modules.declaration_database,
+            temporaries_allocator
+        );
+
         Compilation_options const& compilation_options = builder.compilation_options;
 
         LLVM_data llvm_data = initialize_llvm(
@@ -149,7 +170,8 @@ namespace h::compiler
         Compilation_database compilation_database = process_modules_and_create_compilation_database(
             llvm_data,
             header_modules,
-            core_modules,
+            declaration_database_and_sorted_modules.sorted_core_modules,
+            std::move(declaration_database_and_sorted_modules.declaration_database),
             output_allocator,
             temporaries_allocator
         );
@@ -389,6 +411,120 @@ namespace h::compiler
         end_timer(get_profiler(builder), "parse_c_headers_and_cache");
 
         return header_modules;
+    }
+
+    static std::filesystem::path create_output_header_path(
+        Builder& builder,
+        std::optional<std::filesystem::path> const& output_directory,
+        std::string_view const module_name,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::filesystem::path module_path = {};
+        std::pmr::vector<std::string_view> const parts = h::common::split_string(module_name, '.', temporaries_allocator);
+        for (std::string_view const part : parts)
+            module_path = module_path / part;
+
+        if (output_directory.has_value())
+        {
+            if (output_directory.value().is_absolute())
+                return output_directory.value() / module_path;
+            else
+                return builder.build_directory_path / output_directory.value() / module_path;
+        }
+
+        return (builder.build_directory_path / "include" / module_path).replace_extension(".h");
+    }
+
+    static void add_module_dependencies(
+        std::pmr::unordered_set<h::Module const*>& output,
+        std::span<h::Module const> const core_modules,
+        h::Module const& core_module
+    )
+    {
+        for (Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
+        {
+            auto const location = std::find_if(core_modules.begin(), core_modules.end(), [&](h::Module const& current) -> bool { return current.name == import_module.module_name; });
+            if (location != core_modules.end())
+            {
+                output.insert(&(*location));
+                add_module_dependencies(output, core_modules, *location);
+            }
+        }
+    }
+
+    void generate_c_header_files(
+        Builder& builder,
+        std::span<Artifact const> const artifacts,
+        std::span<h::Module const> const core_modules,
+        h::Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        start_timer(get_profiler(builder), "generate_c_header_files");
+
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> output_header_paths{temporaries_allocator};
+        std::pmr::unordered_set<h::Module const*> core_modules_to_export{temporaries_allocator};
+        
+        for (h::compiler::Artifact const& artifact : artifacts)
+        {
+            std::pmr::vector<Source_group const*> const source_groups = get_export_c_header_source_groups(artifact, temporaries_allocator);
+            
+            for (Source_group const* group : source_groups)
+            {
+                h::compiler::Export_c_header_source_group const& export_group = std::get<h::compiler::Export_c_header_source_group>(group->data.value());
+                
+                std::pmr::vector<std::filesystem::path> const included_files = h::compiler::find_included_files(artifact.file_path.parent_path(), group->include, temporaries_allocator, temporaries_allocator);
+                
+                for (h::Module const& core_module : core_modules)
+                {
+                    if (core_module.source_file_path.has_value())
+                    {
+                        auto const found = std::find(included_files.begin(), included_files.end(), core_module.source_file_path.value());
+                        if (found != included_files.end())
+                        {
+                            core_modules_to_export.insert(&core_module);
+                        }
+                    }
+
+                    std::filesystem::path output_header_path = create_output_header_path(builder, export_group.output_directory, core_module.name, temporaries_allocator);
+                    output_header_paths.insert(std::make_pair(core_module.name, std::move(output_header_path)));
+                }
+            }
+        }
+
+        for (h::Module const& core_module : core_modules)
+        {
+            if (core_modules_to_export.contains(&core_module))
+            {
+                add_module_dependencies(core_modules_to_export, core_modules, core_module);
+            }
+        }
+        
+        for (h::Module const* core_module : core_modules_to_export)
+        {
+            std::filesystem::path const& output_header_path = output_header_paths.at(core_module->name);
+
+            if (core_module->source_file_path.has_value())
+            {
+                std::filesystem::path const& source_file_path = core_module->source_file_path.value();
+
+                if (std::filesystem::exists(output_header_path))
+                {
+                    if (is_file_newer_than(output_header_path, source_file_path))
+                    {
+                        continue;
+                    }
+                }
+            }
+
+            h::c::Exported_c_header const c_header = h::c::export_module_as_c_header(*core_module, declaration_database, output_header_paths, temporaries_allocator, temporaries_allocator);
+
+            create_directory_if_it_does_not_exist(output_header_path.parent_path());
+            h::common::write_to_file(output_header_path, c_header.content);
+        }
+
+        end_timer(get_profiler(builder), "generate_c_header_files");
     }
 
     static bool is_compiled_cpp_up_to_date(std::filesystem::path const& output_dependency_file)

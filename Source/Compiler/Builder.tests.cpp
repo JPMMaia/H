@@ -248,4 +248,21 @@ namespace h::compiler
             test_compile_commands(build_directory_path, artifact_file_path, output_file_path, target, repository_paths, expected_compile_commands);
         }
     }
+
+    TEST_CASE("Build Export_c_header", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"include"} / "my_library" / "module_a.h",
+            std::filesystem::path{"include"} / "my_library" / "module_b.h"
+        };
+
+        test_builder("Export_c_header", "hlang_artifact.json", target, repository_paths, expected_output_paths);
+    }
 }
