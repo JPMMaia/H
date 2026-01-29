@@ -218,6 +218,7 @@ namespace h::compiler
         std::filesystem::path const output_file_path = build_directory_path / "compile_commands.json";
 
         std::filesystem::path const executable_directory = h::common::get_executable_directory();
+        std::filesystem::path const builtin_include_directory = h::common::get_builtin_include_directory();
 
         bool const use_clang_cl = true;
 
@@ -230,6 +231,8 @@ namespace h::compiler
                     .directory = build_directory_path / "artifacts",
                     .arguments = {
                         std::pmr::string{(executable_directory / "clang-cl.exe").generic_string()},
+                        std::pmr::string{"/clang:-I"} + std::pmr::string{builtin_include_directory.generic_string()},
+                        std::pmr::string{"/clang:-I"} + std::pmr::string{(build_directory_path / "include").generic_string()},
                         std::pmr::string{"/clang:-I"} + std::pmr::string{(g_examples_directory / project_name / "external_library" / "include").generic_string()},
                         std::pmr::string{"/clang:-std=c++23"},
                         std::pmr::string{"/clang:-o"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.bc").generic_string()},

@@ -68,6 +68,7 @@ namespace h::compiler
                         source_file_path,
                         output_assembly_file,
                         output_dependency_file,
+                        build_directory_path,
                         public_include_directories_strings,
                         group.additional_flags,
                         use_clang_cl,
