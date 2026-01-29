@@ -676,10 +676,7 @@ namespace h::c
         write_c_type_name(stream, declaration_database, declaration.type.output_parameter_types, std::nullopt);
 
         stream << " ";
-        if (declaration.unique_name.has_value())
-            stream << declaration.unique_name.value();
-        else
-            stream << declaration.name;
+        write_c_declaration_name(stream, core_module_name, declaration.name, declaration.unique_name);
 
         stream << '(';
         for (std::size_t index = 0; index < declaration.input_parameter_names.size(); ++index)

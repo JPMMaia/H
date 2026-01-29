@@ -138,7 +138,7 @@ struct Array_slice_my_namespace_My_struct
     uint64_t size;
 };
 
-struct my_namespace_My_struct my_public_function(struct my_namespace_My_struct a, struct my_namespace_My_struct const* b);
+struct my_namespace_My_struct my_namespace_my_public_function(struct my_namespace_My_struct a, struct my_namespace_My_struct const* b);
 )RAW";
 
         test_c_exporter(input, {}, {}, expected);
