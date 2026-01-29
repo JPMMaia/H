@@ -232,18 +232,23 @@ namespace h::c
 
     static void write_includes(
         String_stream& stream,
+        h::Module const& core_module,
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& dependencies_c_file_paths
     )
     {
         stream << "#include <hlang_builtin.h>\n\n";
 
-        for (std::pair<std::pmr::string const, std::filesystem::path> const& pair : dependencies_c_file_paths)
+        for (h::Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
         {
-            stream << "#include <";
-            stream << pair.second.generic_string();
-            stream << ">\n";
+            auto const location = dependencies_c_file_paths.find(import_module.module_name);
+            if (location != dependencies_c_file_paths.end())
+            {
+                stream << "#include <";
+                stream << location->second.generic_string();
+                stream << ">\n";
+            }
         }
-        if (!dependencies_c_file_paths.empty())
+        if (!core_module.dependencies.alias_imports.empty())
             stream << '\n';
 
         stream << "#include <stdint.h>\n\n";
@@ -699,7 +704,7 @@ namespace h::c
         String_stream stream{std::ios_base::in | std::ios_base::out, temporaries_allocator};
 
         write_header_start(stream, core_module.name);
-        write_includes(stream, dependencies_c_file_paths);
+        write_includes(stream, core_module, dependencies_c_file_paths);
         write_extern_c_begin(stream);
 
         for (h::Declaration const& declaration : declarations)

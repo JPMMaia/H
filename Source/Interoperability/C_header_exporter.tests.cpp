@@ -302,12 +302,12 @@ export struct My_struct
 
         std::pmr::unordered_map<std::pmr::string, std::string_view> const dependencies
         {
-            { "module_a", module_a }
+            { "my_library.module_a", module_a }
         };
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const dependencies_c_file_paths
         {
-            { "module_a", std::filesystem::path{"my_library/module_a.h"} }
+            { "my_library.module_a", std::filesystem::path{"my_library/module_a.h"} }
         };
 
         std::string_view const expected = R"RAW(
