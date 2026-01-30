@@ -263,7 +263,9 @@ namespace h::compiler
         std::pmr::vector<std::filesystem::path> const expected_output_paths
         {
             std::filesystem::path{"include"} / "my_library" / "module_a.h",
-            std::filesystem::path{"include"} / "my_library" / "module_b.h"
+            std::filesystem::path{"include"} / "my_library" / "module_a.hpp",
+            std::filesystem::path{"include"} / "my_library" / "module_b.h",
+            std::filesystem::path{"include"} / "my_library" / "module_b.hpp",
         };
 
         test_builder("Export_c_header", "hlang_artifact.json", target, repository_paths, expected_output_paths);

@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -88,6 +89,39 @@ namespace h::c
         CHECK(exported_c_header.content == full_expected_content);
     }
 
+    static std::pmr::string create_expected_cpp_header_content(
+        std::string_view const module_name,
+        std::filesystem::path const& c_header_file_path,
+        std::string_view const content
+    )
+    {
+        constexpr char const* const template_string =
+            "#ifndef {}\n"
+            "#define {}\n\n"
+            "#include <{}>\n"
+            "{}\n"
+            "#endif\n";
+
+        std::pmr::string const include_guard_name = get_module_namespace(module_name) + "_HPP";
+        std::string const c_header_file_path_string = c_header_file_path.generic_string();
+        return std::pmr::string{std::vformat(template_string, std::make_format_args(include_guard_name, include_guard_name, c_header_file_path_string, content))};
+    }
+
+    static void test_cpp_exporter(
+        std::string_view const source,
+        std::filesystem::path const& c_header_file_path,
+        std::string_view const expected_content
+    )
+    {
+        std::optional<h::Module> const core_module = h::parser::parse_and_convert_to_module(source, std::nullopt, {}, {});
+        REQUIRE(core_module.has_value());
+
+        std::pmr::string const full_expected_content = create_expected_cpp_header_content(core_module->name, c_header_file_path, expected_content);
+
+        Exported_cpp_header const exported_cpp_header = export_module_as_cpp_header(core_module.value(), c_header_file_path, {}, {});
+        CHECK(exported_cpp_header.content == full_expected_content);
+    }
+
     TEST_CASE("Export structs")
     {
         std::string_view const input = R"RAW(module my.namespace;
@@ -110,7 +144,16 @@ struct Array_slice_my_namespace_My_struct
 };
 )RAW";
 
+        std::string_view const cpp_expected = R"RAW(
+namespace my::namespace
+{
+    using My_struct = ::my_namespace_My_struct;
+    using Array_slice_My_struct = ::Array_slice_my_namespace_My_struct;
+}
+)RAW";
+
         test_c_exporter(input, {}, {}, expected);
+        test_cpp_exporter(input, "input.h", cpp_expected);
     }
 
     TEST_CASE("Export functions")
@@ -124,6 +167,7 @@ export struct My_struct
 function my_private_function() -> ();
 
 export function my_public_function(a: My_struct, b: *My_struct) -> (result: My_struct);
+export function my_public_function_2() -> ();
 )RAW";
 
         std::string_view const expected = R"RAW(
@@ -139,9 +183,22 @@ struct Array_slice_my_namespace_My_struct
 };
 
 struct my_namespace_My_struct my_namespace_my_public_function(struct my_namespace_My_struct a, struct my_namespace_My_struct const* b);
+void my_namespace_my_public_function_2();
+)RAW";
+
+        std::string_view const cpp_expected = R"RAW(
+namespace my::namespace
+{
+    using My_struct = ::my_namespace_My_struct;
+    using Array_slice_My_struct = ::Array_slice_my_namespace_My_struct;
+
+    inline auto my_public_function(My_struct a, My_struct const* b) -> My_struct { return ::my_namespace_my_public_function(a, b); }
+    inline auto my_public_function_2() -> void { ::my_namespace_my_public_function_2(); }
+}
 )RAW";
 
         test_c_exporter(input, {}, {}, expected);
+        test_cpp_exporter(input, "input.h", cpp_expected);
     }
 
     TEST_CASE("Export Constant_array")

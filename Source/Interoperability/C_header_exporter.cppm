@@ -25,4 +25,16 @@ namespace h::c
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
+
+    export struct Exported_cpp_header
+    {
+        std::pmr::string content;
+    };
+
+    export Exported_cpp_header export_module_as_cpp_header(
+        h::Module const& core_module,
+        std::filesystem::path const& c_header_file_path,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    );
 }

@@ -503,25 +503,29 @@ namespace h::compiler
         
         for (h::Module const* core_module : core_modules_to_export)
         {
-            std::filesystem::path const& output_header_path = output_header_paths.at(core_module->name);
+            std::filesystem::path const& output_c_header_path = output_header_paths.at(core_module->name);
+            std::filesystem::path const output_cpp_header_path = std::filesystem::path{output_c_header_path}.replace_extension("hpp");
 
             if (core_module->source_file_path.has_value())
             {
                 std::filesystem::path const& source_file_path = core_module->source_file_path.value();
 
-                if (std::filesystem::exists(output_header_path))
+                if (std::filesystem::exists(output_c_header_path) && std::filesystem::exists(output_cpp_header_path))
                 {
-                    if (is_file_newer_than(output_header_path, source_file_path))
+                    if (is_file_newer_than(output_c_header_path, source_file_path))
                     {
                         continue;
                     }
                 }
             }
 
+            create_directory_if_it_does_not_exist(output_c_header_path.parent_path());
+            
             h::c::Exported_c_header const c_header = h::c::export_module_as_c_header(*core_module, declaration_database, output_header_paths, temporaries_allocator, temporaries_allocator);
+            h::common::write_to_file(output_c_header_path, c_header.content);
 
-            create_directory_if_it_does_not_exist(output_header_path.parent_path());
-            h::common::write_to_file(output_header_path, c_header.content);
+            h::c::Exported_cpp_header const cpp_header = h::c::export_module_as_cpp_header(*core_module, output_c_header_path, temporaries_allocator, temporaries_allocator);
+            h::common::write_to_file(output_cpp_header_path, cpp_header.content);
         }
 
         end_timer(get_profiler(builder), "generate_c_header_files");

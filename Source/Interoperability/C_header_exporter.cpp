@@ -1,6 +1,7 @@
 module;
 
 #include <filesystem>
+#include <functional>
 #include <memory_resource>
 #include <span>
 #include <stdexcept>
@@ -213,13 +214,16 @@ namespace h::c
 
     static void write_header_start(
         String_stream& stream,
-        std::string_view const core_module_name
+        std::string_view const core_module_name,
+        std::string_view const suffix
     )
     {
         stream << "#ifndef ";
         write_module_namespace(stream, core_module_name);
+        stream << suffix;
         stream << "\n#define ";
         write_module_namespace(stream, core_module_name);
+        stream << suffix;
         stream << "\n\n";
     }
 
@@ -311,10 +315,112 @@ namespace h::c
         std::optional<std::string_view> const variable_name
     );
 
+    static void write_fundamental_type_name(
+        String_stream& stream,
+        h::Fundamental_type const value
+    )
+    {
+        switch (value)
+        {
+            case h::Fundamental_type::Bool: {
+                stream << "bool";
+                break;
+            }
+            case h::Fundamental_type::Byte: {
+                stream << "uint8_t";
+                break;
+            }
+            case h::Fundamental_type::Float16: {
+                stream << "_float16";
+                break;
+            }
+            case h::Fundamental_type::Float32: {
+                stream << "float";
+                break;
+            }
+            case h::Fundamental_type::Float64: {
+                stream << "double";
+                break;
+            }
+            case h::Fundamental_type::String: {
+                stream << "String"; // TODO
+                break;
+            }
+            case h::Fundamental_type::Any_type: {
+                stream << "void*";
+                break;
+            }
+            case h::Fundamental_type::C_bool: {
+                stream << "bool";
+                break;
+            }
+            case h::Fundamental_type::C_char: {
+                stream << "char";
+                break;
+            }
+            case h::Fundamental_type::C_schar: {
+                stream << "schar";
+                break;
+            }
+            case h::Fundamental_type::C_uchar: {
+                stream << "uchar";
+                break;
+            }
+            case h::Fundamental_type::C_short: {
+                stream << "short";
+                break;
+            }
+            case h::Fundamental_type::C_ushort: {
+                stream << "ushort";
+                break;
+            }
+            case h::Fundamental_type::C_int: {
+                stream << "int";
+                break;
+            }
+            case h::Fundamental_type::C_uint: {
+                stream << "unsigned int";
+                break;
+            }
+            case h::Fundamental_type::C_long: {
+                stream << "long";
+                break;
+            }
+            case h::Fundamental_type::C_ulong: {
+                stream << "unsigned long";
+                break;
+            }
+            case h::Fundamental_type::C_longlong: {
+                stream << "long long";
+                break;
+            }
+            case h::Fundamental_type::C_ulonglong: {
+                stream << "unsigned long long";
+                break;
+            }
+            case h::Fundamental_type::C_longdouble: {
+                stream << "long double";
+                break;
+            }
+        }
+    }
+
+    static void write_integer_type_name(
+        String_stream& stream,
+        h::Integer_type const& value
+    )
+    {
+        if (!value.is_signed)
+            stream << "u";
+        stream << "int";
+        stream << value.number_of_bits;
+        stream << "_t";
+    }
+
     static void write_array_slice_type_name(
         String_stream& stream,
-        h::Declaration_database const declaration_database,
-        std::span<h::Type_reference const> const array_slice_element_type
+        std::span<h::Type_reference const> const array_slice_element_type,
+        std::function<void(String_stream&, std::string_view, std::string_view)> const& write_declaration_name
     )
     {
         auto const write_array_slice_element_type = [&](std::span<h::Type_reference const> const type_reference) -> void
@@ -328,9 +434,7 @@ namespace h::c
             if (std::holds_alternative<h::Custom_type_reference>(type_reference[0].data))
             {
                 h::Custom_type_reference const custom_type_reference = std::get<h::Custom_type_reference>(type_reference[0].data);
-                std::optional<Declaration> const declaration = find_declaration(declaration_database, custom_type_reference.module_reference.name, custom_type_reference.name);
-                std::optional<std::string_view> const unique_name = declaration.has_value() ? get_declaration_unique_name(declaration.value()) : std::optional<std::string_view>{std::nullopt};
-                write_c_declaration_name(stream, custom_type_reference.module_reference.name, custom_type_reference.name, unique_name);
+                write_declaration_name(stream, custom_type_reference.module_reference.name, custom_type_reference.name);
             }
             else if (std::holds_alternative<h::Fundamental_type>(type_reference[0].data))
             {
@@ -352,6 +456,22 @@ namespace h::c
 
         stream << "Array_slice_";
         write_array_slice_element_type(array_slice_element_type);
+    }
+
+    static void write_c_array_slice_type_name(
+        String_stream& stream,
+        h::Declaration_database const& declaration_database,
+        std::span<h::Type_reference const> const array_slice_element_type
+    )
+    {
+        auto const write_declaration_name = [&](String_stream& stream, std::string_view const module_name, std::string_view const declaration_name) -> void 
+        {
+            std::optional<Declaration> const declaration = find_declaration(declaration_database, module_name, declaration_name);
+            std::optional<std::string_view> const unique_name = declaration.has_value() ? get_declaration_unique_name(declaration.value()) : std::optional<std::string_view>{std::nullopt};
+            write_c_declaration_name(stream, module_name, declaration_name, unique_name);
+        };
+
+        write_array_slice_type_name(stream, array_slice_element_type, write_declaration_name);
     }
 
     static void write_c_type_name(
@@ -381,7 +501,7 @@ namespace h::c
         {
             h::Array_slice_type const& data = std::get<h::Array_slice_type>(type_reference.data);
             stream << "struct ";
-            write_array_slice_type_name(stream, declaration_database, data.element_type);
+            write_c_array_slice_type_name(stream, declaration_database, data.element_type);
 
             if (variable_name.has_value())
                 stream << ' ' << variable_name.value();
@@ -422,89 +542,7 @@ namespace h::c
         else if (std::holds_alternative<h::Fundamental_type>(type_reference.data))
         {
             h::Fundamental_type const& data = std::get<h::Fundamental_type>(type_reference.data);
-            switch (data)
-            {
-                case h::Fundamental_type::Bool: {
-                    stream << "bool";
-                    break;
-                }
-                case h::Fundamental_type::Byte: {
-                    stream << "uint8_t";
-                    break;
-                }
-                case h::Fundamental_type::Float16: {
-                    stream << "_float16";
-                    break;
-                }
-                case h::Fundamental_type::Float32: {
-                    stream << "float";
-                    break;
-                }
-                case h::Fundamental_type::Float64: {
-                    stream << "double";
-                    break;
-                }
-                case h::Fundamental_type::String: {
-                    stream << "String"; // TODO
-                    break;
-                }
-                case h::Fundamental_type::Any_type: {
-                    stream << "void*";
-                    break;
-                }
-                case h::Fundamental_type::C_bool: {
-                    stream << "bool";
-                    break;
-                }
-                case h::Fundamental_type::C_char: {
-                    stream << "char";
-                    break;
-                }
-                case h::Fundamental_type::C_schar: {
-                    stream << "schar";
-                    break;
-                }
-                case h::Fundamental_type::C_uchar: {
-                    stream << "uchar";
-                    break;
-                }
-                case h::Fundamental_type::C_short: {
-                    stream << "short";
-                    break;
-                }
-                case h::Fundamental_type::C_ushort: {
-                    stream << "ushort";
-                    break;
-                }
-                case h::Fundamental_type::C_int: {
-                    stream << "int";
-                    break;
-                }
-                case h::Fundamental_type::C_uint: {
-                    stream << "unsigned int";
-                    break;
-                }
-                case h::Fundamental_type::C_long: {
-                    stream << "long";
-                    break;
-                }
-                case h::Fundamental_type::C_ulong: {
-                    stream << "unsigned long";
-                    break;
-                }
-                case h::Fundamental_type::C_longlong: {
-                    stream << "long long";
-                    break;
-                }
-                case h::Fundamental_type::C_ulonglong: {
-                    stream << "unsigned long long";
-                    break;
-                }
-                case h::Fundamental_type::C_longdouble: {
-                    stream << "long double";
-                    break;
-                }
-            }
+            write_fundamental_type_name(stream, data);
 
             if (variable_name.has_value())
                 stream << ' ' << variable_name.value();
@@ -531,11 +569,7 @@ namespace h::c
         else if (std::holds_alternative<h::Integer_type>(type_reference.data))
         {
             h::Integer_type const& data = std::get<h::Integer_type>(type_reference.data);
-            if (!data.is_signed)
-                stream << "u";
-            stream << "int";
-            stream << data.number_of_bits;
-            stream << "_t";
+            write_integer_type_name(stream, data);
 
             if (variable_name.has_value())
                 stream << ' ' << variable_name.value();
@@ -583,7 +617,7 @@ namespace h::c
 
         stream << "struct ";
         
-        write_array_slice_type_name(stream, declaration_database, {&element_type, 1});
+        write_c_array_slice_type_name(stream, declaration_database, {&element_type, 1});
         stream << "\n{\n";
         
         stream << "    " << declaration_type << " ";
@@ -696,11 +730,11 @@ namespace h::c
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        std::pmr::vector<h::Declaration> const declarations = sort_declarations(core_module, output_allocator, temporaries_allocator);
+        std::pmr::vector<h::Declaration> const declarations = sort_declarations(core_module, temporaries_allocator, temporaries_allocator);
 
         String_stream stream{std::ios_base::in | std::ios_base::out, temporaries_allocator};
 
-        write_header_start(stream, core_module.name);
+        write_header_start(stream, core_module.name, "");
         write_includes(stream, core_module, dependencies_c_file_paths);
         write_extern_c_begin(stream);
 
@@ -714,6 +748,282 @@ namespace h::c
             stream << '\n';
 
         write_extern_c_end(stream);
+        write_header_end(stream);
+
+        std::string_view const content = stream.view();
+        return {
+            .content = std::pmr::string{content.begin(), content.end(), output_allocator}
+        };
+    }
+
+    static void write_cpp_module_namespace(
+        String_stream& stream,
+        std::string_view const core_module_name
+    )
+    {
+        for (char const character : core_module_name)
+        {
+            if (character == '.')
+                stream << "::";
+            else
+                stream << character;
+        }
+    }
+
+    static void write_cpp_type(
+        String_stream& stream,
+        h::Type_reference const& type_reference,
+        std::optional<std::string_view> const variable_name
+    );
+
+    static void write_cpp_type(
+        String_stream& stream,
+        std::span<h::Type_reference const> const type_reference,
+        std::optional<std::string_view> const variable_name
+    );
+
+    static void write_cpp_array_slice_type_name(
+        String_stream& stream,
+        std::span<h::Type_reference const> const array_slice_element_type
+    )
+    {
+        auto const write_declaration_name = [&](String_stream& stream, std::string_view const module_name, std::string_view const declaration_name) -> void 
+        {
+            h::Type_reference const type_reference = h::create_custom_type_reference(module_name, declaration_name);
+            write_cpp_type(stream, type_reference, std::nullopt);
+        };
+
+        write_array_slice_type_name(stream, array_slice_element_type, write_declaration_name);
+    }
+
+    static void write_cpp_type(
+        String_stream& stream,
+        std::span<h::Type_reference const> const type_reference,
+        std::optional<std::string_view> const variable_name
+    )
+    {
+        if (type_reference.empty())
+        {
+            stream << "void";
+            return;
+        }
+
+        return write_cpp_type(stream, type_reference[0], variable_name);
+    }
+
+    static void write_cpp_type(
+        String_stream& stream,
+        h::Type_reference const& type_reference,
+        std::optional<std::string_view> const variable_name
+    )
+    {
+        if (std::holds_alternative<h::Array_slice_type>(type_reference.data))
+        {
+            h::Array_slice_type const& data = std::get<h::Array_slice_type>(type_reference.data);
+            write_cpp_array_slice_type_name(stream, data.element_type);
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+        }
+        else if (std::holds_alternative<h::Builtin_type_reference>(type_reference.data))
+        {
+            h::Builtin_type_reference const& data = std::get<h::Builtin_type_reference>(type_reference.data);
+            // TODO
+        }
+        else if (std::holds_alternative<h::Constant_array_type>(type_reference.data))
+        {
+            h::Constant_array_type const& data = std::get<h::Constant_array_type>(type_reference.data);
+            write_cpp_type(stream, data.value_type, std::nullopt);
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+
+            stream << '[' << data.size << ']';
+        }
+        else if (std::holds_alternative<h::Custom_type_reference>(type_reference.data))
+        {
+            h::Custom_type_reference const& data = std::get<h::Custom_type_reference>(type_reference.data);
+            stream << data.name;
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+        }
+        else if (std::holds_alternative<h::Fundamental_type>(type_reference.data))
+        {
+            h::Fundamental_type const& data = std::get<h::Fundamental_type>(type_reference.data);
+            write_fundamental_type_name(stream, data);
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+        }
+        else if (std::holds_alternative<h::Function_pointer_type>(type_reference.data))
+        {
+            h::Function_pointer_type const& data = std::get<h::Function_pointer_type>(type_reference.data);
+            write_cpp_type(stream, data.type.output_parameter_types, std::nullopt);
+            stream << "(*";
+            if (variable_name.has_value())
+                stream << variable_name.value();
+            stream << ")(";
+            for (std::size_t index = 0; index < data.input_parameter_names.size(); ++index)
+            {
+                std::string_view const input_parameter_name = data.input_parameter_names[index];
+                h::Type_reference const& input_parameter_type = data.type.input_parameter_types[index];
+                write_cpp_type(stream, input_parameter_type, input_parameter_name);
+
+                if (index + 1 < data.input_parameter_names.size())
+                    stream << ", ";
+            }
+            stream << ")";
+        }
+        else if (std::holds_alternative<h::Integer_type>(type_reference.data))
+        {
+            h::Integer_type const& data = std::get<h::Integer_type>(type_reference.data);
+            write_integer_type_name(stream, data);
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+        }
+        else if (std::holds_alternative<h::Null_pointer_type>(type_reference.data))
+        {
+            h::Null_pointer_type const& data = std::get<h::Null_pointer_type>(type_reference.data);
+            // TODO
+        }
+        else if (std::holds_alternative<h::Parameter_type>(type_reference.data))
+        {
+            h::Parameter_type const& data = std::get<h::Parameter_type>(type_reference.data);
+            // TODO
+        }
+        else if (std::holds_alternative<h::Pointer_type>(type_reference.data))
+        {
+            h::Pointer_type const& data = std::get<h::Pointer_type>(type_reference.data);
+            write_cpp_type(stream, data.element_type, std::nullopt);
+            if (!data.is_mutable)
+                stream << " const";
+            stream << "*";
+
+            if (variable_name.has_value())
+                stream << ' ' << variable_name.value();
+        }
+        else if (std::holds_alternative<h::Type_instance>(type_reference.data))
+        {
+            h::Type_instance const& data = std::get<h::Type_instance>(type_reference.data);
+            // TODO
+        }
+
+        // TODO
+    }
+
+    void write_cpp_using_array_slice(
+        String_stream& stream,
+        std::string_view const core_module_name,
+        std::string_view const declaration_name,
+        std::optional<std::string_view> const unique_name
+    )
+    {
+        h::Type_reference const element_type = h::create_custom_type_reference(core_module_name, declaration_name);
+        
+        stream << "    using ";
+        write_cpp_array_slice_type_name(stream, {&element_type, 1});
+        stream << " = ::";
+
+        auto const write_declaration_name = [&](String_stream& stream, std::string_view const module_name, std::string_view const declaration_name) -> void 
+        {
+            write_c_declaration_name(stream, module_name, declaration_name, unique_name);
+        };
+        write_array_slice_type_name(stream, {&element_type, 1}, write_declaration_name);
+
+        stream << ";\n";
+    }
+
+    void write_cpp_using_declaration(
+        String_stream& stream,
+        std::string_view const core_module_name,
+        std::string_view const declaration_name,
+        std::optional<std::string_view> const unique_name,
+        bool const write_builtin_structs
+    )
+    {
+        stream << "    using " << declaration_name << " = ::";
+        write_c_declaration_name(stream, core_module_name, declaration_name, unique_name);
+        stream << ";\n";
+
+        if (write_builtin_structs)
+        {
+            write_cpp_using_array_slice(stream, core_module_name, declaration_name, unique_name);
+        }
+    }
+
+    void write_cpp_function_declaration(
+        String_stream& stream,
+        std::string_view const core_module_name,
+        h::Function_declaration const& declaration
+    )
+    {
+        stream << "    inline auto " << declaration.name << "(";
+        for (std::size_t index = 0; index < declaration.input_parameter_names.size(); ++index)
+        {
+            write_cpp_type(stream, declaration.type.input_parameter_types[index], declaration.input_parameter_names[index]);
+            if (index + 1 < declaration.input_parameter_names.size())
+                stream << ", ";
+        }
+        stream << ") -> ";
+        
+        write_cpp_type(stream, declaration.type.output_parameter_types, std::nullopt);
+        
+        stream << " { ";
+        if (!declaration.type.output_parameter_types.empty())
+            stream << "return ";
+        stream << "::";
+        write_c_declaration_name(stream, core_module_name, declaration.name, declaration.unique_name);
+        stream << "(";
+        for (std::size_t index = 0; index < declaration.input_parameter_names.size(); ++index)
+        {
+            stream << declaration.input_parameter_names[index];
+            if (index + 1 < declaration.input_parameter_names.size())
+                stream << ", ";
+        }
+        stream << "); }";
+        stream << "\n";
+    }
+
+    Exported_cpp_header export_module_as_cpp_header(
+        h::Module const& core_module,
+        std::filesystem::path const& c_header_file_path,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::pmr::vector<h::Declaration> const declarations = sort_declarations(core_module, temporaries_allocator, temporaries_allocator);
+
+        String_stream stream{std::ios_base::in | std::ios_base::out, temporaries_allocator};
+
+        write_header_start(stream, core_module.name, "_HPP");
+        stream << "#include <" << c_header_file_path.generic_string() << ">\n\n";
+
+        stream << "namespace ";
+        write_cpp_module_namespace(stream, core_module.name);
+        stream << "\n{\n";
+
+        for (h::Alias_type_declaration const& declaration : core_module.export_declarations.alias_type_declarations)
+            write_cpp_using_declaration(stream, core_module.name, declaration.name, declaration.unique_name, false);
+
+        for (h::Enum_declaration const& declaration : core_module.export_declarations.enum_declarations)
+            write_cpp_using_declaration(stream, core_module.name, declaration.name, declaration.unique_name, true);
+
+        for (h::Struct_declaration const& declaration : core_module.export_declarations.struct_declarations)
+            write_cpp_using_declaration(stream, core_module.name, declaration.name, declaration.unique_name, true);
+
+        for (h::Union_declaration const& declaration : core_module.export_declarations.union_declarations)
+            write_cpp_using_declaration(stream, core_module.name, declaration.name, declaration.unique_name, true);
+
+        if (!core_module.export_declarations.function_declarations.empty())
+            stream << '\n';
+
+        for (h::Function_declaration const& declaration : core_module.export_declarations.function_declarations)
+            write_cpp_function_declaration(stream, core_module.name, declaration);
+
+        stream << "}\n\n";
+
         write_header_end(stream);
 
         std::string_view const content = stream.view();
