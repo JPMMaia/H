@@ -1577,6 +1577,43 @@ DEFINE_HANDLE(My_macro_type)
         }
     }
 
+    TEST_CASE("Do not add redundant forward declarations")
+    {
+        std::filesystem::path const root_directory_path = std::filesystem::temp_directory_path() / "c_header_importer" / "redundant_forward_declarations";
+        std::filesystem::create_directories(root_directory_path);
+                
+        
+        std::string const dependency_content = R"(
+typedef struct My_struct My_type;
+
+struct My_struct {
+    int a;
+};
+)";
+
+        std::filesystem::path const dependency_file_path = root_directory_path / "Dependency.h";
+        h::common::write_to_file(dependency_file_path, dependency_content);
+
+        std::string const header_content = R"(
+#include "Dependency.h"
+
+struct My_struct create_my_struct();
+)";
+
+        std::filesystem::path const header_file_path = root_directory_path / "My_data.h";
+        h::common::write_to_file(header_file_path, header_content);
+
+        std::optional<h::Module> const header_module_optional = h::c::import_header("c.My_data", header_file_path, {});
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
+
+        CHECK(header_module.source_file_path == header_file_path);
+
+        REQUIRE(header_module.export_declarations.alias_type_declarations.size() == 1);
+        REQUIRE(header_module.export_declarations.forward_declarations.size() == 0);
+        REQUIRE(header_module.export_declarations.struct_declarations.size() == 1);
+    }
+
 
     TEST_CASE("Include debug information of function declarations")
     {

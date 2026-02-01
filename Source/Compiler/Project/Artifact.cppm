@@ -39,6 +39,8 @@ namespace h::compiler
     {
         std::pmr::string module_name;
         std::pmr::string header;
+        std::pmr::vector<std::pmr::string> dependencies;
+        std::optional<bool> allow_errors;
     };
 
     export struct Export_c_header_source_group

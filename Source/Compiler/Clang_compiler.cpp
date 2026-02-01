@@ -195,7 +195,7 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        std::printf("Compiling %s\n  Output is %s\n  Command line: ", source_file_path.generic_string().c_str(), output_file_path.generic_string().c_str());
+        std::printf("Compiling \"%s\"\n  Output is \"%s\"\n  Command line: ", source_file_path.generic_string().c_str(), output_file_path.generic_string().c_str());
         for (std::size_t index = 0; index < arguments.size(); ++index)
         {
             std::fputs(arguments[index].c_str(), stdout);

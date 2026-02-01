@@ -48,6 +48,7 @@ namespace h::c
         std::span<std::filesystem::path const> include_directories;
         std::span<std::pmr::string const> public_prefixes;
         std::span<std::pmr::string const> remove_prefixes;
+        bool allow_errors = true;
     };
 
     export std::optional<h::Module> import_header(std::string_view const header_name, std::filesystem::path const& header_path, Options const& options);

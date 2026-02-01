@@ -65,18 +65,25 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    export std::pmr::vector<h::Module> parse_c_headers_and_cache(
+    export struct Modules_and_declaration_database
+    {
+        std::pmr::vector<h::Module> header_modules;
+        std::pmr::vector<h::Module const*> sorted_modules;
+        Declaration_database declaration_database;
+    };
+
+    export Modules_and_declaration_database import_and_export_c_headers(
         Builder& builder,
         std::span<Artifact const> const artifacts,
+        std::span<h::Module> const core_modules,
+        bool const force_allow_errors,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
-    export void generate_c_header_files(
-        Builder& builder,
-        std::span<Artifact const> const artifacts,
-        std::span<h::Module const> const core_modules,
-        h::Declaration_database const& declaration_database,
+    void validate_modules_and_exit_if_needed(
+        std::span<h::Module> const core_modules,
+        Declaration_database& declaration_database,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
@@ -85,12 +92,6 @@ namespace h::compiler
         std::span<Artifact const> const artifacts,
         LLVM_data& llvm_data,
         Compilation_options const& compilation_options,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    );
-
-    export void add_builtin_module(
-        std::pmr::vector<h::Module>& header_modules,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 

@@ -27,3 +27,5 @@ add_custom_target(
         Generate_h_core_typescript_interface
         Generate_h_core_typescript_intermediate_representation
 )
+
+install(DIRECTORY "share/hlang" TYPE DATA CONFIGURATIONS Debug Release)

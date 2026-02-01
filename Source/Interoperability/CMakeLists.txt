@@ -135,8 +135,6 @@ target_sources(H_C_header_exporter
       "C_header_exporter.cpp"
 )
 
-install(FILES "hlang_builtin.h" TYPE INCLUDE CONFIGURATIONS Debug Release)
-
 if(BUILD_TESTING)
    add_executable(H_C_header_exporter_tests)
    target_link_libraries(H_C_header_exporter_tests PRIVATE H::JSON_serializer H::Parser H_C_header_exporter)

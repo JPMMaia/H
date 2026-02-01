@@ -198,7 +198,11 @@ namespace h::compiler
             {
                 .module_name = element.at("name").get<std::pmr::string>(),
                 .header = element.at("header").get<std::pmr::string>(),
+                .dependencies = parse_string_array_at(element, "dependencies"),
             };
+
+            if (json.contains("allow_errors"))
+                header.allow_errors = json.at("allow_errors").get<bool>();
 
             headers.push_back(std::move(header));
         }
@@ -448,8 +452,14 @@ namespace h::compiler
                                 nlohmann::json c_header_json
                                 {
                                     { "name", c_header.module_name },
-                                    { "header", c_header.header },
+                                    { "header", c_header.header }
                                 };
+
+                                if (c_header.allow_errors.has_value())
+                                    c_header_json["allow_errors"] = c_header.allow_errors.value();
+
+                                if (!c_header.dependencies.empty())
+                                    c_header_json["dependencies"] = c_header.dependencies;
 
                                 c_headers_json.push_back(std::move(c_header_json));
                             }

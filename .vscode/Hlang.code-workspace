@@ -121,7 +121,7 @@
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
 					"--repository=${workspaceFolder}/Libraries/hlang_repository.json"
 				],
-				"cwd": "${workspaceFolder}/../MythologyEngine",
+				"cwd": "${workspaceFolder}/build",
 			},
 			{
 				"name": "hlang build-artifact rts-game",
@@ -138,7 +138,7 @@
 					"--repository=${workspaceFolder}/../HLang_Local_Repository/hlang_repository.json",
 					"--repository=${workspaceFolder}/../rts-game/source/hlang_repository.json"
 				],
-				"cwd": "${workspaceFolder}/../MythologyEngine",
+				"cwd": "${workspaceFolder}/build",
 			},
 			{
 				"name": "hlang run-with-jit",
@@ -563,16 +563,12 @@
 		},
 		"C_Cpp.vcFormat.newLine.beforeOpenBrace.lambda": "newLine",
 		"C_Cpp.vcFormat.indent.lambdaBracesWhenParameter": false,
-		"testMate.cpp.debug.configTemplate": {
-			"type": "lldb-dap",
-			"program": "${exec}",
-			"args": "${argsArray}",
-			"cwd": "${cwd}",
-			"env": "${envObj}",
-			"environment": "${envObjArray}",
-			"sourceFileMap": "${sourceFileMapObj}",
-			"showDisplayString": true,
-		},
+		"testMate.cpp.test.advancedExecutables": [
+			{
+				"pattern": "{build,Build,BUILD,out,Out,OUT}/**/*{test,Test,TEST}*",
+				"cwd": "${workspaceFolder}/build",
+			}
+		],
 		"editor.formatOnSave": false
 	}
 }

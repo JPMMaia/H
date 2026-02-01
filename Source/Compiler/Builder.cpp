@@ -18,7 +18,9 @@ import h.binary_serializer;
 import h.core;
 import h.core.struct_layout;
 import h.common;
+import h.common.filesystem;
 import h.compiler;
+import h.compiler.analysis;
 import h.compiler.artifact;
 import h.compiler.clang_code_generation;
 import h.compiler.clang_compiler;
@@ -73,11 +75,16 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> output_allocator
     )
     {
+        std::pmr::vector<std::filesystem::path> all_header_search_paths{output_allocator};
+        all_header_search_paths.reserve(header_search_paths.size() + 1);
+        all_header_search_paths.push_back(build_directory_path / "include");
+        all_header_search_paths.insert(all_header_search_paths.end(), header_search_paths.begin(), header_search_paths.end());
+
         return
         {
             .target = target,
             .build_directory_path = build_directory_path,
-            .header_search_paths = std::pmr::vector<std::filesystem::path>{header_search_paths.begin(), header_search_paths.end(), output_allocator},
+            .header_search_paths = std::move(all_header_search_paths),
             .repositories = get_repositories(repository_paths),
             .compilation_options = compilation_options,
             .profiler = {},
@@ -109,14 +116,6 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        std::pmr::vector<h::Module> header_modules = parse_c_headers_and_cache(
-            builder,
-            artifacts,
-            output_allocator,
-            temporaries_allocator
-        );
-        add_builtin_module(header_modules, output_allocator, temporaries_allocator);
-
         std::pmr::vector<std::filesystem::path> const source_file_paths = get_artifacts_source_files(
             artifacts,
             output_allocator,
@@ -130,30 +129,18 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        /*core_modules.insert(
-            core_modules.begin(),
-            std::make_move_iterator(header_modules.begin()),
-            std::make_move_iterator(header_modules.end())
-        );*/
-
-        start_timer(get_profiler(builder), "create_declaration_database_and_sorted_modules");
-        Declaration_database_and_sorted_modules declaration_database_and_sorted_modules = create_declaration_database_and_sorted_modules(
-            header_modules,
-            core_modules,
-            output_allocator,
-            temporaries_allocator
-        );
-        end_timer(get_profiler(builder), "create_declaration_database_and_sorted_modules");
-        
-        print_diagnostics_and_exit_if_needed(declaration_database_and_sorted_modules.diagnostics, temporaries_allocator);
-
-        generate_c_header_files(
+        Modules_and_declaration_database modules_and_declaration_database = import_and_export_c_headers(
             builder,
             artifacts,
             core_modules,
-            declaration_database_and_sorted_modules.declaration_database,
+            false,
+            output_allocator,
             temporaries_allocator
         );
+        std::span<h::Module const> const header_modules = modules_and_declaration_database.header_modules;
+        std::span<h::Module const* const> const sorted_modules = modules_and_declaration_database.sorted_modules;
+
+        validate_modules_and_exit_if_needed(core_modules, modules_and_declaration_database.declaration_database, temporaries_allocator);
 
         Compilation_options const& compilation_options = builder.compilation_options;
 
@@ -165,17 +152,14 @@ namespace h::compiler
             h::common::print_message_and_exit(std::format("Failed to compile c++."));
 
         start_timer(get_profiler(builder), "process_modules_and_create_compilation_database");
-
         // TODO make const
         Compilation_database compilation_database = process_modules_and_create_compilation_database(
             llvm_data,
-            header_modules,
-            declaration_database_and_sorted_modules.sorted_core_modules,
-            std::move(declaration_database_and_sorted_modules.declaration_database),
+            sorted_modules,
+            modules_and_declaration_database.declaration_database, // TODO this does a copy
             output_allocator,
             temporaries_allocator
         );
-
         end_timer(get_profiler(builder), "process_modules_and_create_compilation_database");
 
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const module_name_to_file_path_map = create_module_name_to_file_path_map(
@@ -290,6 +274,8 @@ namespace h::compiler
     {
         std::pmr::vector<std::filesystem::path> source_files{temporaries_allocator};
 
+        source_files.push_back(BUILTIN_SOURCE_FILE_PATH);
+
         for (Artifact const& artifact : artifacts)
         {
             std::pmr::vector<std::filesystem::path> artifact_source_files = get_artifact_hlang_source_files(
@@ -304,113 +290,123 @@ namespace h::compiler
         return std::pmr::vector<std::filesystem::path>{std::move(source_files), output_allocator};
     }
 
-    static std::pmr::vector<std::filesystem::path> create_c_header_search_paths(
-        std::optional<std::filesystem::path> const& artifact_parent_path,
-        std::span<std::filesystem::path const> const builder_header_search_paths,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    )
+    struct C_header_groups
     {
-        std::pmr::vector<std::filesystem::path> header_search_paths{temporaries_allocator};
-        header_search_paths.reserve(builder_header_search_paths.size() + 1);
-        
-        if (artifact_parent_path.has_value())
-            header_search_paths.push_back(artifact_parent_path.value());
-        
-        header_search_paths.insert(header_search_paths.end(), builder_header_search_paths.begin(), builder_header_search_paths.end());
+        std::pmr::vector<C_header> c_headers;
+        std::pmr::vector<std::pmr::vector<std::filesystem::path>> header_search_paths;
+        std::pmr::vector<Import_c_header_source_group const*> source_groups;
+    };
 
-        return header_search_paths;
-    }
-
-    std::pmr::vector<h::Module> parse_c_headers_and_cache(
-        Builder& builder,
-        std::span<Artifact const> const artifacts,
+    static C_header_groups get_c_headers(
+        std::span<h::compiler::Artifact const> const artifacts,
+        std::span<std::filesystem::path const> const builder_header_search_paths,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        start_timer(get_profiler(builder), "parse_c_headers_and_cache");
+        std::filesystem::path const builtin_include_directory = h::common::get_builtin_include_directory();
 
-        std::pmr::vector<h::Module> header_modules{output_allocator};
-
-        std::filesystem::path const build_directory_path = get_hl_build_directory(builder.build_directory_path);
-        create_directory_if_it_does_not_exist(build_directory_path);
-
-        for (Artifact const& artifact : artifacts)
+        std::pmr::vector<C_header> all_c_headers{temporaries_allocator};
+        std::pmr::vector<std::pmr::vector<std::filesystem::path>> all_header_search_paths{temporaries_allocator};
+        std::pmr::vector<Import_c_header_source_group const*> all_source_groups{temporaries_allocator};
+        
+        for (h::compiler::Artifact const& artifact : artifacts)
         {
             std::filesystem::path const artifact_parent_path = artifact.file_path.parent_path();
-
-            std::pmr::vector<Source_group const*> const c_header_source_groups = get_c_header_source_groups(
-                artifact,
-                temporaries_allocator
-            );
+            std::pmr::vector<Source_group const*> const c_header_source_groups = get_c_header_source_groups(artifact, temporaries_allocator);
 
             for (Source_group const* source_group : c_header_source_groups)
             {
                 Import_c_header_source_group const& c_header_source_group = std::get<Import_c_header_source_group>(*source_group->data);
                 std::span<C_header const> const c_headers = c_header_source_group.c_headers;
+                all_c_headers.insert(all_c_headers.end(), c_headers.begin(), c_headers.end());
 
-                for (std::size_t header_index = 0; header_index < c_headers.size(); ++header_index)
+                std::pmr::vector<std::filesystem::path> header_search_paths{temporaries_allocator};
+                header_search_paths.reserve(builder_header_search_paths.size() + c_header_source_group.search_paths.size() + 2);
+                header_search_paths.push_back(builtin_include_directory);
+                header_search_paths.push_back(artifact_parent_path);
+                header_search_paths.insert(header_search_paths.end(), c_header_source_group.search_paths.begin(), c_header_source_group.search_paths.end());
+                header_search_paths.insert(header_search_paths.end(), builder_header_search_paths.begin(), builder_header_search_paths.end());
+
+                for (std::size_t index = 0; index < c_headers.size(); ++index)
                 {
-                    C_header const& c_header = c_headers[header_index];
-
-                    std::string_view const header_module_name = c_header.module_name;
-                    std::string_view const header_filename = c_header.header;
-
-                    std::pmr::vector<std::filesystem::path> const header_search_paths = create_c_header_search_paths(
-                        artifact_parent_path,
-                        builder.header_search_paths,
-                        temporaries_allocator
-                    );
-
-                    std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, header_search_paths);
-                    if (!header_path.has_value())
-                        h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
-
-                    std::filesystem::path const header_module_filename = std::format("{}.hlb", header_module_name);
-                    std::filesystem::path const output_header_module_path = build_directory_path / header_module_filename;
-
-                    if (std::filesystem::exists(output_header_module_path))
-                    {
-                        if (is_file_newer_than(output_header_module_path, header_path.value()))
-                        {
-                            std::optional<Module> header_module = h::binary_serializer::read_module_from_file(output_header_module_path);
-
-                            if (!header_module.has_value())
-                                h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_header_module_path.generic_string()));
-
-                            header_modules.push_back(std::move(header_module.value()));
-
-                            continue;
-                        }
-                    }
-
-                    h::c::Options const options
-                    {
-                        .target_triple = std::nullopt,
-                        .include_directories = c_header_source_group.search_paths,
-                        .public_prefixes = c_header_source_group.public_prefixes,
-                        .remove_prefixes = c_header_source_group.remove_prefixes,
-                    };
-
-                    std::optional<h::Module> header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
-                    if (!header_module.has_value())
-                        continue;
-
-                    if (builder.output_module_json)
-                    {
-                        std::filesystem::path const output_module_json_filename = std::format("{}.hlb.json", header_module_name);
-                        std::filesystem::path const output_module_json_path = get_hl_build_directory(builder.build_directory_path) / output_module_json_filename;
-                        h::json::write<h::Module>(output_module_json_path, *header_module);
-                    }
-
-                    header_modules.push_back(std::move(*header_module));
+                    all_header_search_paths.push_back(header_search_paths);
+                    all_source_groups.push_back(&c_header_source_group);
                 }
             }
         }
 
-        end_timer(get_profiler(builder), "parse_c_headers_and_cache");
+        assert(all_c_headers.size() == all_source_groups.size());
+        return {
+            std::pmr::vector<C_header>{all_c_headers.begin(), all_c_headers.end(), output_allocator},
+            std::pmr::vector<std::pmr::vector<std::filesystem::path>>{all_header_search_paths.begin(), all_header_search_paths.end(), output_allocator},
+            std::pmr::vector<Import_c_header_source_group const*>{all_source_groups.begin(), all_source_groups.end(), output_allocator},
+        };
+    }
 
-        return header_modules;
+    static std::optional<h::Module> parse_c_header_and_cache(
+        std::filesystem::path const& build_directory_path,
+        bool const output_module_json,
+        std::span<std::filesystem::path const> const header_search_paths,
+        C_header const& c_header,
+        Import_c_header_source_group const& source_group,
+        bool const force_allow_errors
+    )
+    {
+        std::string_view const header_module_name = c_header.module_name;
+        std::string_view const header_filename = c_header.header;
+
+        std::optional<std::filesystem::path> const header_path = h::compiler::find_c_header_path(header_filename, header_search_paths);
+        if (!header_path.has_value())
+            h::common::print_message_and_exit(std::format("Could not find header {}. Please provide its location using --header-search-path.", header_filename));
+
+        std::filesystem::path const header_module_filename = std::format("{}.hlb", header_module_name);
+        std::filesystem::path const output_header_module_path = build_directory_path / "artifacts" / header_module_filename;
+
+        if (std::filesystem::exists(output_header_module_path))
+        {
+            if (is_file_newer_than(output_header_module_path, header_path.value()))
+            {
+                std::optional<Module> header_module = h::binary_serializer::read_module_from_file(output_header_module_path);
+
+                if (!header_module.has_value())
+                    h::common::print_message_and_exit(std::format("Failed to read cached module {}.", output_header_module_path.generic_string()));
+
+                return header_module.value();
+            }
+        }
+
+        h::c::Options const options
+        {
+            .target_triple = std::nullopt,
+            .include_directories = header_search_paths,
+            .public_prefixes = source_group.public_prefixes,
+            .remove_prefixes = source_group.remove_prefixes,
+            .allow_errors = force_allow_errors ? true : (c_header.allow_errors.has_value() ? c_header.allow_errors.value() : false),
+        };
+
+        ::printf("Importing c header \"%s\"\n    output is \"%s\"\n", header_path->generic_string().c_str(), output_header_module_path.generic_string().c_str());
+        if (!options.include_directories.empty())
+        {
+            ::printf("    header search paths\n");
+            for (std::filesystem::path const& include_directory : options.include_directories)
+            {
+                ::printf("    - \"%s\"\n", include_directory.generic_string().c_str());
+            }
+        }
+
+        std::optional<h::Module> header_module = h::c::import_header_and_write_to_file(header_module_name, header_path.value(), output_header_module_path, options);
+        if (!header_module.has_value())
+            return std::nullopt;
+
+        if (output_module_json)
+        {
+            std::filesystem::path const output_module_json_filename = std::format("{}.hlb.json", header_module_name);
+            std::filesystem::path const output_module_json_path = get_hl_build_directory(build_directory_path) / output_module_json_filename;
+            h::json::write<h::Module>(output_module_json_path, *header_module);
+        }
+
+        return header_module.value();
     }
 
     static std::filesystem::path create_output_header_path(
@@ -436,36 +432,16 @@ namespace h::compiler
         return (builder.build_directory_path / "include" / module_path).replace_extension(".h");
     }
 
-    static void add_module_dependencies(
-        std::pmr::unordered_set<h::Module const*>& output,
-        std::span<h::Module const> const core_modules,
-        h::Module const& core_module
-    )
-    {
-        for (Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
-        {
-            auto const location = std::find_if(core_modules.begin(), core_modules.end(), [&](h::Module const& current) -> bool { return current.name == import_module.module_name; });
-            if (location != core_modules.end())
-            {
-                output.insert(&(*location));
-                add_module_dependencies(output, core_modules, *location);
-            }
-        }
-    }
-
-    void generate_c_header_files(
+    static std::pmr::unordered_map<std::pmr::string, std::filesystem::path> create_output_header_paths(
         Builder& builder,
         std::span<Artifact const> const artifacts,
         std::span<h::Module const> const core_modules,
-        h::Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        start_timer(get_profiler(builder), "generate_c_header_files");
-
         std::pmr::unordered_map<std::pmr::string, std::filesystem::path> output_header_paths{temporaries_allocator};
-        std::pmr::unordered_set<h::Module const*> core_modules_to_export{temporaries_allocator};
-        
+
         for (h::compiler::Artifact const& artifact : artifacts)
         {
             std::pmr::vector<Source_group const*> const source_groups = get_export_c_header_source_groups(artifact, temporaries_allocator);
@@ -478,14 +454,12 @@ namespace h::compiler
                 
                 for (h::Module const& core_module : core_modules)
                 {
-                    if (core_module.source_file_path.has_value())
-                    {
-                        auto const found = std::find(included_files.begin(), included_files.end(), core_module.source_file_path.value());
-                        if (found != included_files.end())
-                        {
-                            core_modules_to_export.insert(&core_module);
-                        }
-                    }
+                    if (!core_module.source_file_path.has_value())
+                        continue;
+
+                    auto const location = std::find(included_files.begin(), included_files.end(), core_module.source_file_path.value());
+                    if (location == included_files.end())
+                        continue;
 
                     std::filesystem::path output_header_path = create_output_header_path(builder, export_group.output_directory, core_module.name, temporaries_allocator);
                     output_header_paths.insert(std::make_pair(core_module.name, std::move(output_header_path)));
@@ -493,42 +467,301 @@ namespace h::compiler
             }
         }
 
+        return std::pmr::unordered_map<std::pmr::string, std::filesystem::path>{output_header_paths, output_allocator};
+    }
+
+    static void generate_c_header_file(
+        h::Module const& core_module,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& output_header_paths,
+        h::Declaration_database const& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::filesystem::path const& output_c_header_path = output_header_paths.at(core_module.name);
+        std::filesystem::path const output_cpp_header_path = std::filesystem::path{output_c_header_path}.replace_extension("hpp");
+
+        if (core_module.source_file_path.has_value())
+        {
+            std::filesystem::path const& source_file_path = core_module.source_file_path.value();
+
+            if (std::filesystem::exists(output_c_header_path) && std::filesystem::exists(output_cpp_header_path))
+            {
+                if (is_file_newer_than(output_c_header_path, source_file_path))
+                {
+                    return;
+                }
+            }
+        }
+
+        create_directory_if_it_does_not_exist(output_c_header_path.parent_path());
+        
+        ::printf("Generating c header \"%s\"\n", output_c_header_path.generic_string().c_str());
+        h::c::Exported_c_header const c_header = h::c::export_module_as_c_header(core_module, declaration_database, output_header_paths, temporaries_allocator, temporaries_allocator);
+        h::common::write_to_file(output_c_header_path, c_header.content);
+
+        ::printf("Generating c++ header \"%s\"\n", output_cpp_header_path.generic_string().c_str());
+        h::c::Exported_cpp_header const cpp_header = h::c::export_module_as_cpp_header(core_module, output_c_header_path, temporaries_allocator, temporaries_allocator);
+        h::common::write_to_file(output_cpp_header_path, cpp_header.content);
+    }
+
+    enum class Source_file_node_type
+    {
+        Module = 0,
+        Export_c_header,
+        Import_c_header,
+    };
+
+    struct Source_file_node
+    {
+        std::string_view module_name;
+        Source_file_node_type type;
+        std::size_t index;
+    };
+
+    struct Source_file_graph_rank_range
+    {
+        std::size_t start_index;
+        std::size_t count;
+    };
+
+    struct Source_file_graph
+    {
+        std::pmr::vector<Source_file_node> nodes;
+        std::pmr::vector<Source_file_graph_rank_range> ranks;
+    };
+
+    Source_file_graph create_source_file_graph(
+        std::span<C_header const> const c_headers,
+        std::span<h::Module const> const core_modules,
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const& output_header_paths,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        std::unordered_map<std::string_view, std::size_t> module_name_to_node_index;
+        std::pmr::vector<Source_file_node> nodes{temporaries_allocator};
+        std::unordered_multimap<std::size_t, std::size_t> edges;
+
+        for (std::size_t index = 0; index < c_headers.size(); ++index)
+        {
+            C_header const& c_header = c_headers[index];
+
+            Source_file_node const node
+            {
+                .module_name = c_header.module_name,
+                .type = Source_file_node_type::Import_c_header,
+                .index = index,
+            };
+            module_name_to_node_index[c_header.module_name] = nodes.size();
+            nodes.push_back(node);
+        }
+
+        for (std::size_t index = 0; index < core_modules.size(); ++index)
+        {
+            h::Module const& core_module = core_modules[index];
+
+            auto const output_header_path_location = output_header_paths.find(core_module.name);
+            Source_file_node_type const node_type = output_header_path_location != output_header_paths.end() ? Source_file_node_type::Export_c_header : Source_file_node_type::Module;
+
+            Source_file_node const node
+            {
+                .module_name = core_module.name,
+                .type = node_type,
+                .index = index,
+            };
+            module_name_to_node_index[core_module.name] = nodes.size();
+            nodes.push_back(node);
+        }
+
+        for (h::compiler::C_header const& c_header : c_headers)
+        {
+            std::size_t const source_node_index = module_name_to_node_index.at(c_header.module_name);
+            for (std::string_view const dependency : c_header.dependencies)
+            {
+                std::size_t const destination_node_index = module_name_to_node_index.at(dependency);
+                edges.insert(std::make_pair(source_node_index, destination_node_index));
+            }
+        }
+
         for (h::Module const& core_module : core_modules)
         {
-            if (core_modules_to_export.contains(&core_module))
+            std::size_t const source_node_index = module_name_to_node_index.at(core_module.name);
+            for (h::Import_module_with_alias const& import_module : core_module.dependencies.alias_imports)
             {
-                add_module_dependencies(core_modules_to_export, core_modules, core_module);
+                std::size_t const destination_node_index = module_name_to_node_index.at(import_module.module_name);
+                edges.insert(std::make_pair(source_node_index, destination_node_index));
             }
         }
         
-        for (h::Module const* core_module : core_modules_to_export)
+        std::pmr::vector<Source_file_graph_rank_range> ranks{temporaries_allocator};
+        std::pmr::vector<std::size_t> sorted_nodes_indices{temporaries_allocator};
+        sorted_nodes_indices.reserve(nodes.size());
+        
+        while (sorted_nodes_indices.size() < nodes.size())
         {
-            std::filesystem::path const& output_c_header_path = output_header_paths.at(core_module->name);
-            std::filesystem::path const output_cpp_header_path = std::filesystem::path{output_c_header_path}.replace_extension("hpp");
-
-            if (core_module->source_file_path.has_value())
+            std::size_t rank_start_index = sorted_nodes_indices.size();
+            
+            for (std::size_t node_index = 0; node_index < nodes.size(); ++node_index)
             {
-                std::filesystem::path const& source_file_path = core_module->source_file_path.value();
-
-                if (std::filesystem::exists(output_c_header_path) && std::filesystem::exists(output_cpp_header_path))
+                if (!edges.contains(node_index))
                 {
-                    if (is_file_newer_than(output_c_header_path, source_file_path))
-                    {
-                        continue;
-                    }
+                    auto const location = std::find(sorted_nodes_indices.begin(), sorted_nodes_indices.end(), node_index);
+                    if (location == sorted_nodes_indices.end())
+                        sorted_nodes_indices.push_back(node_index);
+                }
+            }
+            
+            for (std::size_t index = rank_start_index; index < sorted_nodes_indices.size(); ++index)
+            {
+                std::size_t const node_index = sorted_nodes_indices[index];
+                std::erase_if(edges, [&](std::pair<std::size_t const, std::size_t> const& edge) -> bool { return edge.second == node_index; });
+            }
+            
+            ranks.push_back({ .start_index = rank_start_index, .count = sorted_nodes_indices.size() - rank_start_index });
+        }
+        
+        Source_file_graph graph{ .nodes{temporaries_allocator}, .ranks{temporaries_allocator} };
+        graph.nodes.resize(sorted_nodes_indices.size());
+
+        for (std::size_t index = 0; index < sorted_nodes_indices.size(); ++index)
+        {
+            std::size_t node_index = sorted_nodes_indices[index];
+            graph.nodes[index] = nodes[node_index];
+        }
+
+        graph.ranks = std::move(ranks);
+
+        return graph;
+    }
+
+    Modules_and_declaration_database import_and_export_c_headers(
+        Builder& builder,
+        std::span<Artifact const> const artifacts,
+        std::span<h::Module> const core_modules,
+        bool const force_allow_errors,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        start_timer(get_profiler(builder), "import_and_export_c_headers");
+
+        Declaration_database declaration_database = create_declaration_database();
+
+        C_header_groups const c_header_groups = get_c_headers(artifacts, builder.header_search_paths, temporaries_allocator, temporaries_allocator);
+        std::pmr::unordered_map<std::pmr::string, std::filesystem::path> const output_header_paths = create_output_header_paths(builder, artifacts, core_modules, temporaries_allocator, temporaries_allocator);
+
+        Source_file_graph const graph = create_source_file_graph(c_header_groups.c_headers, core_modules, output_header_paths, temporaries_allocator);
+
+        std::pmr::vector<h::Module> header_modules{output_allocator};
+        header_modules.resize(c_header_groups.c_headers.size());
+
+        for (Source_file_graph_rank_range const rank : graph.ranks)
+        {
+            for (std::size_t index = 0; index < rank.count; ++index)
+            {
+                std::size_t const node_index = rank.start_index + index;
+                Source_file_node const node = graph.nodes[node_index];
+
+                if (node.type == Source_file_node_type::Module || node.type == Source_file_node_type::Export_c_header)
+                {
+                    h::Module const& core_module = core_modules[node.index];
+                    add_declarations(declaration_database, core_module);
                 }
             }
 
-            create_directory_if_it_does_not_exist(output_c_header_path.parent_path());
-            
-            h::c::Exported_c_header const c_header = h::c::export_module_as_c_header(*core_module, declaration_database, output_header_paths, temporaries_allocator, temporaries_allocator);
-            h::common::write_to_file(output_c_header_path, c_header.content);
+            // TODO can be done in parallel
+            for (std::size_t index = 0; index < rank.count; ++index)
+            {
+                std::size_t const node_index = rank.start_index + index;
+                Source_file_node const node = graph.nodes[node_index];
 
-            h::c::Exported_cpp_header const cpp_header = h::c::export_module_as_cpp_header(*core_module, output_c_header_path, temporaries_allocator, temporaries_allocator);
-            h::common::write_to_file(output_cpp_header_path, cpp_header.content);
+                if (node.type == Source_file_node_type::Export_c_header)
+                {
+                    h::Module const& core_module = core_modules[node.index];
+                    
+                    generate_c_header_file(
+                        core_module,
+                        output_header_paths,
+                        declaration_database,
+                        temporaries_allocator
+                    );
+                }
+                else if (node.type == Source_file_node_type::Import_c_header)
+                {
+                    C_header const& c_header = c_header_groups.c_headers[node.index];
+                    std::span<std::filesystem::path const> const header_search_paths = c_header_groups.header_search_paths[node.index];
+                    Import_c_header_source_group const& source_group = *c_header_groups.source_groups[node.index];
+
+                    std::optional<h::Module> header_module = parse_c_header_and_cache(
+                        builder.build_directory_path,
+                        builder.output_module_json,
+                        header_search_paths,
+                        c_header,
+                        source_group,
+                        force_allow_errors
+                    );
+                    if (header_module.has_value())
+                        header_modules[node.index] = std::move(header_module.value());
+                }
+            }
+
+            for (std::size_t index = 0; index < rank.count; ++index)
+            {
+                std::size_t const node_index = rank.start_index + index;
+                Source_file_node const node = graph.nodes[node_index];
+
+                if (node.type == Source_file_node_type::Import_c_header)
+                {
+                    h::Module const& header_module = header_modules[node.index];
+                    add_declarations(declaration_database, header_module);
+                }
+            }
         }
 
-        end_timer(get_profiler(builder), "generate_c_header_files");
+        std::pmr::vector<h::Module const*> sorted_modules{output_allocator};
+        sorted_modules.resize(graph.nodes.size());
+
+        for (std::size_t index = 0; index < graph.nodes.size(); ++index)
+        {
+            Source_file_node const& node = graph.nodes[index];
+            if (node.type == Source_file_node_type::Module || node.type == Source_file_node_type::Export_c_header)
+                sorted_modules[index] = &core_modules[node.index];
+            else
+                sorted_modules[index] = &header_modules[node.index];
+        }
+
+        for (h::Module& core_module : core_modules)
+            h::compiler::add_import_usages(core_module, output_allocator);
+
+        // TODO can be done in parallel but declaration_database.call_instances needs to be guarded...
+        for (Module& core_module : core_modules)
+        {
+            process_module(core_module, declaration_database, {.validate=false}, temporaries_allocator);
+        }
+
+        end_timer(get_profiler(builder), "import_and_export_c_headers");
+
+        return Modules_and_declaration_database {
+            .header_modules = std::move(header_modules),
+            .sorted_modules = std::move(sorted_modules),
+            .declaration_database = std::move(declaration_database),
+        };
+    }
+
+    void validate_modules_and_exit_if_needed(
+        std::span<h::Module> const core_modules,
+        Declaration_database& declaration_database,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {
+        for (Module& core_module : core_modules)
+        {
+            Analysis_result result = process_module(core_module, declaration_database, {.validate=true}, temporaries_allocator);
+
+            if (!result.diagnostics.empty())
+            {
+                print_diagnostics_and_exit_if_needed(result.diagnostics, temporaries_allocator);
+            }
+        }
     }
 
     static bool is_compiled_cpp_up_to_date(std::filesystem::path const& output_dependency_file)
@@ -687,21 +920,6 @@ namespace h::compiler
         return true;
     }
 
-    void add_builtin_module(
-        std::pmr::vector<h::Module>& header_modules,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
-        std::pmr::polymorphic_allocator<> const& temporaries_allocator
-    )
-    {
-        std::filesystem::path const builtin_file_path = BUILTIN_SOURCE_FILE_PATH;
-        
-        std::optional<h::Module> builtin_module = h::parser::parse_and_convert_to_module(builtin_file_path, output_allocator, temporaries_allocator);
-        if (!builtin_module.has_value())
-            throw std::runtime_error{"Failed to read builtin module!"};
-
-        header_modules.push_back(std::move(builtin_module.value()));
-    }
-
     std::pmr::vector<h::Module> parse_source_files_and_cache(
         Builder& builder,
         std::span<std::filesystem::path const> const source_files_paths,
@@ -844,6 +1062,13 @@ namespace h::compiler
                     }
                 }
             }
+
+            ::printf("Compiling '%s'\n", core_module.name.c_str());
+            if (core_module.source_file_path.has_value())
+                ::printf("    input is \"%s\"\n", core_module.source_file_path->generic_string().c_str());
+            if (builder.output_llvm_ir)
+                ::printf("    output llvm IR is \"%s\"\n", output_llvm_ir_file.generic_string().c_str());
+            ::printf("    output is \"%s\"\n", output_assembly_file.generic_string().c_str());
 
             std::unique_ptr<llvm::Module> llvm_module = create_llvm_module(
                 llvm_data,
@@ -1190,7 +1415,6 @@ namespace h::compiler
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
-            {},
             core_modules,
             declaration_database
         );
