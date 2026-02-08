@@ -144,6 +144,33 @@ namespace h::c
         };
     }
 
+    h::Module const& import_vulkan_header_module()
+    {
+        static std::optional<h::Module> header_module_optional = std::nullopt;
+        if (header_module_optional.has_value())
+            return header_module_optional.value();
+
+        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
+        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
+
+        std::pmr::vector<std::filesystem::path> include_directories;
+        include_directories.push_back(vulkan_headers_path);
+
+        h::c::Options const options = {
+            .include_directories = include_directories,
+            .allow_errors = false,
+        };
+
+        header_module_optional = h::c::import_header("vulkan", vulkan_header_path, options);
+        REQUIRE(header_module_optional.has_value());
+        h::Module const& header_module = header_module_optional.value();
+
+        CHECK(header_module.source_file_path == vulkan_header_path);
+    
+        return header_module;
+    }
+    
+
     TEST_CASE("Import stdio.h C header creates 'puts' function declaration")
     {
         std::pmr::vector<std::filesystem::path> const header_search_directories = 
@@ -209,14 +236,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkPhysicalDeviceType' enum")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Enum_declaration const& actual = h::c::find_enum_declaration(header_module, "VkPhysicalDeviceType");
 
@@ -244,14 +264,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkCommandPoolCreateInfo' struct")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkCommandPoolCreateInfo");
 
@@ -294,14 +307,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkExtent2D' struct")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkExtent2D");
 
@@ -355,14 +361,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkRect2D' struct")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkRect2D");
 
@@ -441,14 +440,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkClearAttachment' struct")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkClearAttachment");
 
@@ -614,14 +606,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkBufferCreateInfo' struct")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Struct_declaration const& actual = h::c::find_struct_declaration(header_module, "VkBufferCreateInfo");
 
@@ -696,13 +681,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header has correct macro types")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
+        h::Module const& header_module = import_vulkan_header_module();
         h::Global_variable_declaration const& actual = h::c::find_global_variable_declaration(header_module, "VK_API_VERSION_1_0");
 
         CHECK(actual.name == "VK_API_VERSION_1_0");
@@ -727,14 +706,7 @@ namespace h::c
 
     TEST_CASE("Import vulkan.h C header creates 'VkClearColorValue' union")
     {
-        std::filesystem::path const vulkan_headers_path = g_vulkan_headers_location;
-        std::filesystem::path const vulkan_header_path = vulkan_headers_path / "vulkan" / "vulkan.h";
-
-        std::optional<h::Module> const header_module_optional = h::c::import_header("vulkan", vulkan_header_path, {});
-        REQUIRE(header_module_optional.has_value());
-        h::Module const& header_module = header_module_optional.value();
-
-        CHECK(header_module.source_file_path == vulkan_header_path);
+        h::Module const& header_module = import_vulkan_header_module();
 
         h::Union_declaration const& actual = h::c::find_union_declaration(header_module, "VkClearColorValue");
 
