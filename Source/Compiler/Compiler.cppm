@@ -120,10 +120,8 @@ namespace h::compiler
         std::pmr::vector<h::compiler::Diagnostic> diagnostics;
     };
 
-    export Declaration_database_and_sorted_modules create_declaration_database_and_sorted_modules(
-        std::span<h::Module const> const header_modules,
-        std::span<h::Module> const core_modules,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
+    export void print_diagnostics_and_exit_if_needed(
+        std::span<h::compiler::Diagnostic const> const diagnostics,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
 
@@ -136,8 +134,8 @@ namespace h::compiler
 
     export Compilation_database process_modules_and_create_compilation_database(
         LLVM_data& llvm_data,
-        std::span<h::Module const> const header_modules,
-        std::span<h::Module> const core_modules,
+        std::span<h::Module const* const> const sorted_modules,
+        Declaration_database declaration_database,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );

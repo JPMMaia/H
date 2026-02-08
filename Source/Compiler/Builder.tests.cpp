@@ -218,6 +218,7 @@ namespace h::compiler
         std::filesystem::path const output_file_path = build_directory_path / "compile_commands.json";
 
         std::filesystem::path const executable_directory = h::common::get_executable_directory();
+        std::filesystem::path const builtin_include_directory = h::common::get_builtin_include_directory();
 
         bool const use_clang_cl = true;
 
@@ -230,6 +231,8 @@ namespace h::compiler
                     .directory = build_directory_path / "artifacts",
                     .arguments = {
                         std::pmr::string{(executable_directory / "clang-cl.exe").generic_string()},
+                        std::pmr::string{"/clang:-I"} + std::pmr::string{builtin_include_directory.generic_string()},
+                        std::pmr::string{"/clang:-I"} + std::pmr::string{(build_directory_path / "include").generic_string()},
                         std::pmr::string{"/clang:-I"} + std::pmr::string{(g_examples_directory / project_name / "external_library" / "include").generic_string()},
                         std::pmr::string{"/clang:-std=c++23"},
                         std::pmr::string{"/clang:-o"} + std::pmr::string{(build_directory_path / "artifacts" / "my_app.cpp_implementation.bc").generic_string()},
@@ -247,5 +250,42 @@ namespace h::compiler
 
             test_compile_commands(build_directory_path, artifact_file_path, output_file_path, target, repository_paths, expected_compile_commands);
         }
+    }
+
+    TEST_CASE("Build Export_c_header", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"include"} / "my_library" / "module_a.h",
+            std::filesystem::path{"include"} / "my_library" / "module_a.hpp",
+        };
+
+        test_builder("Export_c_header", "hlang_artifact.json", target, repository_paths, expected_output_paths);
+    }
+
+    TEST_CASE("Build Export_and_import_c_header", "[Builder]")
+    {
+        h::compiler::Target const target = h::compiler::get_default_target();
+
+        std::pmr::vector<std::filesystem::path> const repository_paths
+        {
+        };
+
+        std::pmr::vector<std::filesystem::path> const expected_output_paths
+        {
+            std::filesystem::path{"artifacts"} / "my_library.module_a.hlb",
+            std::filesystem::path{"artifacts"} / "my_library.module_b.hlb",
+            std::filesystem::path{"artifacts"} / "my_library.module_c.hlb",
+            std::filesystem::path{"include"} / "my_library" / "module_a.h",
+            std::filesystem::path{"include"} / "my_library" / "module_a.hpp",
+        };
+
+        test_builder("Export_and_import_c_header", "hlang_artifact.json", target, repository_paths, expected_output_paths);
     }
 }

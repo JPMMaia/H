@@ -198,7 +198,11 @@ namespace h::compiler
             {
                 .module_name = element.at("name").get<std::pmr::string>(),
                 .header = element.at("header").get<std::pmr::string>(),
+                .dependencies = parse_string_array_at(element, "dependencies"),
             };
+
+            if (json.contains("allow_errors"))
+                header.allow_errors = json.at("allow_errors").get<bool>();
 
             headers.push_back(std::move(header));
         }
@@ -239,9 +243,9 @@ namespace h::compiler
     {
         std::pmr::string const type = json.at("type").get<std::pmr::string>();
 
-        if (type == "c_header")
+        if (type == "import_c_header")
         {
-            C_header_source_group data = {};
+            Import_c_header_source_group data = {};
 
             if (json.contains("headers"))
                 data.c_headers = parse_c_headers(json.at("headers"));
@@ -254,6 +258,15 @@ namespace h::compiler
 
             if (json.contains("remove_prefixes"))
                 data.remove_prefixes = parse_string_array(json.at("remove_prefixes"));
+
+            return data;
+        }
+        else if (type == "export_c_header")
+        {
+            Export_c_header_source_group data{};
+
+            if (json.contains("output_directory"))
+                data.output_directory = std::filesystem::path{json.at("output_directory").get<std::string>()};
 
             return data;
         }
@@ -410,16 +423,25 @@ namespace h::compiler
 
                 if (group.data.has_value())
                 {
-                    if (std::holds_alternative<C_header_source_group>(*group.data))
-                        group_json["type"] = "c_header";
+                    if (std::holds_alternative<Export_c_header_source_group>(*group.data))
+                        group_json["type"] = "export_c_header";
+                    else if (std::holds_alternative<Import_c_header_source_group>(*group.data))
+                        group_json["type"] = "import_c_header";
                     else if (std::holds_alternative<Cpp_source_group>(*group.data))
                         group_json["type"] = "c++";
                     else if (std::holds_alternative<Hlang_source_group>(*group.data))
                         group_json["type"] = "hlang";
 
-                    if (std::holds_alternative<C_header_source_group>(*group.data))
+                    if (std::holds_alternative<Export_c_header_source_group>(*group.data))
                     {
-                        C_header_source_group const& c_headers_group = std::get<C_header_source_group>(*group.data);
+                        Export_c_header_source_group const& c_headers_group = std::get<Export_c_header_source_group>(*group.data);
+
+                        if (c_headers_group.output_directory.has_value())
+                            group_json["output_directory"] = c_headers_group.output_directory->generic_string();
+                    }
+                    else if (std::holds_alternative<Import_c_header_source_group>(*group.data))
+                    {
+                        Import_c_header_source_group const& c_headers_group = std::get<Import_c_header_source_group>(*group.data);
                         
                         if (!c_headers_group.c_headers.empty())
                         {
@@ -430,8 +452,14 @@ namespace h::compiler
                                 nlohmann::json c_header_json
                                 {
                                     { "name", c_header.module_name },
-                                    { "header", c_header.header },
+                                    { "header", c_header.header }
                                 };
+
+                                if (c_header.allow_errors.has_value())
+                                    c_header_json["allow_errors"] = c_header.allow_errors.value();
+
+                                if (!c_header.dependencies.empty())
+                                    c_header_json["dependencies"] = c_header.dependencies;
 
                                 c_headers_json.push_back(std::move(c_header_json));
                             }
@@ -530,6 +558,22 @@ namespace h::compiler
         return std::pmr::vector<std::filesystem::path>{public_include_directories, output_allocator};
     }
 
+    std::pmr::vector<Source_group const*> get_export_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
+    {
+        std::pmr::vector<Source_group const*> groups{output_allocator};
+        groups.reserve(artifact.sources.size());
+
+        for (Source_group const& group : artifact.sources)
+        {
+            if (std::holds_alternative<Export_c_header_source_group>(*group.data))
+            {
+                groups.push_back(&group);
+            }
+        }
+
+        return groups;
+    }
+
     std::pmr::vector<Source_group const*> get_c_header_source_groups(Artifact const& artifact, std::pmr::polymorphic_allocator<> const& output_allocator)
     {
         std::pmr::vector<Source_group const*> groups{output_allocator};
@@ -537,7 +581,7 @@ namespace h::compiler
 
         for (Source_group const& group : artifact.sources)
         {
-            if (std::holds_alternative<C_header_source_group>(*group.data))
+            if (std::holds_alternative<Import_c_header_source_group>(*group.data))
             {
                 groups.push_back(&group);
             }
@@ -568,9 +612,9 @@ namespace h::compiler
 
         for (Source_group const& group : artifact.sources)
         {
-            if (std::holds_alternative<C_header_source_group>(*group.data))
+            if (std::holds_alternative<Import_c_header_source_group>(*group.data))
             {
-                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+                Import_c_header_source_group const& c_header_group = std::get<Import_c_header_source_group>(*group.data);
 
                 headers.insert(headers.end(), c_header_group.c_headers.begin(), c_header_group.c_headers.end());
             }
@@ -583,9 +627,9 @@ namespace h::compiler
     {
         for (Source_group const& group : artifact.sources)
         {
-            if (std::holds_alternative<C_header_source_group>(*group.data))
+            if (std::holds_alternative<Import_c_header_source_group>(*group.data))
             {
-                C_header_source_group const& c_header_group = std::get<C_header_source_group>(*group.data);
+                Import_c_header_source_group const& c_header_group = std::get<Import_c_header_source_group>(*group.data);
 
                 auto const is_c_header = [&](C_header const& c_header) -> bool
                 {

@@ -1,0 +1,8 @@
+module my_library.module_a;
+
+import my_library.module_b as mb;
+
+export function my_interface(value: mb.My_struct) -> (c: Int32)
+{
+    return value.a + value.b;
+}

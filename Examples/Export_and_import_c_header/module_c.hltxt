@@ -1,0 +1,9 @@
+module my_library.module_c;
+
+import my_library.module_b as mb;
+
+export struct My_struct
+{
+    a: mb.My_struct = {};
+    b: mb.My_struct = {};
+}

@@ -497,14 +497,6 @@ namespace h::language_server
                 temporaries_allocator
             );
 
-            std::pmr::vector<h::Module> header_modules = h::compiler::parse_c_headers_and_cache(
-                builder,
-                artifacts,
-                output_allocator,
-                temporaries_allocator
-            );
-            h::compiler::add_builtin_module(header_modules, output_allocator, temporaries_allocator);
-
             std::pmr::vector<std::filesystem::path> core_module_source_file_paths = get_artifacts_source_files(
                 artifacts,
                 output_allocator,
@@ -537,22 +529,20 @@ namespace h::language_server
                 temporaries_allocator
             );
 
-            std::pmr::vector<h::Module const*> const sorted_core_modules = h::compiler::sort_core_modules(
+            h::compiler::Modules_and_declaration_database modules_and_declaration_database = import_and_export_c_headers(
+                builder,
+                artifacts,
                 core_modules,
-                temporaries_allocator,
+                true,
+                output_allocator,
                 temporaries_allocator
-            );
-
-            h::Declaration_database declaration_database = h::compiler::create_declaration_database_and_add_modules(
-                header_modules,
-                sorted_core_modules
             );
 
             Workspace_data workspace_data
             {
                 .builder = std::move(builder),
                 .artifacts = std::move(artifacts),
-                .header_modules = std::move(header_modules),
+                .header_modules = std::move(modules_and_declaration_database.header_modules),
                 .core_module_source_file_paths = std::move(core_module_source_file_paths),
                 .core_module_versions = std::move(core_module_versions),
                 .core_module_diagnostics = std::move(core_module_diagnostics),
@@ -560,7 +550,7 @@ namespace h::language_server
                 .core_module_diagnostic_dirty_flags = std::move(core_module_diagnostic_dirty_flags),
                 .core_module_parse_trees = std::move(core_module_parse_trees),
                 .core_modules = std::move(core_modules),
-                .declaration_database = std::move(declaration_database),
+                .declaration_database = std::move(modules_and_declaration_database.declaration_database),
             };
 
             server.workspaces_data.push_back(std::move(workspace_data));

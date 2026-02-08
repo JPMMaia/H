@@ -1,0 +1,7 @@
+module my_library.module_a;
+
+export struct My_struct
+{
+    a: Int32 = 0;
+    b: Int32 = 0;
+}

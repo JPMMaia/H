@@ -1815,6 +1815,35 @@ namespace h::c
         return output;
     }
 
+    void remove_redundant_forward_declarations(C_declarations& declarations)
+    {
+        for (std::size_t index = 0; index < declarations.forward_declarations.size(); ++index)
+        {
+            std::size_t const reverse_index = declarations.forward_declarations.size() - 1 - index;
+            h::Forward_declaration const& forward_declaration = declarations.forward_declarations[reverse_index];
+
+            {
+                auto const is_declaration = [&](h::Struct_declaration const& declaration) -> bool { return declaration.unique_name == forward_declaration.unique_name; };
+                auto const iterator = std::find_if(declarations.struct_declarations.begin(), declarations.struct_declarations.end(), is_declaration);
+                if (iterator != declarations.struct_declarations.end())
+                {
+                    declarations.forward_declarations.erase(declarations.forward_declarations.begin() + reverse_index);
+                    continue;
+                }
+            }
+
+            {
+                auto const is_declaration = [&](h::Union_declaration const& declaration) -> bool { return declaration.unique_name == forward_declaration.unique_name; };
+                auto const iterator = std::find_if(declarations.union_declarations.begin(), declarations.union_declarations.end(), is_declaration);
+                if (iterator != declarations.union_declarations.end())
+                {
+                    declarations.forward_declarations.erase(declarations.forward_declarations.begin() + reverse_index);
+                    continue;
+                }
+            }
+        }
+    }
+
     static void add_expression(
         h::Statement& statement,
         h::Expression expression
@@ -2029,6 +2058,7 @@ namespace h::c
     static std::optional<CXTranslationUnit> create_translation_unit(
         CXIndex const index,
         std::filesystem::path const& header_path,
+        bool const print_errors,
         Options const& options
     )
     {
@@ -2071,11 +2101,12 @@ namespace h::c
             &unit
         );
 
-        if (error != CXError_Success)
         {
             unsigned const number_of_diagnostics = clang_getNumDiagnostics(unit);
 
-            unsigned const options =
+            if (print_errors)
+            {
+                unsigned const diagnostic_options =
                 CXDiagnostic_DisplaySourceLocation |
                 CXDiagnostic_DisplaySourceRanges |
                 CXDiagnostic_DisplayCategoryId |
@@ -2084,13 +2115,17 @@ namespace h::c
             for (unsigned index = 0; index < number_of_diagnostics; ++index)
             {
                 CXDiagnostic const diagnostic = clang_getDiagnostic(unit, index);
-                String const diagnostic_message = String{clang_formatDiagnostic(diagnostic, options)};
+                String const diagnostic_message = String{clang_formatDiagnostic(diagnostic, diagnostic_options)};
                 std::cerr << diagnostic_message.string_view() << std::endl;
             }
+            }
 
-            constexpr char const* message = "Unable to parse translation unit. Quitting.";
-            std::cerr << message << std::endl;
-            return std::nullopt;
+            if (error != CXError_Success || (!options.allow_errors && number_of_diagnostics > 0))
+            {
+                constexpr char const* message = "Unable to parse translation unit. Quitting.";
+                std::cerr << message << std::endl;
+                return std::nullopt;
+            }
         }
 
         CXTargetInfo targetInfo = clang_getTranslationUnitTargetInfo(unit);
@@ -2498,7 +2533,9 @@ namespace h::c
             std::fclose(file);
         }
 
-        std::optional<CXTranslationUnit> unit = create_translation_unit(index, generated_header_path, options);
+        Options new_options = options;
+        new_options.allow_errors = true;
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, generated_header_path, false, new_options);
         if (!unit.has_value())
             return false;
 
@@ -2645,6 +2682,8 @@ namespace h::c
             declarations
         );
 
+        remove_redundant_forward_declarations(declarations);
+
         C_declarations declarations_with_fixed_width_integers = convert_fixed_width_integers_typedefs_to_integer_types(declarations);
         transform_names(declarations_with_fixed_width_integers, options.remove_prefixes);
 
@@ -2697,7 +2736,7 @@ namespace h::c
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, true, options);
         if (!unit.has_value())
             return std::nullopt;
 
@@ -2805,7 +2844,7 @@ namespace h::c
     )
     {
         CXIndex index = clang_createIndex(0, 0);
-        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, options);
+        std::optional<CXTranslationUnit> unit = create_translation_unit(index, header_path, false, options);
         if (!unit.has_value())
             return std::nullopt;
 

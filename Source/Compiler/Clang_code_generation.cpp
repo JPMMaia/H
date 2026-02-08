@@ -549,8 +549,7 @@ namespace h::compiler
         llvm::LLVMContext& llvm_context,
         Clang_data const& clang_data,
         std::string_view const module_name,
-        std::span<h::Module const> const header_modules,
-        std::span<h::Module const* const> const core_modules,
+        std::span<h::Module const* const> const sorted_modules,
         Declaration_database const& declaration_database
     )
     {
@@ -591,10 +590,8 @@ namespace h::compiler
             }
         }
 
-        for (Module const& header_module : header_modules)
-            add_clang_declarations(clang_declaration_database, clang_ast_context, header_module, declaration_database);
-        for (Module const* core_module : core_modules)
-            add_clang_declarations(clang_declaration_database, clang_ast_context, *core_module, declaration_database);
+        for (Module const* sorted_module : sorted_modules)
+            add_clang_declarations(clang_declaration_database, clang_ast_context, *sorted_module, declaration_database);
 
         for (std::pair<Type_instance const, Declaration_instance_storage> const& pair : declaration_database.instances)
         {

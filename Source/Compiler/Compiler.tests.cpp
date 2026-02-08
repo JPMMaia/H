@@ -5659,7 +5659,6 @@ std::filesystem::path const header_module_file_path = create_and_import_c_header
         *llvm_data.context,
         llvm_data.clang_data,
         "Hl_clang_module",
-        {},
         core_modules,
         declaration_database
     );

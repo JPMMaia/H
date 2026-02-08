@@ -90,6 +90,7 @@ namespace h::compiler
         std::filesystem::path const& source_file_path,
         std::filesystem::path const& output_file_path,
         std::optional<std::filesystem::path> const output_dependency_file_path,
+        std::filesystem::path const& build_artifacts_directory,
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
@@ -104,6 +105,13 @@ namespace h::compiler
         arguments.reserve(10 + include_directories.size() + additional_flags.size());
 
         arguments.push_back(std::pmr::string{clang_path.generic_string()});
+
+        std::filesystem::path const builtin_include_directory = h::common::get_builtin_include_directory();
+        add_include_directory_argument(arguments, builtin_include_directory.generic_string(), use_clang_cl);
+
+        std::filesystem::path const build_directory = build_artifacts_directory.parent_path();
+        std::filesystem::path const generated_headers_directory = std::filesystem::weakly_canonical(build_directory / "include");
+        add_include_directory_argument(arguments, generated_headers_directory.generic_string(), use_clang_cl);
 
         for (std::pmr::string const& include_directory : include_directories)
         {
@@ -159,6 +167,7 @@ namespace h::compiler
         std::filesystem::path const& source_file_path,
         std::filesystem::path const& output_file_path,
         std::optional<std::filesystem::path> const output_dependency_file_path,
+        std::filesystem::path const& build_artifacts_directory,
         std::span<std::pmr::string const> const include_directories,
         std::span<std::pmr::string const> const additional_flags,
         bool const use_clang_cl,
@@ -178,6 +187,7 @@ namespace h::compiler
             source_file_path,
             output_file_path,
             output_dependency_file_path,
+            build_artifacts_directory,
             include_directories,
             additional_flags,
             use_clang_cl,
@@ -185,7 +195,7 @@ namespace h::compiler
             temporaries_allocator
         );
 
-        std::printf("Compiling %s\n  Output is %s\n  Command line: ", source_file_path.generic_string().c_str(), output_file_path.generic_string().c_str());
+        std::printf("Compiling \"%s\"\n  Output is \"%s\"\n  Command line: ", source_file_path.generic_string().c_str(), output_file_path.generic_string().c_str());
         for (std::size_t index = 0; index < arguments.size(); ++index)
         {
             std::fputs(arguments[index].c_str(), stdout);

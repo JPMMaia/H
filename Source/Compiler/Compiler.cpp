@@ -827,11 +827,14 @@ namespace h::compiler
         std::pmr::unordered_map<std::pmr::string, h::Module> core_module_dependencies;
         core_module_dependencies.reserve(module_name_to_file_path_map.size() + 1);
 
-        std::filesystem::path const builtin_file_path = BUILTIN_SOURCE_FILE_PATH;
-        std::optional<h::Module> builtin_module = parse_and_convert(builtin_file_path);
-        if (!builtin_module.has_value())
-            throw std::runtime_error{"Failed to read builtin module!"};
-        core_module_dependencies.insert(std::make_pair(builtin_module->name, std::move(builtin_module.value())));
+        if (core_module.name != "H.Builtin")
+        {
+            std::filesystem::path const builtin_file_path = BUILTIN_SOURCE_FILE_PATH;
+            std::optional<h::Module> builtin_module = parse_and_convert(builtin_file_path);
+            if (!builtin_module.has_value())
+                throw std::runtime_error{"Failed to read builtin module!"};
+            core_module_dependencies.insert(std::make_pair(builtin_module->name, std::move(builtin_module.value())));
+        }
 
         create_dependency_core_modules(core_module, module_name_to_file_path_map, core_module_dependencies);
 
@@ -1415,7 +1418,6 @@ namespace h::compiler
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
-            {},
             all_core_modules,
             declaration_database
         );
@@ -1643,22 +1645,12 @@ namespace h::compiler
         };
     }
 
-    Compilation_database process_modules_and_create_compilation_database(
-        LLVM_data& llvm_data,
-        std::span<h::Module const> const header_modules,
-        std::span<h::Module> const core_modules,
-        std::pmr::polymorphic_allocator<> const& output_allocator,
+    
+    void print_diagnostics_and_exit_if_needed(
+        std::span<h::compiler::Diagnostic const> const diagnostics,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        Declaration_database_and_sorted_modules declaration_database_and_sorted_modules = create_declaration_database_and_sorted_modules(
-            header_modules,
-            core_modules,
-            output_allocator,
-            temporaries_allocator
-        );
-
-        std::span<Diagnostic const> const diagnostics = declaration_database_and_sorted_modules.diagnostics;
         if (!diagnostics.empty())
         {
             for (std::size_t diagnostic_index = 0; diagnostic_index < diagnostics.size(); ++diagnostic_index)
@@ -1688,24 +1680,27 @@ namespace h::compiler
             if (contains_errors)
                 h::common::print_message_and_exit("Validation failed.");
         }
-    
-        std::span<h::Module const* const> const sorted_core_modules = declaration_database_and_sorted_modules.sorted_core_modules;
-        Declaration_database declaration_database = std::move(declaration_database_and_sorted_modules.declaration_database);
+    }
 
+    Compilation_database process_modules_and_create_compilation_database(
+        LLVM_data& llvm_data,
+        std::span<h::Module const* const> const sorted_modules,
+        Declaration_database declaration_database,
+        std::pmr::polymorphic_allocator<> const& output_allocator,
+        std::pmr::polymorphic_allocator<> const& temporaries_allocator
+    )
+    {    
         Clang_module_data clang_module_data = create_clang_module_data(
             *llvm_data.context,
             llvm_data.clang_data,
             "Hl_clang_module",
-            header_modules,
-            sorted_core_modules,
+            sorted_modules,
             declaration_database
         );
 
         Type_database type_database = create_type_database(*llvm_data.context);
-        for (Module const& header_module : header_modules)
-            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, header_module);
-        for (Module const* core_module : sorted_core_modules)
-            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *core_module);
+        for (Module const* sorted_module : sorted_modules)
+            add_module_types(type_database, *llvm_data.context, llvm_data.data_layout, clang_module_data, *sorted_module);
 
         return Compilation_database
         {

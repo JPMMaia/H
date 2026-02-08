@@ -30,4 +30,6 @@ namespace h::common
     export void write_to_file(std::filesystem::path const& path, std::string_view const content);
 
     export std::pmr::vector<std::pmr::string> convert_path_to_string(std::span<std::filesystem::path const> const values, std::pmr::polymorphic_allocator<> output_allocator);
+
+    export std::pmr::vector<std::string_view> split_string(std::string_view const value, char const seperator, std::pmr::polymorphic_allocator<> const& output_allocator);
 }

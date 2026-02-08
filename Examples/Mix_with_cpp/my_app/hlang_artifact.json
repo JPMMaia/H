@@ -9,7 +9,7 @@
     ],
     "sources": [
         {
-            "type": "c_header",
+            "type": "import_c_header",
             "headers": [
                 {
                     "name": "C_interface",
