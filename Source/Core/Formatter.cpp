@@ -170,6 +170,17 @@ namespace h
         return std::nullopt;
     }
 
+    static bool is_test_declaration(Declaration const& declaration)
+    {
+        if (std::holds_alternative<h::Function_declaration const*>(declaration.data))
+        {
+            h::Function_declaration const& function_declaration = *std::get<h::Function_declaration const*>(declaration.data);
+            return function_declaration.is_test;
+        }
+
+        return false;
+    }
+
     static void add_format_declaration(
         String_buffer& buffer,
         h::Module const& core_module,
@@ -183,6 +194,12 @@ namespace h
         if (comment.has_value())
         {
             add_comment(buffer, comment.value(), 0);
+            add_new_line(buffer);
+        }
+
+        if (is_test_declaration(declaration))
+        {
+            add_text(buffer, "@test");
             add_new_line(buffer);
         }
 

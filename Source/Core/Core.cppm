@@ -500,6 +500,7 @@ namespace h
         std::pmr::vector<std::pmr::string> input_parameter_names;
         std::pmr::vector<std::pmr::string> output_parameter_names;
         Linkage linkage;
+        bool is_test;
         std::pmr::vector<Function_condition> preconditions;
         std::pmr::vector<Function_condition> postconditions;
         std::optional<std::pmr::string> comment;

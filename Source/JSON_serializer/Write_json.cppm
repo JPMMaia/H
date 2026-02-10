@@ -1401,6 +1401,8 @@ namespace h::json
             std::string_view const enum_value_string = write_enum(output.linkage);
             writer.String(enum_value_string.data(), enum_value_string.size());
         }
+        writer.Key("is_test");
+        writer.Bool(output.is_test);
         writer.Key("preconditions");
         write_object(writer, output.preconditions);
         writer.Key("postconditions");

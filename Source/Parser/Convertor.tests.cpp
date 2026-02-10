@@ -466,6 +466,12 @@ namespace h::parser
         test_convertor(input_file);
     }
 
+    TEST_CASE("Converts test_framework.hltxt", "[Convertor]")
+    {
+        std::string_view const input_file = "test_framework.hltxt";
+        test_convertor(input_file);
+    }
+
     TEST_CASE("Converts unary_expressions.hltxt", "[Convertor]")
     {
         std::string_view const input_file = "unary_expressions.hltxt";

@@ -466,6 +466,7 @@ namespace h::binary_serializer
         serialize(serializer, value.input_parameter_names);
         serialize(serializer, value.output_parameter_names);
         serialize(serializer, value.linkage);
+        serialize(serializer, value.is_test);
         serialize(serializer, value.preconditions);
         serialize(serializer, value.postconditions);
         serialize(serializer, value.comment);
@@ -483,6 +484,7 @@ namespace h::binary_serializer
         deserialize(deserializer, value.input_parameter_names);
         deserialize(deserializer, value.output_parameter_names);
         deserialize(deserializer, value.linkage);
+        deserialize(deserializer, value.is_test);
         deserialize(deserializer, value.preconditions);
         deserialize(deserializer, value.postconditions);
         deserialize(deserializer, value.comment);

@@ -424,7 +424,8 @@ namespace h::parser
 
     struct Declaration_attributes
     {
-        std::optional<std::string_view> unique_name;
+        std::optional<std::string_view> unique_name = std::nullopt;
+        bool is_test = false;
     };
 
     Declaration_attributes get_declaration_attributes(
@@ -453,6 +454,10 @@ namespace h::parser
 
                     attributes.unique_name = get_string_content(get_node_value(tree, unique_name_node));
                 }
+            }
+            else if (name == "@test")
+            {
+                attributes.is_test = true;
             }
         }
 
@@ -515,6 +520,7 @@ namespace h::parser
                 function_declaration_node.value(),
                 is_export ? h::Linkage::External : h::Linkage::Private,
                 declaration_attributes.unique_name,
+                declaration_attributes.is_test,
                 comment,
                 output_allocator,
                 temporaries_allocator
@@ -1189,12 +1195,14 @@ namespace h::parser
         Parse_node const& node,
         h::Linkage const linkage,
         std::optional<std::string_view> const& unique_name,
+        bool const is_test,
         std::optional<std::pmr::string> const& comment,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        h::Function_declaration output;
+        h::Function_declaration output = {};
+        output.is_test = is_test;
         
         std::optional<Parse_node> const name_node = get_child_node(tree, node, "Function_name");
         if (name_node.has_value())
@@ -2621,6 +2629,7 @@ namespace h::parser
             node,
             h::Linkage::Private,
             std::nullopt,
+            false,
             std::nullopt,
             output_allocator,
             temporaries_allocator

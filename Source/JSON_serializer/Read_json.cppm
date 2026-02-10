@@ -2157,6 +2157,17 @@ namespace h::json
             };
         }
 
+        if (key == "is_test")
+        {
+
+            return Stack_state
+            {
+                .pointer = &parent->is_test,
+                .type = "bool",
+                .get_next_state = nullptr,
+            };
+        }
+
         if (key == "preconditions")
         {
             auto const set_vector_size = [](Stack_state const* const state, std::size_t const size) -> void
