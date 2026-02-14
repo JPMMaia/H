@@ -21,6 +21,37 @@ LLD_HAS_DRIVER(coff);
 
 namespace h::compiler
 {
+    static void add_alternate_names(
+        std::pmr::vector<std::string>& arguments_storage,
+        std::span<std::pmr::string const> const libraries
+    )
+    {
+        auto const is_msvcrt = [](std::pmr::string const& library) -> bool
+        {
+            return library.starts_with("libcmt")
+            || library.starts_with("msvcrt")
+            || library.starts_with("msvcmrt")
+            || library.starts_with("msvcurt");
+        };
+        
+        auto const location = std::find_if(libraries.begin(), libraries.end(), is_msvcrt);
+        if (location == libraries.end())
+            return;
+    
+        // Found by running `dumpbin /directives msvcrt.lib`
+        arguments_storage.push_back("/alternatename:__acrt_initialize=__scrt_stub_for_acrt_initialize");
+        arguments_storage.push_back("/alternatename:__acrt_uninitialize=__scrt_stub_for_acrt_uninitialize");
+        arguments_storage.push_back("/alternatename:__acrt_uninitialize_critical=__scrt_stub_for_acrt_uninitialize_critical");
+        arguments_storage.push_back("/alternatename:__acrt_thread_attach=__scrt_stub_for_acrt_thread_attach");
+        arguments_storage.push_back("/alternatename:__acrt_thread_detach=__scrt_stub_for_acrt_thread_detach");
+        arguments_storage.push_back("/alternatename:_is_c_termination_complete=__scrt_stub_for_is_c_termination_complete");
+        arguments_storage.push_back("/alternatename:__vcrt_initialize=__scrt_stub_for_acrt_initialize");
+        arguments_storage.push_back("/alternatename:__vcrt_uninitialize=__scrt_stub_for_acrt_uninitialize");
+        arguments_storage.push_back("/alternatename:__vcrt_uninitialize_critical=__scrt_stub_for_acrt_uninitialize_critical");
+        arguments_storage.push_back("/alternatename:__vcrt_thread_attach=__scrt_stub_for_acrt_thread_attach");
+        arguments_storage.push_back("/alternatename:__vcrt_thread_detach=__scrt_stub_for_acrt_thread_detach");
+    }
+
     bool link(
         std::span<std::filesystem::path const> const object_file_paths,
         std::span<std::pmr::string const> const libraries,
@@ -60,6 +91,8 @@ namespace h::compiler
                 arguments_storage.push_back(std::format("/defaultlib:{}", library_path.generic_string()));
             }
         }
+
+        add_alternate_names(arguments_storage, libraries);
 
         for (std::filesystem::path const& object_file_path : object_file_paths)
         {

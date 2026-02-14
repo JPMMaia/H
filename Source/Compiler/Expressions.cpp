@@ -1685,7 +1685,17 @@ namespace h::compiler
         {
             h::Variable_expression const& variable_expression = std::get<h::Variable_expression>(left_hand_side.data);
             
-            if (variable_expression.name == "create_array_slice_from_pointer")
+            if (variable_expression.name == "check")
+            {
+                // TODO
+                return Value_and_type
+                {
+                    .name = "",
+                    .value = nullptr,
+                    .type = std::nullopt,
+                };
+            }
+            else if (variable_expression.name == "create_array_slice_from_pointer")
             {
                 if (expression.arguments.size() != 2)
                     throw std::runtime_error{"create_array_slice_from_pointer() expects two arguments!"};

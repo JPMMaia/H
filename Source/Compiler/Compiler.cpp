@@ -606,22 +606,32 @@ namespace h::compiler
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
-        auto const should_compile = [functions_to_compile](Function_definition const& definition) -> bool
+        auto const should_compile = [&](Function_declaration const& declaration) -> bool
         {
+            if (compilation_options.is_test_mode)
+            {
+                if (declaration.unique_name.has_value() && declaration.unique_name.value() == "main")
+                    return false;
+            }
+            else if (declaration.is_test)
+            {
+                return false;
+            }
+
             if (!functions_to_compile.has_value())
                 return true;
 
-            auto const predicate = [&](std::string_view const function_name) { return function_name == definition.name; };
+            auto const predicate = [&](std::string_view const function_name) { return function_name == declaration.name; };
             auto const location = std::find_if(functions_to_compile->begin(), functions_to_compile->end(), predicate);
             return location != functions_to_compile->end();
         };
 
         for (Function_definition const& definition : core_module.definitions.function_definitions)
         {
-            if (!should_compile(definition))
-                continue;
-
             Function_declaration const& declaration = *find_function_declaration(core_module, definition.name).value();
+            
+            if (!should_compile(declaration))
+                continue;
 
             llvm::Function* const llvm_function = get_llvm_function(core_module, llvm_module, definition.name);
             if (!llvm_function)
@@ -841,7 +851,7 @@ namespace h::compiler
         return core_module_dependencies;
     }
 
-    void add_module_declarations(
+    static void add_module_declarations(
         llvm::LLVMContext& llvm_context,
         llvm::DataLayout const& llvm_data_layout,
         llvm::Module& llvm_module,
@@ -853,6 +863,7 @@ namespace h::compiler
         std::span<Global_variable_declaration const> const global_variable_declarations,
         Type_database& type_database,
         Declaration_database& declaration_database,
+        bool const is_test_mode,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     )
     {
@@ -862,6 +873,16 @@ namespace h::compiler
 
             for (Function_declaration const& function_declaration : function_declarations)
             {
+                if (is_test_mode)
+                {
+                    if (function_declaration.unique_name.has_value() && function_declaration.unique_name.value() == "main")
+                        continue;
+                }
+                else if (function_declaration.is_test)
+                {
+                    continue;
+                }
+
                 if (functions_to_add.has_value())
                 {
                     auto const location = std::find_if(
@@ -1041,6 +1062,7 @@ namespace h::compiler
                     core_module_dependency.export_declarations.global_variable_declarations,
                     type_database,
                     declaration_database,
+                    false,
                     temporaries_allocator
                 );
             }
@@ -1148,7 +1170,7 @@ namespace h::compiler
         );
     }
 
-    std::unique_ptr<llvm::Module> create_module(
+    static std::unique_ptr<llvm::Module> create_module(
         llvm::LLVMContext& llvm_context,
         std::string_view const target_triple,
         llvm::DataLayout const& llvm_data_layout,
@@ -1165,8 +1187,8 @@ namespace h::compiler
         llvm_module->setTargetTriple(target_triple);
         llvm_module->setDataLayout(llvm_data_layout);
 
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, {});
-        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.export_declarations.function_declarations, std::nullopt, core_module.export_declarations.global_variable_declarations, type_database, declaration_database, compilation_options.is_test_mode, {});
+        add_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, core_module, core_module_dependencies, core_module.internal_declarations.function_declarations, std::nullopt, core_module.internal_declarations.global_variable_declarations, type_database, declaration_database, compilation_options.is_test_mode, {});
         add_instance_call_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, {});
 
         add_dependency_module_declarations(llvm_context, llvm_data_layout, *llvm_module, clang_module_data, type_database, declaration_database, core_module, core_module_dependencies, {});
@@ -1209,6 +1231,11 @@ namespace h::compiler
             compilation_options,
             {}
         );
+
+        if (compilation_options.is_test_mode)
+        {
+            // TODO add our own main
+        }
 
         if (llvm::verifyModule(*llvm_module, &llvm::errs()))
         {

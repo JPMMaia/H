@@ -52,9 +52,15 @@ namespace h::compiler
         std::filesystem::path const& artifact_file_path
     );
 
+    export void build_artifacts(
+        Builder& builder,
+        std::span<std::filesystem::path const> const artifact_file_paths
+    );
+
     export std::pmr::vector<Artifact> get_sorted_artifacts(
         std::span<std::filesystem::path const> const artifact_file_paths,
         std::span<Repository const> repositories,
+        bool const is_test_mode,
         std::pmr::polymorphic_allocator<> const& output_allocator,
         std::pmr::polymorphic_allocator<> const& temporaries_allocator
     );
