@@ -209,7 +209,7 @@
 					"--output-file=${workspaceFolder}/../rts-game/build/compile_commands.json",
 					"--build-directory=${workspaceFolder}/../rts-game/build",
 					"--header-search-path=C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/ucrt/",
-					"--repository=${workspaceFolder}/Libraries/hlang_repository.json",
+					"--repository=${workspaceFolder}/share/hlang/libraries/hlang_repository.json",
 					"--repository=${workspaceFolder}/../HLang_Local_Repository/hlang_repository.json",
 					"--repository=${workspaceFolder}/../rts-game/source/hlang_repository.json"
 				],
